@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.py diff=python
+*.md diff=markdown
+*.json diff=json
+*.yml diff=yaml
+*.yaml diff=yaml
+*.toml diff=toml
+
+/.github export-ignore
+CHANGELOG.md export-ignore
+
