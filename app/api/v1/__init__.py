@@ -1,8 +1,12 @@
+"""API v1 router aggregation."""
+
 from fastapi import APIRouter
+
+from app.api.v1 import auth, users
 
 api_router = APIRouter()
 
-# Import and include module routers here
-# from app.api.v1 import auth
-# api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+# Include module routers
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(users.router, prefix="/users", tags=["users"])
 
