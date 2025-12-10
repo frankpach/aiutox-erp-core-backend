@@ -1,7 +1,10 @@
+"""User repository for data access operations."""
+
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.auth.password import verify_password
 from app.models.user import User
 
 
@@ -28,9 +31,35 @@ class UserRepository:
         """Get user by email."""
         return self.db.query(User).filter(User.email == email).first()
 
+    def get_by_email_and_tenant(
+        self, email: str, tenant_id: UUID
+    ) -> User | None:
+        """Get user by email and tenant ID."""
+        return (
+            self.db.query(User)
+            .filter(User.email == email, User.tenant_id == tenant_id)
+            .first()
+        )
+
     def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
         """Get all users with pagination."""
         return self.db.query(User).offset(skip).limit(limit).all()
+
+    def get_all_by_tenant(
+        self, tenant_id: UUID, skip: int = 0, limit: int = 100
+    ) -> list[User]:
+        """Get all users by tenant with pagination."""
+        return (
+            self.db.query(User)
+            .filter(User.tenant_id == tenant_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def verify_password(self, user: User, password: str) -> bool:
+        """Verify user password against stored hash."""
+        return verify_password(password, user.password_hash)
 
     def update(self, user: User, user_data: dict) -> User:
         """Update user data."""
