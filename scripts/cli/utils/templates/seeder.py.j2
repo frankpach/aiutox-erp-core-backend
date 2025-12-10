@@ -1,0 +1,26 @@
+"""{{ name|title }} seeder."""
+
+from sqlalchemy.orm import Session
+
+from app.core.seeders.base import Seeder
+
+
+class {{ name|title }}Seeder(Seeder):
+    """Seeder for {{ name|lower }} data."""
+
+    def run(self, db: Session) -> None:
+        """Run the seeder.
+
+        Args:
+            db: Database session
+        """
+        # TODO: Implement seeder logic
+        # Example:
+        # from app.models.{{ name|lower }} import {{ name|title }}
+        #
+        # # Create seed data
+        # {{ name|lower }} = {{ name|title }}(name="Example")
+        # db.add({{ name|lower }})
+        # db.commit()
+        pass
+

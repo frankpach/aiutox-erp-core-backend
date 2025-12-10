@@ -1,0 +1,46 @@
+"""{{ name|title }} repository for data access operations."""
+
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.models.{{ name|lower }} import {{ name|title }}
+
+
+class {{ name|title }}Repository:
+    """Repository for {{ name|lower }} data access."""
+
+    def __init__(self, db: Session):
+        """Initialize repository with database session."""
+        self.db = db
+
+    def create(self, {{ name|lower }}_data: dict) -> {{ name|title }}:
+        """Create a new {{ name|lower }}."""
+        {{ name|lower }} = {{ name|title }}(**{{ name|lower }}_data)
+        self.db.add({{ name|lower }})
+        self.db.commit()
+        self.db.refresh({{ name|lower }})
+        return {{ name|lower }}
+
+    def get_by_id(self, {{ name|lower }}_id: UUID) -> {{ name|title }} | None:
+        """Get {{ name|lower }} by ID."""
+        return self.db.query({{ name|title }}).filter({{ name|title }}.id == {{ name|lower }}_id).first()
+
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[{{ name|title }}]:
+        """Get all {{ name|lower }}s with pagination."""
+        return self.db.query({{ name|title }}).offset(skip).limit(limit).all()
+
+    def update(self, {{ name|lower }}: {{ name|title }}, {{ name|lower }}_data: dict) -> {{ name|title }}:
+        """Update {{ name|lower }} data."""
+        for key, value in {{ name|lower }}_data.items():
+            if value is not None:
+                setattr({{ name|lower }}, key, value)
+        self.db.commit()
+        self.db.refresh({{ name|lower }})
+        return {{ name|lower }}
+
+    def delete(self, {{ name|lower }}: {{ name|title }}) -> None:
+        """Delete a {{ name|lower }}."""
+        self.db.delete({{ name|lower }})
+        self.db.commit()
+

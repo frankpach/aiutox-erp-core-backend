@@ -1,0 +1,62 @@
+"""{{ name|title }} service for business logic."""
+
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.repositories.{{ name|lower }}_repository import {{ name|title }}Repository
+from app.schemas.{{ name|lower }} import {{ name|title }}Create, {{ name|title }}Update
+
+
+class {{ name|title }}Service:
+    """Service for {{ name|lower }} business logic."""
+
+    def __init__(self, db: Session):
+        """Initialize service with database session."""
+        self.repository = {{ name|title }}Repository(db)
+
+    def create_{{ name|lower }}(self, {{ name|lower }}_data: {{ name|title }}Create) -> dict:
+        """Create a new {{ name|lower }} with business logic validation."""
+        # Create {{ name|lower }}
+        {{ name|lower }} = self.repository.create({{ name|lower }}_data.model_dump())
+        return {
+            "id": {{ name|lower }}.id,
+            "name": {{ name|lower }}.name,
+        }
+
+    def get_{{ name|lower }}(self, {{ name|lower }}_id: UUID) -> dict | None:
+        """Get {{ name|lower }} by ID."""
+        {{ name|lower }} = self.repository.get_by_id({{ name|lower }}_id)
+        if not {{ name|lower }}:
+            return None
+        return {
+            "id": {{ name|lower }}.id,
+            "name": {{ name|lower }}.name,
+            "created_at": {{ name|lower }}.created_at,
+            "updated_at": {{ name|lower }}.updated_at,
+        }
+
+    def update_{{ name|lower }}(self, {{ name|lower }}_id: UUID, {{ name|lower }}_data: {{ name|title }}Update) -> dict | None:
+        """Update {{ name|lower }} with business logic validation."""
+        {{ name|lower }} = self.repository.get_by_id({{ name|lower }}_id)
+        if not {{ name|lower }}:
+            return None
+
+        # Update {{ name|lower }}
+        update_data = {{ name|lower }}_data.model_dump(exclude_unset=True)
+        updated_{{ name|lower }} = self.repository.update({{ name|lower }}, update_data)
+        return {
+            "id": updated_{{ name|lower }}.id,
+            "name": updated_{{ name|lower }}.name,
+            "created_at": updated_{{ name|lower }}.created_at,
+            "updated_at": updated_{{ name|lower }}.updated_at,
+        }
+
+    def delete_{{ name|lower }}(self, {{ name|lower }}_id: UUID) -> bool:
+        """Delete {{ name|lower }}."""
+        {{ name|lower }} = self.repository.get_by_id({{ name|lower }}_id)
+        if not {{ name|lower }}:
+            return False
+        self.repository.delete({{ name|lower }})
+        return True
+
