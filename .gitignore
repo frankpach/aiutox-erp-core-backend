@@ -47,3 +47,13 @@ Thumbs.db
 # UV
 .uv/
 
+# Temporary files and scripts
+temp/
+*.tmp
+*.bak
+*.swp
+
+# Diagnostic and utility scripts (keep organized but optional)
+# scripts/diagnostics/
+# scripts/utils/
+
