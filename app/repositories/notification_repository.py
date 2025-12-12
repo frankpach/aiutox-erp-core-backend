@@ -105,4 +105,17 @@ class NotificationRepository:
             query = query.filter(NotificationQueue.status == status)
         return query.order_by(NotificationQueue.created_at.desc()).offset(skip).limit(limit).all()
 
+    def get_queue_entry_by_id(
+        self, queue_id: UUID, tenant_id: UUID
+    ) -> NotificationQueue | None:
+        """Get a queue entry by ID."""
+        return (
+            self.db.query(NotificationQueue)
+            .filter(
+                NotificationQueue.id == queue_id,
+                NotificationQueue.tenant_id == tenant_id,
+            )
+            .first()
+        )
+
 

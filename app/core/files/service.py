@@ -1,0 +1,359 @@
+"""File service for file management."""
+
+import logging
+import mimetypes
+import os
+from pathlib import Path
+from typing import BinaryIO
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.core.files.storage import (
+    HybridStorageBackend,
+    LocalStorageBackend,
+    S3StorageBackend,
+)
+from app.core.pubsub import EventPublisher, get_event_publisher
+from app.core.pubsub.models import EventMetadata
+from app.models.file import File, FilePermission, FileVersion, StorageBackend
+from app.repositories.file_repository import FileRepository
+
+logger = logging.getLogger(__name__)
+
+
+class FileService:
+    """Service for file management."""
+
+    def __init__(
+        self,
+        db: Session,
+        storage_backend=None,
+        event_publisher: EventPublisher | None = None,
+    ):
+        """Initialize file service.
+
+        Args:
+            db: Database session
+            storage_backend: Storage backend instance (created if not provided)
+            event_publisher: EventPublisher instance (created if not provided)
+        """
+        self.db = db
+        self.repository = FileRepository(db)
+        self.event_publisher = event_publisher or get_event_publisher()
+
+        # Initialize storage backend
+        if storage_backend is None:
+            use_s3 = os.getenv("USE_S3_STORAGE", "false").lower() == "true"
+            self.storage_backend = HybridStorageBackend(use_s3=use_s3)
+        else:
+            self.storage_backend = storage_backend
+
+    def _generate_storage_path(
+        self, tenant_id: UUID, entity_type: str | None, filename: str
+    ) -> str:
+        """Generate storage path for a file.
+
+        Args:
+            tenant_id: Tenant ID
+            entity_type: Entity type (optional)
+            filename: Original filename
+
+        Returns:
+            Storage path
+        """
+        # Generate path: tenant_id/entity_type/year/month/filename
+        from datetime import datetime
+
+        now = datetime.utcnow()
+        path_parts = [str(tenant_id)]
+        if entity_type:
+            path_parts.append(entity_type)
+        path_parts.extend([str(now.year), f"{now.month:02d}", filename])
+        return "/".join(path_parts)
+
+    def _get_file_extension(self, filename: str) -> str:
+        """Get file extension from filename."""
+        return Path(filename).suffix.lower()
+
+    def _detect_mime_type(self, filename: str, content: bytes | None = None) -> str:
+        """Detect MIME type from filename or content."""
+        mime_type, _ = mimetypes.guess_type(filename)
+        if mime_type:
+            return mime_type
+        # Fallback to application/octet-stream
+        return "application/octet-stream"
+
+    async def upload_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        entity_type: str | None,
+        entity_id: UUID | None,
+        tenant_id: UUID,
+        user_id: UUID,
+        description: str | None = None,
+        metadata: dict | None = None,
+    ) -> File:
+        """Upload a file.
+
+        Args:
+            file_content: File content as bytes
+            filename: Original filename
+            entity_type: Entity type (e.g., 'product', 'order')
+            entity_id: Entity ID
+            tenant_id: Tenant ID
+            user_id: User ID who uploaded the file
+            description: File description (optional)
+            metadata: Additional metadata (optional)
+
+        Returns:
+            Created File object
+        """
+        # Generate storage path
+        storage_path = self._generate_storage_path(tenant_id, entity_type, filename)
+
+        # Upload to storage
+        await self.storage_backend.upload(file_content, storage_path)
+
+        # Get file info
+        file_size = len(file_content)
+        file_extension = self._get_file_extension(filename)
+        mime_type = self._detect_mime_type(filename, file_content)
+
+        # Determine storage backend type
+        backend = self.storage_backend
+        if isinstance(backend, HybridStorageBackend):
+            # HybridStorageBackend has a .backend attribute
+            backend = backend.backend
+
+        if isinstance(backend, S3StorageBackend):
+            storage_backend_type = StorageBackend.S3
+        else:
+            storage_backend_type = StorageBackend.LOCAL
+
+        # Get storage URL
+        storage_url = await self.storage_backend.get_url(storage_path)
+
+        # Create file record
+        file = self.repository.create(
+            {
+                "tenant_id": tenant_id,
+                "name": filename,
+                "original_name": filename,
+                "mime_type": mime_type,
+                "size": file_size,
+                "extension": file_extension,
+                "storage_backend": storage_backend_type,
+                "storage_path": storage_path,
+                "storage_url": storage_url,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "description": description,
+                "metadata": metadata,
+                "version_number": 1,
+                "is_current": True,
+                "uploaded_by": user_id,
+            }
+        )
+
+        # Publish event
+        await self.event_publisher.publish(
+            event_type="file.uploaded",
+            entity_type="file",
+            entity_id=file.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="file_service",
+                version="1.0",
+                additional_data={
+                    "filename": filename,
+                    "entity_type": entity_type,
+                    "entity_id": str(entity_id) if entity_id else None,
+                    "size": file_size,
+                },
+            ),
+        )
+
+        logger.info(f"File uploaded: {file.id} ({filename})")
+        return file
+
+    async def download_file(self, file_id: UUID, tenant_id: UUID) -> tuple[bytes, File]:
+        """Download a file.
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+
+        Returns:
+            Tuple of (file content, File object)
+
+        Raises:
+            FileNotFoundError: If file not found
+        """
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file or not file.is_current:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        # Download from storage
+        content = await self.storage_backend.download(file.storage_path)
+
+        return content, file
+
+    async def delete_file(
+        self, file_id: UUID, tenant_id: UUID, user_id: UUID
+    ) -> bool:
+        """Delete a file (soft delete).
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+            user_id: User ID who deleted the file
+
+        Returns:
+            True if deleted successfully
+        """
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file:
+            return False
+
+        # Soft delete (set is_current=False)
+        deleted = self.repository.delete(file_id, tenant_id)
+
+        if deleted:
+            # Publish event
+            await self.event_publisher.publish(
+                event_type="file.deleted",
+                entity_type="file",
+                entity_id=file_id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                metadata=EventMetadata(
+                    source="file_service",
+                    version="1.0",
+                    additional_data={"filename": file.name},
+                ),
+            )
+
+            logger.info(f"File deleted: {file_id}")
+
+        return deleted
+
+    def get_file_versions(self, file_id: UUID, tenant_id: UUID) -> list[FileVersion]:
+        """Get all versions of a file.
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+
+        Returns:
+            List of FileVersion objects
+        """
+        return self.repository.get_versions(file_id, tenant_id)
+
+    async def create_file_version(
+        self,
+        file_id: UUID,
+        file_content: bytes,
+        filename: str,
+        tenant_id: UUID,
+        user_id: UUID,
+        change_description: str | None = None,
+    ) -> FileVersion:
+        """Create a new version of a file.
+
+        Args:
+            file_id: Original file ID
+            file_content: New file content
+            filename: New filename
+            tenant_id: Tenant ID
+            user_id: User ID who created the version
+            change_description: Description of changes (optional)
+
+        Returns:
+            Created FileVersion object
+        """
+        # Get original file
+        original_file = self.repository.get_by_id(file_id, tenant_id)
+        if not original_file:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        # Get next version number
+        next_version = self.repository.get_latest_version_number(file_id) + 1
+
+        # Generate storage path for new version
+        storage_path = self._generate_storage_path(
+            tenant_id, original_file.entity_type, f"v{next_version}_{filename}"
+        )
+
+        # Upload new version to storage
+        await self.storage_backend.upload(file_content, storage_path)
+
+        # Get file info
+        file_size = len(file_content)
+        file_extension = self._get_file_extension(filename)
+        mime_type = self._detect_mime_type(filename, file_content)
+
+        # Create version record
+        version = self.repository.create_version(
+            {
+                "file_id": file_id,
+                "tenant_id": tenant_id,
+                "version_number": next_version,
+                "storage_path": storage_path,
+                "storage_backend": original_file.storage_backend,
+                "size": file_size,
+                "mime_type": mime_type,
+                "change_description": change_description,
+                "created_by": user_id,
+            }
+        )
+
+        # Update original file version number
+        original_file.version_number = next_version
+        self.db.commit()
+
+        logger.info(f"File version created: {file_id} v{next_version}")
+        return version
+
+    def set_file_permissions(
+        self,
+        file_id: UUID,
+        permissions: list[dict],
+        tenant_id: UUID,
+    ) -> list[FilePermission]:
+        """Set permissions for a file.
+
+        Args:
+            file_id: File ID
+            permissions: List of permission dicts with target_type, target_id, and permission flags
+            tenant_id: Tenant ID
+
+        Returns:
+            List of created FilePermission objects
+        """
+        # Delete existing permissions
+        existing = self.repository.get_permissions(file_id, tenant_id)
+        for perm in existing:
+            self.repository.delete_permission(perm.id, tenant_id)
+
+        # Create new permissions
+        created_permissions = []
+        for perm_data in permissions:
+            perm = self.repository.create_permission(
+                {
+                    "file_id": file_id,
+                    "tenant_id": tenant_id,
+                    "target_type": perm_data["target_type"],
+                    "target_id": perm_data["target_id"],
+                    "can_view": perm_data.get("can_view", True),
+                    "can_download": perm_data.get("can_download", True),
+                    "can_edit": perm_data.get("can_edit", False),
+                    "can_delete": perm_data.get("can_delete", False),
+                }
+            )
+            created_permissions.append(perm)
+
+        return created_permissions
+

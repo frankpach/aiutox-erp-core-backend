@@ -18,8 +18,13 @@ from app.models.automation import AutomationExecution, Rule, RuleVersion
 from app.models.preference import Dashboard, OrgPreference, RolePreference, SavedView, UserPreference
 from app.models.reporting import DashboardWidget, ReportDefinition
 from app.models.notification import NotificationQueue, NotificationTemplate
+from app.models.file import File, FilePermission, FileVersion
+from app.models.activity import Activity
+from app.models.tag import EntityTag, Tag, TagCategory
 
 __all__ = [
+    "Activity",
+    "EntityTag",
     "AuditLog",
     "AutomationExecution",
     "Base",
@@ -28,6 +33,9 @@ __all__ = [
     "Dashboard",
     "DashboardWidget",
     "DelegatedPermission",
+    "File",
+    "FilePermission",
+    "FileVersion",
     "ModuleRole",
     "NotificationQueue",
     "NotificationTemplate",
@@ -44,6 +52,8 @@ __all__ = [
     "SavedView",
     "SeederRecord",
     "SystemConfig",
+    "Tag",
+    "TagCategory",
     "Tenant",
     "User",
     "UserPreference",

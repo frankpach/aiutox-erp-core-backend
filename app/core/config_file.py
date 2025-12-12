@@ -79,6 +79,14 @@ class Settings(BaseSettings):
     LOG_TO_DB: bool = True  # Always log to database
     LOG_FORMAT: str = "human"  # "human" for dev, "json" for prod
 
+    # SMTP Configuration
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@aiutox.com"
+    SMTP_USE_TLS: bool = True
+
     model_config = ConfigDict(
         env_file="../.env",  # .env file is in the project root
         env_file_encoding="utf-8",

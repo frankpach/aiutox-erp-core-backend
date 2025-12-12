@@ -7,6 +7,8 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.preferences.service import PreferencesService
+from app.core.pubsub import EventPublisher, get_event_publisher
+from app.core.pubsub.models import EventMetadata
 from app.models.notification import NotificationQueue, NotificationStatus, NotificationTemplate
 from app.repositories.notification_repository import NotificationRepository
 
@@ -16,11 +18,12 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     """Service for managing notifications."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, event_publisher: EventPublisher | None = None):
         """Initialize service with database session."""
         self.db = db
         self.repository = NotificationRepository(db)
         self.preferences_service = PreferencesService(db)
+        self.event_publisher = event_publisher or get_event_publisher()
 
     async def send(
         self,
@@ -103,12 +106,40 @@ class NotificationService:
                 from datetime import datetime, timezone
 
                 queue_entry.sent_at = datetime.now(timezone.utc)
+                self.db.commit()
+
+                # Publish notification.sent event
+                await self.event_publisher.publish(
+                    event_type="notification.sent",
+                    entity_type="notification",
+                    entity_id=queue_entry.id,
+                    tenant_id=tenant_id,
+                    user_id=recipient_id,
+                    metadata={
+                        "channel": channel,
+                        "event_type": event_type,
+                        "template_id": str(template.id),
+                    },
+                )
             except Exception as e:
                 logger.error(f"Failed to send notification {queue_entry.id}: {e}", exc_info=True)
                 queue_entry.status = NotificationStatus.FAILED
                 queue_entry.error_message = str(e)
+                self.db.commit()
 
-            self.db.commit()
+                # Publish notification.failed event
+                await self.event_publisher.publish(
+                    event_type="notification.failed",
+                    entity_type="notification",
+                    entity_id=queue_entry.id,
+                    tenant_id=tenant_id,
+                    user_id=recipient_id,
+                    metadata={
+                        "channel": channel,
+                        "event_type": event_type,
+                        "error": str(e),
+                    },
+                )
 
         return [
             {
@@ -171,10 +202,55 @@ class NotificationService:
             recipient_id: User ID
             subject: Email subject
             body: Email body
-
-        TODO: Implement actual email sending
         """
-        logger.info(f"Sending email to user {recipient_id}: {subject}")
+        from app.core.config_file import get_settings
+        from app.repositories.user_repository import UserRepository
+
+        settings = get_settings()
+
+        # Get user email
+        user_repo = UserRepository(self.db)
+        user = user_repo.get_by_id(recipient_id)
+        if not user or not user.email:
+            raise ValueError(f"User {recipient_id} not found or has no email")
+
+        # Skip email sending if SMTP is not configured
+        if not settings.SMTP_HOST or settings.SMTP_HOST == "localhost":
+            logger.warning(
+                f"SMTP not configured, skipping email to {user.email}. "
+                "Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD to enable email sending."
+            )
+            return
+
+        try:
+            import aiosmtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            # Create message
+            message = MIMEMultipart("alternative")
+            message["From"] = settings.SMTP_FROM
+            message["To"] = user.email
+            if subject:
+                message["Subject"] = subject
+
+            # Add body
+            message.attach(MIMEText(body, "html" if "<html>" in body.lower() else "plain"))
+
+            # Send email
+            await aiosmtplib.send(
+                message,
+                hostname=settings.SMTP_HOST,
+                port=settings.SMTP_PORT,
+                username=settings.SMTP_USER if settings.SMTP_USER else None,
+                password=settings.SMTP_PASSWORD if settings.SMTP_PASSWORD else None,
+                use_tls=settings.SMTP_USE_TLS,
+            )
+
+            logger.info(f"Email sent successfully to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send email to {user.email}: {e}", exc_info=True)
+            raise
 
     async def _send_sms(self, recipient_id: UUID, message: str) -> None:
         """Send SMS notification.
