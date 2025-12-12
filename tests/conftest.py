@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.auth import create_access_token, hash_password
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 from app.core.db.deps import get_db
 from app.core.db.session import Base
 from app.main import app
@@ -179,3 +179,44 @@ def clear_rate_limit_state():
     yield
     _login_attempts.clear()
 
+
+# Redis availability check for integration tests
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "redis: mark test as requiring Redis")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+
+
+@pytest.fixture(scope="session")
+def redis_available():
+    """Check if Redis is available for integration tests."""
+    import asyncio
+
+    async def check_redis():
+        try:
+            from app.core.pubsub.client import RedisStreamsClient
+
+            client = RedisStreamsClient(
+                redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+            )
+            # Try to connect with a short timeout
+            try:
+                # Get client with timeout
+                redis_conn = await asyncio.wait_for(client._get_client(), timeout=2.0)
+                await asyncio.wait_for(redis_conn.ping(), timeout=1.0)
+                await client.close()
+                return True
+            except (asyncio.TimeoutError, Exception):
+                try:
+                    await client.close()
+                except Exception:
+                    pass
+                return False
+        except Exception:
+            return False
+
+    # Run the check
+    try:
+        return asyncio.run(asyncio.wait_for(check_redis(), timeout=3.0))
+    except Exception:
+        return False

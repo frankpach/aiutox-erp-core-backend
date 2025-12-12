@@ -3,7 +3,7 @@
 from functools import lru_cache
 from urllib.parse import quote_plus
 
-from pydantic import computed_field
+from pydantic import ConfigDict, computed_field
 from pydantic_settings import BaseSettings
 
 
@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: str = ""
 
+    # Redis Streams configuration
+    REDIS_STREAM_DOMAIN: str = "events:domain"
+    REDIS_STREAM_TECHNICAL: str = "events:technical"
+    REDIS_STREAM_FAILED: str = "events:failed"
+
     # Security
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
@@ -74,24 +79,25 @@ class Settings(BaseSettings):
     LOG_TO_DB: bool = True  # Always log to database
     LOG_FORMAT: str = "human"  # "human" for dev, "json" for prod
 
-    class Config:
-        env_file = "../.env"  # .env file is in the project root
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra fields from .env that are not in Settings
+    model_config = ConfigDict(
+        env_file="../.env",  # .env file is in the project root
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",  # Ignore extra fields from .env that are not in Settings
+    )
 
-        @classmethod
-        def parse_env_var(cls, field_name: str, raw_val: str) -> str:
-            """Parse environment variable, handling encoding issues."""
-            if raw_val is None:
-                return ""
-            # Try to decode as UTF-8, fallback to latin-1 if needed
-            if isinstance(raw_val, bytes):
-                try:
-                    return raw_val.decode("utf-8")
-                except UnicodeDecodeError:
-                    return raw_val.decode("latin-1")
-            return str(raw_val)
+    @classmethod
+    def parse_env_var(cls, field_name: str, raw_val: str) -> str:
+        """Parse environment variable, handling encoding issues."""
+        if raw_val is None:
+            return ""
+        # Try to decode as UTF-8, fallback to latin-1 if needed
+        if isinstance(raw_val, bytes):
+            try:
+                return raw_val.decode("utf-8")
+            except UnicodeDecodeError:
+                return raw_val.decode("latin-1")
+        return str(raw_val)
 
 
 @lru_cache

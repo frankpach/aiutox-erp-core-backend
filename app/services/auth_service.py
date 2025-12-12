@@ -12,7 +12,7 @@ from app.core.auth import (
     verify_password,
     verify_refresh_token,
 )
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 from app.core.logging import (
     log_refresh_token_invalid,
     log_refresh_token_used,

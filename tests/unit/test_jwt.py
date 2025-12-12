@@ -11,7 +11,7 @@ from app.core.auth.jwt import (
     decode_token,
     verify_refresh_token,
 )
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 
 settings = get_settings()
 

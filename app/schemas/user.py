@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 if TYPE_CHECKING:
     from app.schemas.contact_method import ContactMethodResponse
@@ -62,8 +62,8 @@ class UserUpdate(BaseModel):
     avatar_url: str | None = None
     bio: str | None = None
     notes: str | None = None
-    is_active: bool | None = None
-    two_factor_enabled: bool | None = None
+    is_active: bool | None = Field(None, description="Whether the user account is active. Setting to False performs a soft delete.")
+    two_factor_enabled: bool | None = Field(None, description="Whether two-factor authentication (2FA) is enabled for this user")
 
 
 class UserResponse(UserBase):
@@ -91,9 +91,9 @@ class UserResponse(UserBase):
     notes: str | None = None
     # Autenticación
     last_login_at: datetime | None = None
-    email_verified_at: datetime | None = None
-    phone_verified_at: datetime | None = None
-    two_factor_enabled: bool = False
+    email_verified_at: datetime | None = Field(None, description="Timestamp when the user's email address was verified")
+    phone_verified_at: datetime | None = Field(None, description="Timestamp when the user's phone number was verified")
+    two_factor_enabled: bool = Field(False, description="Whether two-factor authentication (2FA) is enabled for this user")
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -101,6 +101,5 @@ class UserResponse(UserBase):
         default_factory=list, description="User contact methods"
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 

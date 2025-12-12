@@ -1,0 +1,39 @@
+"""Pub-Sub module for event bus based on Redis Streams."""
+
+from app.core.pubsub.client import RedisStreamsClient
+from app.core.pubsub.consumer import EventConsumer
+from app.core.pubsub.errors import (
+    ConsumeError,
+    GroupNotFoundError,
+    PubSubError,
+    PublishError,
+    StreamNotFoundError,
+)
+from app.core.pubsub.models import Event, EventMetadata
+from app.core.pubsub.publisher import EventPublisher
+
+__all__ = [
+    "RedisStreamsClient",
+    "EventPublisher",
+    "EventConsumer",
+    "Event",
+    "EventMetadata",
+    "PubSubError",
+    "StreamNotFoundError",
+    "GroupNotFoundError",
+    "PublishError",
+    "ConsumeError",
+    "get_event_publisher",
+]
+
+
+def get_event_publisher() -> EventPublisher:
+    """Dependency function to get EventPublisher instance."""
+    from app.core.config_file import get_settings
+    from app.core.pubsub.client import RedisStreamsClient
+
+    settings = get_settings()
+    client = RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    return EventPublisher(client=client)
+
+

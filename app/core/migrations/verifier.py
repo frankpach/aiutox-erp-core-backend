@@ -7,7 +7,7 @@ from typing import List, Tuple
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 from app.core.db.session import Base, engine
 from app.core.migrations.manager import MigrationManager
 from app.core.migrations.models import (

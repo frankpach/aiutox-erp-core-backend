@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -40,12 +40,11 @@ class UserMeResponse(BaseModel):
     id: UUID
     email: str
     full_name: str | None
-    tenant_id: UUID
-    roles: list[str] = Field(default_factory=list, description="Global roles")
-    permissions: list[str] = Field(default_factory=list, description="Effective permissions")
+    tenant_id: UUID = Field(..., description="Tenant ID for multi-tenancy isolation")
+    roles: list[str] = Field(default_factory=list, description="Global roles assigned to the user")
+    permissions: list[str] = Field(default_factory=list, description="Effective permissions (from roles, module roles, and delegated permissions)")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleAssignRequest(BaseModel):
@@ -67,11 +66,10 @@ class RoleResponse(BaseModel):
     """Schema for role response."""
 
     role: str
-    granted_by: UUID | None
+    granted_by: UUID | None = Field(None, description="ID of the user who granted this role. None if granted by system.")
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleListResponse(BaseModel):

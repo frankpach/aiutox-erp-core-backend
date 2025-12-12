@@ -123,12 +123,23 @@ def test_rollback_no_migrations(manager):
 
 def test_fresh(manager):
     """Test fresh command."""
-    with patch("app.core.migrations.manager.Base.metadata.drop_all") as mock_drop, patch(
-        "app.core.migrations.manager.MigrationManager.apply_migrations"
-    ) as mock_apply:
+    with patch.object(manager, "apply_migrations") as mock_apply, patch.object(
+        manager, "engine"
+    ) as mock_engine:
+        # Mock the engine connection context manager
+        mock_connection = MagicMock()
+        mock_context = MagicMock()
+        mock_context.__enter__ = MagicMock(return_value=mock_connection)
+        mock_context.__exit__ = MagicMock(return_value=False)
+        mock_engine.begin.return_value = mock_context
+
+        # Mock execute to return table names
+        mock_result = MagicMock()
+        mock_result.__iter__ = MagicMock(return_value=iter([("table1",), ("table2",)]))
+        mock_connection.execute.return_value = mock_result
+
         mock_apply.return_value = MigrationResult(success=True, applied_count=3)
         result = manager.fresh()
-        mock_drop.assert_called_once()
         mock_apply.assert_called_once()
         assert result.success
 
@@ -144,5 +155,8 @@ def test_refresh(manager):
         mock_rollback.assert_called_once()
         mock_apply.assert_called_once()
         assert result.success
+
+
+
 
 

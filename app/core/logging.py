@@ -6,7 +6,7 @@ import sys
 from typing import Any
 from uuid import UUID
 
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 
 settings = get_settings()
 

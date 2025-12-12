@@ -249,8 +249,8 @@ def test_get_audit_logs_endpoint_without_permission(
 
     assert response.status_code == 403
     data = response.json()
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
 
 def test_get_audit_logs_endpoint_with_filters(

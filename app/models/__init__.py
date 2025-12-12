@@ -11,20 +11,42 @@ from app.models.refresh_token import RefreshToken
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.user_role import UserRole
+# Products models are now loaded dynamically via ModuleRegistry
+# Do not import them here to avoid circular imports
+from app.models.system_config import SystemConfig
+from app.models.automation import AutomationExecution, Rule, RuleVersion
+from app.models.preference import Dashboard, OrgPreference, RolePreference, SavedView, UserPreference
+from app.models.reporting import DashboardWidget, ReportDefinition
+from app.models.notification import NotificationQueue, NotificationTemplate
 
 __all__ = [
     "AuditLog",
+    "AutomationExecution",
     "Base",
     "Contact",
     "ContactMethod",
+    "Dashboard",
+    "DashboardWidget",
     "DelegatedPermission",
     "ModuleRole",
+    "NotificationQueue",
+    "NotificationTemplate",
+    "OrgPreference",
     "Organization",
     "PersonIdentification",
+    # Products models (Category, Product, ProductBarcode, ProductVariant) are now
+    # loaded dynamically via ModuleRegistry - do not include them here
     "RefreshToken",
+    "ReportDefinition",
+    "RolePreference",
+    "Rule",
+    "RuleVersion",
+    "SavedView",
     "SeederRecord",
+    "SystemConfig",
     "Tenant",
     "User",
+    "UserPreference",
     "UserRole",
 ]
 

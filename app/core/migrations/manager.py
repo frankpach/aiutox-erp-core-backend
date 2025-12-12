@@ -10,7 +10,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 from app.core.db.session import Base, engine
 from app.core.migrations.models import MigrationInfo, MigrationResult, MigrationStatus
 
@@ -331,10 +331,22 @@ class MigrationManager:
             MigrationResult object
         """
         try:
-            # Drop all tables
-            Base.metadata.drop_all(bind=self.engine)
+            # Drop all tables using SQL to ensure everything is removed
+            with self.engine.begin() as connection:
+                # Get all table names in public schema
+                result = connection.execute(text("""
+                    SELECT tablename FROM pg_tables
+                    WHERE schemaname = 'public'
+                """))
+                tables = [row[0] for row in result]
 
-            # Run migrations
+                # Drop all tables with CASCADE in a single transaction
+                if tables:
+                    # Build DROP statements
+                    drop_statements = ', '.join([f'"{table}"' for table in tables])
+                    connection.execute(text(f'DROP TABLE IF EXISTS {drop_statements} CASCADE'))
+
+            # Run migrations from the beginning
             return self.apply_migrations()
         except Exception as e:
             return MigrationResult(

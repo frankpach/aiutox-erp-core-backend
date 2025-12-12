@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class DelegatedPermissionCreate(BaseModel):
@@ -79,8 +79,7 @@ class DelegatedPermissionResponse(BaseModel):
     revoked_at: datetime | None
     is_active: bool = Field(..., description="Whether the permission is currently active")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DelegatedPermissionListResponse(BaseModel):

@@ -1,15 +1,22 @@
 """User management router for CRUD operations."""
 
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.auth.dependencies import get_current_user, require_permission
+from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
+from app.core.exceptions import (
+    raise_bad_request,
+    raise_forbidden,
+    raise_not_found,
+)
 from app.core.logging import get_client_info
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -17,7 +24,7 @@ router = APIRouter()
 
 @router.get(
     "",
-    response_model=dict,
+    response_model=StandardListResponse[dict],
     status_code=status.HTTP_200_OK,
     summary="List users",
     description="List all users in the current tenant. Requires auth.manage_users permission.",
@@ -44,7 +51,7 @@ async def list_users(
     db: Annotated[Session, Depends(get_db)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-) -> dict:
+) -> StandardListResponse[dict]:
     """
     List all users in the current tenant.
 
@@ -57,10 +64,10 @@ async def list_users(
         page_size: Page size (default: 20, max: 100).
 
     Returns:
-        Dictionary with data (list of users) and meta (pagination info).
+        StandardListResponse with list of users and pagination metadata.
 
     Raises:
-        HTTPException: If user lacks permission.
+        APIException: If user lacks permission.
     """
     user_service = UserService(db)
     skip = (page - 1) * page_size
@@ -68,21 +75,20 @@ async def list_users(
         tenant_id=current_user.tenant_id, skip=skip, limit=page_size
     )
 
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
     # Return user dicts directly (UserResponse has forward references that need model_rebuild)
-    return {
-        "data": users,
-        "meta": {
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
-        },
-    }
+    return StandardListResponse(
+        data=users,
+        meta=PaginationMeta(
+            total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
+    )
 
 
 @router.post(
     "",
-    response_model=dict,
+    response_model=StandardResponse[dict],
     status_code=status.HTTP_201_CREATED,
     summary="Create user",
     description="Create a new user. Requires auth.manage_users permission.",
@@ -123,7 +129,7 @@ async def create_user(
     request: Request,
     current_user: Annotated[User, Depends(require_permission("auth.manage_users"))],
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
+) -> StandardResponse[dict]:
     """
     Create a new user.
 
@@ -135,22 +141,16 @@ async def create_user(
         db: Database session.
 
     Returns:
-        Dictionary with data containing created user.
+        StandardResponse with created user data.
 
     Raises:
-        HTTPException: If user already exists or validation fails.
+        APIException: If user already exists or validation fails.
     """
     # Ensure user is created in the same tenant as current user
     if user_data.tenant_id != current_user.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_TENANT_MISMATCH",
-                    "message": "Cannot create user in different tenant",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_TENANT_MISMATCH",
+            message="Cannot create user in different tenant",
         )
 
     user_service = UserService(db)
@@ -163,23 +163,14 @@ async def create_user(
             user_agent=user_agent,
         )
         user = user_service.get_user(user_dict["id"])
-        return {"data": user}
+        return StandardResponse(data=user)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "code": "USER_ALREADY_EXISTS",
-                    "message": str(e),
-                    "details": None,
-                }
-            },
-        ) from e
+        raise_bad_request(code="USER_ALREADY_EXISTS", message=str(e))
 
 
 @router.get(
     "/{user_id}",
-    response_model=dict,
+    response_model=StandardResponse[dict],
     status_code=status.HTTP_200_OK,
     summary="Get user",
     description="Get user by ID. Requires auth.manage_users permission.",
@@ -219,7 +210,7 @@ async def get_user(
     user_id: str,
     current_user: Annotated[User, Depends(require_permission("auth.manage_users"))],
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
+) -> StandardResponse[dict]:
     """
     Get user by ID.
 
@@ -231,61 +222,35 @@ async def get_user(
         db: Database session.
 
     Returns:
-        Dictionary with data containing user.
+        StandardResponse with user data.
 
     Raises:
-        HTTPException: If user not found or lacks permission.
+        APIException: If user not found or lacks permission.
     """
-    from uuid import UUID
-
     try:
         user_uuid = UUID(user_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "code": "INVALID_UUID",
-                    "message": "Invalid user ID format",
-                    "details": None,
-                }
-            },
-        ) from e
+    except ValueError:
+        raise_bad_request(code="INVALID_UUID", message="Invalid user ID format")
 
     user_service = UserService(db)
     user = user_service.get_user(user_uuid)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": {
-                    "code": "USER_NOT_FOUND",
-                    "message": "User not found",
-                    "details": None,
-                }
-            },
-        )
+        raise_not_found("User", user_id)
 
     # Verify tenant access
     if user["tenant_id"] != current_user.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_TENANT_MISMATCH",
-                    "message": "Cannot access user from different tenant",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_TENANT_MISMATCH",
+            message="Cannot access user from different tenant",
         )
 
-    return {"data": user}
+    return StandardResponse(data=user)
 
 
 @router.patch(
     "/{user_id}",
-    response_model=dict,
+    response_model=StandardResponse[dict],
     status_code=status.HTTP_200_OK,
     summary="Update user",
     description="Update user by ID. Requires auth.manage_users permission.",
@@ -341,7 +306,7 @@ async def update_user(
     request: Request,
     current_user: Annotated[User, Depends(require_permission("auth.manage_users"))],
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
+) -> StandardResponse[dict]:
     """
     Update user by ID.
 
@@ -354,53 +319,27 @@ async def update_user(
         db: Database session.
 
     Returns:
-        Dictionary with data containing updated user.
+        StandardResponse with updated user data.
 
     Raises:
-        HTTPException: If user not found, validation fails, or lacks permission.
+        APIException: If user not found, validation fails, or lacks permission.
     """
-    from uuid import UUID
-
     try:
         user_uuid = UUID(user_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "code": "INVALID_UUID",
-                    "message": "Invalid user ID format",
-                    "details": None,
-                }
-            },
-        ) from e
+    except ValueError:
+        raise_bad_request(code="INVALID_UUID", message="Invalid user ID format")
 
     user_service = UserService(db)
     existing_user = user_service.get_user(user_uuid)
 
     if not existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": {
-                    "code": "USER_NOT_FOUND",
-                    "message": "User not found",
-                    "details": None,
-                }
-            },
-        )
+        raise_not_found("User", user_id)
 
     # Verify tenant access
     if existing_user["tenant_id"] != current_user.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_TENANT_MISMATCH",
-                    "message": "Cannot access user from different tenant",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_TENANT_MISMATCH",
+            message="Cannot access user from different tenant",
         )
 
     ip_address, user_agent = get_client_info(request)
@@ -413,33 +352,15 @@ async def update_user(
             user_agent=user_agent,
         )
         if not updated_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "error": {
-                        "code": "USER_NOT_FOUND",
-                        "message": "User not found",
-                        "details": None,
-                    }
-                },
-            )
-        return {"data": updated_user}
+            raise_not_found("User", user_id)
+        return StandardResponse(data=updated_user)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "code": "USER_ALREADY_EXISTS",
-                    "message": str(e),
-                    "details": None,
-                }
-            },
-        ) from e
+        raise_bad_request(code="USER_ALREADY_EXISTS", message=str(e))
 
 
 @router.delete(
     "/{user_id}",
-    response_model=dict,
+    response_model=StandardResponse[dict],
     status_code=status.HTTP_200_OK,
     summary="Delete user (soft delete)",
     description="Soft delete user by setting is_active=False. Requires auth.manage_users permission.",
@@ -480,7 +401,7 @@ async def delete_user(
     request: Request,
     current_user: Annotated[User, Depends(require_permission("auth.manage_users"))],
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
+) -> StandardResponse[dict]:
     """
     Soft delete user by setting is_active=False.
 
@@ -492,53 +413,27 @@ async def delete_user(
         db: Database session.
 
     Returns:
-        Dictionary with success message.
+        StandardResponse with success message.
 
     Raises:
-        HTTPException: If user not found or lacks permission.
+        APIException: If user not found or lacks permission.
     """
-    from uuid import UUID
-
     try:
         user_uuid = UUID(user_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "code": "INVALID_UUID",
-                    "message": "Invalid user ID format",
-                    "details": None,
-                }
-            },
-        ) from e
+    except ValueError:
+        raise_bad_request(code="INVALID_UUID", message="Invalid user ID format")
 
     user_service = UserService(db)
     existing_user = user_service.get_user(user_uuid)
 
     if not existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": {
-                    "code": "USER_NOT_FOUND",
-                    "message": "User not found",
-                    "details": None,
-                }
-            },
-        )
+        raise_not_found("User", user_id)
 
     # Verify tenant access
     if existing_user["tenant_id"] != current_user.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_TENANT_MISMATCH",
-                    "message": "Cannot access user from different tenant",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_TENANT_MISMATCH",
+            message="Cannot access user from different tenant",
         )
 
     ip_address, user_agent = get_client_info(request)
@@ -549,16 +444,6 @@ async def delete_user(
         user_agent=user_agent,
     )
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": {
-                    "code": "USER_NOT_FOUND",
-                    "message": "User not found",
-                    "details": None,
-                }
-            },
-        )
+        raise_not_found("User", user_id)
 
-    return {"message": "User deleted successfully"}
-
+    return StandardResponse(data={"message": "User deleted successfully"})

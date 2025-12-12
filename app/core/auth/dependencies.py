@@ -3,7 +3,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
+
+from app.core.exceptions import raise_forbidden, raise_unauthorized
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -30,89 +32,53 @@ async def get_current_user(
         User object if token is valid and user exists.
 
     Raises:
-        HTTPException: If token is invalid, expired, or user not found.
+        APIException: If token is invalid, expired, or user not found.
     """
     # Decode token
     payload = decode_token(token)
     if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Invalid or expired token",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Invalid or expired token",
         )
 
     # Verify token type
     if payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Invalid token type",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Invalid token type",
         )
 
     # Get user ID from token
     user_id_str = payload.get("sub")
     if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Token missing user ID",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Token missing user ID",
         )
 
     try:
         user_id = UUID(user_id_str)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Invalid user ID in token",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Invalid user ID in token",
         )
 
     # Get tenant_id from token
     tenant_id_str = payload.get("tenant_id")
     if not tenant_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Token missing tenant ID",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Token missing tenant ID",
         )
 
     try:
         token_tenant_id = UUID(tenant_id_str)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_INVALID_TOKEN",
-                    "message": "Invalid tenant ID in token",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_INVALID_TOKEN",
+            message="Invalid tenant ID in token",
         )
 
     # Get user from database
@@ -120,41 +86,23 @@ async def get_current_user(
     user = user_repository.get_by_id(user_id)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "AUTH_USER_NOT_FOUND",
-                    "message": "User not found",
-                    "details": None,
-                }
-            },
+        raise_unauthorized(
+            code="AUTH_USER_NOT_FOUND",
+            message="User not found",
         )
 
     # Verify tenant_id matches (multi-tenant security)
     if user.tenant_id != token_tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_TENANT_MISMATCH",
-                    "message": "Token tenant does not match user tenant",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_TENANT_MISMATCH",
+            message="Token tenant does not match user tenant",
         )
 
     # Verify user is active
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_USER_INACTIVE",
-                    "message": "User account is inactive",
-                    "details": None,
-                }
-            },
+        raise_forbidden(
+            code="AUTH_USER_INACTIVE",
+            message="User account is inactive",
         )
 
     return user
@@ -213,7 +161,7 @@ def require_permission(permission: str):
         permission: Required permission string (e.g., "inventory.view").
 
     Returns:
-        Dependency function that raises HTTPException if user lacks permission.
+        Dependency function that raises APIException if user lacks permission.
     """
     async def permission_check(
         current_user: Annotated[User, Depends(get_current_user)],
@@ -222,15 +170,10 @@ def require_permission(permission: str):
         from app.core.auth.permissions import has_permission
 
         if not has_permission(user_permissions, permission):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                        "message": "Insufficient permissions",
-                        "details": {"required_permission": permission},
-                    }
-                },
+            raise_forbidden(
+                code="AUTH_INSUFFICIENT_PERMISSIONS",
+                message="Insufficient permissions",
+                details={"required_permission": permission},
             )
         return current_user
 
@@ -253,7 +196,7 @@ def require_roles(*roles: str):
         *roles: One or more role names (e.g., "admin", "owner").
 
     Returns:
-        Dependency function that raises HTTPException if user lacks all roles.
+        Dependency function that raises APIException if user lacks all roles.
     """
     async def roles_check(
         current_user: Annotated[User, Depends(get_current_user)],
@@ -265,15 +208,10 @@ def require_roles(*roles: str):
         user_roles = permission_service.get_user_global_roles(current_user.id)
 
         if not any(role in user_roles for role in roles):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "AUTH_INSUFFICIENT_ROLES",
-                        "message": "Insufficient roles",
-                        "details": {"required_roles": list(roles), "user_roles": user_roles},
-                    }
-                },
+            raise_forbidden(
+                code="AUTH_INSUFFICIENT_ROLES",
+                message="Insufficient roles",
+                details={"required_roles": list(roles), "user_roles": user_roles},
             )
         return current_user
 
@@ -296,7 +234,7 @@ def require_any_permission(*permissions: str):
         *permissions: One or more permission strings.
 
     Returns:
-        Dependency function that raises HTTPException if user lacks all permissions.
+        Dependency function that raises APIException if user lacks all permissions.
     """
     async def any_permission_check(
         current_user: Annotated[User, Depends(get_current_user)],
@@ -305,15 +243,10 @@ def require_any_permission(*permissions: str):
         from app.core.auth.permissions import has_permission
 
         if not any(has_permission(user_permissions, perm) for perm in permissions):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                        "message": "Insufficient permissions",
-                        "details": {"required_permissions": list(permissions)},
-                    }
-                },
+            raise_forbidden(
+                code="AUTH_INSUFFICIENT_PERMISSIONS",
+                message="Insufficient permissions",
+                details={"required_permissions": list(permissions)},
             )
         return current_user
 

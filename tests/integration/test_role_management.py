@@ -221,10 +221,10 @@ class TestRoleManagement:
         )
 
         # Assert: Should fail
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_409_CONFLICT
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "ROLE_ALREADY_ASSIGNED"
+        assert "error" in data
+        assert data["error"]["code"] == "ROLE_ALREADY_ASSIGNED"
 
     def test_assign_role_invalid_role(
         self, client, db_session, test_user, test_tenant
@@ -261,7 +261,7 @@ class TestRoleManagement:
         )
 
         # Assert: Should fail
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_remove_role_requires_auth_manage_roles(
         self, client, db_session, test_user, test_tenant
@@ -343,7 +343,8 @@ class TestRoleManagement:
         # Assert: Should succeed
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "message" in data
+        assert "data" in data
+        assert "message" in data["data"]
 
         # Verify role is removed
         remaining_roles = (
@@ -389,8 +390,8 @@ class TestRoleManagement:
         # Assert: Should return 404
         assert response.status_code == status.HTTP_404_NOT_FOUND
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "ROLE_NOT_FOUND"
+        assert "error" in data
+        assert data["error"]["code"] == "ROLE_NOT_FOUND"
 
     def test_role_management_multi_tenant_isolation(
         self, client, db_session, test_user, test_tenant
@@ -438,6 +439,6 @@ class TestRoleManagement:
         # Assert: Should be denied (tenant mismatch)
         assert response.status_code == status.HTTP_403_FORBIDDEN
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "AUTH_TENANT_MISMATCH"
+        assert "error" in data
+        assert data["error"]["code"] == "AUTH_TENANT_MISMATCH"
 

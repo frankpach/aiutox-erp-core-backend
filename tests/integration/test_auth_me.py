@@ -57,9 +57,8 @@ def test_get_me_invalid_token(client):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INVALID_TOKEN"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
 def test_get_me_expired_token(client, test_user):
@@ -83,8 +82,8 @@ def test_get_me_expired_token(client, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
 def test_get_me_inactive_user(client, db_session, test_user_inactive):
@@ -142,9 +141,8 @@ def test_get_me_wrong_token_type(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INVALID_TOKEN"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
 

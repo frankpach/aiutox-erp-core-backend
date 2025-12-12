@@ -84,6 +84,15 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "products.manage_users",  # Permite delegar permisos
         },
     },
+    "config": {
+        "internal.viewer": {"config.view"},
+        "internal.editor": {"config.view", "config.edit"},
+        "internal.manager": {
+            "config.view",
+            "config.edit",
+            "config.delete",
+        },
+    },
     # Más módulos se agregarán según se implementen
     # Ejemplo futuro:
     # "orders": {
@@ -91,7 +100,36 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
     #     "internal.viewer": {"orders.view"},
     #     "internal.manager": {"orders.view", "orders.edit", "orders.create", "orders.manage_users"},
     # },
+    # "reporting": {
+    #     "internal.viewer": {"reporting.view"},
+    #     "internal.editor": {"reporting.view", "reporting.create", "reporting.edit"},
+    #     "internal.manager": {"reporting.view", "reporting.create", "reporting.edit", "reporting.delete", "reporting.manage_users"},
+    # },
+    # "notifications": {
+    #     "internal.viewer": {"notifications.view"},
+    #     "internal.editor": {"notifications.view", "notifications.create", "notifications.edit"},
+    #     "internal.manager": {"notifications.view", "notifications.create", "notifications.edit", "notifications.delete", "notifications.manage_users"},
+    # },
 }
+
+# Documentación: Cómo agregar nuevos módulos
+# ===========================================
+# Para agregar un nuevo módulo al sistema:
+#
+# 1. Agregar entrada en MODULE_ROLES con la estructura:
+#    "module_name": {
+#        "internal.viewer": {"module_name.view"},
+#        "internal.editor": {"module_name.view", "module_name.edit", "module_name.create"},
+#        "internal.manager": {"module_name.view", "module_name.edit", "module_name.create", "module_name.delete", "module_name.manage_users"},
+#    }
+#
+# 2. Seguir las convenciones de permisos:
+#    - Formato: {module}.{action}
+#    - Acciones estándar: view, edit, create, delete, manage_users
+#
+# 3. Ver documentación completa en: docs/ai-prompts/modules/module-setup-guide.md
+#
+# 4. Usar el template en docs/ai-prompts/backend-template.md para generar el código del módulo
 
 
 def has_permission(user_permissions: set[str], required: str) -> bool:

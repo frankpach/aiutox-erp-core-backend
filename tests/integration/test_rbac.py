@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.testclient import TestClient
 
 from app.core.auth.dependencies import (
@@ -31,18 +31,13 @@ async def rbac_test_permission_endpoint(
 ):
     """Test endpoint that requires a specific permission."""
     from app.core.auth.permissions import has_permission
-    from fastapi import HTTPException, status
+    from app.core.exceptions import raise_forbidden
 
     if not has_permission(user_permissions, permission):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": {
-                    "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                    "message": "Insufficient permissions",
-                    "details": {"required_permission": permission},
-                }
-            },
+        raise_forbidden(
+            code="AUTH_INSUFFICIENT_PERMISSIONS",
+            message="Insufficient permissions",
+            details={"required_permission": permission},
         )
     return {"message": "Access granted", "permission": permission, "user_id": str(current_user.id)}
 
@@ -245,12 +240,11 @@ def test_require_permission_denies_access_without_permission(
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
     # Verify error response format according to API contract
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
-    assert data["detail"]["error"]["message"] == "Insufficient permissions"
-    assert "details" in data["detail"]["error"]
-    assert data["detail"]["error"]["details"]["required_permission"] == "auth.manage_users"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+    assert data["error"]["message"] == "Insufficient permissions"
+    assert "details" in data["error"]
+    assert data["error"]["details"]["required_permission"] == "auth.manage_users"
 
 
 def test_wildcard_matching_module_wildcard(db_session, test_user):
@@ -385,12 +379,11 @@ def test_require_roles_denies_access_without_role(client, db_session, test_user)
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
     # Verify error response format according to API contract
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INSUFFICIENT_ROLES"
-    assert data["detail"]["error"]["message"] == "Insufficient roles"
-    assert "details" in data["detail"]["error"]
-    assert "required_roles" in data["detail"]["error"]["details"]
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INSUFFICIENT_ROLES"
+    assert data["error"]["message"] == "Insufficient roles"
+    assert "details" in data["error"]
+    assert "required_roles" in data["error"]["details"]
 
 
 def test_require_any_permission_allows_access_with_any_permission(
@@ -462,12 +455,11 @@ def test_require_any_permission_denies_access_without_any_permission(
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
     # Verify error response format according to API contract
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
-    assert data["detail"]["error"]["message"] == "Insufficient permissions"
-    assert "details" in data["detail"]["error"]
-    assert "required_permissions" in data["detail"]["error"]["details"]
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+    assert data["error"]["message"] == "Insufficient permissions"
+    assert "details" in data["error"]
+    assert "required_permissions" in data["error"]["details"]
 
 
 def test_rbac_multi_tenant_isolation(client, db_session, test_user, test_tenant):

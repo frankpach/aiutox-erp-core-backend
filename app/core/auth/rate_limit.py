@@ -4,12 +4,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Callable
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.core.config import get_settings
+from app.core.config_file import get_settings
+from app.core.exceptions import APIException
+from fastapi import status
 
 settings = get_settings()
 
@@ -27,27 +29,22 @@ def get_rate_limit_exceeded_handler() -> Callable:
     return _rate_limit_exceeded_handler
 
 
-def create_rate_limit_exception() -> HTTPException:
+def create_rate_limit_exception() -> APIException:
     """
-    Create a rate limit exceeded HTTP exception.
+    Create a rate limit exceeded API exception.
 
     Returns:
-        HTTPException with appropriate error format.
+        APIException with appropriate error format.
 
     Example:
         >>> exc = create_rate_limit_exception()
         >>> exc.status_code == 429
         True
     """
-    return HTTPException(
+    return APIException(
+        code="AUTH_RATE_LIMIT_EXCEEDED",
+        message="Too many requests. Please try again later.",
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        detail={
-            "error": {
-                "code": "AUTH_RATE_LIMIT_EXCEEDED",
-                "message": "Too many requests. Please try again later.",
-                "details": None,
-            }
-        },
     )
 
 

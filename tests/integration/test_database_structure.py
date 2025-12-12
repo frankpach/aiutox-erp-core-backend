@@ -3,7 +3,7 @@
 import pytest
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 
 
 def test_database_connection(db_session):

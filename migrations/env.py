@@ -3,18 +3,23 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, engine_from_config, pool, text
 
-from app.core.config import get_settings
+from app.core.config_file import get_settings
 from app.core.db.session import Base
 
 # Import all models so Alembic can detect them
 from app.models import (  # noqa: F401
     AuditLog,
+    Category,
     Contact,
     ContactMethod,
     ModuleRole,
     Organization,
     PersonIdentification,
+    Product,
+    ProductBarcode,
+    ProductVariant,
     RefreshToken,
+    SystemConfig,
     Tenant,
     User,
     UserRole,

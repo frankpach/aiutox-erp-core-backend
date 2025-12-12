@@ -42,10 +42,9 @@ def test_login_invalid_credentials(client, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INVALID_CREDENTIALS"
-    assert data["detail"]["error"]["message"] == "Invalid credentials"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_CREDENTIALS"
+    assert data["error"]["message"] == "Invalid credentials"
 
 
 def test_login_user_not_exists(client):
@@ -60,10 +59,9 @@ def test_login_user_not_exists(client):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INVALID_CREDENTIALS"
-    assert data["detail"]["error"]["message"] == "Invalid credentials"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_CREDENTIALS"
+    assert data["error"]["message"] == "Invalid credentials"
     # Should not reveal that user doesn't exist
 
 
@@ -99,9 +97,8 @@ def test_refresh_token_invalid(client):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
 def test_logout_success(client, db_session, test_user):
@@ -126,7 +123,8 @@ def test_logout_success(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["message"] == "Logged out successfully"
+    assert "data" in data
+    assert data["data"]["message"] == "Logged out successfully"
 
     # Verify token is revoked
     new_token = auth_service.refresh_access_token(refresh_token)
@@ -161,9 +159,8 @@ def test_get_me_invalid_token(client):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_INVALID_TOKEN"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
 def test_get_me_expired_token(client, test_user):
@@ -214,9 +211,8 @@ def test_refresh_token_revoked_after_creation(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
 def test_refresh_token_user_inactive_after_refresh(client, db_session, test_user):
@@ -236,9 +232,8 @@ def test_refresh_token_user_inactive_after_refresh(client, db_session, test_user
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
 def test_logout_invalid_refresh_token(client, db_session, test_user):
@@ -259,9 +254,8 @@ def test_logout_invalid_refresh_token(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
 def test_logout_already_revoked_token(client, db_session, test_user):
@@ -289,9 +283,8 @@ def test_logout_already_revoked_token(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
 def test_login_response_format(client, test_user):
@@ -329,16 +322,17 @@ def test_error_response_format(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
 
-    # Verify error response structure (FastAPI wraps HTTPException.detail in {"detail": {...}})
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert "code" in data["detail"]["error"]
-    assert "message" in data["detail"]["error"]
-    assert "details" in data["detail"]["error"]
-    assert isinstance(data["detail"]["error"]["code"], str)
-    assert isinstance(data["detail"]["error"]["message"], str)
+    # Verify error response structure (API contract format: {"error": {...}, "data": null})
+    assert "error" in data
+    assert "data" in data
+    assert data["data"] is None
+    assert "code" in data["error"]
+    assert "message" in data["error"]
+    assert "details" in data["error"]
+    assert isinstance(data["error"]["code"], str)
+    assert isinstance(data["error"]["message"], str)
     # details can be None or dict/string
-    assert data["detail"]["error"]["details"] is None or isinstance(data["detail"]["error"]["details"], (dict, str))
+    assert data["error"]["details"] is None or isinstance(data["error"]["details"], (dict, str))
 
 
 def test_get_me_response_format(client, db_session, test_user):
@@ -412,9 +406,8 @@ def test_multi_tenant_isolation(client, db_session, test_user, test_tenant):
     # Should be rejected due to tenant mismatch
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_TENANT_MISMATCH"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_TENANT_MISMATCH"
 
 
 def test_multi_tenant_valid_access(client, db_session, test_user):

@@ -39,9 +39,8 @@ def test_login_rate_limiting(client, test_user):
 
     assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
     data = response.json()
-    assert "detail" in data
-    assert "error" in data["detail"]
-    assert data["detail"]["error"]["code"] == "AUTH_RATE_LIMIT_EXCEEDED"
+    assert "error" in data
+    assert data["error"]["code"] == "AUTH_RATE_LIMIT_EXCEEDED"
 
 
 def test_login_success_after_rate_limit_reset(client, test_user):
@@ -105,9 +104,9 @@ def test_login_generic_error_message(client):
     data2 = response2.json()
 
     # Error messages should be identical (generic)
-    assert data1["detail"]["error"]["code"] == data2["detail"]["error"]["code"]
-    assert data1["detail"]["error"]["message"] == data2["detail"]["error"]["message"]
-    assert data1["detail"]["error"]["message"] == "Invalid credentials"
+    assert data1["error"]["code"] == data2["error"]["code"]
+    assert data1["error"]["message"] == data2["error"]["message"]
+    assert data1["error"]["message"] == "Invalid credentials"
 
 
 def test_login_rate_limiting_per_ip(client, test_user):

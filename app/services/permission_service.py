@@ -3,10 +3,18 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.permissions import GLOBAL_PERMISSIONS, MODULE_ROLES, ROLE_PERMISSIONS, has_permission
+from app.core.exceptions import (
+    APIException,
+    raise_bad_request,
+    raise_conflict,
+    raise_forbidden,
+    raise_internal_server_error,
+    raise_not_found,
+)
+from fastapi import status
 from app.models.delegated_permission import DelegatedPermission
 from app.models.module_role import ModuleRole
 from app.models.user_role import UserRole
@@ -172,60 +180,36 @@ class PermissionService:
             Created DelegatedPermission instance.
 
         Raises:
-            HTTPException: If validations fail.
+            APIException: If validations fail.
         """
         # Validación 1: Verificar que granted_by tiene {module}.manage_users
         granted_by_permissions = self.get_effective_permissions(granted_by)
         required_permission = f"{module}.manage_users"
         if not has_permission(granted_by_permissions, required_permission):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "PERMISSION_DENIED",
-                        "message": f"User does not have permission '{required_permission}' to grant permissions",
-                        "details": None,
-                    }
-                },
+            raise_forbidden(
+                code="PERMISSION_DENIED",
+                message=f"User does not have permission '{required_permission}' to grant permissions",
             )
 
         # Validación 2: permission NO puede ser *.manage_users
         if permission.endswith(".manage_users"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error": {
-                        "code": "INVALID_PERMISSION",
-                        "message": "Cannot delegate permission '*.manage_users'. Only system administrators can grant this permission.",
-                        "details": None,
-                    }
-                },
+            raise_bad_request(
+                code="INVALID_PERMISSION",
+                message="Cannot delegate permission '*.manage_users'. Only system administrators can grant this permission.",
             )
 
         # Validación 3: permission NO puede ser global (auth.*, system.*)
         if permission.startswith("auth.") or permission.startswith("system."):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error": {
-                        "code": "INVALID_PERMISSION",
-                        "message": "Cannot delegate global permissions (auth.*, system.*). Only system administrators can grant these permissions.",
-                        "details": None,
-                    }
-                },
+            raise_bad_request(
+                code="INVALID_PERMISSION",
+                message="Cannot delegate global permissions (auth.*, system.*). Only system administrators can grant these permissions.",
             )
 
         # Validación 4: permission debe pertenecer al módulo (module.action)
         if not permission.startswith(f"{module}."):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error": {
-                        "code": "INVALID_PERMISSION",
-                        "message": f"Permission '{permission}' does not belong to module '{module}'. Permission must start with '{module}.'",
-                        "details": None,
-                    }
-                },
+            raise_bad_request(
+                code="INVALID_PERMISSION",
+                message=f"Permission '{permission}' does not belong to module '{module}'. Permission must start with '{module}.'",
             )
 
         # Crear el permiso delegado
@@ -278,15 +262,10 @@ class PermissionService:
         except Exception as e:
             # Manejar constraint único (mismo líder, mismo permiso, mismo usuario)
             if "uq_delegated_permissions" in str(e).lower():
-                raise HTTPException(
+                raise APIException(
+                    code="PERMISSION_ALREADY_EXISTS",
+                    message=f"Permission '{permission}' already granted to this user by you. Revoke it first to grant it again.",
                     status_code=status.HTTP_409_CONFLICT,
-                    detail={
-                        "error": {
-                            "code": "PERMISSION_ALREADY_EXISTS",
-                            "message": f"Permission '{permission}' already granted to this user by you. Revoke it first to grant it again.",
-                            "details": None,
-                        }
-                    },
                 ) from e
             raise
 
@@ -306,34 +285,19 @@ class PermissionService:
             revoked_by: UUID of the user revoking the permission.
 
         Raises:
-            HTTPException: If permission not found or user doesn't have permission to revoke.
+            APIException: If permission not found or user doesn't have permission to revoke.
         """
         repo = PermissionRepository(self.db)
         permission = repo.get_delegated_permission_by_id(permission_id)
 
         if not permission:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "error": {
-                        "code": "PERMISSION_NOT_FOUND",
-                        "message": "Permission not found",
-                        "details": None,
-                    }
-                },
-            )
+            raise_not_found("Permission", str(permission_id))
 
         # Verificar si ya está revocado
         if permission.revoked_at is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error": {
-                        "code": "PERMISSION_ALREADY_REVOKED",
-                        "message": "Permission is already revoked",
-                        "details": None,
-                    }
-                },
+            raise_bad_request(
+                code="PERMISSION_ALREADY_REVOKED",
+                message="Permission is already revoked",
             )
 
         # Validación: revoked_by debe ser quien otorgó el permiso O tener auth.manage_users
@@ -344,29 +308,17 @@ class PermissionService:
         )
 
         if not can_revoke:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "PERMISSION_DENIED",
-                        "message": "You can only revoke permissions you granted, or you need 'auth.manage_users' permission",
-                        "details": None,
-                    }
-                },
+            raise_forbidden(
+                code="PERMISSION_DENIED",
+                message="You can only revoke permissions you granted, or you need 'auth.manage_users' permission",
             )
 
         # Revocar el permiso
         success = repo.revoke_permission(permission_id, revoked_by)
         if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={
-                    "error": {
-                        "code": "REVOKE_FAILED",
-                        "message": "Failed to revoke permission",
-                        "details": None,
-                    }
-                },
+            raise_internal_server_error(
+                code="REVOKE_FAILED",
+                message="Failed to revoke permission",
             )
 
         # Log to console
@@ -423,7 +375,7 @@ class PermissionService:
             Number of permissions revoked.
 
         Raises:
-            HTTPException: If user doesn't have permission to revoke.
+            APIException: If user doesn't have permission to revoke.
         """
         # Validación: revoked_by debe tener auth.manage_users o rol owner/admin
         revoked_by_permissions = self.get_effective_permissions(revoked_by)
@@ -436,15 +388,9 @@ class PermissionService:
         )
 
         if not can_revoke:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": {
-                        "code": "PERMISSION_DENIED",
-                        "message": "Only administrators or owners can revoke all permissions of a user",
-                        "details": None,
-                    }
-                },
+            raise_forbidden(
+                code="PERMISSION_DENIED",
+                message="Only administrators or owners can revoke all permissions of a user",
             )
 
         # Revocar todos los permisos

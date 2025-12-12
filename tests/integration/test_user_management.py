@@ -31,8 +31,8 @@ class TestUserManagement:
         # Assert: Should be denied
         assert response.status_code == status.HTTP_403_FORBIDDEN
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+        assert "error" in data
+        assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_users_with_permission(
         self, client, db_session, test_user, test_tenant
@@ -152,8 +152,8 @@ class TestUserManagement:
         # Assert: Should fail
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert "error" in data["detail"]
-        assert "USER_ALREADY_EXISTS" in data["detail"]["error"]["code"]
+        assert "error" in data
+        assert "USER_ALREADY_EXISTS" in data["error"]["code"]
 
     def test_get_user_requires_auth_manage_users(
         self, client, db_session, test_user, test_tenant
@@ -228,8 +228,8 @@ class TestUserManagement:
         # Assert: Should return 404
         assert response.status_code == status.HTTP_404_NOT_FOUND
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "USER_NOT_FOUND"
+        assert "error" in data
+        assert data["error"]["code"] == "USER_NOT_FOUND"
 
     def test_update_user_requires_auth_manage_users(
         self, client, db_session, test_user, test_tenant
@@ -331,7 +331,8 @@ class TestUserManagement:
         # Assert: Should succeed
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "message" in data
+        assert "data" in data
+        assert "message" in data["data"]
 
         # Verify user is soft deleted (is_active=False)
         db_session.refresh(target_user)
@@ -426,6 +427,6 @@ class TestUserManagement:
         # Assert: Should be denied (tenant mismatch)
         assert response.status_code == status.HTTP_403_FORBIDDEN
         data = response.json()
-        assert "error" in data["detail"]
-        assert data["detail"]["error"]["code"] == "AUTH_TENANT_MISMATCH"
+        assert "error" in data
+        assert data["error"]["code"] == "AUTH_TENANT_MISMATCH"
 
