@@ -4,16 +4,26 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     activities,
+    approvals,
     auth,
     automation,
+    calendar,
+    comments,
     config,
     files,
+    import_export,
+    integrations,
     notifications,
     preferences,
     pubsub,
     reporting,
+    search,
     tags,
+    tasks,
+    templates,
     users,
+    views,
+    workflows,
 )
 from app.modules.products.api import router as products_router
 
@@ -32,4 +42,14 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
 api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
+api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+api_router.include_router(search.router, prefix="/search", tags=["search"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
+api_router.include_router(import_export.router, prefix="/import-export", tags=["import-export"])
+api_router.include_router(views.router, prefix="/views", tags=["views"])
+api_router.include_router(approvals.router, prefix="/approvals", tags=["approvals"])
+api_router.include_router(templates.router, prefix="/templates", tags=["templates"])
+api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
 

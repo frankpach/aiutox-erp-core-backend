@@ -100,3 +100,4 @@ def test_get_stream_info_endpoint(client, auth_headers, mock_redis_client):
         assert data["data"]["stream_name"] == "events:domain"
 
 
+

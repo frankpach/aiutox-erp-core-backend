@@ -55,3 +55,4 @@ def test_error_inheritance():
     assert issubclass(PubSubError, Exception)
 
 
+

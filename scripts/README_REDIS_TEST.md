@@ -166,3 +166,4 @@ docker ps | findstr redis
 - El script es interactivo y te preguntará si quieres probar la publicación de eventos
 
 
+

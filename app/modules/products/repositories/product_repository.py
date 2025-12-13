@@ -289,3 +289,4 @@ class ProductBarcodeRepository:
         self.db.commit()
 
 
+

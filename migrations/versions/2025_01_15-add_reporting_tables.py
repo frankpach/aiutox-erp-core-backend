@@ -81,3 +81,4 @@ def downgrade() -> None:
     op.drop_table("report_definitions")
 
 
+

@@ -170,3 +170,4 @@ async def test_backoff_timing(event_publisher, event_consumer):
         assert delay2 >= 1.8, f"Expected delay ~2s, got {delay2}s"
 
 
+

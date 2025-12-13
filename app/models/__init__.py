@@ -21,6 +21,20 @@ from app.models.notification import NotificationQueue, NotificationTemplate
 from app.models.file import File, FilePermission, FileVersion
 from app.models.activity import Activity
 from app.models.tag import EntityTag, Tag, TagCategory
+from app.models.task import (
+    Task,
+    TaskChecklistItem,
+    Workflow,
+    WorkflowExecution,
+    WorkflowStep,
+)
+from app.models.search_index import SearchIndex
+from app.models.integration import (
+    Integration,
+    IntegrationLog,
+    Webhook,
+    WebhookDelivery,
+)
 
 __all__ = [
     "Activity",
@@ -36,6 +50,8 @@ __all__ = [
     "File",
     "FilePermission",
     "FileVersion",
+    "Integration",
+    "IntegrationLog",
     "ModuleRole",
     "NotificationQueue",
     "NotificationTemplate",
@@ -50,13 +66,21 @@ __all__ = [
     "Rule",
     "RuleVersion",
     "SavedView",
+    "SearchIndex",
     "SeederRecord",
     "SystemConfig",
     "Tag",
     "TagCategory",
+    "Task",
+    "TaskChecklistItem",
     "Tenant",
     "User",
     "UserPreference",
     "UserRole",
+    "Webhook",
+    "WebhookDelivery",
+    "Workflow",
+    "WorkflowExecution",
+    "WorkflowStep",
 ]
 

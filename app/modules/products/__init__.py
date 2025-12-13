@@ -99,3 +99,4 @@ def create_module(db: Optional[Session] = None) -> ProductsModule:
     return ProductsModule(db)
 
 
+

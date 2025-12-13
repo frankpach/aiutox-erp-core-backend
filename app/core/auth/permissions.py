@@ -93,6 +93,71 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "config.delete",
         },
     },
+    "calendar": {
+        "internal.viewer": {"calendar.view", "calendar.events.view"},
+        "internal.editor": {
+            "calendar.view",
+            "calendar.events.view",
+            "calendar.events.manage",
+        },
+        "internal.manager": {
+            "calendar.view",
+            "calendar.manage",
+            "calendar.events.view",
+            "calendar.events.manage",
+        },
+    },
+    "import_export": {
+        "internal.viewer": {"import_export.view"},
+        "internal.importer": {"import_export.view", "import_export.import"},
+        "internal.exporter": {"import_export.view", "import_export.export"},
+        "internal.manager": {
+            "import_export.view",
+            "import_export.manage",
+            "import_export.import",
+            "import_export.export",
+        },
+    },
+    "views": {
+        "internal.viewer": {"views.view"},
+        "internal.editor": {"views.view", "views.manage"},
+        "internal.manager": {
+            "views.view",
+            "views.manage",
+            "views.share",
+        },
+    },
+    "approvals": {
+        "internal.viewer": {"approvals.view"},
+        "internal.approver": {"approvals.view", "approvals.approve"},
+        "internal.manager": {
+            "approvals.view",
+            "approvals.manage",
+            "approvals.approve",
+            "approvals.delegate",
+        },
+    },
+    "templates": {
+        "internal.viewer": {"templates.view"},
+        "internal.editor": {"templates.view", "templates.manage", "templates.render"},
+        "internal.manager": {
+            "templates.view",
+            "templates.manage",
+            "templates.render",
+        },
+    },
+    "comments": {
+        "internal.viewer": {"comments.view"},
+        "internal.creator": {"comments.view", "comments.create"},
+        "internal.editor": {"comments.view", "comments.create", "comments.edit"},
+        "internal.manager": {
+            "comments.view",
+            "comments.create",
+            "comments.edit",
+            "comments.delete",
+            "comments.manage",
+        },
+    },
     # Más módulos se agregarán según se implementen
     # Ejemplo futuro:
     # "orders": {

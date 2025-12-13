@@ -48,3 +48,4 @@ async def get_or_create_group(
     return await ensure_group_exists(client, stream_name, group_name, start_id)
 
 
+

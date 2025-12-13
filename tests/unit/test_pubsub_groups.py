@@ -54,3 +54,4 @@ async def test_get_or_create_group():
     mock_client.create_group.assert_called_once_with("test_stream", "test_group", "0")
 
 
+

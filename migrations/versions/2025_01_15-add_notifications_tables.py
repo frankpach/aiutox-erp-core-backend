@@ -91,3 +91,4 @@ def downgrade() -> None:
     op.drop_table("notification_templates")
 
 
+

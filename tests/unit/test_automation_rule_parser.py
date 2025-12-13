@@ -140,3 +140,4 @@ def test_validate_invalid_rule(rule_parser):
     assert rule_parser.validate(rule_def) is False
 
 
+

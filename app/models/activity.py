@@ -55,7 +55,7 @@ class Activity(Base):
     )
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)  # Additional metadata as JSON
+    activity_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
 
     # Timestamps
     created_at = Column(

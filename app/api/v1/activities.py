@@ -120,9 +120,9 @@ async def list_activities(
     description="Get a specific activity by ID. Requires activities.view permission.",
 )
 async def get_activity(
-    activity_id: UUID = Path(..., description="Activity ID"),
     current_user: Annotated[User, Depends(require_permission("activities.view"))],
     service: Annotated[ActivityService, Depends(get_activity_service)],
+    activity_id: UUID = Path(..., description="Activity ID"),
 ) -> StandardResponse[ActivityResponse]:
     """Get a specific activity."""
     activity = service.repository.get_by_id(activity_id, current_user.tenant_id)
@@ -147,10 +147,10 @@ async def get_activity(
     description="Update an activity. Requires activities.manage permission.",
 )
 async def update_activity(
-    activity_id: UUID = Path(..., description="Activity ID"),
-    activity_data: ActivityUpdate = ...,
+    activity_data: ActivityUpdate,
     current_user: Annotated[User, Depends(require_permission("activities.manage"))],
     service: Annotated[ActivityService, Depends(get_activity_service)],
+    activity_id: UUID = Path(..., description="Activity ID"),
 ) -> StandardResponse[ActivityResponse]:
     """Update an activity."""
     activity = service.update_activity(
@@ -182,9 +182,9 @@ async def update_activity(
     description="Delete an activity. Requires activities.manage permission.",
 )
 async def delete_activity(
-    activity_id: UUID = Path(..., description="Activity ID"),
     current_user: Annotated[User, Depends(require_permission("activities.manage"))],
     service: Annotated[ActivityService, Depends(get_activity_service)],
+    activity_id: UUID = Path(..., description="Activity ID"),
 ) -> None:
     """Delete an activity."""
     deleted = service.delete_activity(
@@ -206,10 +206,10 @@ async def delete_activity(
     description="Get timeline of activities for a specific entity. Requires activities.view permission.",
 )
 async def get_entity_timeline(
-    entity_type: str = Path(..., description="Entity type"),
-    entity_id: UUID = Path(..., description="Entity ID"),
     current_user: Annotated[User, Depends(require_permission("activities.view"))],
     service: Annotated[ActivityService, Depends(get_activity_service)],
+    entity_type: str = Path(..., description="Entity type"),
+    entity_id: UUID = Path(..., description="Entity ID"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
     activity_type: str | None = Query(None, description="Filter by activity type"),

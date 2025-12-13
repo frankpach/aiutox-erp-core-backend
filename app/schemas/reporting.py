@@ -68,3 +68,4 @@ class ReportExecutionResponse(BaseModel):
     columns: list[dict[str, Any]] = Field(..., description="Available columns")
 
 
+

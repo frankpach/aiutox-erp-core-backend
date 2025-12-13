@@ -233,3 +233,4 @@ class ProductBarcodeResponse(ProductBarcodeBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
 
 
+

@@ -219,3 +219,4 @@ def test_event_round_trip():
     assert restored_event.metadata.additional_data == original_event.metadata.additional_data
 
 
+

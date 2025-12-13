@@ -1,0 +1,338 @@
+"""Task models for task and workflow management."""
+
+from datetime import UTC, datetime
+from enum import Enum
+from uuid import uuid4
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.orm import relationship
+
+from app.core.db.session import Base
+
+
+class TaskStatus(str, Enum):
+    """Task status enumeration."""
+
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    REVIEW = "review"
+    DONE = "done"
+    CANCELLED = "cancelled"
+
+
+class TaskPriority(str, Enum):
+    """Task priority enumeration."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class Task(Base):
+    """Task model for task management."""
+
+    __tablename__ = "tasks"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Task information
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default=TaskStatus.TODO, index=True)
+    priority = Column(String(20), nullable=False, default=TaskPriority.MEDIUM, index=True)
+
+    # Assignment
+    assigned_to_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    created_by_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Dates
+    due_date = Column(TIMESTAMP(timezone=True), nullable=True, index=True)
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+
+    # Polymorphic relationship (optional)
+    related_entity_type = Column(String(50), nullable=True, index=True)  # e.g., 'product', 'order'
+    related_entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
+
+    # Workflow reference (optional)
+    workflow_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workflows.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    workflow_step_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workflow_steps.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Metadata
+    task_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
+    tags = Column(JSONB, nullable=True)  # Array of tag names or IDs
+
+    # Timestamps
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+        index=True,
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    # Relationships
+    parent_task_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    subtasks = relationship("Task", back_populates="parent_task", remote_side=[id])
+    parent_task = relationship("Task", back_populates="subtasks", remote_side=[id])
+
+    __table_args__ = (
+        Index("idx_tasks_tenant_status", "tenant_id", "status"),
+        Index("idx_tasks_tenant_priority", "tenant_id", "priority"),
+        Index("idx_tasks_assigned", "tenant_id", "assigned_to_id"),
+        Index("idx_tasks_due_date", "tenant_id", "due_date"),
+        Index("idx_tasks_entity", "related_entity_type", "related_entity_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
+
+
+class TaskChecklistItem(Base):
+    """Task checklist item model."""
+
+    __tablename__ = "task_checklist_items"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    task_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Checklist item information
+    title = Column(String(255), nullable=False)
+    completed = Column(Boolean, default=False, nullable=False, index=True)
+    order = Column(Integer, default=0, nullable=False)
+
+    # Timestamps
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("idx_task_checklist_task", "task_id", "order"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<TaskChecklistItem(id={self.id}, task_id={self.task_id}, title={self.title})>"
+
+
+class Workflow(Base):
+    """Workflow model for configurable workflows."""
+
+    __tablename__ = "workflows"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Workflow information
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    enabled = Column(Boolean, default=True, nullable=False, index=True)
+
+    # Workflow definition (BPMN-ready structure)
+    definition = Column(JSONB, nullable=False)  # Workflow definition as JSON
+
+    # Metadata
+    workflow_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata
+
+    # Timestamps
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    # Relationships
+    steps = relationship("WorkflowStep", back_populates="workflow", cascade="all, delete-orphan")
+    executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("idx_workflows_tenant_enabled", "tenant_id", "enabled"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Workflow(id={self.id}, name={self.name}, enabled={self.enabled})>"
+
+
+class WorkflowStep(Base):
+    """Workflow step model for workflow steps."""
+
+    __tablename__ = "workflow_steps"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    workflow_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Step information
+    name = Column(String(255), nullable=False)
+    step_type = Column(String(50), nullable=False)  # e.g., 'task', 'approval', 'condition'
+    order = Column(Integer, nullable=False)
+
+    # Step configuration
+    config = Column(JSONB, nullable=True)  # Step-specific configuration
+
+    # Transitions (next steps)
+    transitions = Column(JSONB, nullable=True)  # Array of transition configs
+
+    # Timestamps
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    # Relationships
+    workflow = relationship("Workflow", back_populates="steps")
+
+    __table_args__ = (
+        Index("idx_workflow_steps_workflow", "workflow_id", "order"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<WorkflowStep(id={self.id}, workflow_id={self.workflow_id}, name={self.name})>"
+
+
+class WorkflowExecution(Base):
+    """Workflow execution model for tracking workflow runs."""
+
+    __tablename__ = "workflow_executions"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    workflow_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workflows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Execution information
+    status = Column(String(20), nullable=False, default="running", index=True)  # running, completed, failed, cancelled
+    current_step_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workflow_steps.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Context (polymorphic relationship)
+    entity_type = Column(String(50), nullable=True, index=True)
+    entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
+
+    # Execution data
+    execution_data = Column(JSONB, nullable=True)  # Data passed through workflow
+    error_message = Column(Text, nullable=True)
+
+    # Timestamps
+    started_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+        index=True,
+    )
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+
+    # Relationships
+    workflow = relationship("Workflow", back_populates="executions")
+
+    __table_args__ = (
+        Index("idx_workflow_executions_workflow", "workflow_id", "status"),
+        Index("idx_workflow_executions_entity", "entity_type", "entity_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<WorkflowExecution(id={self.id}, workflow_id={self.workflow_id}, status={self.status})>"
+

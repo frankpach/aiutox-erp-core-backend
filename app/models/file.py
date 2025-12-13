@@ -65,7 +65,8 @@ class File(Base):
 
     # Metadata
     description = Column(Text, nullable=True)
-    metadata = Column(JSONB, nullable=True)  # Additional metadata as JSON
+    # Use explicit column name to avoid conflict with SQLAlchemy's reserved 'metadata'
+    file_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
 
     # Versioning
     version_number = Column(Integer, default=1, nullable=False)
