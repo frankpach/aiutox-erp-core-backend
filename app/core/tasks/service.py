@@ -82,48 +82,24 @@ class TaskService:
         )
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="task.created",
-                        entity_type="task",
-                        entity_id=task.id,
-                        tenant_id=tenant_id,
-                        user_id=created_by_id,
-                        metadata=EventMetadata(
-                            source="task_service",
-                            version="1.0",
-                            additional_data={
-                                "title": title,
-                                "assigned_to_id": str(assigned_to_id) if assigned_to_id else None,
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="task.created",
-                        entity_type="task",
-                        entity_id=task.id,
-                        tenant_id=tenant_id,
-                        user_id=created_by_id,
-                        metadata=EventMetadata(
-                            source="task_service",
-                            version="1.0",
-                            additional_data={
-                                "title": title,
-                                "assigned_to_id": str(assigned_to_id) if assigned_to_id else None,
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.warning(f"Failed to publish task.created event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="task.created",
+            entity_type="task",
+            entity_id=task.id,
+            tenant_id=tenant_id,
+            user_id=created_by_id,
+            metadata=EventMetadata(
+                source="task_service",
+                version="1.0",
+                additional_data={
+                    "title": title,
+                    "assigned_to_id": str(assigned_to_id) if assigned_to_id else None,
+                },
+            ),
+        )
 
         logger.info(f"Task created: {task.id} ({title})")
         return task
@@ -203,42 +179,21 @@ class TaskService:
         task = self.repository.update_task(task_id, tenant_id, task_data)
         if task:
             # Publish event
-            try:
-                import asyncio
+            from app.core.pubsub.event_helpers import safe_publish_event
 
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(
-                        self.event_publisher.publish(
-                            event_type="task.updated",
-                            entity_type="task",
-                            entity_id=task.id,
-                            tenant_id=tenant_id,
-                            user_id=user_id,
-                            metadata=EventMetadata(
-                                source="task_service",
-                                version="1.0",
-                                additional_data={"changes": list(task_data.keys())},
-                            ),
-                        )
-                    )
-                else:
-                    loop.run_until_complete(
-                        self.event_publisher.publish(
-                            event_type="task.updated",
-                            entity_type="task",
-                            entity_id=task.id,
-                            tenant_id=tenant_id,
-                            user_id=user_id,
-                            metadata=EventMetadata(
-                                source="task_service",
-                                version="1.0",
-                                additional_data={"changes": list(task_data.keys())},
-                            ),
-                        )
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to publish task.updated event: {e}")
+            safe_publish_event(
+                event_publisher=self.event_publisher,
+                event_type="task.updated",
+                entity_type="task",
+                entity_id=task.id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                metadata=EventMetadata(
+                    source="task_service",
+                    version="1.0",
+                    additional_data={"changes": list(task_data.keys())},
+                ),
+            )
 
             # If status changed to DONE, set completed_at
             if "status" in task_data and task_data["status"] == TaskStatus.DONE:
@@ -262,42 +217,21 @@ class TaskService:
         deleted = self.repository.delete_task(task_id, tenant_id)
         if deleted:
             # Publish event
-            try:
-                import asyncio
+            from app.core.pubsub.event_helpers import safe_publish_event
 
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(
-                        self.event_publisher.publish(
-                            event_type="task.deleted",
-                            entity_type="task",
-                            entity_id=task_id,
-                            tenant_id=tenant_id,
-                            user_id=user_id,
-                            metadata=EventMetadata(
-                                source="task_service",
-                                version="1.0",
-                                additional_data={},
-                            ),
-                        )
-                    )
-                else:
-                    loop.run_until_complete(
-                        self.event_publisher.publish(
-                            event_type="task.deleted",
-                            entity_type="task",
-                            entity_id=task_id,
-                            tenant_id=tenant_id,
-                            user_id=user_id,
-                            metadata=EventMetadata(
-                                source="task_service",
-                                version="1.0",
-                                additional_data={},
-                            ),
-                        )
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to publish task.deleted event: {e}")
+            safe_publish_event(
+                event_publisher=self.event_publisher,
+                event_type="task.deleted",
+                entity_type="task",
+                entity_id=task_id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                metadata=EventMetadata(
+                    source="task_service",
+                    version="1.0",
+                    additional_data={},
+                ),
+            )
 
         return deleted
 
@@ -363,4 +297,8 @@ class TaskService:
             True if deleted successfully, False otherwise
         """
         return self.repository.delete_checklist_item(item_id, tenant_id)
+
+
+
+
 

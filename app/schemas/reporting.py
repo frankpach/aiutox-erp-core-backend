@@ -1,5 +1,6 @@
 """Reporting schemas for API requests and responses."""
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -46,8 +47,8 @@ class ReportDefinitionResponse(BaseModel):
     visualization_type: str
     config: dict[str, Any] | None
     created_by: UUID | None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class ReportExecutionRequest(BaseModel):
@@ -66,6 +67,12 @@ class ReportExecutionResponse(BaseModel):
     total: int = Field(..., description="Total number of records")
     visualization: dict[str, Any] = Field(..., description="Visualization data")
     columns: list[dict[str, Any]] = Field(..., description="Available columns")
+
+
+
+
+
+
 
 
 

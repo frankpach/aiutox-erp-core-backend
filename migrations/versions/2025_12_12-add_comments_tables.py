@@ -118,3 +118,9 @@ def downgrade() -> None:
     op.drop_index("ix_comments_tenant_id", table_name="comments")
     op.drop_table("comments")
 
+
+
+
+
+
+

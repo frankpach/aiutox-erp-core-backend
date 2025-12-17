@@ -69,9 +69,9 @@ async def create_template(
 async def list_templates(
     current_user: Annotated[User, Depends(require_permission("templates.view"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
-    template_type: str | None = Query(None, description="Filter by template type"),
-    category: str | None = Query(None, description="Filter by category"),
-    is_active: bool | None = Query(None, description="Filter by active status"),
+    template_type: str | None = Query(default=None, description="Filter by template type"),
+    category: str | None = Query(default=None, description="Filter by category"),
+    is_active: bool | None = Query(default=None, description="Filter by active status"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[TemplateResponse]:
@@ -107,7 +107,7 @@ async def list_templates(
     description="Get a specific template by ID. Requires templates.view permission.",
 )
 async def get_template(
-    template_id: UUID = Path(..., description="Template ID"),
+    template_id: Annotated[UUID, Path(..., description="Template ID")],
     current_user: Annotated[User, Depends(require_permission("templates.view"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
 ) -> StandardResponse[TemplateResponse]:
@@ -116,7 +116,7 @@ async def get_template(
     if not template:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TEMPLATE_NOT_FOUND",
+            code="TEMPLATE_NOT_FOUND",
             message=f"Template with ID {template_id} not found",
         )
 
@@ -134,10 +134,10 @@ async def get_template(
     description="Update a template. Requires templates.manage permission.",
 )
 async def update_template(
-    template_id: UUID = Path(..., description="Template ID"),
-    template_data: TemplateUpdate = ...,
+    template_id: Annotated[UUID, Path(..., description="Template ID")],
     current_user: Annotated[User, Depends(require_permission("templates.manage"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
+    template_data: TemplateUpdate,
 ) -> StandardResponse[TemplateResponse]:
     """Update a template."""
     template = service.update_template(
@@ -149,7 +149,7 @@ async def update_template(
     if not template:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TEMPLATE_NOT_FOUND",
+            code="TEMPLATE_NOT_FOUND",
             message=f"Template with ID {template_id} not found",
         )
 
@@ -166,7 +166,7 @@ async def update_template(
     description="Delete a template. Requires templates.manage permission.",
 )
 async def delete_template(
-    template_id: UUID = Path(..., description="Template ID"),
+    template_id: Annotated[UUID, Path(..., description="Template ID")],
     current_user: Annotated[User, Depends(require_permission("templates.manage"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
 ) -> None:
@@ -176,13 +176,13 @@ async def delete_template(
         if not success:
             raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                error_code="TEMPLATE_NOT_FOUND",
+                code="TEMPLATE_NOT_FOUND",
                 message=f"Template with ID {template_id} not found",
             )
     except ValueError as e:
         raise APIException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error_code="TEMPLATE_DELETE_ERROR",
+            code="TEMPLATE_DELETE_ERROR",
             message=str(e),
         )
 
@@ -195,19 +195,23 @@ async def delete_template(
     description="Get template versions. Requires templates.view permission.",
 )
 async def get_template_versions(
-    template_id: UUID = Path(..., description="Template ID"),
+    template_id: Annotated[UUID, Path(..., description="Template ID")],
     current_user: Annotated[User, Depends(require_permission("templates.view"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
 ) -> StandardListResponse[TemplateVersionResponse]:
     """Get template versions."""
     versions = service.get_template_versions(template_id, current_user.tenant_id)
+    total = len(versions)
+    page_size = max(total, 1)
 
     return StandardListResponse(
         data=[TemplateVersionResponse.model_validate(v) for v in versions],
-        total=len(versions),
-        page=1,
-        page_size=len(versions),
-        total_pages=1,
+        meta={
+            "total": total,
+            "page": 1,
+            "page_size": page_size,
+            "total_pages": 1,
+        },
         message="Template versions retrieved successfully",
     )
 
@@ -220,10 +224,10 @@ async def get_template_versions(
     description="Render a template with variables. Requires templates.render permission.",
 )
 async def render_template(
-    template_id: UUID = Path(..., description="Template ID"),
-    render_request: TemplateRenderRequest = ...,
+    template_id: Annotated[UUID, Path(..., description="Template ID")],
     current_user: Annotated[User, Depends(require_permission("templates.render"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
+    render_request: TemplateRenderRequest,
 ) -> StandardResponse[TemplateRenderResponse]:
     """Render a template with variables."""
     try:
@@ -241,7 +245,11 @@ async def render_template(
     except ValueError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TEMPLATE_NOT_FOUND",
+            code="TEMPLATE_NOT_FOUND",
             message=str(e),
         )
+
+
+
+
 

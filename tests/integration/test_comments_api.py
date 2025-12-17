@@ -4,6 +4,7 @@ import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole
+from tests.helpers import create_user_with_permission
 
 
 def test_create_comment(client, test_user, auth_headers, db_session):
@@ -62,17 +63,10 @@ def test_list_comments(client, test_user, auth_headers, db_session):
     assert isinstance(data, list)
 
 
-def test_update_comment(client, test_user, auth_headers, db_session):
+def test_update_comment(client, test_user, db_session):
     """Test updating a comment."""
     # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="comments",
-        role_name="creator",  # Maps to internal.creator -> comments.view, comments.create
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "comments", "editor")
 
     # First create a comment
     entity_id = uuid4()
@@ -84,7 +78,7 @@ def test_update_comment(client, test_user, auth_headers, db_session):
     comment_response = client.post(
         "/api/v1/comments",
         json=comment_data,
-        headers=auth_headers,
+        headers=headers,
     )
     comment_id = comment_response.json()["data"]["id"]
 
@@ -94,7 +88,7 @@ def test_update_comment(client, test_user, auth_headers, db_session):
     response = client.put(
         f"/api/v1/comments/{comment_id}",
         json=update_data,
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200

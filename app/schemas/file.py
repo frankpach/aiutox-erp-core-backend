@@ -45,11 +45,11 @@ class FileResponse(FileBase):
     version_number: int
     is_current: bool
     uploaded_by: UUID | None
-    metadata: dict[str, Any] | None
+    metadata: dict[str, Any] | None = Field(None, alias="file_metadata", description="Additional metadata")
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class FileVersionResponse(BaseModel):

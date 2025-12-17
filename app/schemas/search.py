@@ -55,3 +55,9 @@ class IndexEntityRequest(BaseModel):
     content: str | None = Field(None, description="Entity content")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
+
+
+
+
+
+

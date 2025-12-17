@@ -45,31 +45,53 @@ def test_template(db_session, test_tenant):
 
 @pytest.mark.asyncio
 async def test_send_notification(
-    notification_service, test_user, test_tenant, test_template, mock_event_publisher
+    notification_service, test_user, test_tenant, test_template, mock_event_publisher, db_session
 ):
     """Test sending a notification."""
-    with patch("app.core.notifications.service.aiosmtplib") as mock_smtp:
-        # Mock email sending
-        mock_smtp.send = AsyncMock()
+    from app.core.preferences.service import PreferencesService
 
-        result = await notification_service.send(
-            event_type="product.created",
-            recipient_id=test_user.id,
-            channels=["email"],
-            data={"product_name": "Test Product", "sku": "TEST-001"},
-            tenant_id=test_tenant.id,
-        )
+    # Configure user preferences to allow email channel
+    prefs_service = PreferencesService(db_session)
+    prefs_service.set_preference(
+        user_id=test_user.id,
+        tenant_id=test_tenant.id,
+        preference_type="notification",
+        key="product.created",
+        value={"enabled": True, "channels": ["email", "in-app"]},
+    )
 
-        assert len(result) > 0
-        assert result[0]["event_type"] == "product.created"
-        assert result[0]["channel"] == "email"
-        assert result[0]["status"] == "sent"
+    # Mock SMTP settings to enable email sending
+    mock_settings = MagicMock()
+    mock_settings.SMTP_HOST = "smtp.test.com"
+    mock_settings.SMTP_PORT = 587
+    mock_settings.SMTP_USER = "test@test.com"
+    mock_settings.SMTP_PASSWORD = "password"
+    mock_settings.SMTP_FROM = "noreply@test.com"
 
-        # Verify event was published
-        assert mock_event_publisher.publish.called
-        call_args = mock_event_publisher.publish.call_args
-        assert call_args[1]["event_type"] == "notification.sent"
-        assert call_args[1]["entity_type"] == "notification"
+    with patch("app.core.config_file.get_settings", return_value=mock_settings):
+        import aiosmtplib
+        with patch.object(aiosmtplib, "send", new_callable=AsyncMock) as mock_send:
+            # Mock email sending
+            mock_send.return_value = None
+
+            result = await notification_service.send(
+                event_type="product.created",
+                recipient_id=test_user.id,
+                channels=["email"],
+                data={"product_name": "Test Product", "sku": "TEST-001"},
+                tenant_id=test_tenant.id,
+            )
+
+            assert len(result) > 0
+            assert result[0]["event_type"] == "product.created"
+            assert result[0]["channel"] == "email"
+            assert result[0]["status"] == "sent"
+
+            # Verify event was published
+            assert mock_event_publisher.publish.called
+            call_args = mock_event_publisher.publish.call_args
+            assert call_args[1]["event_type"] == "notification.sent"
+            assert call_args[1]["entity_type"] == "notification"
 
 
 @pytest.mark.asyncio
@@ -120,29 +142,51 @@ async def test_send_notification_publishes_failed_event(
     notification_service, test_user, test_tenant, test_template, mock_event_publisher, db_session
 ):
     """Test that failed notifications publish notification.failed event."""
-    with patch("app.core.notifications.service.aiosmtplib") as mock_smtp:
-        # Mock email sending to fail
-        mock_smtp.send = AsyncMock(side_effect=Exception("SMTP Error"))
+    from app.core.preferences.service import PreferencesService
 
-        result = await notification_service.send(
-            event_type="product.created",
-            recipient_id=test_user.id,
-            channels=["email"],
-            data={"product_name": "Test Product", "sku": "TEST-001"},
-            tenant_id=test_tenant.id,
-        )
+    # Configure user preferences to allow email channel
+    prefs_service = PreferencesService(db_session)
+    prefs_service.set_preference(
+        user_id=test_user.id,
+        tenant_id=test_tenant.id,
+        preference_type="notification",
+        key="product.created",
+        value={"enabled": True, "channels": ["email", "in-app"]},
+    )
 
-        # Should still return result but with failed status
-        assert len(result) > 0
-        assert result[0]["status"] == "failed"
+    # Mock SMTP settings to enable email sending
+    mock_settings = MagicMock()
+    mock_settings.SMTP_HOST = "smtp.test.com"
+    mock_settings.SMTP_PORT = 587
+    mock_settings.SMTP_USER = "test@test.com"
+    mock_settings.SMTP_PASSWORD = "password"
+    mock_settings.SMTP_FROM = "noreply@test.com"
 
-        # Verify failed event was published
-        publish_calls = [call for call in mock_event_publisher.publish.call_args_list]
-        failed_calls = [
-            call
-            for call in publish_calls
-            if call[1].get("event_type") == "notification.failed"
-        ]
-        assert len(failed_calls) > 0
+    with patch("app.core.config_file.get_settings", return_value=mock_settings):
+        import aiosmtplib
+        with patch.object(aiosmtplib, "send", new_callable=AsyncMock) as mock_send:
+            # Mock email sending to fail
+            mock_send.side_effect = Exception("SMTP Error")
+
+            result = await notification_service.send(
+                event_type="product.created",
+                recipient_id=test_user.id,
+                channels=["email"],
+                data={"product_name": "Test Product", "sku": "TEST-001"},
+                tenant_id=test_tenant.id,
+            )
+
+            # Should still return result but with failed status
+            assert len(result) > 0
+            assert result[0]["status"] == "failed"
+
+            # Verify failed event was published
+            publish_calls = [call for call in mock_event_publisher.publish.call_args_list]
+            failed_calls = [
+                call
+                for call in publish_calls
+                if call[1].get("event_type") == "notification.failed"
+            ]
+            assert len(failed_calls) > 0
 
 

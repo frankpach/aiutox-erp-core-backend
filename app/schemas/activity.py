@@ -40,6 +40,7 @@ class ActivityResponse(ActivityBase):
     user_id: UUID | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="activity_metadata", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

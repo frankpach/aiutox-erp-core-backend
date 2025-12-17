@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_tag(client, test_user, auth_headers, db_session):
+def test_create_tag(client, test_user, db_session):
     """Test creating a tag."""
     # Assign tags.manage permission
     module_role = ModuleRole(
@@ -17,6 +17,13 @@ def test_create_tag(client, test_user, auth_headers, db_session):
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
+
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     tag_data = {
         "name": "Important",
@@ -27,7 +34,7 @@ def test_create_tag(client, test_user, auth_headers, db_session):
     response = client.post(
         "/api/v1/tags",
         json=tag_data,
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 201
@@ -37,7 +44,7 @@ def test_create_tag(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_tags(client, test_user, auth_headers, db_session):
+def test_list_tags(client, test_user, db_session):
     """Test listing tags."""
     # Assign tags.view permission
     module_role = ModuleRole(
@@ -48,13 +55,23 @@ def test_list_tags(client, test_user, auth_headers, db_session):
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
 
-    response = client.get("/api/v1/tags", headers=auth_headers)
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = client.get("/api/v1/tags", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
-    assert "total" in response.json()
+    data = response.json()
+    assert "data" in data
+    assert "meta" in data
+    assert "total" in data["meta"]
 
 
 def test_get_tag(client, test_user, auth_headers, db_session):
@@ -87,7 +104,7 @@ def test_get_tag(client, test_user, auth_headers, db_session):
     assert data["name"] == "Test Tag"
 
 
-def test_update_tag(client, test_user, auth_headers, db_session):
+def test_update_tag(client, test_user, db_session):
     """Test updating a tag."""
     # Assign permissions
     module_role = ModuleRole(
@@ -98,13 +115,20 @@ def test_update_tag(client, test_user, auth_headers, db_session):
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
+
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     # Create a tag
     tag_data = {"name": "Original Name", "color": "#000000"}
     create_response = client.post(
         "/api/v1/tags",
         json=tag_data,
-        headers=auth_headers,
+        headers=headers,
     )
     tag_id = create_response.json()["data"]["id"]
 
@@ -113,7 +137,7 @@ def test_update_tag(client, test_user, auth_headers, db_session):
     response = client.put(
         f"/api/v1/tags/{tag_id}",
         json=update_data,
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -122,7 +146,7 @@ def test_update_tag(client, test_user, auth_headers, db_session):
     assert data["color"] == "#FFFFFF"
 
 
-def test_delete_tag(client, test_user, auth_headers, db_session):
+def test_delete_tag(client, test_user, db_session):
     """Test deleting a tag."""
     # Assign permissions
     module_role = ModuleRole(
@@ -133,27 +157,34 @@ def test_delete_tag(client, test_user, auth_headers, db_session):
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
+
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     # Create a tag
     tag_data = {"name": "Test Tag"}
     create_response = client.post(
         "/api/v1/tags",
         json=tag_data,
-        headers=auth_headers,
+        headers=headers,
     )
     tag_id = create_response.json()["data"]["id"]
 
     # Delete it
-    response = client.delete(f"/api/v1/tags/{tag_id}", headers=auth_headers)
+    response = client.delete(f"/api/v1/tags/{tag_id}", headers=headers)
 
     assert response.status_code == 204
 
     # Verify it's deleted (soft delete)
-    get_response = client.get(f"/api/v1/tags/{tag_id}", headers=auth_headers)
+    get_response = client.get(f"/api/v1/tags/{tag_id}", headers=headers)
     assert get_response.status_code == 404
 
 
-def test_attach_tag_to_entity(client, test_user, auth_headers, db_session):
+def test_attach_tag_to_entity(client, test_user, db_session):
     """Test attaching a tag to an entity."""
     # Assign permissions
     module_role = ModuleRole(
@@ -164,13 +195,20 @@ def test_attach_tag_to_entity(client, test_user, auth_headers, db_session):
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
+
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     # Create a tag
     tag_data = {"name": "Test Tag"}
     create_response = client.post(
         "/api/v1/tags",
         json=tag_data,
-        headers=auth_headers,
+        headers=headers,
     )
     tag_id = create_response.json()["data"]["id"]
 
@@ -178,7 +216,7 @@ def test_attach_tag_to_entity(client, test_user, auth_headers, db_session):
     entity_id = uuid4()
     response = client.post(
         f"/api/v1/tags/{tag_id}/entities/product/{entity_id}",
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 204
@@ -221,24 +259,31 @@ def test_detach_tag_from_entity(client, test_user, auth_headers, db_session):
     assert response.status_code == 204
 
 
-def test_get_entity_tags(client, test_user, auth_headers, db_session):
+def test_get_entity_tags(client, test_user, db_session):
     """Test getting tags for an entity."""
-    # Assign permissions
+    # Assign permissions (manager to create tags, viewer to view)
     module_role = ModuleRole(
         user_id=test_user.id,
         module="tags",
-        role_name="viewer",
+        role_name="manager",
         granted_by=test_user.id,
     )
     db_session.add(module_role)
     db_session.commit()
+    db_session.refresh(test_user)
+
+    # Create token with updated permissions
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     # Create tags
     tag1_data = {"name": "Tag 1"}
     tag1_response = client.post(
         "/api/v1/tags",
         json=tag1_data,
-        headers=auth_headers,
+        headers=headers,
     )
     tag1_id = tag1_response.json()["data"]["id"]
 
@@ -246,7 +291,7 @@ def test_get_entity_tags(client, test_user, auth_headers, db_session):
     tag2_response = client.post(
         "/api/v1/tags",
         json=tag2_data,
-        headers=auth_headers,
+        headers=headers,
     )
     tag2_id = tag2_response.json()["data"]["id"]
 
@@ -254,17 +299,17 @@ def test_get_entity_tags(client, test_user, auth_headers, db_session):
     entity_id = uuid4()
     client.post(
         f"/api/v1/tags/{tag1_id}/entities/product/{entity_id}",
-        headers=auth_headers,
+        headers=headers,
     )
     client.post(
         f"/api/v1/tags/{tag2_id}/entities/product/{entity_id}",
-        headers=auth_headers,
+        headers=headers,
     )
 
     # Get entity tags
     response = client.get(
         f"/api/v1/tags/entities/product/{entity_id}",
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200

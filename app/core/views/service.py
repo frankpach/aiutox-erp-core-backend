@@ -175,3 +175,9 @@ class ViewService:
         self.repository.delete_view_share(share)
         return True
 
+
+
+
+
+
+

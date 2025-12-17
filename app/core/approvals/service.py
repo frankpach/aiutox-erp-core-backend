@@ -231,50 +231,25 @@ class ApprovalService:
         request = self.repository.create_approval_request(request_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="approval.requested",
-                        entity_type="approval_request",
-                        entity_id=request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={
-                                "flow_id": str(request.flow_id),
-                                "entity_type": request.entity_type,
-                                "entity_id": str(request.entity_id),
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="approval.requested",
-                        entity_type="approval_request",
-                        entity_id=request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={
-                                "flow_id": str(request.flow_id),
-                                "entity_type": request.entity_type,
-                                "entity_id": str(request.entity_id),
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish approval.requested event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="approval.requested",
+            entity_type="approval_request",
+            entity_id=request.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="approval_service",
+                version="1.0",
+                additional_data={
+                    "flow_id": str(request.flow_id),
+                    "entity_type": request.entity_type,
+                    "entity_id": str(request.entity_id),
+                },
+            ),
+        )
 
         return request
 
@@ -505,4 +480,8 @@ class ApprovalService:
         return self.repository.get_approval_delegations(
             tenant_id, request_id, from_user_id, to_user_id, is_active
         )
+
+
+
+
 

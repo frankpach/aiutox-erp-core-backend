@@ -144,7 +144,9 @@ def test_update_activity(activity_service, test_user, test_tenant):
     updated = activity_service.update_activity(
         activity.id,
         test_tenant.id,
-        {"title": "Updated Title", "description": "Updated description"},
+        test_user.id,
+        title="Updated Title",
+        description="Updated description",
     )
 
     assert updated is not None
@@ -167,7 +169,7 @@ def test_delete_activity(activity_service, test_user, test_tenant):
     )
 
     # Delete it
-    deleted = activity_service.delete_activity(activity.id, test_tenant.id)
+    deleted = activity_service.delete_activity(activity.id, test_tenant.id, test_user.id)
 
     assert deleted is True
 
@@ -178,4 +180,10 @@ def test_delete_activity(activity_service, test_user, test_tenant):
         tenant_id=test_tenant.id,
     )
     assert not any(a.id == activity.id for a in activities)
+
+
+
+
+
+
 

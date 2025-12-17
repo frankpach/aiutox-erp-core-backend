@@ -163,6 +163,18 @@ class TagService:
         """
         return self.repository.search_tags(tenant_id, query)
 
+    def get_tag(self, tag_id: UUID, tenant_id: UUID) -> Tag | None:
+        """Get a tag by ID.
+
+        Args:
+            tag_id: Tag ID
+            tenant_id: Tenant ID
+
+        Returns:
+            Tag object or None if not found
+        """
+        return self.repository.get_tag_by_id(tag_id, tenant_id)
+
     def get_all_tags(
         self, tenant_id: UUID, category_id: UUID | None = None
     ) -> list[Tag]:

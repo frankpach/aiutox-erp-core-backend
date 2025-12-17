@@ -81,3 +81,9 @@ def test_render_template(client, test_user, auth_headers, db_session):
     assert "rendered_content" in data
     assert "Hello John, your order 12345 is ready!" in data["rendered_content"]
 
+
+
+
+
+
+

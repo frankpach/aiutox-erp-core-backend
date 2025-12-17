@@ -242,3 +242,9 @@ class ProductBarcode(Base):
 
 
 
+
+
+
+
+
+

@@ -86,10 +86,12 @@ async def list_workflows(
 
     return StandardListResponse(
         data=[WorkflowResponse.model_validate(w) for w in workflows],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(1, page_size) if total > 0 else page_size,
+            "total_pages": total_pages,
+        },
         message="Workflows retrieved successfully",
     )
 
@@ -102,7 +104,7 @@ async def list_workflows(
     description="Get a specific workflow by ID. Requires workflows.view permission.",
 )
 async def get_workflow(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.view"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
 ) -> StandardResponse[WorkflowResponse]:
@@ -111,7 +113,7 @@ async def get_workflow(
     if not workflow:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="WORKFLOW_NOT_FOUND",
+            code="WORKFLOW_NOT_FOUND",
             message=f"Workflow with ID {workflow_id} not found",
         )
 
@@ -129,10 +131,10 @@ async def get_workflow(
     description="Update a workflow. Requires workflows.manage permission.",
 )
 async def update_workflow(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
-    workflow_data: WorkflowUpdate = ...,
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    workflow_data: WorkflowUpdate,
 ) -> StandardResponse[WorkflowResponse]:
     """Update a workflow."""
     update_dict = workflow_data.model_dump(exclude_unset=True)
@@ -141,7 +143,7 @@ async def update_workflow(
     if not workflow:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="WORKFLOW_NOT_FOUND",
+            code="WORKFLOW_NOT_FOUND",
             message=f"Workflow with ID {workflow_id} not found",
         )
 
@@ -158,7 +160,7 @@ async def update_workflow(
     description="Delete a workflow. Requires workflows.manage permission.",
 )
 async def delete_workflow(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
 ) -> None:
@@ -167,7 +169,7 @@ async def delete_workflow(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="WORKFLOW_NOT_FOUND",
+            code="WORKFLOW_NOT_FOUND",
             message=f"Workflow with ID {workflow_id} not found",
         )
 
@@ -180,10 +182,10 @@ async def delete_workflow(
     description="Create a workflow step. Requires workflows.manage permission.",
 )
 async def create_workflow_step(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
-    step_data: WorkflowStepCreate = ...,
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    step_data: WorkflowStepCreate,
 ) -> StandardResponse[WorkflowStepResponse]:
     """Create a workflow step."""
     # Verify workflow exists
@@ -191,7 +193,7 @@ async def create_workflow_step(
     if not workflow:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="WORKFLOW_NOT_FOUND",
+            code="WORKFLOW_NOT_FOUND",
             message=f"Workflow with ID {workflow_id} not found",
         )
 
@@ -219,7 +221,7 @@ async def create_workflow_step(
     description="List steps for a workflow. Requires workflows.view permission.",
 )
 async def list_workflow_steps(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.view"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
 ) -> StandardListResponse[WorkflowStepResponse]:
@@ -228,10 +230,12 @@ async def list_workflow_steps(
 
     return StandardListResponse(
         data=[WorkflowStepResponse.model_validate(s) for s in steps],
-        total=len(steps),
-        page=1,
-        page_size=len(steps),
-        total_pages=1,
+        meta={
+            "total": len(steps),
+            "page": 1,
+            "page_size": max(1, len(steps)) if len(steps) > 0 else 1,
+            "total_pages": 1 if len(steps) > 0 else 0,
+        },
         message="Workflow steps retrieved successfully",
     )
 
@@ -244,10 +248,10 @@ async def list_workflow_steps(
     description="Start a workflow execution. Requires workflows.manage permission.",
 )
 async def start_workflow_execution(
-    workflow_id: UUID = Path(..., description="Workflow ID"),
-    execution_data: WorkflowExecutionCreate = ...,
+    workflow_id: Annotated[UUID, Path(..., description="Workflow ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    execution_data: WorkflowExecutionCreate,
 ) -> StandardResponse[WorkflowExecutionResponse]:
     """Start a workflow execution."""
     execution = service.start_workflow_execution(
@@ -262,4 +266,8 @@ async def start_workflow_execution(
         data=WorkflowExecutionResponse.model_validate(execution),
         message="Workflow execution started successfully",
     )
+
+
+
+
 

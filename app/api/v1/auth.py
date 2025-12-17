@@ -1,19 +1,14 @@
 """Authentication router for login, refresh, logout, and user info."""
 
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
+
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.auth.dependencies import get_current_user, require_permission
-from app.core.auth.rate_limit import (
-    check_login_rate_limit,
-    create_rate_limit_exception,
-    record_login_attempt,
-)
-from app.core.db.deps import get_db
+from app.core.auth.dependencies import get_current_user
 from app.core.exceptions import (
     raise_bad_request,
     raise_conflict,
@@ -21,6 +16,12 @@ from app.core.exceptions import (
     raise_not_found,
     raise_unauthorized,
 )
+from app.core.auth.rate_limit import (
+    check_login_rate_limit,
+    create_rate_limit_exception,
+    record_login_attempt,
+)
+from app.core.db.deps import get_db
 from app.core.logging import (
     create_audit_log_entry,
     get_client_info,
@@ -30,8 +31,9 @@ from app.core.logging import (
     log_permission_change,
     log_rate_limit_exceeded,
 )
+from app.core.auth.dependencies import require_permission
 from app.models.user import User
-from app.schemas.audit import AuditLogListResponse
+from app.schemas.audit import AuditLogListResponse, AuditLogResponse
 from app.schemas.auth import (
     AccessTokenResponse,
     LoginRequest,
@@ -39,6 +41,7 @@ from app.schemas.auth import (
     RoleAssignRequest,
     RoleListResponse,
     RoleResponse,
+    RoleWithPermissionsResponse,
     TokenResponse,
     UserMeResponse,
 )
@@ -58,33 +61,14 @@ router = APIRouter()
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=StandardResponse[TokenResponse],
     status_code=status.HTTP_200_OK,
-    summary="Login user",
-    description="Authenticate user and return access and refresh tokens. Rate limited to 5 attempts per minute per IP.",
-    responses={
-        200: {"description": "Login successful"},
-        401: {
-            "description": "Invalid credentials or rate limit exceeded",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INVALID_CREDENTIALS",
-                            "message": "Invalid credentials",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
-    },
 )
 async def login(
     login_data: LoginRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-) -> TokenResponse:
+) -> StandardResponse[TokenResponse]:
     """
     Authenticate user and return access and refresh tokens.
 
@@ -102,7 +86,7 @@ async def login(
         TokenResponse with access_token and refresh_token.
 
     Raises:
-        APIException: If credentials are invalid or rate limit exceeded.
+        HTTPException: If credentials are invalid or rate limit exceeded.
     """
     # Rate limiting check
     client_ip = request.client.host if request.client else "unknown"
@@ -122,7 +106,8 @@ async def login(
     if not user:
         log_auth_failure(login_data.email, "invalid_credentials", client_ip)
         raise_unauthorized(
-            code="AUTH_INVALID_CREDENTIALS", message="Invalid credentials"
+            code="AUTH_INVALID_CREDENTIALS",
+            message="Invalid credentials",
         )
 
     # Log successful login (auth_service already logs, but we add IP here)
@@ -132,41 +117,25 @@ async def login(
     access_token = auth_service.create_access_token_for_user(user)
     refresh_token = auth_service.create_refresh_token_for_user(user)
 
-    return TokenResponse(
+    return StandardResponse(
+        data=TokenResponse(
         access_token=access_token,
         token_type="bearer",
         refresh_token=refresh_token,
+        ),
+        message="Login successful",
     )
 
 
 @router.post(
     "/refresh",
-    response_model=AccessTokenResponse,
+    response_model=StandardResponse[AccessTokenResponse],
     status_code=status.HTTP_200_OK,
-    summary="Refresh access token",
-    description="Refresh an access token using a valid refresh token.",
-    responses={
-        200: {"description": "Token refreshed successfully"},
-        401: {
-            "description": "Invalid or expired refresh token",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_REFRESH_TOKEN_INVALID",
-                            "message": "Invalid or expired refresh token",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
-    },
 )
 async def refresh_token(
     refresh_data: RefreshTokenRequest,
     db: Annotated[Session, Depends(get_db)],
-) -> AccessTokenResponse:
+) -> StandardResponse[AccessTokenResponse]:
     """
     Refresh an access token using a valid refresh token.
 
@@ -178,7 +147,7 @@ async def refresh_token(
         AccessTokenResponse with new access_token.
 
     Raises:
-        APIException: If refresh token is invalid, expired, or revoked.
+        HTTPException: If refresh token is invalid, expired, or revoked.
     """
     auth_service = AuthService(db)
     access_token = auth_service.refresh_access_token(refresh_data.refresh_token)
@@ -189,39 +158,19 @@ async def refresh_token(
             message="Invalid or expired refresh token",
         )
 
-    return AccessTokenResponse(access_token=access_token, token_type="bearer")
+    return StandardResponse(
+        data=AccessTokenResponse(access_token=access_token, token_type="bearer"),
+        message="Token refreshed successfully",
+    )
 
 
-@router.post(
-    "/logout",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Logout user",
-    description="Logout user by revoking refresh token. Requires authentication.",
-    responses={
-        200: {"description": "Logged out successfully"},
-        401: {
-            "description": "Invalid refresh token",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_REFRESH_TOKEN_INVALID",
-                            "message": "Invalid refresh token",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
+@router.post("/logout", response_model=StandardResponse[dict[str, str]], status_code=status.HTTP_200_OK)
 async def logout(
     refresh_data: RefreshTokenRequest,
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
+) -> StandardResponse[dict[str, str]]:
     """
     Logout user by revoking refresh token.
 
@@ -232,10 +181,10 @@ async def logout(
         db: Database session.
 
     Returns:
-        StandardResponse with success message.
+        Success message.
 
     Raises:
-        APIException: If refresh token is invalid.
+        HTTPException: If refresh token is invalid.
     """
     auth_service = AuthService(db)
     success = auth_service.revoke_refresh_token(
@@ -244,7 +193,8 @@ async def logout(
 
     if not success:
         raise_unauthorized(
-            code="AUTH_REFRESH_TOKEN_INVALID", message="Invalid refresh token"
+            code="AUTH_REFRESH_TOKEN_INVALID",
+            message="Invalid refresh token",
         )
 
     # Log logout
@@ -254,20 +204,11 @@ async def logout(
     return StandardResponse(data={"message": "Logged out successfully"})
 
 
-@router.get(
-    "/me",
-    response_model=UserMeResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get current user info",
-    description="Get current authenticated user information with roles and permissions. Requires authentication.",
-    responses={
-        200: {"description": "User information retrieved successfully"},
-    },
-)
+@router.get("/me", response_model=StandardResponse[UserMeResponse], status_code=status.HTTP_200_OK)
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
-) -> UserMeResponse:
+) -> StandardResponse[UserMeResponse]:
     """
     Get current authenticated user information with roles and permissions.
 
@@ -276,25 +217,27 @@ async def get_current_user_info(
         db: Database session.
 
     Returns:
-        UserMeResponse with user info, roles, and permissions.
+        StandardResponse with UserMeResponse containing user info, roles, and permissions.
     """
     auth_service = AuthService(db)
     roles = auth_service.get_user_roles(current_user.id)
     permissions = auth_service.get_user_permissions(current_user.id)
 
-    return UserMeResponse(
-        id=current_user.id,
-        email=current_user.email,
-        full_name=current_user.full_name,
-        tenant_id=current_user.tenant_id,
-        roles=roles,
-        permissions=permissions,
+    return StandardResponse(
+        data=UserMeResponse(
+            id=current_user.id,
+            email=current_user.email,
+            full_name=current_user.full_name,
+            tenant_id=current_user.tenant_id,
+            roles=roles,
+            permissions=permissions,
+        )
     )
 
 
 @router.post(
     "/modules/{module}/permissions",
-    response_model=DelegatedPermissionResponse,
+    response_model=StandardResponse[DelegatedPermissionResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Grant a delegated permission",
     description="Grant a delegated permission to a user. Requires {module}.manage_users permission.",
@@ -349,7 +292,7 @@ async def grant_permission(
     permission_data: PermissionGrantRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
-) -> DelegatedPermissionResponse:
+) -> StandardResponse[DelegatedPermissionResponse]:
     """
     Grant a delegated permission to a user.
 
@@ -365,7 +308,7 @@ async def grant_permission(
         DelegatedPermissionResponse with granted permission details.
 
     Raises:
-        APIException: If user lacks permission or validation fails.
+        HTTPException: If user lacks permission or validation fails.
     """
     permission_service = PermissionService(db)
 
@@ -384,7 +327,8 @@ async def grant_permission(
         granted_by=current_user.id,
     )
 
-    return DelegatedPermissionResponse(
+    return StandardResponse(
+        data=DelegatedPermissionResponse(
         id=delegated_permission.id,
         user_id=delegated_permission.user_id,
         granted_by=delegated_permission.granted_by,
@@ -394,12 +338,14 @@ async def grant_permission(
         created_at=delegated_permission.created_at,
         revoked_at=delegated_permission.revoked_at,
         is_active=delegated_permission.is_active,
+        ),
+        message="Permission granted successfully",
     )
 
 
 @router.delete(
     "/modules/{module}/permissions/{permission_id}",
-    response_model=RevokePermissionResponse,
+    response_model=StandardResponse[RevokePermissionResponse],
     status_code=status.HTTP_200_OK,
     summary="Revoke a delegated permission",
     description="Revoke a delegated permission. Requires being the granter OR having auth.manage_users.",
@@ -470,7 +416,7 @@ async def revoke_permission(
         RevokePermissionResponse with success message.
 
     Raises:
-        APIException: If permission not found or user lacks permission.
+        HTTPException: If permission not found or user lacks permission.
     """
     permission_service = PermissionService(db)
 
@@ -495,7 +441,7 @@ async def revoke_permission(
 
 @router.delete(
     "/users/{user_id}/permissions",
-    response_model=RevokePermissionResponse,
+    response_model=StandardResponse[RevokePermissionResponse],
     status_code=status.HTTP_200_OK,
     summary="Revoke all delegated permissions of a user",
     description="Revoke ALL delegated permissions of a user. Requires auth.manage_users or owner/admin role.",
@@ -536,22 +482,25 @@ async def revoke_all_user_permissions(
         RevokePermissionResponse with number of permissions revoked.
 
     Raises:
-        APIException: If user lacks permission.
+        HTTPException: If user lacks permission.
     """
     permission_service = PermissionService(db)
     revoked_count = permission_service.revoke_all_user_permissions(
         user_id, current_user.id
     )
 
-    return RevokePermissionResponse(
+    return StandardResponse(
+        data=RevokePermissionResponse(
         message=f"Revoked {revoked_count} permission(s) successfully",
         revoked_count=revoked_count,
+        ),
+        message="Permissions revoked successfully",
     )
 
 
 @router.delete(
     "/users/{user_id}/permissions/{permission_id}",
-    response_model=RevokePermissionResponse,
+    response_model=StandardResponse[RevokePermissionResponse],
     status_code=status.HTTP_200_OK,
     summary="Revoke a specific delegated permission (admin override)",
     description="Revoke a specific delegated permission. Admin override - can revoke any permission. Requires auth.manage_users or owner/admin role.",
@@ -622,7 +571,7 @@ async def revoke_user_permission(
         RevokePermissionResponse with success message.
 
     Raises:
-        APIException: If permission not found or user lacks permission.
+        HTTPException: If permission not found or user lacks permission.
     """
     from app.repositories.permission_repository import PermissionRepository
 
@@ -641,9 +590,12 @@ async def revoke_user_permission(
     permission_service = PermissionService(db)
     permission_service.revoke_permission(permission_id, current_user.id)
 
-    return RevokePermissionResponse(
+    return StandardResponse(
+        data=RevokePermissionResponse(
         message="Permission revoked successfully",
         revoked_count=1,
+        ),
+        message="Permission revoked successfully",
     )
 
 
@@ -705,7 +657,7 @@ async def get_user_module_permissions(
 
 @router.get(
     "/roles",
-    response_model=StandardListResponse[dict],
+    response_model=StandardListResponse[RoleWithPermissionsResponse],
     status_code=status.HTTP_200_OK,
     summary="List available global roles",
     description="List all available global roles with their permissions. Requires authentication.",
@@ -715,7 +667,7 @@ async def get_user_module_permissions(
 )
 async def list_roles(
     current_user: Annotated[User, Depends(get_current_user)],
-) -> StandardListResponse[dict]:
+) -> StandardListResponse[RoleWithPermissionsResponse]:
     """
     List all available global roles.
 
@@ -728,22 +680,27 @@ async def list_roles(
         StandardListResponse with available roles and their permissions.
     """
     from app.core.auth.permissions import ROLE_PERMISSIONS
-    from app.schemas.common import PaginationMeta
 
     roles_data = [
-        {
-            "role": role,
-            "permissions": list(permissions),
-        }
+        RoleWithPermissionsResponse(
+            role=role,
+            permissions=list(permissions),
+        )
         for role, permissions in ROLE_PERMISSIONS.items()
     ]
 
     total = len(roles_data)
+    page_size = max(total, 1)
+
     return StandardListResponse(
         data=roles_data,
-        meta=PaginationMeta(
-            total=total, page=1, page_size=total, total_pages=1 if total > 0 else 0
-        ),
+        meta={
+            "total": total,
+            "page": 1,
+            "page_size": page_size,
+            "total_pages": 1,
+        },
+        message="Roles retrieved successfully",
     )
 
 
@@ -804,7 +761,7 @@ async def get_user_roles(
         RoleListResponse with list of roles.
 
     Raises:
-        APIException: If user not found or lacks permission.
+        HTTPException: If user not found or lacks permission.
     """
     from app.models.user_role import UserRole
     from app.repositories.user_repository import UserRepository
@@ -910,7 +867,7 @@ async def assign_role(
         RoleResponse with assigned role details.
 
     Raises:
-        APIException: If user not found, role already assigned, or validation fails.
+        HTTPException: If user not found, role already assigned, or validation fails.
     """
     from app.models.user_role import UserRole
     from app.repositories.user_repository import UserRepository
@@ -934,6 +891,7 @@ async def assign_role(
         .first()
     )
     if existing_role:
+        from app.core.exceptions import raise_conflict
         raise_conflict(
             code="ROLE_ALREADY_ASSIGNED",
             message=f"Role '{role_data.role}' is already assigned to this user",
@@ -982,26 +940,12 @@ async def assign_role(
 
 @router.delete(
     "/roles/{user_id}/{role}",
-    response_model=StandardResponse[dict],
+    response_model=StandardResponse[dict[str, str]],
     status_code=status.HTTP_200_OK,
     summary="Remove global role from user",
     description="Remove a global role from a user. Requires auth.manage_roles permission.",
     responses={
         200: {"description": "Role removed successfully"},
-        400: {
-            "description": "Invalid role",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_ROLE",
-                            "message": "Invalid role 'invalid'. Valid roles: admin, manager, user",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
         403: {
             "description": "Insufficient permissions",
             "content": {
@@ -1038,7 +982,7 @@ async def remove_role(
     request: Request,
     current_user: Annotated[User, Depends(require_permission("auth.manage_roles"))],
     db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
+) -> StandardResponse[dict[str, str]]:
     """
     Remove a global role from a user.
 
@@ -1051,10 +995,10 @@ async def remove_role(
         db: Database session.
 
     Returns:
-        StandardResponse with success message.
+        Dictionary with success message.
 
     Raises:
-        APIException: If user not found, role not assigned, or lacks permission.
+        HTTPException: If user not found, role not assigned, or lacks permission.
     """
     from app.core.auth.permissions import ROLE_PERMISSIONS
     from app.models.user_role import UserRole
@@ -1086,7 +1030,7 @@ async def remove_role(
         .first()
     )
     if not user_role:
-        raise_not_found("Role", f"'{role}' is not assigned to this user")
+        raise_not_found("Role", f"{role} for user {user_id}")
 
     # Store role info before deletion for audit log
     original_granted_by = user_role.granted_by
@@ -1104,9 +1048,7 @@ async def remove_role(
         target_user_id=str(user_id),
         details={
             "role": role,
-            "original_granted_by": (
-                str(original_granted_by) if original_granted_by else None
-            ),
+            "original_granted_by": str(original_granted_by) if original_granted_by else None,
         },
     )
 
@@ -1121,9 +1063,7 @@ async def remove_role(
         details={
             "role": role,
             "target_user_id": str(user_id),
-            "original_granted_by": (
-                str(original_granted_by) if original_granted_by else None
-            ),
+            "original_granted_by": str(original_granted_by) if original_granted_by else None,
         },
         ip_address=ip_address,
         user_agent=user_agent,
@@ -1162,12 +1102,8 @@ async def get_audit_logs(
     user_id: UUID | None = Query(None, description="Filter by user ID"),
     action: str | None = Query(None, description="Filter by action type"),
     resource_type: str | None = Query(None, description="Filter by resource type"),
-    date_from: datetime | None = Query(
-        None, description="Filter by start date (ISO format)"
-    ),
-    date_to: datetime | None = Query(
-        None, description="Filter by end date (ISO format)"
-    ),
+    date_from: datetime | None = Query(None, description="Filter by start date (ISO format)"),
+    date_to: datetime | None = Query(None, description="Filter by end date (ISO format)"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> AuditLogListResponse:
@@ -1191,7 +1127,7 @@ async def get_audit_logs(
         AuditLogListResponse with list of audit logs and pagination metadata.
 
     Raises:
-        APIException: If user lacks permission.
+        HTTPException: If user lacks permission.
     """
     audit_service = AuditService(db)
     skip = (page - 1) * page_size
@@ -1216,3 +1152,4 @@ async def get_audit_logs(
             "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
         },
     )
+

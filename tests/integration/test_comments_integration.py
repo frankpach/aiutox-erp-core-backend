@@ -64,7 +64,7 @@ def test_comment_with_mentions_sends_notifications(client, test_user, auth_heade
     comment_data = {
         "entity_type": "product",
         "entity_id": str(entity_id),
-        "content": f"Hello @{test_user.username}, this is a mention",
+        "content": f"Hello @{test_user.email}, this is a mention",
     }
 
     with patch("app.core.notifications.service.NotificationService.send") as mock_notify:
@@ -168,4 +168,10 @@ def test_comment_publishes_events(client, test_user, auth_headers, db_session):
         assert response.status_code == 201
         # Event publishing is done via background task
         assert True  # Background task scheduled
+
+
+
+
+
+
 

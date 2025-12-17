@@ -124,8 +124,9 @@ class ApprovalRequestResponse(ApprovalRequestBase):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="request_metadata", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Approval Action schemas
@@ -183,4 +184,3 @@ class ApprovalDelegationResponse(ApprovalDelegationBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

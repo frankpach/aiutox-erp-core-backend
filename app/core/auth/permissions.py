@@ -158,6 +158,126 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "comments.manage",
         },
     },
+    "tags": {
+        "internal.viewer": {"tags.view"},
+        "internal.editor": {"tags.view", "tags.manage"},
+        "internal.manager": {
+            "tags.view",
+            "tags.manage",
+            "tags.manage_users",
+        },
+    },
+    "tasks": {
+        "internal.viewer": {"tasks.view"},
+        "internal.editor": {"tasks.view", "tasks.create", "tasks.edit"},
+        "internal.manager": {
+            "tasks.view",
+            "tasks.create",
+            "tasks.edit",
+            "tasks.delete",
+            "tasks.manage",
+            "tasks.manage_users",
+        },
+    },
+    "files": {
+        "internal.viewer": {"files.view"},
+        "internal.editor": {"files.view", "files.manage"},
+        "internal.manager": {
+            "files.view",
+            "files.manage",
+            "files.manage_users",
+        },
+    },
+    "activities": {
+        "internal.viewer": {"activities.view"},
+        "internal.editor": {"activities.view", "activities.create", "activities.edit"},
+        "internal.manager": {
+            "activities.view",
+            "activities.create",
+            "activities.edit",
+            "activities.delete",
+            "activities.manage",
+            "activities.manage_users",
+        },
+    },
+    "reporting": {
+        "internal.viewer": {"reporting.view"},
+        "internal.editor": {"reporting.view", "reporting.create", "reporting.edit"},
+        "internal.manager": {
+            "reporting.view",
+            "reporting.create",
+            "reporting.edit",
+            "reporting.delete",
+            "reporting.manage",
+            "reporting.manage_users",
+        },
+    },
+    "preferences": {
+        "internal.viewer": {"preferences.view"},
+        "internal.editor": {"preferences.view", "preferences.manage"},
+        "internal.manager": {
+            "preferences.view",
+            "preferences.manage",
+            "preferences.manage_users",
+        },
+    },
+    "notifications": {
+        "internal.viewer": {"notifications.view"},
+        "internal.editor": {"notifications.view", "notifications.manage"},
+        "internal.manager": {
+            "notifications.view",
+            "notifications.manage",
+            "notifications.manage_users",
+        },
+    },
+    "workflows": {
+        "internal.viewer": {"workflows.view"},
+        "internal.editor": {"workflows.view", "workflows.create", "workflows.edit"},
+        "internal.manager": {
+            "workflows.view",
+            "workflows.create",
+            "workflows.edit",
+            "workflows.delete",
+            "workflows.manage",
+            "workflows.manage_users",
+        },
+    },
+    "integrations": {
+        "internal.viewer": {"integrations.view"},
+        "internal.editor": {"integrations.view", "integrations.manage"},
+        "internal.manager": {
+            "integrations.view",
+            "integrations.manage",
+            "integrations.manage_users",
+        },
+    },
+    "automation": {
+        "internal.viewer": {"automation.view"},
+        "internal.editor": {"automation.view", "automation.manage"},
+        "internal.manager": {
+            "automation.view",
+            "automation.manage",
+            "automation.manage_users",
+        },
+    },
+    "search": {
+        "internal.viewer": {"search.view"},
+        "internal.editor": {"search.view", "search.manage"},
+        "internal.manager": {
+            "search.view",
+            "search.manage",
+            "search.manage_users",
+        },
+    },
+    "pubsub": {
+        "internal.viewer": {"pubsub.view"},
+        "internal.editor": {"pubsub.view", "pubsub.manage"},
+        "internal.manager": {
+            "pubsub.view",
+            "pubsub.manage",
+            "pubsub.manage_users",
+        },
+    },
     # Más módulos se agregarán según se implementen
     # Ejemplo futuro:
     # "orders": {

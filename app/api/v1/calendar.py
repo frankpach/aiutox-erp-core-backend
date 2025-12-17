@@ -92,11 +92,12 @@ async def list_calendars(
 
     return StandardListResponse(
         data=[CalendarResponse.model_validate(c) for c in calendars],
-        total=len(calendars),
-        page=1,
-        page_size=len(calendars),
-        total_pages=1,
-        message="Calendars retrieved successfully",
+        meta={
+            "total": len(calendars),
+            "page": 1,
+            "page_size": max(len(calendars), 1),  # Minimum page_size is 1
+            "total_pages": 1,
+        },
     )
 
 
@@ -108,7 +109,7 @@ async def list_calendars(
     description="Get a specific calendar by ID. Requires calendar.view permission.",
 )
 async def get_calendar(
-    calendar_id: UUID = Path(..., description="Calendar ID"),
+    calendar_id: Annotated[UUID, Path(..., description="Calendar ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.view"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarResponse]:
@@ -117,7 +118,7 @@ async def get_calendar(
     if not calendar:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="CALENDAR_NOT_FOUND",
+            code="CALENDAR_NOT_FOUND",
             message=f"Calendar with ID {calendar_id} not found",
         )
 
@@ -135,8 +136,8 @@ async def get_calendar(
     description="Update a calendar. Requires calendar.manage permission.",
 )
 async def update_calendar(
-    calendar_id: UUID = Path(..., description="Calendar ID"),
-    calendar_data: CalendarUpdate = ...,
+    calendar_id: Annotated[UUID, Path(..., description="Calendar ID")],
+    calendar_data: CalendarUpdate,
     current_user: Annotated[User, Depends(require_permission("calendar.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarResponse]:
@@ -150,7 +151,7 @@ async def update_calendar(
     if not calendar:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="CALENDAR_NOT_FOUND",
+            code="CALENDAR_NOT_FOUND",
             message=f"Calendar with ID {calendar_id} not found",
         )
 
@@ -167,7 +168,7 @@ async def update_calendar(
     description="Delete a calendar. Requires calendar.manage permission.",
 )
 async def delete_calendar(
-    calendar_id: UUID = Path(..., description="Calendar ID"),
+    calendar_id: Annotated[UUID, Path(..., description="Calendar ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> None:
@@ -176,7 +177,7 @@ async def delete_calendar(
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="CALENDAR_NOT_FOUND",
+            code="CALENDAR_NOT_FOUND",
             message=f"Calendar with ID {calendar_id} not found",
         )
 
@@ -203,7 +204,7 @@ async def create_event(
 
     return StandardResponse(
         data=CalendarEventResponse.model_validate(event),
-        message="Event created successfully",
+        meta={"message": "Event created successfully"},
     )
 
 
@@ -252,11 +253,12 @@ async def list_events(
 
     return StandardListResponse(
         data=[CalendarEventResponse.model_validate(e) for e in events],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Events retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -268,7 +270,7 @@ async def list_events(
     description="Get a specific event by ID. Requires calendar.events.view permission.",
 )
 async def get_event(
-    event_id: UUID = Path(..., description="Event ID"),
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.events.view"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarEventResponse]:
@@ -277,7 +279,7 @@ async def get_event(
     if not event:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="EVENT_NOT_FOUND",
+            code="EVENT_NOT_FOUND",
             message=f"Event with ID {event_id} not found",
         )
 
@@ -295,10 +297,10 @@ async def get_event(
     description="Update a calendar event. Requires calendar.events.manage permission.",
 )
 async def update_event(
-    event_id: UUID = Path(..., description="Event ID"),
-    event_data: CalendarEventUpdate = ...,
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
+    event_data: CalendarEventUpdate,
 ) -> StandardResponse[CalendarEventResponse]:
     """Update a calendar event."""
     event = service.update_event(
@@ -310,7 +312,7 @@ async def update_event(
     if not event:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="EVENT_NOT_FOUND",
+            code="EVENT_NOT_FOUND",
             message=f"Event with ID {event_id} not found",
         )
 
@@ -328,7 +330,7 @@ async def update_event(
     description="Cancel a calendar event. Requires calendar.events.manage permission.",
 )
 async def cancel_event(
-    event_id: UUID = Path(..., description="Event ID"),
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarEventResponse]:
@@ -337,7 +339,7 @@ async def cancel_event(
     if not event:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="EVENT_NOT_FOUND",
+            code="EVENT_NOT_FOUND",
             message=f"Event with ID {event_id} not found",
         )
 
@@ -354,7 +356,7 @@ async def cancel_event(
     description="Delete a calendar event. Requires calendar.events.manage permission.",
 )
 async def delete_event(
-    event_id: UUID = Path(..., description="Event ID"),
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
     current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> None:
@@ -363,7 +365,7 @@ async def delete_event(
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="EVENT_NOT_FOUND",
+            code="EVENT_NOT_FOUND",
             message=f"Event with ID {event_id} not found",
         )
 
@@ -377,8 +379,8 @@ async def delete_event(
     description="Add an attendee to an event. Requires calendar.events.manage permission.",
 )
 async def add_attendee(
-    event_id: UUID = Path(..., description="Event ID"),
-    attendee_data: EventAttendeeCreate = ...,
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    attendee_data: EventAttendeeCreate,
     current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[EventAttendeeResponse]:
@@ -403,25 +405,25 @@ async def add_attendee(
     description="Update your response to an event invitation. Requires calendar.events.view permission.",
 )
 async def update_attendee_response(
-    event_id: UUID = Path(..., description="Event ID"),
-    status: str = Query(..., description="Response status (accepted, declined, tentative)"),
-    comment: str | None = Query(None, description="Optional comment"),
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    response_status: Annotated[str, Query(..., description="Response status (accepted, declined, tentative)", alias="status")],
     current_user: Annotated[User, Depends(require_permission("calendar.events.view"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
+    comment: str | None = Query(None, description="Optional comment"),
 ) -> StandardResponse[EventAttendeeResponse]:
     """Update your response to an event invitation."""
     attendee = service.update_attendee_response(
         event_id=event_id,
         user_id=current_user.id,
         tenant_id=current_user.tenant_id,
-        status=status,
+        status=response_status,
         comment=comment,
     )
 
     if not attendee:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ATTENDEE_NOT_FOUND",
+            code="ATTENDEE_NOT_FOUND",
             message="You are not an attendee of this event",
         )
 
@@ -440,8 +442,8 @@ async def update_attendee_response(
     description="Add a reminder to an event. Requires calendar.events.manage permission.",
 )
 async def add_reminder(
-    event_id: UUID = Path(..., description="Event ID"),
-    reminder_data: EventReminderCreate = ...,
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    reminder_data: EventReminderCreate,
     current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[EventReminderResponse]:
@@ -456,4 +458,8 @@ async def add_reminder(
         data=EventReminderResponse.model_validate(reminder),
         message="Reminder added successfully",
     )
+
+
+
+
 

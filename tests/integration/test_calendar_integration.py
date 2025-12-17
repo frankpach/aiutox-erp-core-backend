@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole
+from tests.helpers import create_user_with_permission
 
 
 def test_calendar_event_publishes_event(client, test_user, auth_headers, db_session):
@@ -110,24 +111,17 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
     assert reminder["minutes_before"] == 30
 
 
-def test_calendar_event_attendee_response(client, test_user, auth_headers, db_session):
+def test_calendar_event_attendee_response(client, test_user, db_session):
     """Test attendee response to event invitation."""
     # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="calendar",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "calendar", "manager")
 
     # Create calendar and event
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
     calendar_response = client.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
-        headers=auth_headers,
+        headers=headers,
     )
     calendar_id = calendar_response.json()["data"]["id"]
 
@@ -144,14 +138,28 @@ def test_calendar_event_attendee_response(client, test_user, auth_headers, db_se
     event_response = client.post(
         "/api/v1/calendar/events",
         json=event_data,
-        headers=auth_headers,
+        headers=headers,
     )
     event_id = event_response.json()["data"]["id"]
 
-    # Update attendee response
+    # First, add the user as an attendee
+    # Note: EventAttendeeCreate requires event_id in the body, but it's also in the path
+    # The schema expects event_id, user_id, and status
+    attendee_data = {"event_id": str(event_id), "user_id": str(test_user.id), "status": "pending"}
+    add_response = client.post(
+        f"/api/v1/calendar/events/{event_id}/attendees",
+        json=attendee_data,
+        headers=headers,
+    )
+    # If 422, check the error details
+    if add_response.status_code != 201:
+        print(f"Add attendee failed: {add_response.status_code} - {add_response.json()}")
+    assert add_response.status_code == 201
+
+    # Then update attendee response
     response = client.put(
         f"/api/v1/calendar/events/{event_id}/attendees/me?status=accepted",
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -159,32 +167,27 @@ def test_calendar_event_attendee_response(client, test_user, auth_headers, db_se
     assert attendee["status"] == "accepted"
 
 
-def test_calendar_multi_tenant_isolation(client, test_user, test_tenant, auth_headers, db_session):
+def test_calendar_multi_tenant_isolation(client, test_user, test_tenant, db_session):
     """Test that calendars are isolated by tenant."""
     # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="calendar",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "calendar", "manager")
 
     # Create calendar in current tenant
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
     calendar_response = client.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
-        headers=auth_headers,
+        headers=headers,
     )
+
+    assert calendar_response.status_code == 201, f"Failed to create calendar: {calendar_response.text}"
     calendar_id = calendar_response.json()["data"]["id"]
 
     # Try to access with different tenant (should fail or return empty)
     # This test verifies multi-tenancy is respected
     response = client.get(
         f"/api/v1/calendar/calendars/{calendar_id}",
-        headers=auth_headers,
+        headers=headers,
     )
 
     # Should succeed for same tenant

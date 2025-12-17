@@ -103,3 +103,9 @@ class SearchIndexer:
         logger.info(f"Reindexing {entity_type} for tenant {tenant_id}")
         return 0
 
+
+
+
+
+
+

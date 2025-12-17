@@ -65,11 +65,11 @@ async def create_comment(
     description="List comments for an entity. Requires comments.view permission.",
 )
 async def list_comments(
-    entity_type: str = Query(..., description="Entity type (e.g., 'product', 'order')"),
-    entity_id: UUID = Query(..., description="Entity ID"),
-    include_deleted: bool = Query(False, description="Include deleted comments"),
+    entity_type: Annotated[str, Query(..., description="Entity type (e.g., 'product', 'order')")],
+    entity_id: Annotated[UUID, Query(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("comments.view"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
+    include_deleted: bool = Query(False, description="Include deleted comments"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[CommentResponse]:
@@ -89,11 +89,12 @@ async def list_comments(
 
     return StandardListResponse(
         data=[CommentResponse.model_validate(c) for c in comments],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Comments retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -105,7 +106,7 @@ async def list_comments(
     description="Get a specific comment by ID. Requires comments.view permission.",
 )
 async def get_comment(
-    comment_id: UUID = Path(..., description="Comment ID"),
+    comment_id: Annotated[UUID, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.view"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
 ) -> StandardResponse[CommentResponse]:
@@ -114,7 +115,7 @@ async def get_comment(
     if not comment:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="COMMENT_NOT_FOUND",
+            code="COMMENT_NOT_FOUND",
             message=f"Comment with ID {comment_id} not found",
         )
 
@@ -132,10 +133,10 @@ async def get_comment(
     description="Get replies to a comment. Requires comments.view permission.",
 )
 async def get_comment_thread(
-    comment_id: UUID = Path(..., description="Parent comment ID"),
-    include_deleted: bool = Query(False, description="Include deleted comments"),
+    comment_id: Annotated[UUID, Path(..., description="Parent comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.view"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
+    include_deleted: bool = Query(False, description="Include deleted comments"),
 ) -> StandardListResponse[CommentResponse]:
     """Get comment thread (replies)."""
     replies = service.get_comment_thread(
@@ -146,11 +147,12 @@ async def get_comment_thread(
 
     return StandardListResponse(
         data=[CommentResponse.model_validate(r) for r in replies],
-        total=len(replies),
-        page=1,
-        page_size=len(replies),
-        total_pages=1,
-        message="Comment thread retrieved successfully",
+        meta={
+            "total": len(replies),
+            "page": 1,
+            "page_size": max(len(replies), 1),  # Minimum page_size is 1
+            "total_pages": 1,
+        },
     )
 
 
@@ -162,10 +164,10 @@ async def get_comment_thread(
     description="Update a comment. Requires comments.edit permission.",
 )
 async def update_comment(
-    comment_id: UUID = Path(..., description="Comment ID"),
-    comment_data: CommentUpdate = ...,
+    comment_id: Annotated[UUID, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.edit"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
+    comment_data: CommentUpdate,
 ) -> StandardResponse[CommentResponse]:
     """Update a comment."""
     comment = service.update_comment(
@@ -177,7 +179,7 @@ async def update_comment(
     if not comment:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="COMMENT_NOT_FOUND",
+            code="COMMENT_NOT_FOUND",
             message=f"Comment with ID {comment_id} not found",
         )
 
@@ -194,7 +196,7 @@ async def update_comment(
     description="Delete a comment (soft delete). Requires comments.delete permission.",
 )
 async def delete_comment(
-    comment_id: UUID = Path(..., description="Comment ID"),
+    comment_id: Annotated[UUID, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.delete"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
 ) -> None:
@@ -203,7 +205,7 @@ async def delete_comment(
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="COMMENT_NOT_FOUND",
+            code="COMMENT_NOT_FOUND",
             message=f"Comment with ID {comment_id} not found",
         )
 
@@ -217,10 +219,10 @@ async def delete_comment(
     description="Add an attachment to a comment. Requires comments.create permission.",
 )
 async def add_attachment(
-    comment_id: UUID = Path(..., description="Comment ID"),
-    attachment_data: CommentAttachmentCreate = ...,
+    comment_id: Annotated[UUID, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.create"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
+    attachment_data: CommentAttachmentCreate,
 ) -> StandardResponse[CommentAttachmentResponse]:
     """Add an attachment to a comment."""
     attachment = service.add_attachment(
@@ -243,7 +245,7 @@ async def add_attachment(
     description="Get attachments for a comment. Requires comments.view permission.",
 )
 async def get_attachments(
-    comment_id: UUID = Path(..., description="Comment ID"),
+    comment_id: Annotated[UUID, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("comments.view"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
 ) -> StandardListResponse[CommentAttachmentResponse]:
@@ -252,10 +254,14 @@ async def get_attachments(
 
     return StandardListResponse(
         data=[CommentAttachmentResponse.model_validate(a) for a in attachments],
-        total=len(attachments),
-        page=1,
-        page_size=len(attachments),
-        total_pages=1,
-        message="Attachments retrieved successfully",
+        meta={
+            "total": len(attachments),
+            "page": 1,
+            "page_size": max(len(attachments), 1),  # Minimum page_size is 1
+            "total_pages": 1,
+        },
     )
+
+
+
 

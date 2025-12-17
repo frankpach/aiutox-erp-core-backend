@@ -193,3 +193,9 @@ def downgrade() -> None:
     op.drop_index("ix_approval_flows_tenant_id", table_name="approval_flows")
     op.drop_table("approval_flows")
 
+
+
+
+
+
+

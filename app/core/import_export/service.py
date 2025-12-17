@@ -283,42 +283,21 @@ class ImportExportService:
         job = self.repository.create_import_job(job_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="import.started",
-                        entity_type="import_job",
-                        entity_id=job.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="import_export_service",
-                            version="1.0",
-                            additional_data={"module": job.module, "file_name": job.file_name},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="import.started",
-                        entity_type="import_job",
-                        entity_id=job.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="import_export_service",
-                            version="1.0",
-                            additional_data={"module": job.module, "file_name": job.file_name},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish import.started event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="import.started",
+            entity_type="import_job",
+            entity_id=job.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="import_export_service",
+                version="1.0",
+                additional_data={"module": job.module, "file_name": job.file_name},
+            ),
+        )
 
         return job
 
@@ -372,4 +351,8 @@ class ImportExportService:
     ) -> list[Any]:
         """Get import templates."""
         return self.repository.get_import_templates(tenant_id, module, skip, limit)
+
+
+
+
 

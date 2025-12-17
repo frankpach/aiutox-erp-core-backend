@@ -27,13 +27,15 @@ def second_user(db_session, second_tenant):
     """Create a user in second tenant."""
     user = User(
         id=uuid4(),
-        username="second_user",
         email="second@test.com",
+        password_hash=hash_password("password"),
+        full_name="Second User",
         tenant_id=second_tenant.id,
-        hashed_password=hash_password("password"),
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
+    db_session.refresh(user)
     return user
 
 
@@ -185,4 +187,8 @@ def test_permission_required_for_operations(client, test_user, auth_headers, db_
     )
 
     assert response.status_code == 201
+
+
+
+
 

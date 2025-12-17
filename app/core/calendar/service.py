@@ -67,42 +67,21 @@ class CalendarService:
         calendar = self.repository.create_calendar(calendar_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="calendar.created",
-                        entity_type="calendar",
-                        entity_id=calendar.id,
-                        tenant_id=tenant_id,
-                        user_id=owner_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"calendar_name": calendar.name},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="calendar.created",
-                        entity_type="calendar",
-                        entity_id=calendar.id,
-                        tenant_id=tenant_id,
-                        user_id=owner_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"calendar_name": calendar.name},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish calendar.created event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.created",
+            entity_type="calendar",
+            entity_id=calendar.id,
+            tenant_id=tenant_id,
+            user_id=owner_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={"calendar_name": calendar.name},
+            ),
+        )
 
         return calendar
 
@@ -172,50 +151,25 @@ class CalendarService:
                 self.repository.create_attendee(attendee_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.created",
-                        entity_type="calendar_event",
-                        entity_id=event.id,
-                        tenant_id=tenant_id,
-                        user_id=organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={
-                                "event_title": event.title,
-                                "calendar_id": str(event.calendar_id),
-                                "start_time": event.start_time.isoformat(),
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.created",
-                        entity_type="calendar_event",
-                        entity_id=event.id,
-                        tenant_id=tenant_id,
-                        user_id=organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={
-                                "event_title": event.title,
-                                "calendar_id": str(event.calendar_id),
-                                "start_time": event.start_time.isoformat(),
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish calendar.event.created event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.event_created",
+            entity_type="calendar_event",
+            entity_id=event.id,
+            tenant_id=tenant_id,
+            user_id=organizer_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={
+                    "event_title": event.title,
+                    "calendar_id": str(event.calendar_id),
+                    "start_time": event.start_time.isoformat(),
+                },
+            ),
+        )
 
         return event
 
@@ -263,42 +217,21 @@ class CalendarService:
         updated_event = self.repository.update_event(event, event_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.updated",
-                        entity_type="calendar_event",
-                        entity_id=updated_event.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_event.organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"event_title": updated_event.title},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.updated",
-                        entity_type="calendar_event",
-                        entity_id=updated_event.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_event.organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"event_title": updated_event.title},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish calendar.event.updated event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.event_updated",
+            entity_type="calendar_event",
+            entity_id=updated_event.id,
+            tenant_id=tenant_id,
+            user_id=updated_event.organizer_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={"event_title": updated_event.title},
+            ),
+        )
 
         return updated_event
 
@@ -313,42 +246,21 @@ class CalendarService:
         )
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.cancelled",
-                        entity_type="calendar_event",
-                        entity_id=updated_event.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_event.organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"event_title": updated_event.title},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="calendar.event.cancelled",
-                        entity_type="calendar_event",
-                        entity_id=updated_event.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_event.organizer_id,
-                        metadata=EventMetadata(
-                            source="calendar_service",
-                            version="1.0",
-                            additional_data={"event_title": updated_event.title},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish calendar.event.cancelled event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.event_cancelled",
+            entity_type="calendar_event",
+            entity_id=updated_event.id,
+            tenant_id=tenant_id,
+            user_id=updated_event.organizer_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={"event_title": updated_event.title},
+            ),
+        )
 
         return updated_event
 
@@ -476,7 +388,7 @@ class ReminderService:
             if reminder.reminder_type == ReminderType.EMAIL:
                 # Send email notification
                 await self.notification_service.send(
-                    event_type="calendar.event.reminder",
+                    event_type="calendar.event_reminder",
                     recipient_id=event.organizer_id or reminder.tenant_id,  # Fallback
                     channels=["email"],
                     data={
@@ -489,7 +401,7 @@ class ReminderService:
             elif reminder.reminder_type == ReminderType.IN_APP:
                 # Send in-app notification
                 await self.notification_service.send(
-                    event_type="calendar.event.reminder",
+                    event_type="calendar.event_reminder",
                     recipient_id=event.organizer_id or reminder.tenant_id,
                     channels=["in-app"],
                     data={
@@ -516,7 +428,7 @@ class ReminderService:
             # Publish event
             try:
                 await self.event_publisher.publish(
-                    event_type="calendar.event.reminder.sent",
+                    event_type="calendar.event_reminder_sent",
                     entity_type="calendar_event",
                     entity_id=event.id,
                     tenant_id=reminder.tenant_id,
@@ -532,7 +444,7 @@ class ReminderService:
                     ),
                 )
             except Exception as e:
-                logger.error(f"Failed to publish calendar.event.reminder.sent event: {e}")
+                logger.error(f"Failed to publish calendar.event_reminder_sent event: {e}")
 
             return True
 
@@ -571,4 +483,8 @@ class ReminderService:
             )
 
         return results
+
+
+
+
 

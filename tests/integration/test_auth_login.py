@@ -73,7 +73,10 @@ def test_login_success_after_rate_limit_reset(client, test_user):
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert "access_token" in response.json()
+    data = response.json()
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "access_token" in data["data"]
 
 
 def test_login_generic_error_message(client):

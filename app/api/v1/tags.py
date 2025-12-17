@@ -65,8 +65,8 @@ async def create_tag(
 async def list_tags(
     current_user: Annotated[User, Depends(require_permission("tags.view"))],
     service: Annotated[TagService, Depends(get_tag_service)],
-    category_id: UUID | None = Query(None, description="Filter by category"),
-    search: str | None = Query(None, description="Search by name"),
+    category_id: UUID | None = Query(default=None, description="Filter by category"),
+    search: str | None = Query(default=None, description="Search by name"),
 ) -> StandardListResponse[TagResponse]:
     """List all tags."""
     if search:
@@ -78,10 +78,12 @@ async def list_tags(
 
     return StandardListResponse(
         data=[TagResponse.model_validate(t) for t in tags],
-        total=total,
-        page=1,
-        page_size=total,
-        total_pages=1,
+        meta={
+            "total": total,
+            "page": 1,
+            "page_size": max(1, total) if total > 0 else 20,
+            "total_pages": 1,
+        },
         message="Tags retrieved successfully",
     )
 
@@ -94,7 +96,7 @@ async def list_tags(
     description="Get a specific tag by ID. Requires tags.view permission.",
 )
 async def get_tag(
-    tag_id: UUID = Path(..., description="Tag ID"),
+    tag_id: Annotated[UUID, Path(..., description="Tag ID")],
     current_user: Annotated[User, Depends(require_permission("tags.view"))],
     service: Annotated[TagService, Depends(get_tag_service)],
 ) -> StandardResponse[TagResponse]:
@@ -103,7 +105,7 @@ async def get_tag(
     if not tag:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TAG_NOT_FOUND",
+            code="TAG_NOT_FOUND",
             message=f"Tag with ID {tag_id} not found",
         )
 
@@ -121,10 +123,10 @@ async def get_tag(
     description="Update a tag. Requires tags.manage permission.",
 )
 async def update_tag(
-    tag_id: UUID = Path(..., description="Tag ID"),
-    tag_data: TagUpdate = ...,
+    tag_id: Annotated[UUID, Path(..., description="Tag ID")],
     current_user: Annotated[User, Depends(require_permission("tags.manage"))],
     service: Annotated[TagService, Depends(get_tag_service)],
+    tag_data: TagUpdate,
 ) -> StandardResponse[TagResponse]:
     """Update a tag."""
     tag = service.update_tag(
@@ -139,7 +141,7 @@ async def update_tag(
     if not tag:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TAG_NOT_FOUND",
+            code="TAG_NOT_FOUND",
             message=f"Tag with ID {tag_id} not found",
         )
 
@@ -156,7 +158,7 @@ async def update_tag(
     description="Delete a tag (soft delete). Requires tags.manage permission.",
 )
 async def delete_tag(
-    tag_id: UUID = Path(..., description="Tag ID"),
+    tag_id: Annotated[UUID, Path(..., description="Tag ID")],
     current_user: Annotated[User, Depends(require_permission("tags.manage"))],
     service: Annotated[TagService, Depends(get_tag_service)],
 ) -> None:
@@ -165,7 +167,7 @@ async def delete_tag(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TAG_NOT_FOUND",
+            code="TAG_NOT_FOUND",
             message=f"Tag with ID {tag_id} not found",
         )
 
@@ -177,9 +179,9 @@ async def delete_tag(
     description="Add a tag to an entity. Requires tags.manage permission.",
 )
 async def add_tag_to_entity(
-    tag_id: UUID = Path(..., description="Tag ID"),
-    entity_type: str = Path(..., description="Entity type"),
-    entity_id: UUID = Path(..., description="Entity ID"),
+    tag_id: Annotated[UUID, Path(..., description="Tag ID")],
+    entity_type: Annotated[str, Path(..., description="Entity type")],
+    entity_id: Annotated[UUID, Path(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("tags.manage"))],
     service: Annotated[TagService, Depends(get_tag_service)],
 ) -> None:
@@ -206,9 +208,9 @@ async def add_tag_to_entity(
     description="Remove a tag from an entity. Requires tags.manage permission.",
 )
 async def remove_tag_from_entity(
-    tag_id: UUID = Path(..., description="Tag ID"),
-    entity_type: str = Path(..., description="Entity type"),
-    entity_id: UUID = Path(..., description="Entity ID"),
+    tag_id: Annotated[UUID, Path(..., description="Tag ID")],
+    entity_type: Annotated[str, Path(..., description="Entity type")],
+    entity_id: Annotated[UUID, Path(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("tags.manage"))],
     service: Annotated[TagService, Depends(get_tag_service)],
 ) -> None:
@@ -222,7 +224,7 @@ async def remove_tag_from_entity(
     if not removed:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ENTITY_TAG_NOT_FOUND",
+            code="ENTITY_TAG_NOT_FOUND",
             message=f"Tag {tag_id} not found on entity {entity_type}:{entity_id}",
         )
 
@@ -235,8 +237,8 @@ async def remove_tag_from_entity(
     description="Get all tags for an entity. Requires tags.view permission.",
 )
 async def get_entity_tags(
-    entity_type: str = Path(..., description="Entity type"),
-    entity_id: UUID = Path(..., description="Entity ID"),
+    entity_type: Annotated[str, Path(..., description="Entity type")],
+    entity_id: Annotated[UUID, Path(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("tags.view"))],
     service: Annotated[TagService, Depends(get_tag_service)],
 ) -> StandardListResponse[TagResponse]:
@@ -245,10 +247,12 @@ async def get_entity_tags(
 
     return StandardListResponse(
         data=[TagResponse.model_validate(t) for t in tags],
-        total=len(tags),
-        page=1,
-        page_size=len(tags),
-        total_pages=1,
+        meta={
+            "total": len(tags),
+            "page": 1,
+            "page_size": max(1, len(tags)) if len(tags) > 0 else 20,
+            "total_pages": 1,
+        },
         message="Entity tags retrieved successfully",
     )
 
@@ -269,10 +273,12 @@ async def list_categories(
 
     return StandardListResponse(
         data=[TagCategoryResponse.model_validate(c) for c in categories],
-        total=len(categories),
-        page=1,
-        page_size=len(categories),
-        total_pages=1,
+        meta={
+            "total": len(categories),
+            "page": 1,
+            "page_size": max(1, len(categories)) if len(categories) > 0 else 20,
+            "total_pages": 1,
+        },
         message="Tag categories retrieved successfully",
     )
 

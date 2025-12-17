@@ -19,13 +19,22 @@ def test_login_success(client, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert "token_type" in data
-    assert data["token_type"] == "bearer"
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "meta" in data
+    assert "error" in data
+    assert data["meta"] is None
+    assert data["error"] is None
+
+    # Verify token data
+    token_data = data["data"]
+    assert "access_token" in token_data
+    assert "refresh_token" in token_data
+    assert "token_type" in token_data
+    assert token_data["token_type"] == "bearer"
 
     # Verify access token is valid
-    decoded = decode_token(data["access_token"])
+    decoded = decode_token(token_data["access_token"])
     assert decoded is not None
     assert decoded["sub"] == str(test_user.id)
 
@@ -77,12 +86,21 @@ def test_refresh_token_success(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "access_token" in data
-    assert "token_type" in data
-    assert data["token_type"] == "bearer"
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "meta" in data
+    assert "error" in data
+    assert data["meta"] is None
+    assert data["error"] is None
+
+    # Verify token data
+    token_data = data["data"]
+    assert "access_token" in token_data
+    assert "token_type" in token_data
+    assert token_data["token_type"] == "bearer"
 
     # Verify new access token is valid
-    decoded = decode_token(data["access_token"])
+    decoded = decode_token(token_data["access_token"])
     assert decoded is not None
     assert decoded["sub"] == str(test_user.id)
     assert decoded["type"] == "access"
@@ -143,11 +161,20 @@ def test_get_me_success(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["id"] == str(test_user.id)
-    assert data["email"] == test_user.email
-    assert data["tenant_id"] == str(test_user.tenant_id)
-    assert "roles" in data
-    assert "permissions" in data
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "meta" in data
+    assert "error" in data
+    assert data["meta"] is None
+    assert data["error"] is None
+
+    # Verify user data
+    user_data = data["data"]
+    assert user_data["id"] == str(test_user.id)
+    assert user_data["email"] == test_user.email
+    assert user_data["tenant_id"] == str(test_user.tenant_id)
+    assert "roles" in user_data
+    assert "permissions" in user_data
 
 
 def test_get_me_invalid_token(client):
@@ -300,13 +327,21 @@ def test_login_response_format(client, test_user):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
 
-    # Verify response structure (direct response, not wrapped in "data")
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert "token_type" in data
-    assert data["token_type"] == "bearer"
-    assert isinstance(data["access_token"], str)
-    assert isinstance(data["refresh_token"], str)
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "meta" in data
+    assert "error" in data
+    assert data["meta"] is None
+    assert data["error"] is None
+
+    # Verify token data structure
+    token_data = data["data"]
+    assert "access_token" in token_data
+    assert "refresh_token" in token_data
+    assert "token_type" in token_data
+    assert token_data["token_type"] == "bearer"
+    assert isinstance(token_data["access_token"], str)
+    assert isinstance(token_data["refresh_token"], str)
 
 
 def test_error_response_format(client):
@@ -348,15 +383,23 @@ def test_get_me_response_format(client, db_session, test_user):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
 
-    # Verify response structure (direct response, not wrapped in "data")
-    assert "id" in data
-    assert "email" in data
-    assert "full_name" in data
-    assert "tenant_id" in data
-    assert "roles" in data
-    assert "permissions" in data
-    assert isinstance(data["roles"], list)
-    assert isinstance(data["permissions"], list)
+    # Verify StandardResponse structure
+    assert "data" in data
+    assert "meta" in data
+    assert "error" in data
+    assert data["meta"] is None
+    assert data["error"] is None
+
+    # Verify user data structure
+    user_data = data["data"]
+    assert "id" in user_data
+    assert "email" in user_data
+    assert "full_name" in user_data
+    assert "tenant_id" in user_data
+    assert "roles" in user_data
+    assert "permissions" in user_data
+    assert isinstance(user_data["roles"], list)
+    assert isinstance(user_data["permissions"], list)
 
 
 def test_multi_tenant_isolation(client, db_session, test_user, test_tenant):
@@ -422,8 +465,10 @@ def test_multi_tenant_valid_access(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
+    # Verify StandardResponse structure
+    assert "data" in data
     # Verify tenant_id matches
-    assert data["tenant_id"] == str(test_user.tenant_id)
+    assert data["data"]["tenant_id"] == str(test_user.tenant_id)
 
 
 

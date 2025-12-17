@@ -118,4 +118,50 @@ class NotificationRepository:
             .first()
         )
 
+    def get_unread_notifications(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        since_id: UUID | None = None,
+        limit: int = 100,
+    ) -> list[NotificationQueue]:
+        """Get unread notifications for a user.
+
+        Args:
+            tenant_id: Tenant ID
+            user_id: User ID (recipient_id)
+            since_id: Optional notification ID to get only newer notifications
+            limit: Maximum number of notifications to return
+
+        Returns:
+            List of NotificationQueue entries with status 'pending' or 'sent'
+        """
+        from app.models.notification import NotificationStatus
+
+        query = (
+            self.db.query(NotificationQueue)
+            .filter(
+                NotificationQueue.tenant_id == tenant_id,
+                NotificationQueue.recipient_id == user_id,
+                NotificationQueue.status.in_([NotificationStatus.PENDING, NotificationStatus.SENT]),
+            )
+        )
+
+        # If since_id is provided, only get notifications created after that one
+        if since_id:
+            # Get the created_at timestamp of the since_id notification
+            since_notification = (
+                self.db.query(NotificationQueue)
+                .filter(NotificationQueue.id == since_id)
+                .first()
+            )
+            if since_notification:
+                query = query.filter(NotificationQueue.created_at > since_notification.created_at)
+
+        return (
+            query.order_by(NotificationQueue.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
 

@@ -1,8 +1,11 @@
+import os
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.auth import create_access_token, hash_password
@@ -14,55 +17,246 @@ from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.user_role import UserRole
 
+# Load environment variables from .env files
+# Priority: .env (current dir) > ../.env (parent dir) > system env vars
+backend_dir = Path(__file__).parent.parent
+env_files = [
+    backend_dir / ".env",  # backend/.env
+    backend_dir.parent / ".env",  # ../.env (project root)
+]
+
+# Load .env files (later files override earlier ones)
+for env_file in env_files:
+    if env_file.exists():
+        load_dotenv(env_file, override=False)  # Don't override existing env vars
+        print(f"[TEST CONFIG] Loaded environment from: {env_file}")
+
+# Clear settings cache to force reload with new env vars
+get_settings.cache_clear()
+
+# Get settings after loading .env files
 settings = get_settings()
 
-# Create test database
-TEST_DATABASE_URL = settings.DATABASE_URL.replace(
-    "/aiutox_erp_dev", "/aiutox_erp_test"
-)
+# Determine test database URL
+# Priority: Use environment variables > settings from .env > fallback defaults
+def get_test_database_url():
+    """Get test database URL with proper fallbacks."""
+    # Check for explicit test database URL in environment
+    test_db_url_env = os.getenv("TEST_DATABASE_URL")
+    if test_db_url_env:
+        return test_db_url_env
+
+    # Get base database URL from settings
+    base_db_url = settings.database_url
+
+    # For tests, we typically run outside Docker, so convert Docker hostnames to localhost
+    # Check if URL contains Docker hostname 'db'
+    if "db:" in base_db_url or "@db:" in base_db_url:
+        # Replace Docker hostname with localhost and use mapped port
+        # Handle both formats: @db:5432 and db:5432
+        test_db_url = base_db_url.replace("@db:5432", "@localhost:15432")
+        test_db_url = test_db_url.replace("db:5432", "localhost:15432")
+        # Also handle if port is not specified or different
+        test_db_url = test_db_url.replace("@db/", "@localhost:15432/")
+        test_db_url = test_db_url.replace("db/", "localhost:15432/")
+    elif settings.POSTGRES_HOST == "db" and settings.POSTGRES_PORT == 5432:
+        # If using Docker hostname/port in components, override to localhost:15432
+        test_db_url = (
+            f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+            f"@localhost:15432/{settings.POSTGRES_DB}"
+        )
+    else:
+        # Use settings as-is, but ensure we're using the right host/port
+        # If host is 'db', convert to localhost:15432
+        if settings.POSTGRES_HOST == "db":
+            test_db_url = (
+                f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+                f"@localhost:15432/{settings.POSTGRES_DB}"
+            )
+        else:
+            # Use settings URL directly
+            test_db_url = base_db_url
+
+    return test_db_url
+
+test_db_url = get_test_database_url()
+
+# Support for pytest-xdist workers: use separate database per worker
+def get_test_database_name():
+    """Get test database name, with worker-specific suffix if using pytest-xdist."""
+    base_name = os.getenv("TEST_POSTGRES_DB", "aiutox_erp_test")
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+
+    if worker_id and worker_id != "master":
+        # Use worker-specific database name
+        db_name = f"{base_name}_{worker_id}"
+        print(f"[TEST CONFIG] Using worker-specific database: {db_name} (worker: {worker_id})")
+        return db_name
+
+    return base_name
+
+TEST_DB_NAME = get_test_database_name()
+
+# Replace database name in URL
+if "/" in test_db_url:
+    # Extract base URL (everything before the last /)
+    base_url = test_db_url.rsplit("/", 1)[0]
+    TEST_DATABASE_URL = f"{base_url}/{TEST_DB_NAME}"
+else:
+    # Fallback: try to replace common database names
+    TEST_DATABASE_URL = test_db_url.replace("/aiutox_erp_dev", f"/{TEST_DB_NAME}")
+    TEST_DATABASE_URL = TEST_DATABASE_URL.replace("/postgres", f"/{TEST_DB_NAME}")
 
 # Print connection info for debugging
-print(f"\n[DB CONNECTION] Test Database Connection Info:")
-# Mask password in URL for security
-if "@" in TEST_DATABASE_URL:
-    parts = TEST_DATABASE_URL.split("@")
+def mask_password_in_url(url: str) -> str:
+    """Mask password in database URL for secure logging."""
+    if "@" not in url:
+        return url
+    parts = url.split("@")
     if "://" in parts[0]:
         protocol_user = parts[0].split("://")[0] + "://"
         user_pass = parts[0].split("://")[1]
         if ":" in user_pass:
             user = user_pass.split(":")[0]
-            masked_url = f"{protocol_user}{user}:***@{parts[1]}"
-        else:
-            masked_url = TEST_DATABASE_URL
-    else:
-        masked_url = TEST_DATABASE_URL
-else:
-    masked_url = TEST_DATABASE_URL
+            return f"{protocol_user}{user}:***@{parts[1]}"
+    return url
 
-print(f"   URL (masked): {masked_url}")
+print(f"\n[TEST CONFIG] Test Database Configuration:")
+print(f"   Source: .env files loaded from: {[str(f) for f in env_files if f.exists()]}")
+print(f"   URL (masked): {mask_password_in_url(TEST_DATABASE_URL)}")
+print(f"   Base URL (masked): {mask_password_in_url(test_db_url)}")
 print(f"   Host: {settings.POSTGRES_HOST}")
 print(f"   Port: {settings.POSTGRES_PORT}")
-print(f"   Database: {TEST_DATABASE_URL.split('/')[-1]}")
+print(f"   Database: {TEST_DB_NAME}")
 print(f"   User: {settings.POSTGRES_USER}")
-print(f"   Password length: {len(settings.POSTGRES_PASSWORD)}")
-print(f"   Password (first 3 chars): {settings.POSTGRES_PASSWORD[:3]}...")
-print(f"   Full DATABASE_URL length: {len(settings.DATABASE_URL)}")
-print(f"   Full TEST_DATABASE_URL length: {len(TEST_DATABASE_URL)}")
+print(f"   DATABASE_URL from env: {os.getenv('DATABASE_URL', 'Not set')[:50]}...")
+print(f"   TEST_DATABASE_URL from env: {os.getenv('TEST_DATABASE_URL', 'Not set')}")
 
-engine = create_engine(TEST_DATABASE_URL)
+# Create test database if it doesn't exist (for tests running outside Docker)
+# Extract connection info for admin database
+admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
+try:
+    admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+    with admin_engine.connect() as conn:
+        # Check if test database exists
+        result = conn.execute(
+            text(f"SELECT 1 FROM pg_database WHERE datname = '{TEST_DB_NAME}'")
+        )
+        if not result.fetchone():
+            # Create test database
+            conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
+            print(f"   [DB] Created test database '{TEST_DB_NAME}'")
+        else:
+            print(f"   [DB] Test database '{TEST_DB_NAME}' already exists")
+    admin_engine.dispose()
+except Exception as e:
+    print(f"   [DB WARNING] Could not create test database (may already exist or not accessible): {e}")
+    print(f"   [DB WARNING] Attempted connection to: {mask_password_in_url(admin_db_url)}")
+
+# Store original TEST_DATABASE_URL for use in fixtures
+_ORIGINAL_TEST_DATABASE_URL = TEST_DATABASE_URL
+
+# Create engine with proper connection settings for tests
+# This will be recreated per worker if needed
+def create_test_engine(database_url: str = None):
+    """Create test database engine."""
+    url = database_url or TEST_DATABASE_URL
+    return create_engine(
+        url,
+        pool_pre_ping=True,  # Verify connections before using
+        connect_args={
+            "connect_timeout": 5,  # 5 second timeout
+            "options": "-c timezone=utc"
+        }
+    )
+
+engine = create_test_engine()
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(scope="session")
+def setup_database():
+    """Setup database using Alembic migrations (runs once per test session).
+
+    This fixture:
+    1. Creates all tables using Alembic migrations (core + modules)
+    2. Ensures proper order of table creation (respects foreign key dependencies)
+    3. Handles custom PostgreSQL types correctly
+    4. Runs once per session for performance
+    """
+    from app.core.migrations.manager import MigrationManager
+    from alembic import config as alembic_config
+
+    print(f"\n[TEST SETUP] Setting up database with migrations...")
+    print(f"   Database: {TEST_DB_NAME}")
+    print(f"   URL (masked): {mask_password_in_url(TEST_DATABASE_URL)}")
+
+    # Create engine for migrations (use the test database URL)
+    migration_engine = create_test_engine()
+
+    try:
+        # Use MigrationManager to apply all migrations
+        # This ensures all tables (core + modules) are created in correct order
+        manager = MigrationManager()
+
+        # Override engine to use test database
+        manager.engine = migration_engine
+
+        # Update Alembic config to use test database URL
+        # This ensures Alembic commands use the correct database
+        # IMPORTANT: This must be done before any Alembic operations
+        manager.alembic_cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
+
+        # Also update the settings in env.py context (if it reads from settings)
+        # The env.py file reads from get_settings(), but we override the config URL
+        # which takes precedence in Alembic operations
+
+        # Apply all migrations
+        result = manager.apply_migrations()
+
+        if not result.success:
+            error_msg = f"Failed to setup test database: {result.errors}"
+            print(f"   [ERROR] {error_msg}")
+            raise RuntimeError(error_msg)
+
+        applied_count = len(result.applied) if hasattr(result, 'applied') else result.applied_count
+        print(f"   [SUCCESS] Database setup complete ({applied_count} migrations applied)")
+
+        yield
+
+    finally:
+        # Optional: Clean up at end of session
+        # For now, we leave the database intact for faster subsequent runs
+        migration_engine.dispose()
+
+
 @pytest.fixture(scope="function")
-def db_session():
-    """Create a fresh database session for each test."""
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+def db_session(setup_database):
+    """Create an isolated database session using transactions for each test.
+
+    Each test runs in its own transaction that is rolled back at the end,
+    ensuring complete isolation between tests without needing to clean data.
+    """
+    # Create a new connection and transaction for this test
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    # Create session bound to this connection/transaction
+    db = TestingSessionLocal(bind=connection)
+
     try:
         yield db
     finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+        # Rollback transaction to undo all changes made during the test
+        # This provides complete isolation without needing to clean data
+        try:
+            db.rollback()
+            transaction.rollback()
+        except Exception as e:
+            print(f"[DB CLEANUP] Warning during rollback: {e}")
+        finally:
+            db.close()
+            connection.close()
 
 
 @pytest.fixture(scope="function")
@@ -89,7 +283,7 @@ def test_tenant(db_session):
         slug=f"test-tenant-{uuid4().hex[:8]}",
     )
     db_session.add(tenant)
-    db_session.commit()
+    db_session.flush()  # Use flush instead of commit (transaction will be rolled back)
     db_session.refresh(tenant)
     return tenant
 
@@ -108,7 +302,7 @@ def test_user(db_session, test_tenant):
         is_active=True,
     )
     db_session.add(user)
-    db_session.commit()
+    db_session.flush()  # Use flush instead of commit (transaction will be rolled back)
     db_session.refresh(user)
 
     # Store plain password for tests
@@ -130,7 +324,7 @@ def test_user_inactive(db_session, test_tenant):
         is_active=False,
     )
     db_session.add(user)
-    db_session.commit()
+    db_session.flush()  # Use flush instead of commit (transaction will be rolled back)
     db_session.refresh(user)
 
     user._plain_password = password  # type: ignore
@@ -147,7 +341,7 @@ def test_user_with_roles(db_session, test_tenant, test_user):
         granted_by=test_user.id,
     )
     db_session.add(role)
-    db_session.commit()
+    db_session.flush()  # Use flush instead of commit (transaction will be rolled back)
     db_session.refresh(test_user)
     return test_user
 
@@ -182,9 +376,44 @@ def clear_rate_limit_state():
 
 # Redis availability check for integration tests
 def pytest_configure(config):
-    """Register custom markers."""
+    """Register custom markers and configure test database per worker."""
     config.addinivalue_line("markers", "redis: mark test as requiring Redis")
     config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "db: mark test as database test")
+
+    # Configure worker-specific database if using pytest-xdist
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id and worker_id != "master":
+        # Update global variables for this worker
+        global TEST_DB_NAME, TEST_DATABASE_URL, engine, TestingSessionLocal
+
+        base_name = os.getenv("TEST_POSTGRES_DB", "aiutox_erp_test")
+        TEST_DB_NAME = f"{base_name}_{worker_id}"
+
+        # Recreate database URL and engine for this worker
+        base_url = _ORIGINAL_TEST_DATABASE_URL.rsplit("/", 1)[0]
+        TEST_DATABASE_URL = f"{base_url}/{TEST_DB_NAME}"
+
+        # Create worker-specific database if it doesn't exist
+        admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
+        try:
+            admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+            with admin_engine.connect() as conn:
+                result = conn.execute(
+                    text(f"SELECT 1 FROM pg_database WHERE datname = '{TEST_DB_NAME}'")
+                )
+                if not result.fetchone():
+                    conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
+                    print(f"[TEST CONFIG] Created worker database '{TEST_DB_NAME}' for worker {worker_id}")
+            admin_engine.dispose()
+        except Exception as e:
+            print(f"[TEST CONFIG] Warning: Could not create worker database: {e}")
+
+        # Recreate engine with worker-specific database
+        engine = create_test_engine()
+        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+        print(f"[TEST CONFIG] Worker {worker_id} configured with database: {TEST_DB_NAME}")
 
 
 @pytest.fixture(scope="session")
@@ -192,12 +421,21 @@ def redis_available():
     """Check if Redis is available for integration tests."""
     import asyncio
 
+    # Get Redis URL from environment or settings
+    redis_url = os.getenv("REDIS_URL") or os.getenv("TEST_REDIS_URL") or settings.REDIS_URL
+    redis_password = os.getenv("REDIS_PASSWORD") or settings.REDIS_PASSWORD
+
+    # Convert Docker hostname to localhost for tests
+    if "redis:" in redis_url or "@redis:" in redis_url:
+        redis_url = redis_url.replace("@redis:6379", "@localhost:6379")
+        redis_url = redis_url.replace("redis:6379", "localhost:6379")
+
     async def check_redis():
         try:
             from app.core.pubsub.client import RedisStreamsClient
 
             client = RedisStreamsClient(
-                redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+                redis_url=redis_url, password=redis_password
             )
             # Try to connect with a short timeout
             try:

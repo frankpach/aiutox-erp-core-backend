@@ -38,11 +38,26 @@ class MigrationManager:
         """Get current revision from database.
 
         Returns:
-            Current revision ID or None if no migrations applied
+            Current revision ID or None if no migrations applied.
+            If multiple heads exist, returns the first one (for backward compatibility).
         """
         with self.engine.connect() as connection:
             context = MigrationContext.configure(connection)
-            return context.get_current_revision()
+            try:
+                # Try to get single revision first (backward compatibility)
+                return context.get_current_revision()
+            except Exception:
+                # If multiple heads exist, get all heads and return first one
+                try:
+                    heads = context.get_current_heads()
+                    return heads[0] if heads else None
+                except Exception:
+                    # Fallback: try to get from script directory
+                    try:
+                        heads = self.script_dir.get_heads()
+                        return heads[0] if heads else None
+                    except Exception:
+                        return None
 
     def _get_migration_info_from_file(self, file_path: Path) -> Optional[MigrationInfo]:
         """Extract migration info from a migration file.
@@ -163,18 +178,23 @@ class MigrationManager:
             # No migrations applied, all are pending
             return all_migrations
 
-        # Build chain from head
+        # Build chain from heads (handle multiple heads)
         revision_map = {m.revision: m for m in all_migrations}
-        head_revision = self.script_dir.get_current_head()
+        try:
+            head_revisions = self.script_dir.get_heads()
+        except Exception:
+            # Fallback to get_current_head if get_heads fails
+            head_revision = self.script_dir.get_current_head()
+            head_revisions = [head_revision] if head_revision else []
 
-        if not head_revision:
+        if not head_revisions:
             return []
 
         # Get applied revisions
         applied_migrations = self.get_applied_migrations()
         applied_revisions = {m.revision for m in applied_migrations}
 
-        # Build chain from head to current, collecting pending
+        # Build chain from all heads to current, collecting pending
         pending = []
         visited = set()
 
@@ -198,8 +218,9 @@ class MigrationManager:
             if migration.down_revision:
                 collect_pending(migration.down_revision)
 
-        # Start from head
-        collect_pending(head_revision)
+        # Start from all heads
+        for head_revision in head_revisions:
+            collect_pending(head_revision)
 
         # Reverse to get chronological order (oldest first)
         pending.reverse()
@@ -254,7 +275,8 @@ class MigrationManager:
             sys.stdout = buffer = io.StringIO()
 
             try:
-                command.upgrade(self.alembic_cfg, "head")
+                # Use "heads" (plural) to handle multiple head revisions
+                command.upgrade(self.alembic_cfg, "heads")
                 output = buffer.getvalue()
             finally:
                 sys.stdout = old_stdout

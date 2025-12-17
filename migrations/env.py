@@ -9,20 +9,24 @@ from app.core.db.session import Base
 # Import all models so Alembic can detect them
 from app.models import (  # noqa: F401
     AuditLog,
-    Category,
     Contact,
     ContactMethod,
     ModuleRole,
     Organization,
     PersonIdentification,
-    Product,
-    ProductBarcode,
-    ProductVariant,
     RefreshToken,
     SystemConfig,
     Tenant,
     User,
     UserRole,
+)
+
+# Import products models from modules (not in app.models to avoid circular imports)
+from app.modules.products.models.product import (  # noqa: F401
+    Category,
+    Product,
+    ProductBarcode,
+    ProductVariant,
 )
 
 # this is the Alembic Config object
@@ -32,9 +36,11 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Get database URL from settings
+# Get database URL from settings (can be overridden by Alembic config)
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Only set from settings if not already set in config (allows test overrides)
+if not config.get_main_option("sqlalchemy.url") or config.get_main_option("sqlalchemy.url") == "driver://user:pass@localhost/dbname":
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # add your model's MetaData object here
 target_metadata = Base.metadata
@@ -70,9 +76,9 @@ def run_migrations_online() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
-    # Get database URL from settings directly to avoid encoding issues
-    # Use create_engine directly with the URL from settings
-    database_url = settings.DATABASE_URL
+    # Get database URL from Alembic config (allows test overrides)
+    # Fallback to settings if not set in config
+    database_url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
 
     # Create engine directly to avoid encoding issues with engine_from_config
     # Use connect_args to pass connection parameters directly if URL encoding fails

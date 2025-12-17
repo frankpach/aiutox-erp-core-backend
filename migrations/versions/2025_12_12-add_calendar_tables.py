@@ -167,3 +167,9 @@ def downgrade() -> None:
     op.drop_index("ix_calendars_tenant_id", table_name="calendars")
     op.drop_table("calendars")
 
+
+
+
+
+
+

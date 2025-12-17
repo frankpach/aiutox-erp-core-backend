@@ -7,7 +7,6 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.config_file import get_settings
-from app.core.db.session import get_db
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventConsumer, RedisStreamsClient
 from app.core.pubsub.models import Event

@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
@@ -66,10 +66,10 @@ async def search(
     description="Get search suggestions. Requires search.view permission.",
 )
 async def get_suggestions(
-    query: str = Query(..., description="Search query", min_length=1),
-    limit: int = Query(default=10, ge=1, le=50, description="Maximum number of suggestions"),
     current_user: Annotated[User, Depends(require_permission("search.view"))],
     engine: Annotated[SearchEngine, Depends(get_search_engine)],
+    query: Annotated[str, Query(..., description="Search query", min_length=1)],
+    limit: int = Query(default=10, ge=1, le=50, description="Maximum number of suggestions"),
 ) -> StandardResponse[list[SearchSuggestion]]:
     """Get search suggestions."""
     suggestions = engine.get_suggestions(
@@ -118,8 +118,8 @@ async def index_entity(
     description="Remove an entity from search index. Requires search.manage permission.",
 )
 async def remove_index(
-    entity_type: str = Path(..., description="Entity type"),
-    entity_id: UUID = Path(..., description="Entity ID"),
+    entity_type: Annotated[str, Path(..., description="Entity type")],
+    entity_id: Annotated[UUID, Path(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("search.manage"))],
     indexer: Annotated[SearchIndexer, Depends(get_search_indexer)],
 ) -> None:
@@ -130,7 +130,7 @@ async def remove_index(
 
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="INDEX_NOT_FOUND",
+            code="INDEX_NOT_FOUND",
             message=f"Index for {entity_type}:{entity_id} not found",
         )
 

@@ -15,16 +15,26 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database connection components
+    # Defaults are for local development (outside Docker)
+    # When running in Docker, these should be overridden by .env file
     POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = "root"
-    POSTGRES_PASSWORD: str = "pass"
-    POSTGRES_DB: str = "aiutox_core_db"
+    POSTGRES_PORT: int = 15432  # Default to mapped port for local development
+    POSTGRES_USER: str = "devuser"
+    POSTGRES_PASSWORD: str = "devpass"
+    POSTGRES_DB: str = "aiutox_erp_dev"
+
+    # Allow DATABASE_URL to be set directly, or construct from components
+    DATABASE_URL: str | None = None
 
     @computed_field  # type: ignore[misc]
     @property
-    def DATABASE_URL(self) -> str:
-        """Construct database URL from individual components."""
+    def database_url(self) -> str:
+        """Get database URL, either from DATABASE_URL env var or construct from components."""
+        # If DATABASE_URL is explicitly set, use it (highest priority)
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+
+        # Otherwise, construct from individual components
         # URL encode password in case it contains special characters
         # Ensure password is a string and handle encoding properly
         # Convert to bytes first if needed, then to string to ensure proper encoding
@@ -88,7 +98,7 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
 
     model_config = ConfigDict(
-        env_file="../.env",  # .env file is in the project root
+        env_file=[".env", "../.env"],  # Try .env in current dir first, then parent dir
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",  # Ignore extra fields from .env that are not in Settings

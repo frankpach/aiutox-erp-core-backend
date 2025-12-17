@@ -99,14 +99,13 @@ async def get_stats(
                 }
 
         return StandardResponse(
-            success=True,
             data=stats,
-            message="Statistics retrieved successfully",
+            meta={"message": "Statistics retrieved successfully"},
         )
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="PUBSUB_STATS_ERROR",
+            code="PUBSUB_STATS_ERROR",
             message=f"Failed to retrieve statistics: {str(e)}",
         ) from e
 
@@ -153,23 +152,29 @@ async def list_failed_events(
                 failed_events.append(event_data)
 
             return StandardListResponse(
-                success=True,
                 data=failed_events,
-                total=len(failed_events),
-                message="Failed events retrieved successfully",
+                meta={
+                    "total": len(failed_events),
+                    "page": 1,
+                    "page_size": max(len(failed_events), 1),  # Minimum page_size is 1
+                    "total_pages": 1,
+                },
             )
     except PubSubError as e:
         # Stream might not exist yet
         return StandardListResponse(
-            success=True,
             data=[],
-            total=0,
-            message="No failed events found",
+            meta={
+                "total": 0,
+                "page": 1,
+                "page_size": 1,  # Minimum page_size is 1
+                "total_pages": 1,
+            },
         )
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="PUBSUB_FAILED_EVENTS_ERROR",
+            code="PUBSUB_FAILED_EVENTS_ERROR",
             message=f"Failed to retrieve failed events: {str(e)}",
         ) from e
 
@@ -205,7 +210,7 @@ async def reprocess_failed_event(
             if not messages:
                 raise APIException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    error_code="PUBSUB_EVENT_NOT_FOUND",
+                    code="PUBSUB_EVENT_NOT_FOUND",
                     message=f"Failed event with ID {message_id} not found",
                 )
 
@@ -214,7 +219,7 @@ async def reprocess_failed_event(
             if not original_stream:
                 raise APIException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    error_code="PUBSUB_INVALID_EVENT",
+                    code="PUBSUB_INVALID_EVENT",
                     message="Event does not have original_stream information",
                 )
 
@@ -232,7 +237,6 @@ async def reprocess_failed_event(
             await client.xdel(settings.REDIS_STREAM_FAILED, message_id)
 
             return StandardResponse(
-                success=True,
                 data={
                     "original_message_id": message_id,
                     "new_message_id": new_message_id,
@@ -245,7 +249,7 @@ async def reprocess_failed_event(
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="PUBSUB_REPROCESS_ERROR",
+            code="PUBSUB_REPROCESS_ERROR",
             message=f"Failed to reprocess event: {str(e)}",
         ) from e
 
@@ -287,7 +291,6 @@ async def get_stream_info(
             pass
 
         return StandardResponse(
-            success=True,
             data={
                 "stream_name": stream_name,
                 "length": stream_info.get("length", 0),
@@ -295,18 +298,18 @@ async def get_stream_info(
                 "first_entry_id": stream_info.get("first-entry", "0-0"),
                 "last_entry_id": stream_info.get("last-entry", "0-0"),
             },
-            message="Stream information retrieved successfully",
+            meta={"message": "Stream information retrieved successfully"},
         )
     except PubSubError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="PUBSUB_STREAM_NOT_FOUND",
+            code="PUBSUB_STREAM_NOT_FOUND",
             message=f"Stream '{stream_name}' not found: {str(e)}",
         ) from e
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="PUBSUB_STREAM_INFO_ERROR",
+            code="PUBSUB_STREAM_INFO_ERROR",
             message=f"Failed to retrieve stream information: {str(e)}",
         ) from e
 
@@ -335,23 +338,31 @@ async def get_pending_messages(
         pending = await redis_client.get_pending_messages(stream_name, group_name, count=count)
 
         return StandardListResponse(
-            success=True,
             data=pending,
-            total=len(pending),
+            meta={
+                "total": len(pending),
+                "page": 1,
+                "page_size": len(pending),
+                "total_pages": 1,
+            },
             message="Pending messages retrieved successfully",
         )
     except PubSubError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="PUBSUB_GROUP_NOT_FOUND",
+            code="PUBSUB_GROUP_NOT_FOUND",
             message=f"Stream or group not found: {str(e)}",
         ) from e
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="PUBSUB_PENDING_ERROR",
+            code="PUBSUB_PENDING_ERROR",
             message=f"Failed to retrieve pending messages: {str(e)}",
         ) from e
+
+
+
+
 
 
 

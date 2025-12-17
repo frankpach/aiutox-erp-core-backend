@@ -103,7 +103,7 @@ class Calendar(Base):
     is_default = Column(Boolean, default=False, nullable=False)
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    meta_data = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(
@@ -183,7 +183,7 @@ class CalendarEvent(Base):
     )
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    meta_data = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(
@@ -315,4 +315,10 @@ class EventReminder(Base):
 
     def __repr__(self) -> str:
         return f"<EventReminder(id={self.id}, event_id={self.event_id}, minutes={self.minutes_before})>"
+
+
+
+
+
+
 

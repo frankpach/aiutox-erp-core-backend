@@ -238,3 +238,9 @@ class IntegrationService:
         """
         return self.repository.get_logs_by_integration(integration_id, tenant_id, skip, limit)
 
+
+
+
+
+
+

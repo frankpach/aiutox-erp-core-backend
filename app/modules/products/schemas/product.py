@@ -234,3 +234,9 @@ class ProductBarcodeResponse(ProductBarcodeBase):
 
 
 
+
+
+
+
+
+

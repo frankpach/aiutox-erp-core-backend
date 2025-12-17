@@ -47,12 +47,12 @@ class IntegrationResponse(BaseModel):
     integration_type: str
     status: str
     config: dict[str, Any]
-    metadata: dict[str, Any] | None
+    metadata: dict[str, Any] | None = Field(None, alias="integration_metadata", description="Additional metadata")
     created_at: datetime
     updated_at: datetime
     last_sync_at: datetime | None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class WebhookBase(BaseModel):
@@ -99,8 +99,9 @@ class WebhookResponse(WebhookBase):
     integration_id: UUID | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="webhook_metadata", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class WebhookDeliveryResponse(BaseModel):
@@ -136,4 +137,10 @@ class IntegrationLogResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+
 

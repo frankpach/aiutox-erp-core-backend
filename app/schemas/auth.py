@@ -77,3 +77,10 @@ class RoleListResponse(BaseModel):
 
     roles: list[RoleResponse] = Field(default_factory=list)
     total: int = Field(..., description="Total number of roles")
+
+
+class RoleWithPermissionsResponse(BaseModel):
+    """Schema for role with permissions response."""
+
+    role: str = Field(..., description="Role name")
+    permissions: list[str] = Field(..., description="List of permissions for this role")

@@ -89,11 +89,12 @@ async def list_reports(
 
     return StandardListResponse(
         data=[ReportDefinitionResponse.model_validate(report) for report in reports],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Reports retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -114,7 +115,7 @@ async def get_report(
     if not report:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_REPORT_NOT_FOUND",
+            code="REPORTING_REPORT_NOT_FOUND",
             message=f"Report with ID {report_id} not found",
         )
 
@@ -150,7 +151,7 @@ async def update_report(
     if not report:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_REPORT_NOT_FOUND",
+            code="REPORTING_REPORT_NOT_FOUND",
             message=f"Report with ID {report_id} not found",
         )
 
@@ -176,7 +177,7 @@ async def delete_report(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_REPORT_NOT_FOUND",
+            code="REPORTING_REPORT_NOT_FOUND",
             message=f"Report with ID {report_id} not found",
         )
 
@@ -209,7 +210,7 @@ async def execute_report(
     except ValueError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_REPORT_NOT_FOUND",
+            code="REPORTING_REPORT_NOT_FOUND",
             message=str(e),
         )
 
@@ -256,7 +257,7 @@ async def get_data_source_columns(
     if not data_source_class:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_DATA_SOURCE_NOT_FOUND",
+            code="REPORTING_DATA_SOURCE_NOT_FOUND",
             message=f"Data source type '{source_type}' not found",
         )
 
@@ -288,7 +289,7 @@ async def get_data_source_filters(
     if not data_source_class:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="REPORTING_DATA_SOURCE_NOT_FOUND",
+            code="REPORTING_DATA_SOURCE_NOT_FOUND",
             message=f"Data source type '{source_type}' not found",
         )
 

@@ -1,5 +1,6 @@
 """File service for file management."""
 
+import io
 import logging
 import mimetypes
 import os
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import BinaryIO
 from uuid import UUID
 
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from app.core.files.storage import (
@@ -356,4 +358,70 @@ class FileService:
             created_permissions.append(perm)
 
         return created_permissions
+
+    async def generate_thumbnail(
+        self,
+        file_id: UUID,
+        tenant_id: UUID,
+        width: int,
+        height: int,
+        quality: int = 80,
+    ) -> bytes:
+        """Generate thumbnail for an image file.
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+            width: Thumbnail width in pixels
+            height: Thumbnail height in pixels
+            quality: JPEG quality (1-100, default: 80)
+
+        Returns:
+            Thumbnail image as bytes (JPEG format)
+
+        Raises:
+            FileNotFoundError: If file not found
+            ValueError: If file is not an image
+        """
+        # Get file record
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file or not file.is_current:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        # Verify it's an image
+        if not file.mime_type.startswith("image/"):
+            raise ValueError(f"File {file_id} is not an image (mime_type: {file.mime_type})")
+
+        # Download original file
+        original_content = await self.storage_backend.download(file.storage_path)
+
+        # Process image with PIL
+        img = Image.open(io.BytesIO(original_content))
+
+        # Create thumbnail maintaining aspect ratio
+        img.thumbnail((width, height), Image.Resampling.LANCZOS)
+
+        # Convert to JPEG
+        output = io.BytesIO()
+
+        # Handle transparency (RGBA, LA, P modes)
+        if img.mode in ("RGBA", "LA", "P"):
+            # Convert PNG with transparency to RGB
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode == "RGBA":
+                background.paste(img, mask=img.split()[-1])  # Use alpha channel as mask
+            elif img.mode == "LA":
+                background.paste(img, mask=img.split()[-1])  # Use alpha channel as mask
+            else:  # P mode (palette)
+                if "transparency" in img.info:
+                    # Convert palette with transparency
+                    img = img.convert("RGBA")
+                    background.paste(img, mask=img.split()[-1])
+                else:
+                    background.paste(img)
+            img = background
+
+        # Save as JPEG
+        img.save(output, format="JPEG", quality=quality, optimize=True)
+        return output.getvalue()
 

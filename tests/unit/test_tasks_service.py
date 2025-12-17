@@ -275,3 +275,9 @@ def test_delete_checklist_item(task_service, test_user, test_tenant):
     items = task_service.get_checklist_items(task.id, test_tenant.id)
     assert not any(i.id == item.id for i in items)
 
+
+
+
+
+
+

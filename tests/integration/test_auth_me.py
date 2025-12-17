@@ -22,10 +22,13 @@ def test_get_me_authenticated(client, db_session, test_user):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["id"] == str(test_user.id)
-    assert data["email"] == test_user.email
-    assert data["tenant_id"] == str(test_user.tenant_id)
-    assert data["full_name"] == test_user.full_name
+    # Verify StandardResponse structure
+    assert "data" in data
+    user_data = data["data"]
+    assert user_data["id"] == str(test_user.id)
+    assert user_data["email"] == test_user.email
+    assert user_data["tenant_id"] == str(test_user.tenant_id)
+    assert user_data["full_name"] == test_user.full_name
 
 
 def test_get_me_includes_roles_and_permissions(client, db_session, test_user_with_roles):
@@ -40,12 +43,15 @@ def test_get_me_includes_roles_and_permissions(client, db_session, test_user_wit
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "roles" in data
-    assert "permissions" in data
-    assert isinstance(data["roles"], list)
-    assert isinstance(data["permissions"], list)
+    # Verify StandardResponse structure
+    assert "data" in data
+    user_data = data["data"]
+    assert "roles" in user_data
+    assert "permissions" in user_data
+    assert isinstance(user_data["roles"], list)
+    assert isinstance(user_data["permissions"], list)
     # User should have admin role
-    assert "admin" in data["roles"]
+    assert "admin" in user_data["roles"]
 
 
 def test_get_me_invalid_token(client):

@@ -4,6 +4,7 @@ import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole
+from tests.helpers import create_user_with_permission
 
 
 def test_create_activity(client, test_user, auth_headers, db_session):
@@ -41,37 +42,26 @@ def test_create_activity(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_activities(client, test_user, auth_headers, db_session):
+def test_list_activities(client, test_user, db_session):
     """Test listing activities."""
     # Assign activities.view permission
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="activities",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "activities", "viewer")
 
-    response = client.get("/api/v1/activities", headers=auth_headers)
+    response = client.get("/api/v1/activities", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
-    assert "total" in response.json()
+    data = response.json()
+    assert "data" in data
+    assert "meta" in data
+    assert "total" in data["meta"]
 
 
-def test_list_activities_by_entity(client, test_user, auth_headers, db_session):
+def test_list_activities_by_entity(client, test_user, db_session):
     """Test listing activities for a specific entity."""
     # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="activities",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "activities", "manager")
 
     entity_id = uuid4()
 
@@ -85,13 +75,13 @@ def test_list_activities_by_entity(client, test_user, auth_headers, db_session):
     client.post(
         "/api/v1/activities",
         json=activity_data,
-        headers=auth_headers,
+        headers=headers,
     )
 
     # List activities for entity
     response = client.get(
         f"/api/v1/activities?entity_type=product&entity_id={entity_id}",
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -100,17 +90,10 @@ def test_list_activities_by_entity(client, test_user, auth_headers, db_session):
     assert len(data) >= 1
 
 
-def test_get_activity(client, test_user, auth_headers, db_session):
+def test_get_activity(client, test_user, db_session):
     """Test getting an activity."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="activities",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Assign permissions (manager to create, viewer to view)
+    headers = create_user_with_permission(db_session, test_user, "activities", "manager")
 
     # Create an activity
     entity_id = uuid4()
@@ -123,12 +106,12 @@ def test_get_activity(client, test_user, auth_headers, db_session):
     create_response = client.post(
         "/api/v1/activities",
         json=activity_data,
-        headers=auth_headers,
+        headers=headers,
     )
     activity_id = create_response.json()["data"]["id"]
 
     # Get it
-    response = client.get(f"/api/v1/activities/{activity_id}", headers=auth_headers)
+    response = client.get(f"/api/v1/activities/{activity_id}", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -136,17 +119,10 @@ def test_get_activity(client, test_user, auth_headers, db_session):
     assert data["title"] == "Test Comment"
 
 
-def test_update_activity(client, test_user, auth_headers, db_session):
+def test_update_activity(client, test_user, db_session):
     """Test updating an activity."""
     # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="activities",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    headers = create_user_with_permission(db_session, test_user, "activities", "manager")
 
     # Create an activity
     entity_id = uuid4()
@@ -159,7 +135,7 @@ def test_update_activity(client, test_user, auth_headers, db_session):
     create_response = client.post(
         "/api/v1/activities",
         json=activity_data,
-        headers=auth_headers,
+        headers=headers,
     )
     activity_id = create_response.json()["data"]["id"]
 
@@ -168,7 +144,7 @@ def test_update_activity(client, test_user, auth_headers, db_session):
     response = client.put(
         f"/api/v1/activities/{activity_id}",
         json=update_data,
-        headers=auth_headers,
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -212,4 +188,8 @@ def test_delete_activity(client, test_user, auth_headers, db_session):
     # Verify it's deleted
     get_response = client.get(f"/api/v1/activities/{activity_id}", headers=auth_headers)
     assert get_response.status_code == 404
+
+
+
+
 

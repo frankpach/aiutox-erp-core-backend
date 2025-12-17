@@ -68,6 +68,8 @@ class ViewsService:
             "name": view.name,
             "config": view.config,
             "is_default": view.is_default,
+            "created_at": view.created_at.isoformat(),
+            "updated_at": view.updated_at.isoformat(),
         }
 
     def get_views(
@@ -125,6 +127,12 @@ class ViewsService:
                     "is_default": view.is_default,
                 }
         return None
+
+
+
+
+
+
 
 
 

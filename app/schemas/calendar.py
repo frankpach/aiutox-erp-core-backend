@@ -46,8 +46,9 @@ class CalendarResponse(CalendarBase):
     owner_id: UUID | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Event schemas
@@ -108,8 +109,9 @@ class CalendarEventResponse(CalendarEventBase):
     organizer_id: UUID | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Attendee schemas
@@ -174,4 +176,8 @@ class EventReminderResponse(EventReminderBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+
 

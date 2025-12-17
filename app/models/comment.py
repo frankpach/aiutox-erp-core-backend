@@ -49,7 +49,7 @@ class Comment(Base):
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)  # Soft delete
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    meta_data = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(
@@ -178,4 +178,10 @@ class CommentAttachment(Base):
 
     def __repr__(self) -> str:
         return f"<CommentAttachment(id={self.id}, comment_id={self.comment_id}, file_id={self.file_id})>"
+
+
+
+
+
+
 

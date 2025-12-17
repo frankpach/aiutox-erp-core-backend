@@ -70,8 +70,8 @@ async def create_import_job(
 async def list_import_jobs(
     current_user: Annotated[User, Depends(require_permission("import_export.view"))],
     service: Annotated[ImportExportService, Depends(get_import_export_service)],
-    module: str | None = Query(None, description="Filter by module"),
-    status: str | None = Query(None, description="Filter by status"),
+    module: str | None = Query(default=None, description="Filter by module"),
+    status: str | None = Query(default=None, description="Filter by status"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[ImportJobResponse]:
@@ -90,10 +90,12 @@ async def list_import_jobs(
 
     return StandardListResponse(
         data=[ImportJobResponse.model_validate(j) for j in jobs],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Import jobs retrieved successfully",
     )
 
@@ -106,7 +108,7 @@ async def list_import_jobs(
     description="Get a specific import job by ID. Requires import_export.view permission.",
 )
 async def get_import_job(
-    job_id: UUID = Path(..., description="Import job ID"),
+    job_id: Annotated[UUID, Path(..., description="Import job ID")],
     current_user: Annotated[User, Depends(require_permission("import_export.view"))],
     service: Annotated[ImportExportService, Depends(get_import_export_service)],
 ) -> StandardResponse[ImportJobResponse]:
@@ -115,7 +117,7 @@ async def get_import_job(
     if not job:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="IMPORT_JOB_NOT_FOUND",
+            code="IMPORT_JOB_NOT_FOUND",
             message=f"Import job with ID {job_id} not found",
         )
 
@@ -161,7 +163,7 @@ async def create_import_template(
 async def list_import_templates(
     current_user: Annotated[User, Depends(require_permission("import_export.view"))],
     service: Annotated[ImportExportService, Depends(get_import_export_service)],
-    module: str | None = Query(None, description="Filter by module"),
+    module: str | None = Query(default=None, description="Filter by module"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[ImportTemplateResponse]:
@@ -179,10 +181,12 @@ async def list_import_templates(
 
     return StandardListResponse(
         data=[ImportTemplateResponse.model_validate(t) for t in templates],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Import templates retrieved successfully",
     )
 
@@ -223,8 +227,8 @@ async def create_export_job(
 async def list_export_jobs(
     current_user: Annotated[User, Depends(require_permission("import_export.view"))],
     service: Annotated[ImportExportService, Depends(get_import_export_service)],
-    module: str | None = Query(None, description="Filter by module"),
-    status: str | None = Query(None, description="Filter by status"),
+    module: str | None = Query(default=None, description="Filter by module"),
+    status: str | None = Query(default=None, description="Filter by status"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[ExportJobResponse]:
@@ -243,10 +247,12 @@ async def list_export_jobs(
 
     return StandardListResponse(
         data=[ExportJobResponse.model_validate(j) for j in jobs],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Export jobs retrieved successfully",
     )
 
@@ -259,7 +265,7 @@ async def list_export_jobs(
     description="Get a specific export job by ID. Requires import_export.view permission.",
 )
 async def get_export_job(
-    job_id: UUID = Path(..., description="Export job ID"),
+    job_id: Annotated[UUID, Path(..., description="Export job ID")],
     current_user: Annotated[User, Depends(require_permission("import_export.view"))],
     service: Annotated[ImportExportService, Depends(get_import_export_service)],
 ) -> StandardResponse[ExportJobResponse]:
@@ -268,7 +274,7 @@ async def get_export_job(
     if not job:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="EXPORT_JOB_NOT_FOUND",
+            code="EXPORT_JOB_NOT_FOUND",
             message=f"Export job with ID {job_id} not found",
         )
 
@@ -276,4 +282,8 @@ async def get_export_job(
         data=ExportJobResponse.model_validate(job),
         message="Export job retrieved successfully",
     )
+
+
+
+
 

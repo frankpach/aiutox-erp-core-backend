@@ -142,3 +142,9 @@ def test_template_publishes_events(client, test_user, auth_headers, db_session):
         # Event publishing is done via background task
         assert True  # Background task scheduled
 
+
+
+
+
+
+

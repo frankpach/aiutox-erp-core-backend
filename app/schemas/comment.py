@@ -43,8 +43,9 @@ class CommentResponse(CommentBase):
     updated_at: datetime
     edited_at: datetime | None
     deleted_at: datetime | None
+    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Comment Mention schemas
@@ -88,4 +89,10 @@ class CommentAttachmentResponse(CommentAttachmentBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+
 

@@ -53,8 +53,9 @@ class TaskResponse(TaskBase):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="task_metadata", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class TaskChecklistItemBase(BaseModel):
@@ -124,8 +125,9 @@ class WorkflowResponse(WorkflowBase):
     tenant_id: UUID
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="workflow_metadata", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class WorkflowStepBase(BaseModel):
@@ -183,4 +185,10 @@ class WorkflowExecutionResponse(WorkflowExecutionBase):
     completed_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+
 

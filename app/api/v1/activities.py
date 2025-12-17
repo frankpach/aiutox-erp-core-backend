@@ -104,11 +104,12 @@ async def list_activities(
 
     return StandardListResponse(
         data=[ActivityResponse.model_validate(a) for a in activities],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Activities retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -129,7 +130,7 @@ async def get_activity(
     if not activity:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ACTIVITY_NOT_FOUND",
+            code="ACTIVITY_NOT_FOUND",
             message=f"Activity with ID {activity_id} not found",
         )
 
@@ -165,7 +166,7 @@ async def update_activity(
     if not activity:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ACTIVITY_NOT_FOUND",
+            code="ACTIVITY_NOT_FOUND",
             message=f"Activity with ID {activity_id} not found",
         )
 
@@ -193,7 +194,7 @@ async def delete_activity(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="ACTIVITY_NOT_FOUND",
+            code="ACTIVITY_NOT_FOUND",
             message=f"Activity with ID {activity_id} not found",
         )
 
@@ -230,10 +231,12 @@ async def get_entity_timeline(
 
     return StandardListResponse(
         data=[ActivityResponse.model_validate(a) for a in activities],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Entity timeline retrieved successfully",
     )
 

@@ -64,6 +64,8 @@ class DashboardsService:
             "name": dashboard.name,
             "widgets": dashboard.widgets,
             "is_default": dashboard.is_default,
+            "created_at": dashboard.created_at.isoformat(),
+            "updated_at": dashboard.updated_at.isoformat(),
         }
 
     def get_dashboards(self, user_id: UUID, tenant_id: UUID) -> list[dict[str, Any]]:
@@ -141,6 +143,8 @@ class DashboardsService:
             "name": dashboard.name,
             "widgets": dashboard.widgets,
             "is_default": dashboard.is_default,
+            "created_at": dashboard.created_at.isoformat(),
+            "updated_at": dashboard.updated_at.isoformat(),
         }
 
     def delete_dashboard(
@@ -157,6 +161,12 @@ class DashboardsService:
             True if deleted, False if not found
         """
         return self.repository.delete_dashboard(dashboard_id, user_id, tenant_id)
+
+
+
+
+
+
 
 
 

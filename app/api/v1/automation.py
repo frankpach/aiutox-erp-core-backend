@@ -99,10 +99,12 @@ async def list_rules(
 
     return StandardListResponse(
         data=[RuleResponse.model_validate(rule) for rule in rules],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Rules retrieved successfully",
     )
 
@@ -124,7 +126,7 @@ async def get_rule(
     if not rule:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="AUTOMATION_RULE_NOT_FOUND",
+            code="AUTOMATION_RULE_NOT_FOUND",
             message=f"Rule with ID {rule_id} not found",
         )
 
@@ -169,7 +171,7 @@ async def update_rule(
     if not rule:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="AUTOMATION_RULE_NOT_FOUND",
+            code="AUTOMATION_RULE_NOT_FOUND",
             message=f"Rule with ID {rule_id} not found",
         )
 
@@ -195,7 +197,7 @@ async def delete_rule(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="AUTOMATION_RULE_NOT_FOUND",
+            code="AUTOMATION_RULE_NOT_FOUND",
             message=f"Rule with ID {rule_id} not found",
         )
 
@@ -221,7 +223,7 @@ async def execute_rule(
     if not rule:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="AUTOMATION_RULE_NOT_FOUND",
+            code="AUTOMATION_RULE_NOT_FOUND",
             message=f"Rule with ID {rule_id} not found",
         )
 
@@ -271,7 +273,7 @@ async def get_rule_executions(
     if not rule:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="AUTOMATION_RULE_NOT_FOUND",
+            code="AUTOMATION_RULE_NOT_FOUND",
             message=f"Rule with ID {rule_id} not found",
         )
 
@@ -289,6 +291,10 @@ async def get_rule_executions(
         total_pages=total_pages,
         message="Executions retrieved successfully",
     )
+
+
+
+
 
 
 

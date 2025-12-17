@@ -147,13 +147,10 @@ class TemplateService:
         )
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
+        safe_publish_event(
+            event_publisher=self.event_publisher,
                         event_type="template.created",
                         entity_type="template",
                         entity_id=template.id,
@@ -168,27 +165,6 @@ class TemplateService:
                             },
                         ),
                     )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="template.created",
-                        entity_type="template",
-                        entity_id=template.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={
-                                "template_name": template.name,
-                                "template_type": template.template_type,
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish template.created event: {e}")
 
         return template
 
@@ -252,13 +228,10 @@ class TemplateService:
             )
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
+        safe_publish_event(
+            event_publisher=self.event_publisher,
                         event_type="template.updated",
                         entity_type="template",
                         entity_id=updated_template.id,
@@ -270,24 +243,6 @@ class TemplateService:
                             additional_data={"template_name": updated_template.name},
                         ),
                     )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="template.updated",
-                        entity_type="template",
-                        entity_id=updated_template.id,
-                        tenant_id=tenant_id,
-                        user_id=template.created_by,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={"template_name": updated_template.name},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish template.updated event: {e}")
 
         return updated_template
 
@@ -347,17 +302,15 @@ class TemplateService:
             )
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
+        safe_publish_event(
+            event_publisher=self.event_publisher,
                         event_type="template.rendered",
                         entity_type="template",
                         entity_id=template.id,
                         tenant_id=tenant_id,
+            user_id=None,
                         metadata=EventMetadata(
                             source="template_service",
                             version="1.0",
@@ -367,26 +320,6 @@ class TemplateService:
                             },
                         ),
                     )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="template.rendered",
-                        entity_type="template",
-                        entity_id=template.id,
-                        tenant_id=tenant_id,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={
-                                "template_name": template.name,
-                                "format": output_format,
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish template.rendered event: {e}")
 
         return {
             "rendered_content": rendered_content,

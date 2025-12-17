@@ -67,3 +67,9 @@ def test_create_custom_view(client, test_user, auth_headers, db_session):
     assert data["module"] == "products"
     assert "id" in data
 
+
+
+
+
+
+

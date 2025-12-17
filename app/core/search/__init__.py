@@ -5,3 +5,9 @@ from app.core.search.indexer import SearchIndexer
 
 __all__ = ["SearchEngine", "SearchIndexer"]
 
+
+
+
+
+
+

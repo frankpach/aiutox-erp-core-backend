@@ -71,15 +71,11 @@ class ActivityService:
             }
         )
 
-        # Publish event (async, but don't await to avoid blocking)
-        # In production, this would be done via background task
-        try:
-            import asyncio
+        # Publish event
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
+        safe_publish_event(
+            event_publisher=self.event_publisher,
                         event_type="activity.created",
                         entity_type="activity",
                         entity_id=activity.id,
@@ -95,28 +91,6 @@ class ActivityService:
                             },
                         ),
                     )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="activity.created",
-                        entity_type="activity",
-                        entity_id=activity.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="activity_service",
-                            version="1.0",
-                            additional_data={
-                                "activity_type": activity_type,
-                                "entity_type": entity_type,
-                                "entity_id": str(entity_id),
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.warning(f"Failed to publish activity.created event: {e}")
 
         logger.info(f"Activity created: {activity.id} ({activity_type})")
         return activity

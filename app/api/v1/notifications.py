@@ -1,10 +1,16 @@
 """Notifications router for notification management."""
 
+import asyncio
+import json
+import logging
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
@@ -81,7 +87,7 @@ async def list_templates(
     repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    event_type: str | None = Query(None, description="Filter by event type"),
+    event_type: str | None = Query(default=None, description="Filter by event type"),
 ) -> StandardListResponse[NotificationTemplateResponse]:
     """List all notification templates."""
     skip = (page - 1) * page_size
@@ -97,11 +103,12 @@ async def list_templates(
 
     return StandardListResponse(
         data=[NotificationTemplateResponse.model_validate(t) for t in paginated_templates],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Templates retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -125,7 +132,7 @@ async def get_template(
     if not template:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="NOTIFICATION_TEMPLATE_NOT_FOUND",
+            code="NOTIFICATION_TEMPLATE_NOT_FOUND",
             message=f"Template with ID {template_id} not found",
         )
 
@@ -157,7 +164,7 @@ async def update_template(
     if not template:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="NOTIFICATION_TEMPLATE_NOT_FOUND",
+            code="NOTIFICATION_TEMPLATE_NOT_FOUND",
             message=f"Template with ID {template_id} not found",
         )
 
@@ -183,7 +190,7 @@ async def delete_template(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="NOTIFICATION_TEMPLATE_NOT_FOUND",
+            code="NOTIFICATION_TEMPLATE_NOT_FOUND",
             message=f"Template with ID {template_id} not found",
         )
 
@@ -227,7 +234,7 @@ async def list_queue_entries(
     repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    status: str | None = Query(None, description="Filter by status (pending, sent, failed)"),
+    status: str | None = Query(default=None, description="Filter by status (pending, sent, failed)"),
 ) -> StandardListResponse[NotificationQueueResponse]:
     """List notification queue entries."""
     skip = (page - 1) * page_size
@@ -241,11 +248,12 @@ async def list_queue_entries(
 
     return StandardListResponse(
         data=[NotificationQueueResponse.model_validate(entry) for entry in queue_entries],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Queue entries retrieved successfully",
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "total_pages": total_pages,
+        },
     )
 
 
@@ -257,7 +265,7 @@ async def list_queue_entries(
     description="Get a specific notification queue entry by ID. Requires notifications.view permission.",
 )
 async def get_queue_entry(
-    queue_id: UUID = Path(..., description="Queue entry ID"),
+    queue_id: Annotated[UUID, Path(..., description="Queue entry ID")],
     current_user: Annotated[User, Depends(require_permission("notifications.view"))],
     repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
 ) -> StandardResponse[NotificationQueueResponse]:
@@ -267,12 +275,93 @@ async def get_queue_entry(
     if not entry:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="NOTIFICATION_QUEUE_ENTRY_NOT_FOUND",
+            code="NOTIFICATION_QUEUE_ENTRY_NOT_FOUND",
             message=f"Queue entry with ID {queue_id} not found",
         )
 
     return StandardResponse(
         data=NotificationQueueResponse.model_validate(entry),
         message="Queue entry retrieved successfully",
+    )
+
+
+@router.get(
+    "/stream",
+    summary="Stream notifications (SSE)",
+    description="Stream notifications in real-time using Server-Sent Events. Requires notifications.view permission.",
+    responses={
+        200: {
+            "description": "Server-Sent Events stream",
+            "content": {"text/event-stream": {}},
+        },
+    },
+)
+async def stream_notifications(
+    current_user: Annotated[User, Depends(require_permission("notifications.view"))],
+    repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
+) -> StreamingResponse:
+    """Stream notifications using Server-Sent Events.
+
+    This endpoint provides real-time notifications using SSE. The client will receive
+    new notifications as they are created. The stream checks for new notifications
+    every 5 seconds.
+
+    Example client usage:
+        const eventSource = new EventSource('/api/v1/notifications/stream', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        eventSource.onmessage = (event) => {
+            const notification = JSON.parse(event.data);
+            // Handle notification
+        };
+    """
+    async def event_generator():
+        """Generate SSE events for new notifications."""
+        last_id = None
+        try:
+            while True:
+                # Get new notifications
+                new_notifications = repository.get_unread_notifications(
+                    tenant_id=current_user.tenant_id,
+                    user_id=current_user.id,
+                    since_id=last_id,
+                    limit=50,
+                )
+
+                # Send each notification as an SSE event
+                for notification in new_notifications:
+                    notification_data = NotificationQueueResponse.model_validate(
+                        notification
+                    ).model_dump(mode='json')  # Use mode='json' to serialize UUIDs as strings
+                    # Format as SSE: "data: {json}\n\n"
+                    yield f"data: {json.dumps(notification_data)}\n\n"
+                    last_id = notification.id
+
+                # Wait before next check (5 seconds)
+                await asyncio.sleep(5)
+
+        except asyncio.CancelledError:
+            # Client disconnected
+            logger.info(f"SSE stream disconnected for user {current_user.id}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in SSE stream for user {current_user.id}: {e}", exc_info=True)
+            # Send error event
+            error_data = {
+                "error": {
+                    "code": "STREAM_ERROR",
+                    "message": "Error in notification stream",
+                }
+            }
+            yield f"data: {json.dumps(error_data)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable buffering in Nginx
+        },
     )
 

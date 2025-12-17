@@ -22,7 +22,13 @@ pytestmark = pytest.mark.redis
 @pytest.fixture
 async def redis_client():
     """Create Redis client for testing."""
-    client = RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    # Convert Docker hostname to localhost for tests (when running outside Docker)
+    redis_url = settings.REDIS_URL
+    if "redis:" in redis_url or "@redis:" in redis_url:
+        redis_url = redis_url.replace("@redis:6379", "@localhost:6379")
+        redis_url = redis_url.replace("redis:6379", "localhost:6379")
+
+    client = RedisStreamsClient(redis_url=redis_url, password=settings.REDIS_PASSWORD)
     yield client
     await client.close()
 

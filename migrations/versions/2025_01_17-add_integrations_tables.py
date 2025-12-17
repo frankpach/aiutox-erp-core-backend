@@ -154,3 +154,9 @@ def downgrade() -> None:
     op.drop_index("ix_integrations_tenant_id", table_name="integrations")
     op.drop_table("integrations")
 
+
+
+
+
+
+

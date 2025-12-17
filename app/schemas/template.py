@@ -49,8 +49,9 @@ class TemplateResponse(TemplateBase):
     created_by: UUID | None
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Template Version schemas
@@ -124,4 +125,10 @@ class TemplateCategoryResponse(TemplateCategoryBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+
 

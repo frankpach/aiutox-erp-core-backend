@@ -69,8 +69,8 @@ async def create_saved_filter(
 async def list_saved_filters(
     current_user: Annotated[User, Depends(require_permission("views.view"))],
     service: Annotated[ViewService, Depends(get_view_service)],
-    module: str | None = Query(None, description="Filter by module"),
-    is_shared: bool | None = Query(None, description="Filter by shared status"),
+    module: str | None = Query(default=None, description="Filter by module"),
+    is_shared: bool | None = Query(default=None, description="Filter by shared status"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[SavedFilterResponse]:
@@ -106,7 +106,7 @@ async def list_saved_filters(
     description="Get a specific saved filter by ID. Requires views.view permission.",
 )
 async def get_saved_filter(
-    filter_id: UUID = Path(..., description="Saved filter ID"),
+    filter_id: Annotated[UUID, Path(..., description="Saved filter ID")],
     current_user: Annotated[User, Depends(require_permission("views.view"))],
     service: Annotated[ViewService, Depends(get_view_service)],
 ) -> StandardResponse[SavedFilterResponse]:
@@ -115,7 +115,7 @@ async def get_saved_filter(
     if not filter_obj:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="FILTER_NOT_FOUND",
+            code="FILTER_NOT_FOUND",
             message=f"Saved filter with ID {filter_id} not found",
         )
 
@@ -133,10 +133,10 @@ async def get_saved_filter(
     description="Update a saved filter. Requires views.manage permission.",
 )
 async def update_saved_filter(
-    filter_id: UUID = Path(..., description="Saved filter ID"),
-    filter_data: SavedFilterUpdate = ...,
+    filter_id: Annotated[UUID, Path(..., description="Saved filter ID")],
     current_user: Annotated[User, Depends(require_permission("views.manage"))],
     service: Annotated[ViewService, Depends(get_view_service)],
+    filter_data: SavedFilterUpdate,
 ) -> StandardResponse[SavedFilterResponse]:
     """Update a saved filter."""
     filter_obj = service.update_saved_filter(
@@ -148,7 +148,7 @@ async def update_saved_filter(
     if not filter_obj:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="FILTER_NOT_FOUND",
+            code="FILTER_NOT_FOUND",
             message=f"Saved filter with ID {filter_id} not found",
         )
 
@@ -165,7 +165,7 @@ async def update_saved_filter(
     description="Delete a saved filter. Requires views.manage permission.",
 )
 async def delete_saved_filter(
-    filter_id: UUID = Path(..., description="Saved filter ID"),
+    filter_id: Annotated[UUID, Path(..., description="Saved filter ID")],
     current_user: Annotated[User, Depends(require_permission("views.manage"))],
     service: Annotated[ViewService, Depends(get_view_service)],
 ) -> None:
@@ -174,7 +174,7 @@ async def delete_saved_filter(
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="FILTER_NOT_FOUND",
+            code="FILTER_NOT_FOUND",
             message=f"Saved filter with ID {filter_id} not found",
         )
 
@@ -215,8 +215,8 @@ async def create_custom_view(
 async def list_custom_views(
     current_user: Annotated[User, Depends(require_permission("views.view"))],
     service: Annotated[ViewService, Depends(get_view_service)],
-    module: str | None = Query(None, description="Filter by module"),
-    is_shared: bool | None = Query(None, description="Filter by shared status"),
+    module: str | None = Query(default=None, description="Filter by module"),
+    is_shared: bool | None = Query(default=None, description="Filter by shared status"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[CustomViewResponse]:
@@ -252,7 +252,7 @@ async def list_custom_views(
     description="Get a specific custom view by ID. Requires views.view permission.",
 )
 async def get_custom_view(
-    view_id: UUID = Path(..., description="Custom view ID"),
+    view_id: Annotated[UUID, Path(..., description="Custom view ID")],
     current_user: Annotated[User, Depends(require_permission("views.view"))],
     service: Annotated[ViewService, Depends(get_view_service)],
 ) -> StandardResponse[CustomViewResponse]:
@@ -261,7 +261,7 @@ async def get_custom_view(
     if not view:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="VIEW_NOT_FOUND",
+            code="VIEW_NOT_FOUND",
             message=f"Custom view with ID {view_id} not found",
         )
 
@@ -279,10 +279,10 @@ async def get_custom_view(
     description="Update a custom view. Requires views.manage permission.",
 )
 async def update_custom_view(
-    view_id: UUID = Path(..., description="Custom view ID"),
-    view_data: CustomViewUpdate = ...,
+    view_id: Annotated[UUID, Path(..., description="Custom view ID")],
     current_user: Annotated[User, Depends(require_permission("views.manage"))],
     service: Annotated[ViewService, Depends(get_view_service)],
+    view_data: CustomViewUpdate,
 ) -> StandardResponse[CustomViewResponse]:
     """Update a custom view."""
     view = service.update_custom_view(
@@ -294,7 +294,7 @@ async def update_custom_view(
     if not view:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="VIEW_NOT_FOUND",
+            code="VIEW_NOT_FOUND",
             message=f"Custom view with ID {view_id} not found",
         )
 
@@ -311,7 +311,7 @@ async def update_custom_view(
     description="Delete a custom view. Requires views.manage permission.",
 )
 async def delete_custom_view(
-    view_id: UUID = Path(..., description="Custom view ID"),
+    view_id: Annotated[UUID, Path(..., description="Custom view ID")],
     current_user: Annotated[User, Depends(require_permission("views.manage"))],
     service: Annotated[ViewService, Depends(get_view_service)],
 ) -> None:
@@ -320,7 +320,7 @@ async def delete_custom_view(
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="VIEW_NOT_FOUND",
+            code="VIEW_NOT_FOUND",
             message=f"Custom view with ID {view_id} not found",
         )
 
@@ -334,10 +334,10 @@ async def delete_custom_view(
     description="Share a filter with other users. Requires views.share permission.",
 )
 async def share_filter(
-    filter_id: UUID = Path(..., description="Filter ID"),
-    share_data: ViewShareCreate = ...,
+    filter_id: Annotated[UUID, Path(..., description="Filter ID")],
     current_user: Annotated[User, Depends(require_permission("views.share"))],
     service: Annotated[ViewService, Depends(get_view_service)],
+    share_data: ViewShareCreate,
 ) -> StandardResponse[ViewShareResponse]:
     """Share a filter with other users."""
     share = service.share_filter(
@@ -360,10 +360,10 @@ async def share_filter(
     description="Share a view with other users. Requires views.share permission.",
 )
 async def share_view(
-    view_id: UUID = Path(..., description="View ID"),
-    share_data: ViewShareCreate = ...,
+    view_id: Annotated[UUID, Path(..., description="View ID")],
     current_user: Annotated[User, Depends(require_permission("views.share"))],
     service: Annotated[ViewService, Depends(get_view_service)],
+    share_data: ViewShareCreate,
 ) -> StandardResponse[ViewShareResponse]:
     """Share a view with other users."""
     share = service.share_view(
@@ -376,4 +376,8 @@ async def share_view(
         data=ViewShareResponse.model_validate(share),
         message="View shared successfully",
     )
+
+
+
+
 

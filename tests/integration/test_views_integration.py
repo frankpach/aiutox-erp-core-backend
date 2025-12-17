@@ -43,10 +43,9 @@ def test_saved_filter_sharing(client, test_user, auth_headers, db_session):
     from app.models.user import User
     shared_user = User(
         id=uuid4(),
-        username="shared_user",
         email="shared@test.com",
         tenant_id=test_user.tenant_id,
-        hashed_password="hashed",
+        password_hash="hashed",
     )
     db_session.add(shared_user)
     db_session.commit()
@@ -108,4 +107,10 @@ def test_custom_view_with_filters(client, test_user, auth_headers, db_session):
     view = view_response.json()["data"]
     assert view["name"] == "Active Products View"
     assert view["filters"] is not None
+
+
+
+
+
+
 

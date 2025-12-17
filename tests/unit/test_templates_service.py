@@ -89,3 +89,9 @@ def test_render_template_with_variables(template_service, test_user, test_tenant
     assert "Hello John, your order 12345 is ready!" in result["rendered_content"]
     assert result["format"] == "html"
 
+
+
+
+
+
+

@@ -164,3 +164,49 @@ def test_template_render_missing_variables(client, test_user, auth_headers, db_s
     assert "John" in rendered
     # order_id will be empty in rendered content
 
+
+def test_validation_error_format(client, test_user, auth_headers, db_session):
+    """Test that validation errors (422) follow the standard API contract format."""
+    # Assign permissions
+    module_role = ModuleRole(
+        user_id=test_user.id,
+        module="calendar",
+        role_name="manager",
+        granted_by=test_user.id,
+    )
+    db_session.add(module_role)
+    db_session.commit()
+
+    # Send request with missing required field
+    invalid_data = {"name": "Test Calendar"}  # Missing calendar_type
+
+    response = client.post(
+        "/api/v1/calendar/calendars",
+        json=invalid_data,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+    data = response.json()
+
+    # Verify standard error format
+    assert "error" in data
+    assert "data" in data
+    assert data["data"] is None
+
+    # Verify error structure
+    error = data["error"]
+    assert "code" in error
+    assert "message" in error
+    assert "details" in error
+    assert error["code"] == "VALIDATION_ERROR"
+    assert error["message"] == "Validation failed"
+
+    # Verify details contains field-specific errors
+    assert "details" in error
+    assert isinstance(error["details"], dict)
+    # Should have calendar_type field error
+    assert "calendar_type" in error["details"]
+    assert isinstance(error["details"]["calendar_type"], list)
+    assert len(error["details"]["calendar_type"]) > 0
+

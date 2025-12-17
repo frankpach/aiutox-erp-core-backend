@@ -66,7 +66,7 @@ class Template(Base):
     )
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    meta_data = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(
@@ -194,4 +194,10 @@ class TemplateCategory(Base):
 
     def __repr__(self) -> str:
         return f"<TemplateCategory(id={self.id}, name={self.name})>"
+
+
+
+
+
+
 

@@ -55,11 +55,11 @@ class MentionParser:
 
         users = (
             db.query(User)
-            .filter(User.username.in_(usernames), User.tenant_id == tenant_id)
+            .filter(User.email.in_(usernames), User.tenant_id == tenant_id)
             .all()
         )
 
-        return {user.username: user.id for user in users}
+        return {user.email: user.id for user in users}
 
 
 class CommentService:
@@ -181,13 +181,10 @@ class CommentService:
             logger.error(f"Failed to create activity for comment: {e}")
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
+        safe_publish_event(
+            event_publisher=self.event_publisher,
                         event_type="comment.created",
                         entity_type="comment",
                         entity_id=comment.id,
@@ -203,28 +200,6 @@ class CommentService:
                             },
                         ),
                     )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="comment.created",
-                        entity_type="comment",
-                        entity_id=comment.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": comment.entity_type,
-                                "entity_id": str(comment.entity_id),
-                                "has_mentions": len(mentions) > 0,
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish comment.created event: {e}")
 
         return comment
 

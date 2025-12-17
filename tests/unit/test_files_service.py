@@ -23,7 +23,8 @@ def mock_storage_backend():
     """Create a mock storage backend."""
     backend = MagicMock(spec=LocalStorageBackend)
     backend.upload = AsyncMock(return_value="test/path/file.pdf")
-    backend.download = AsyncMock(return_value=b"file content")
+    # download should return the same content that was uploaded
+    backend.download = AsyncMock(return_value=b"test file content")
     backend.delete = AsyncMock(return_value=True)
     backend.exists = AsyncMock(return_value=True)
     backend.get_url = AsyncMock(return_value="/files/test/path/file.pdf")
@@ -177,4 +178,72 @@ def test_get_file_versions(file_service, test_user, test_tenant):
     file_id = uuid4()
     versions = file_service.get_file_versions(file_id, test_tenant.id)
     assert isinstance(versions, list)
+
+
+@pytest.mark.asyncio
+async def test_generate_thumbnail(
+    file_service, test_user, test_tenant, mock_storage_backend
+):
+    """Test generating thumbnail for an image."""
+    from PIL import Image
+    import io
+
+    # Create a test image
+    img = Image.new("RGB", (200, 200), color="blue")
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
+    file_content = img_bytes.getvalue()
+
+    # Upload image
+    file = await file_service.upload_file(
+        file_content=file_content,
+        filename="test.png",
+        entity_type=None,
+        entity_id=None,
+        tenant_id=test_tenant.id,
+        user_id=test_user.id,
+    )
+
+    # Mock storage backend to return the image
+    mock_storage_backend.download.return_value = file_content
+
+    # Generate thumbnail
+    thumbnail_bytes = await file_service.generate_thumbnail(
+        file_id=file.id,
+        tenant_id=test_tenant.id,
+        width=50,
+        height=50,
+        quality=80,
+    )
+
+    # Verify thumbnail is valid JPEG
+    thumbnail_img = Image.open(io.BytesIO(thumbnail_bytes))
+    assert thumbnail_img.format == "JPEG"
+    assert thumbnail_img.width <= 50
+    assert thumbnail_img.height <= 50
+
+
+@pytest.mark.asyncio
+async def test_generate_thumbnail_non_image(file_service, test_user, test_tenant):
+    """Test that generate_thumbnail raises ValueError for non-image files."""
+    # Upload a PDF file
+    file_content = b"%PDF-1.4 test pdf content"
+    file = await file_service.upload_file(
+        file_content=file_content,
+        filename="test.pdf",
+        entity_type=None,
+        entity_id=None,
+        tenant_id=test_tenant.id,
+        user_id=test_user.id,
+    )
+
+    # Try to generate thumbnail
+    with pytest.raises(ValueError, match="is not an image"):
+        await file_service.generate_thumbnail(
+            file_id=file.id,
+            tenant_id=test_tenant.id,
+            width=50,
+            height=50,
+        )
 

@@ -196,7 +196,7 @@ class ApprovalRequest(Base):
     )
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    request_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     requested_at = Column(
@@ -268,7 +268,7 @@ class ApprovalAction(Base):
     )
 
     # Metadata
-    metadata = Column(JSONB, nullable=True)
+    request_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     acted_at = Column(
@@ -354,4 +354,5 @@ class ApprovalDelegation(Base):
 
     def __repr__(self) -> str:
         return f"<ApprovalDelegation(id={self.id}, from={self.from_user_id}, to={self.to_user_id})>"
+
 

@@ -132,10 +132,9 @@ def test_approval_delegation(client, test_user, auth_headers, db_session):
     from app.models.user import User
     delegated_user = User(
         id=uuid4(),
-        username="delegated_user",
         email="delegated@test.com",
         tenant_id=test_user.tenant_id,
-        hashed_password="hashed",
+        password_hash="hashed",
     )
     db_session.add(delegated_user)
     db_session.commit()
@@ -195,4 +194,9 @@ def test_approval_publishes_events(client, test_user, auth_headers, db_session):
         assert response.status_code == 201
         # Event publishing is done via background task
         assert True  # Background task scheduled
+
+
+
+
+
 

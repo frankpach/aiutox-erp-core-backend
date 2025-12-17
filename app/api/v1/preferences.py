@@ -243,11 +243,12 @@ async def get_saved_views(
 
     return StandardListResponse(
         data=[SavedViewResponse(**view) for view in views],
-        total=len(views),
-        page=1,
-        page_size=len(views),
-        total_pages=1,
-        message="Saved views retrieved successfully",
+        meta={
+            "total": len(views),
+            "page": 1,
+            "page_size": max(len(views), 1),  # Minimum page_size is 1
+            "total_pages": 1,
+        },
     )
 
 

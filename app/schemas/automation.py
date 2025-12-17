@@ -1,5 +1,6 @@
 """Automation schemas for API requests and responses."""
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -105,8 +106,8 @@ class RuleResponse(BaseModel):
     trigger: dict[str, Any]
     conditions: list[dict[str, Any]] | None
     actions: list[dict[str, Any]]
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class AutomationExecutionResponse(BaseModel):
@@ -121,6 +122,12 @@ class AutomationExecutionResponse(BaseModel):
     result: dict[str, Any] | None
     error_message: str | None
     executed_at: str
+
+
+
+
+
+
 
 
 

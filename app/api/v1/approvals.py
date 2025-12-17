@@ -110,7 +110,7 @@ async def list_approval_flows(
     description="Get a specific approval flow by ID. Requires approvals.view permission.",
 )
 async def get_approval_flow(
-    flow_id: UUID = Path(..., description="Approval flow ID"),
+    flow_id: Annotated[UUID, Path(..., description="Approval flow ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.view"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
 ) -> StandardResponse[ApprovalFlowResponse]:
@@ -119,7 +119,7 @@ async def get_approval_flow(
     if not flow:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="APPROVAL_FLOW_NOT_FOUND",
+            code="APPROVAL_FLOW_NOT_FOUND",
             message=f"Approval flow with ID {flow_id} not found",
         )
 
@@ -137,8 +137,8 @@ async def get_approval_flow(
     description="Add a step to an approval flow. Requires approvals.manage permission.",
 )
 async def add_approval_step(
-    flow_id: UUID = Path(..., description="Approval flow ID"),
-    step_data: ApprovalStepCreate = ...,
+    flow_id: Annotated[UUID, Path(..., description="Approval flow ID")],
+    step_data: ApprovalStepCreate,
     current_user: Annotated[User, Depends(require_permission("approvals.manage"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
 ) -> StandardResponse[ApprovalStepResponse]:
@@ -232,7 +232,7 @@ async def list_approval_requests(
     description="Get a specific approval request by ID. Requires approvals.view permission.",
 )
 async def get_approval_request(
-    request_id: UUID = Path(..., description="Approval request ID"),
+    request_id: Annotated[UUID, Path(..., description="Approval request ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.view"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
 ) -> StandardResponse[ApprovalRequestResponse]:
@@ -241,7 +241,7 @@ async def get_approval_request(
     if not request:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="APPROVAL_REQUEST_NOT_FOUND",
+            code="APPROVAL_REQUEST_NOT_FOUND",
             message=f"Approval request with ID {request_id} not found",
         )
 
@@ -259,10 +259,10 @@ async def get_approval_request(
     description="Approve an approval request. Requires approvals.approve permission.",
 )
 async def approve_request(
-    request_id: UUID = Path(..., description="Approval request ID"),
-    comment: str | None = Query(None, description="Optional comment"),
+    request_id: Annotated[UUID, Path(..., description="Approval request ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.approve"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
+    comment: Annotated[str | None, Query(description="Optional comment")] = None,
 ) -> StandardResponse[ApprovalRequestResponse]:
     """Approve an approval request."""
     try:
@@ -280,7 +280,7 @@ async def approve_request(
     except ValueError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="APPROVAL_REQUEST_NOT_FOUND",
+            code="APPROVAL_REQUEST_NOT_FOUND",
             message=str(e),
         )
 
@@ -293,10 +293,10 @@ async def approve_request(
     description="Reject an approval request. Requires approvals.approve permission.",
 )
 async def reject_request(
-    request_id: UUID = Path(..., description="Approval request ID"),
-    comment: str | None = Query(None, description="Optional comment"),
+    request_id: Annotated[UUID, Path(..., description="Approval request ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.approve"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
+    comment: Annotated[str | None, Query(description="Optional comment")] = None,
 ) -> StandardResponse[ApprovalRequestResponse]:
     """Reject an approval request."""
     try:
@@ -314,7 +314,7 @@ async def reject_request(
     except ValueError as e:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="APPROVAL_REQUEST_NOT_FOUND",
+            code="APPROVAL_REQUEST_NOT_FOUND",
             message=str(e),
         )
 
@@ -327,7 +327,7 @@ async def reject_request(
     description="Get approval actions for a request. Requires approvals.view permission.",
 )
 async def get_approval_actions(
-    request_id: UUID = Path(..., description="Approval request ID"),
+    request_id: Annotated[UUID, Path(..., description="Approval request ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.view"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
 ) -> StandardListResponse[ApprovalActionResponse]:
@@ -353,12 +353,12 @@ async def get_approval_actions(
     description="Delegate an approval to another user. Requires approvals.delegate permission.",
 )
 async def delegate_approval(
-    request_id: UUID = Path(..., description="Approval request ID"),
-    to_user_id: UUID = Query(..., description="User ID to delegate to"),
-    reason: str | None = Query(None, description="Delegation reason"),
-    expires_at: datetime | None = Query(None, description="Delegation expiration"),
+    request_id: Annotated[UUID, Path(..., description="Approval request ID")],
+    to_user_id: Annotated[UUID, Query(..., description="User ID to delegate to")],
     current_user: Annotated[User, Depends(require_permission("approvals.delegate"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
+    reason: str | None = Query(default=None, description="Delegation reason"),
+    expires_at: datetime | None = Query(default=None, description="Delegation expiration"),
 ) -> StandardResponse[ApprovalDelegationResponse]:
     """Delegate an approval to another user."""
     delegation = service.delegate_approval(
@@ -374,4 +374,5 @@ async def delegate_approval(
         data=ApprovalDelegationResponse.model_validate(delegation),
         message="Approval delegated successfully",
     )
+
 

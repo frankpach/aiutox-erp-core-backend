@@ -88,9 +88,9 @@ async def list_tasks(
     service: Annotated[TaskService, Depends(get_task_service)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    status: str | None = Query(None, description="Filter by status"),
-    priority: str | None = Query(None, description="Filter by priority"),
-    assigned_to_id: UUID | None = Query(None, description="Filter by assigned user"),
+    status: str | None = Query(default=None, description="Filter by status"),
+    priority: str | None = Query(default=None, description="Filter by priority"),
+    assigned_to_id: UUID | None = Query(default=None, description="Filter by assigned user"),
 ) -> StandardListResponse[TaskResponse]:
     """List tasks."""
     skip = (page - 1) * page_size
@@ -108,10 +108,12 @@ async def list_tasks(
 
     return StandardListResponse(
         data=[TaskResponse.model_validate(t) for t in tasks],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
         message="Tasks retrieved successfully",
     )
 
@@ -124,7 +126,7 @@ async def list_tasks(
     description="Get a specific task by ID. Requires tasks.view permission.",
 )
 async def get_task(
-    task_id: UUID = Path(..., description="Task ID"),
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> StandardResponse[TaskResponse]:
@@ -133,7 +135,7 @@ async def get_task(
     if not task:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TASK_NOT_FOUND",
+            code="TASK_NOT_FOUND",
             message=f"Task with ID {task_id} not found",
         )
 
@@ -151,10 +153,10 @@ async def get_task(
     description="Update a task. Requires tasks.manage permission.",
 )
 async def update_task(
-    task_id: UUID = Path(..., description="Task ID"),
-    task_data: TaskUpdate = ...,
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
+    task_data: TaskUpdate,
 ) -> StandardResponse[TaskResponse]:
     """Update a task."""
     update_dict = task_data.model_dump(exclude_unset=True)
@@ -163,7 +165,7 @@ async def update_task(
     if not task:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TASK_NOT_FOUND",
+            code="TASK_NOT_FOUND",
             message=f"Task with ID {task_id} not found",
         )
 
@@ -180,7 +182,7 @@ async def update_task(
     description="Delete a task. Requires tasks.manage permission.",
 )
 async def delete_task(
-    task_id: UUID = Path(..., description="Task ID"),
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
@@ -189,7 +191,7 @@ async def delete_task(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TASK_NOT_FOUND",
+            code="TASK_NOT_FOUND",
             message=f"Task with ID {task_id} not found",
         )
 
@@ -203,10 +205,10 @@ async def delete_task(
     description="Add a checklist item to a task. Requires tasks.manage permission.",
 )
 async def add_checklist_item(
-    task_id: UUID = Path(..., description="Task ID"),
-    item_data: TaskChecklistItemCreate = ...,
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
+    item_data: TaskChecklistItemCreate,
 ) -> StandardResponse[TaskChecklistItemResponse]:
     """Add a checklist item to a task."""
     # Verify task exists
@@ -214,7 +216,7 @@ async def add_checklist_item(
     if not task:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="TASK_NOT_FOUND",
+            code="TASK_NOT_FOUND",
             message=f"Task with ID {task_id} not found",
         )
 
@@ -239,7 +241,7 @@ async def add_checklist_item(
     description="List checklist items for a task. Requires tasks.view permission.",
 )
 async def list_checklist_items(
-    task_id: UUID = Path(..., description="Task ID"),
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> StandardListResponse[TaskChecklistItemResponse]:
@@ -248,10 +250,12 @@ async def list_checklist_items(
 
     return StandardListResponse(
         data=[TaskChecklistItemResponse.model_validate(i) for i in items],
-        total=len(items),
-        page=1,
-        page_size=len(items),
-        total_pages=1,
+        meta={
+            "total": len(items),
+            "page": 1,
+            "page_size": max(1, len(items)) if len(items) > 0 else 20,
+            "total_pages": 1,
+        },
         message="Checklist items retrieved successfully",
     )
 
@@ -264,10 +268,10 @@ async def list_checklist_items(
     description="Update a checklist item. Requires tasks.manage permission.",
 )
 async def update_checklist_item(
-    item_id: UUID = Path(..., description="Checklist item ID"),
-    item_data: TaskChecklistItemUpdate = ...,
+    item_id: Annotated[UUID, Path(..., description="Checklist item ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
+    item_data: TaskChecklistItemUpdate,
 ) -> StandardResponse[TaskChecklistItemResponse]:
     """Update a checklist item."""
     update_dict = item_data.model_dump(exclude_unset=True)
@@ -276,7 +280,7 @@ async def update_checklist_item(
     if not item:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="CHECKLIST_ITEM_NOT_FOUND",
+            code="CHECKLIST_ITEM_NOT_FOUND",
             message=f"Checklist item with ID {item_id} not found",
         )
 
@@ -293,7 +297,7 @@ async def update_checklist_item(
     description="Delete a checklist item. Requires tasks.manage permission.",
 )
 async def delete_checklist_item(
-    item_id: UUID = Path(..., description="Checklist item ID"),
+    item_id: Annotated[UUID, Path(..., description="Checklist item ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
@@ -302,7 +306,11 @@ async def delete_checklist_item(
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            error_code="CHECKLIST_ITEM_NOT_FOUND",
+            code="CHECKLIST_ITEM_NOT_FOUND",
             message=f"Checklist item with ID {item_id} not found",
         )
+
+
+
+
 

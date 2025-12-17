@@ -118,7 +118,7 @@ class Task(Base):
         nullable=True,
         index=True,
     )
-    subtasks = relationship("Task", back_populates="parent_task", remote_side=[id])
+    subtasks = relationship("Task", back_populates="parent_task")
     parent_task = relationship("Task", back_populates="subtasks", remote_side=[id])
 
     __table_args__ = (

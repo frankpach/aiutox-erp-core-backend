@@ -191,7 +191,7 @@ def test_require_permission_allows_access_with_permission(client, db_session, te
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     # Act: Try to access endpoint with required permission
     response = client.get(
@@ -229,7 +229,7 @@ def test_require_permission_denies_access_without_permission(
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     response = client.get(
         "/test/permission/auth.manage_users",
@@ -334,7 +334,7 @@ def test_require_roles_allows_access_with_role(client, db_session, test_user):
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint with required role
     response = client.get(
@@ -368,7 +368,7 @@ def test_require_roles_denies_access_without_role(client, db_session, test_user)
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint without required role
     response = client.get(
@@ -408,7 +408,7 @@ def test_require_any_permission_allows_access_with_any_permission(
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint (viewer has *.*.view which matches inventory.view)
     response = client.get(
@@ -444,7 +444,7 @@ def test_require_any_permission_denies_access_without_any_permission(
         },
     )
     assert login_response.status_code == status.HTTP_200_OK
-    token = login_response.json()["access_token"]
+    token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint without any of the required permissions
     response = client.get(

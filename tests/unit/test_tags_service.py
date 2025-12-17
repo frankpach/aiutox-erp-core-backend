@@ -96,7 +96,8 @@ def test_update_tag(tag_service, test_tenant):
     updated = tag_service.update_tag(
         tag.id,
         test_tenant.id,
-        {"name": "Updated Name", "color": "#FFFFFF"},
+        name="Updated Name",
+        color="#FFFFFF",
     )
 
     assert updated is not None
@@ -207,7 +208,7 @@ def test_remove_tag_from_entity(tag_service, test_tenant):
         entity_id=entity_id,
         tenant_id=test_tenant.id,
     )
-    assert not any(et.tag_id == tag.id for et in entity_tags)
+    assert not any(et.id == tag.id for et in entity_tags)
 
 
 def test_get_entity_tags(tag_service, test_tenant):
@@ -246,7 +247,13 @@ def test_get_entity_tags(tag_service, test_tenant):
     )
 
     assert len(entity_tags) >= 2
-    tag_ids = [et.tag_id for et in entity_tags]
+    tag_ids = [et.id for et in entity_tags]
     assert tag1.id in tag_ids
     assert tag2.id in tag_ids
+
+
+
+
+
+
 
