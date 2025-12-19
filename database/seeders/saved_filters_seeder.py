@@ -127,3 +127,4 @@ def clear_saved_filters(db: Session, tenant_id: str) -> None:
         SavedFilter.tenant_id == tenant_id, SavedFilter.module == "users"
     ).delete()
     db.commit()
+

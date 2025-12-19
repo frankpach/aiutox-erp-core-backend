@@ -145,3 +145,4 @@ Antes de dar por terminado:
 
 **Para más detalles, ver:** `backend/tests/analysis/PLAN_MEJORADO_TESTS.md`
 
+

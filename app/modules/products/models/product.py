@@ -248,3 +248,4 @@ class ProductBarcode(Base):
 
 
 
+

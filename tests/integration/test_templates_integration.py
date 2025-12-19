@@ -148,3 +148,4 @@ def test_template_publishes_events(client, test_user, auth_headers, db_session):
 
 
 
+

@@ -66,3 +66,4 @@ Si sigues teniendo problemas de conexión:
 - **Contraseña**: `devpass`
 - **Base de datos**: `aiutox_erp_dev`
 
+
