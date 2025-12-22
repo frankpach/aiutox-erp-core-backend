@@ -88,10 +88,10 @@ async def test_retry_handler_backoff_timing():
     call_times = []
 
     async def failing_callback():
-        call_times.append(asyncio.get_event_loop().time())
+        call_times.append(asyncio.get_running_loop().time())
         raise ValueError("Always fails")
 
-    start_time = asyncio.get_event_loop().time()
+    start_time = asyncio.get_running_loop().time()
 
     with pytest.raises(ValueError):
         await handler.retry_with_backoff(failing_callback, "test_operation")

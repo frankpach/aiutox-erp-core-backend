@@ -40,7 +40,7 @@ if config.config_file_name is not None:
 settings = get_settings()
 # Only set from settings if not already set in config (allows test overrides)
 if not config.get_main_option("sqlalchemy.url") or config.get_main_option("sqlalchemy.url") == "driver://user:pass@localhost/dbname":
-    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+    config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # add your model's MetaData object here
 target_metadata = Base.metadata
@@ -78,7 +78,7 @@ def run_migrations_online() -> None:
     """
     # Get database URL from Alembic config (allows test overrides)
     # Fallback to settings if not set in config
-    database_url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+    database_url = config.get_main_option("sqlalchemy.url") or settings.database_url
 
     # Create engine directly to avoid encoding issues with engine_from_config
     # Use connect_args to pass connection parameters directly if URL encoding fails

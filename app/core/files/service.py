@@ -65,9 +65,9 @@ class FileService:
             Storage path
         """
         # Generate path: tenant_id/entity_type/year/month/filename
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         path_parts = [str(tenant_id)]
         if entity_type:
             path_parts.append(entity_type)

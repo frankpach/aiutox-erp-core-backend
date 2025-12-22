@@ -68,28 +68,42 @@ class RedisStreamsClient:
                 self._client = None
             raise PubSubError(f"Redis connection error: {e}") from e
 
-    async def create_group(self, stream_name: str, group_name: str, start_id: str = "0") -> bool:
+    async def create_group(self, stream_name: str, group_name: str, start_id: str = "0", recreate_if_exists: bool = False) -> bool:
         """Create a consumer group for a stream.
 
         Args:
             stream_name: Name of the stream
             group_name: Name of the consumer group
-            start_id: Starting ID for the group (default: '0' for all messages)
+            start_id: Starting ID for the group (default: '0' for all messages, use '$' for only new messages)
+            recreate_if_exists: If True, delete and recreate the group if it already exists
 
         Returns:
-            True if group was created, False if it already exists
+            True if group was created, False if it already exists (and recreate_if_exists=False)
         """
         async with self.connection() as client:
             try:
                 await client.xgroup_create(
                     name=stream_name, groupname=group_name, id=start_id, mkstream=True
                 )
-                logger.info(f"Created consumer group '{group_name}' for stream '{stream_name}'")
+                logger.info(f"Created consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'")
                 return True
             except aioredis.ResponseError as e:
                 if "BUSYGROUP" in str(e):
-                    logger.debug(f"Consumer group '{group_name}' already exists for stream '{stream_name}'")
-                    return False
+                    if recreate_if_exists:
+                        # Delete existing group and recreate with new start_id
+                        try:
+                            await client.xgroup_destroy(stream_name, group_name)
+                            await client.xgroup_create(
+                                name=stream_name, groupname=group_name, id=start_id, mkstream=True
+                            )
+                            logger.info(f"Recreated consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'")
+                            return True
+                        except Exception as recreate_error:
+                            logger.error(f"Failed to recreate group: {recreate_error}")
+                            raise PubSubError(f"Failed to recreate consumer group: {recreate_error}") from recreate_error
+                    else:
+                        logger.debug(f"Consumer group '{group_name}' already exists for stream '{stream_name}'")
+                        return False
                 raise PubSubError(f"Failed to create consumer group: {e}") from e
 
     async def get_stream_info(self, stream_name: str) -> dict[str, Any]:

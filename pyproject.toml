@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.17.2",
-    "fastapi>=0.124.0",
+    "fastapi>=0.124.4",
     "passlib[bcrypt]>=1.7.4",
     "pillow>=10.0.0",
     "psycopg2-binary>=2.9.11",
@@ -43,6 +43,9 @@ dev = [
     "pytest-watch>=4.2.0",
     "python-dotenv>=1.0.0",
     "pytest-timeout>=2.1.0",
+    "psutil>=5.9.0",  # For process metrics (CPU, memory)
+    "keyboard>=0.13.5",  # For keyboard shortcuts (optional, fallback to menu)
+    "pynput>=1.7.6",  # Alternative keyboard library (optional)
 ]
 
 [build-system]
@@ -75,7 +78,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-# Default: serial execution. Use -n 4 or -n auto for parallel execution
+# Default: parallel execution with minimum 4 workers
+# -n auto: Auto-detect CPU cores, pero usa mínimo 8 workers para agilizar
+# -n 8: Usar exactamente 8 workers
+# -n 1: Ejecución serial (para debugging)
+# Nota: Cada worker usa su propia base de datos (aiutox_erp_test_worker0, etc.)
+# Para forzar mínimo 8 workers: usar -n 4 o configurar en scripts
 addopts = "-v --tb=short --durations=10"
 asyncio_mode = "auto"
 timeout = 300

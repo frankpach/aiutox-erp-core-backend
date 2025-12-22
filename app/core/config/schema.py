@@ -37,6 +37,8 @@ class ConfigSchema:
         Returns:
             True if valid, False otherwise
         """
+        import re
+
         # Check for exact match first
         if module in self._schemas and key in self._schemas[module]:
             schema_def = self._schemas[module][key]
@@ -46,7 +48,6 @@ class ConfigSchema:
             for pattern_key, schema_def in self._schemas[module].items():
                 if "*" in pattern_key:
                     # Simple wildcard matching: replace * with .* for regex-like matching
-                    import re
                     pattern = pattern_key.replace("*", ".*")
                     if re.match(pattern, key):
                         break
@@ -61,22 +62,57 @@ class ConfigSchema:
 
         # Type validation
         if expected_type == "string":
-            return isinstance(value, str)
+            if not isinstance(value, str):
+                return False
         elif expected_type == "int":
-            return isinstance(value, int)
+            if not isinstance(value, int) or isinstance(value, bool):
+                return False
         elif expected_type == "float":
-            return isinstance(value, (int, float))
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                return False
         elif expected_type == "bool":
-            return isinstance(value, bool)
+            if not isinstance(value, bool):
+                return False
         elif expected_type == "dict":
-            return isinstance(value, dict)
+            if not isinstance(value, dict):
+                return False
         elif expected_type == "list":
-            return isinstance(value, list)
-        elif expected_type == "any":
-            return True
-        else:
+            if not isinstance(value, list):
+                return False
+        elif expected_type != "any":
             # Unknown type, allow it
             return True
+
+        # Pattern validation (regex) - for strings only
+        if "pattern" in schema_def and isinstance(value, str):
+            pattern = schema_def["pattern"]
+            if not re.match(pattern, value):
+                return False
+
+        # Enum validation - value must be in list
+        if "enum" in schema_def:
+            if value not in schema_def["enum"]:
+                return False
+
+        # Range validation - for numeric types
+        if "min" in schema_def and isinstance(value, (int, float)):
+            if value < schema_def["min"]:
+                return False
+
+        if "max" in schema_def and isinstance(value, (int, float)):
+            if value > schema_def["max"]:
+                return False
+
+        # Length validation - for strings
+        if "minLength" in schema_def and isinstance(value, str):
+            if len(value) < schema_def["minLength"]:
+                return False
+
+        if "maxLength" in schema_def and isinstance(value, str):
+            if len(value) > schema_def["maxLength"]:
+                return False
+
+        return True
 
     def get_default(self, module: str, key: str) -> Any:
         """Get default value for a configuration key.
@@ -132,8 +168,68 @@ def register_module_schemas() -> None:
     )
 
 
+def register_general_settings_schemas() -> None:
+    """Register schemas for general system settings."""
+    config_schema.register_schema(
+        module="system",
+        key="general.timezone",
+        schema_def={
+            "type": "string",
+            "default": "America/Mexico_City",
+            "required": False,
+            "description": "System timezone",
+        },
+    )
+    config_schema.register_schema(
+        module="system",
+        key="general.date_format",
+        schema_def={
+            "type": "string",
+            "default": "DD/MM/YYYY",
+            "required": False,
+            "description": "Date format",
+        },
+    )
+    config_schema.register_schema(
+        module="system",
+        key="general.time_format",
+        schema_def={
+            "type": "string",
+            "default": "24h",
+            "enum": ["12h", "24h"],
+            "required": False,
+            "description": "Time format",
+        },
+    )
+    config_schema.register_schema(
+        module="system",
+        key="general.currency",
+        schema_def={
+            "type": "string",
+            "default": "MXN",
+            "minLength": 3,
+            "maxLength": 3,
+            "required": False,
+            "description": "Currency code (ISO 4217)",
+        },
+    )
+    config_schema.register_schema(
+        module="system",
+        key="general.language",
+        schema_def={
+            "type": "string",
+            "default": "es",
+            "minLength": 2,
+            "maxLength": 5,
+            "required": False,
+            "description": "Language code (ISO 639-1)",
+        },
+    )
+
+
 # Auto-register module schemas on import
 register_module_schemas()
+register_general_settings_schemas()
 
 
 

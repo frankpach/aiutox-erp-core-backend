@@ -158,7 +158,12 @@ class ActivityService:
             try:
                 import asyncio
 
-                loop = asyncio.get_event_loop()
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
                 if loop.is_running():
                     asyncio.create_task(
                         self.event_publisher.publish(
@@ -214,7 +219,12 @@ class ActivityService:
             try:
                 import asyncio
 
-                loop = asyncio.get_event_loop()
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
                 if loop.is_running():
                     asyncio.create_task(
                         self.event_publisher.publish(

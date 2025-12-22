@@ -97,6 +97,48 @@ class ModuleListItem(BaseModel):
     description: str = Field(default="", description="Module description")
 
 
+class GeneralSettingsRequest(BaseModel):
+    """Schema for updating general system settings."""
+
+    timezone: str = Field(
+        default="America/Mexico_City",
+        description="Timezone (e.g., 'America/Mexico_City', 'UTC')",
+        max_length=100,
+    )
+    date_format: str = Field(
+        default="DD/MM/YYYY",
+        description="Date format (e.g., 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD')",
+        max_length=20,
+    )
+    time_format: str = Field(
+        default="24h",
+        description="Time format: '12h' or '24h'",
+        pattern="^(12h|24h)$",
+    )
+    currency: str = Field(
+        default="MXN",
+        description="Currency code (ISO 4217, e.g., 'MXN', 'USD', 'EUR')",
+        max_length=3,
+        min_length=3,
+    )
+    language: str = Field(
+        default="es",
+        description="Language code (ISO 639-1, e.g., 'es', 'en', 'fr')",
+        max_length=5,
+        min_length=2,
+    )
+
+
+class GeneralSettingsResponse(BaseModel):
+    """Schema for general system settings response."""
+
+    timezone: str = Field(..., description="Timezone")
+    date_format: str = Field(..., description="Date format")
+    time_format: str = Field(..., description="Time format")
+    currency: str = Field(..., description="Currency code")
+    language: str = Field(..., description="Language code")
+
+
 
 
 

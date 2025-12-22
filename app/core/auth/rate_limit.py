@@ -57,6 +57,9 @@ def check_login_rate_limit(ip_address: str, max_attempts: int = 5, window_minute
     """
     Check if login rate limit is exceeded for an IP address.
 
+    IMPORTANT: This function only checks the limit, it does NOT record attempts.
+    Use record_login_attempt() to record failed attempts.
+
     Args:
         ip_address: Client IP address.
         max_attempts: Maximum number of attempts allowed.
@@ -81,8 +84,8 @@ def check_login_rate_limit(ip_address: str, max_attempts: int = 5, window_minute
     if len(attempts) >= max_attempts:
         return False
 
-    # Record this attempt
-    attempts.append(now)
+    # DO NOT record attempt here - only check the limit
+    # Attempts are recorded separately via record_login_attempt() for failed logins only
     return True
 
 
@@ -98,3 +101,23 @@ def record_login_attempt(ip_address: str) -> None:
     """
     now = datetime.now(timezone.utc)
     _login_attempts[ip_address].append(now)
+
+
+def clear_successful_login(ip_address: str) -> None:
+    """
+    Clear rate limit for successful login.
+    Successful logins should not count towards rate limiting.
+
+    Args:
+        ip_address: Client IP address.
+
+    Example:
+        >>> clear_successful_login("127.0.0.1")
+    """
+    # Remove the last attempt (which was successful)
+    if ip_address in _login_attempts and _login_attempts[ip_address]:
+        _login_attempts[ip_address].pop()
+
+    # If no attempts remain, remove the IP from the dict
+    if ip_address in _login_attempts and not _login_attempts[ip_address]:
+        del _login_attempts[ip_address]

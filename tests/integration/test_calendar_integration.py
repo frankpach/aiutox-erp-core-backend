@@ -75,8 +75,8 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
     )
     calendar_id = calendar_response.json()["data"]["id"]
 
-    start_time = (datetime.utcnow() + timedelta(days=1)).isoformat()
-    end_time = (datetime.utcnow() + timedelta(days=1, hours=1)).isoformat()
+    start_time = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    end_time = (datetime.now(UTC) + timedelta(days=1, hours=1)).isoformat()
 
     event_data = {
         "calendar_id": calendar_id,
@@ -125,8 +125,8 @@ def test_calendar_event_attendee_response(client, test_user, db_session):
     )
     calendar_id = calendar_response.json()["data"]["id"]
 
-    start_time = (datetime.utcnow() + timedelta(days=1)).isoformat()
-    end_time = (datetime.utcnow() + timedelta(days=1, hours=1)).isoformat()
+    start_time = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    end_time = (datetime.now(UTC) + timedelta(days=1, hours=1)).isoformat()
 
     event_data = {
         "calendar_id": calendar_id,

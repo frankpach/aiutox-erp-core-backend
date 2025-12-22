@@ -85,12 +85,32 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
         },
     },
     "config": {
-        "internal.viewer": {"config.view"},
-        "internal.editor": {"config.view", "config.edit"},
+        "internal.viewer": {
+            "config.view",
+            "config.view_theme",  # Can view theme configuration
+        },
+        "internal.editor": {
+            "config.view",
+            "config.edit",
+            "config.view_theme",
+            "config.edit_theme",  # Can edit theme configuration
+        },
+        "internal.designer": {
+            "config.view_theme",
+            "config.edit_theme",  # Theme designer role
+        },
+        "internal.brand_manager": {
+            "config.view_theme",
+            "config.edit_theme",
+            "config.manage_branding",  # Can manage logos and brand assets
+        },
         "internal.manager": {
             "config.view",
             "config.edit",
             "config.delete",
+            "config.view_theme",
+            "config.edit_theme",
+            "config.manage_branding",  # Full access including theme and branding
         },
     },
     "calendar": {

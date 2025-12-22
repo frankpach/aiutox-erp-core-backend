@@ -31,9 +31,9 @@ from app.models.task import (
 from app.models.search_index import SearchIndex
 from app.models.integration import (
     Integration,
-    IntegrationLog,
     Webhook,
     WebhookDelivery,
+    WebhookStatus,
 )
 
 __all__ = [
@@ -51,8 +51,10 @@ __all__ = [
     "FilePermission",
     "FileVersion",
     "Integration",
-    "IntegrationLog",
     "ModuleRole",
+    "Webhook",
+    "WebhookDelivery",
+    "WebhookStatus",
     "NotificationQueue",
     "NotificationTemplate",
     "OrgPreference",
@@ -77,8 +79,6 @@ __all__ = [
     "User",
     "UserPreference",
     "UserRole",
-    "Webhook",
-    "WebhookDelivery",
     "Workflow",
     "WorkflowExecution",
     "WorkflowStep",

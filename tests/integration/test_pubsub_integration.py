@@ -45,6 +45,46 @@ def event_consumer(redis_client):
     return EventConsumer(client=redis_client)
 
 
+@pytest.fixture(autouse=True)
+async def clean_redis_streams(redis_client):
+    """Clean Redis streams and consumer groups before each test to avoid reading old messages."""
+    async with redis_client.connection() as client:
+        from app.core.config_file import get_settings
+        settings = get_settings()
+
+        streams_to_clean = [
+            settings.REDIS_STREAM_DOMAIN,
+            settings.REDIS_STREAM_TECHNICAL,
+        ]
+
+        for stream_name in streams_to_clean:
+            try:
+                # Delete all consumer groups for this stream (so they can be recreated with start_id="$")
+                try:
+                    groups_info = await client.xinfo_groups(stream_name)
+                    for group in groups_info:
+                        group_name = group.get("name") or group.get(b"name", b"").decode()
+                        if group_name and group_name.startswith("test-"):
+                            try:
+                                await client.xgroup_destroy(stream_name, group_name)
+                            except Exception:
+                                pass  # Group might not exist
+                except Exception:
+                    pass  # Stream might not exist or have no groups
+
+                # Get all message IDs in the stream and delete them
+                messages = await client.xrange(stream_name, min="-", max="+", count=10000)
+                if messages:
+                    message_ids = [msg_id for msg_id, _ in messages]
+                    if message_ids:
+                        await client.xdel(stream_name, *message_ids)
+            except Exception:
+                # Stream might not exist, which is fine
+                pass
+
+    yield
+
+
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_publish_and_consume_event(redis_client, event_publisher, event_consumer, redis_available):
@@ -74,12 +114,14 @@ async def test_publish_and_consume_event(redis_client, event_publisher, event_co
             except Exception:
                 pass  # Stream may not exist
 
-        # Subscribe to events
+        # Subscribe to events (use start_id="$" to only read new messages)
         await event_consumer.subscribe(
             group_name="test-group",
             consumer_name="test-consumer",
             event_types=["product.created"],
             callback=callback,
+            start_id="$",  # Only read new messages (after this point)
+            recreate_group=True,  # Recreate group to ensure correct start_id
         )
 
         # Wait a bit for subscription to be ready
@@ -218,6 +260,8 @@ async def test_event_metadata_preserved(event_publisher, event_consumer, redis_a
             consumer_name="test-consumer-2",
             event_types=["product.updated"],
             callback=callback,
+            start_id="$",  # Only read new messages (after this point)
+            recreate_group=True,  # Recreate group to ensure correct start_id
         )
 
         await asyncio.sleep(0.2)

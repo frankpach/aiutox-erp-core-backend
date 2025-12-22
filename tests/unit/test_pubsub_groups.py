@@ -17,7 +17,7 @@ async def test_ensure_group_exists_creates_group():
     result = await ensure_group_exists(mock_client, "test_stream", "test_group")
 
     assert result is True
-    mock_client.create_group.assert_called_once_with("test_stream", "test_group", "0")
+    mock_client.create_group.assert_called_once_with("test_stream", "test_group", "0", recreate_if_exists=False)
 
 
 @pytest.mark.asyncio
@@ -51,7 +51,7 @@ async def test_get_or_create_group():
     result = await get_or_create_group(mock_client, "test_stream", "test_group")
 
     assert result is True
-    mock_client.create_group.assert_called_once_with("test_stream", "test_group", "0")
+    mock_client.create_group.assert_called_once_with("test_stream", "test_group", "0", recreate_if_exists=False)
 
 
 

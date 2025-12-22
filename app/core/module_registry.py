@@ -33,20 +33,22 @@ class ModuleRegistry:
         self._default_config = self._load_modules_json()
 
     def _load_modules_json(self) -> Dict[str, bool]:
-        """Load default configuration from rules/modules.json.
+        """Load default configuration from backend/config/modules.json.
 
         Returns:
             Dictionary mapping module_id to enabled status
         """
         try:
-            # Try to find modules.json relative to backend directory
+            # Try to find modules.json in backend/config/
             backend_dir = Path(__file__).parent.parent.parent
-            modules_json_path = backend_dir.parent / "rules" / "modules.json"
+            modules_json_path = backend_dir / "config" / "modules.json"
 
             if not modules_json_path.exists():
-                # Try alternative path
-                modules_json_path = backend_dir / ".." / "rules" / "modules.json"
-                modules_json_path = modules_json_path.resolve()
+                # Fallback: try old location for backward compatibility
+                modules_json_path = backend_dir.parent / "rules" / "modules.json"
+                if not modules_json_path.exists():
+                    modules_json_path = backend_dir / ".." / "rules" / "modules.json"
+                    modules_json_path = modules_json_path.resolve()
 
             if not modules_json_path.exists():
                 logger.warning(f"modules.json not found at {modules_json_path}")

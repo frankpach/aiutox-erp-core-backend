@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 async def ensure_group_exists(
-    client: RedisStreamsClient, stream_name: str, group_name: str, start_id: str = "0"
+    client: RedisStreamsClient, stream_name: str, group_name: str, start_id: str = "0", recreate_if_exists: bool = False
 ) -> bool:
     """Ensure a consumer group exists for a stream.
 
@@ -17,13 +17,14 @@ async def ensure_group_exists(
         client: RedisStreamsClient instance
         stream_name: Name of the stream
         group_name: Name of the consumer group
-        start_id: Starting ID for the group (default: '0' for all messages)
+        start_id: Starting ID for the group (default: '0' for all messages, use '$' for only new messages)
+        recreate_if_exists: If True, delete and recreate the group if it already exists (useful for tests)
 
     Returns:
-        True if group was created, False if it already existed
+        True if group was created, False if it already existed (and recreate_if_exists=False)
     """
     try:
-        return await client.create_group(stream_name, group_name, start_id)
+        return await client.create_group(stream_name, group_name, start_id, recreate_if_exists=recreate_if_exists)
     except PubSubError as e:
         logger.error(f"Failed to ensure group exists: {e}")
         raise

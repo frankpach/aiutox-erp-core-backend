@@ -20,10 +20,10 @@ from app.models.user_role import UserRole
 from app.services.permission_service import PermissionService
 
 # Create test router for testing authorization dependencies
-test_router = APIRouter()
+rbac_test_router = APIRouter()
 
 
-@test_router.get("/test/permission/{permission}")
+@rbac_test_router.get("/test/permission/{permission}")
 async def rbac_test_permission_endpoint(
     permission: str,
     current_user: User = Depends(get_current_user),
@@ -42,7 +42,7 @@ async def rbac_test_permission_endpoint(
     return {"message": "Access granted", "permission": permission, "user_id": str(current_user.id)}
 
 
-@test_router.get("/test/roles")
+@rbac_test_router.get("/test/roles")
 async def rbac_test_roles_endpoint(
     user: User = Depends(require_roles("admin", "owner")),
 ):
@@ -50,7 +50,7 @@ async def rbac_test_roles_endpoint(
     return {"message": "Access granted", "user_id": str(user.id)}
 
 
-@test_router.get("/test/any-permission")
+@rbac_test_router.get("/test/any-permission")
 async def rbac_test_any_permission_endpoint(
     user: User = Depends(require_any_permission("inventory.view", "products.view")),
 ):
@@ -69,7 +69,7 @@ def setup_test_router():
     )
 
     if not router_included:
-        app.include_router(test_router)
+        app.include_router(rbac_test_router)
 
     yield
 

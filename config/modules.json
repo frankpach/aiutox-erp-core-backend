@@ -1,0 +1,226 @@
+[
+  {
+    "key": "auth",
+    "name": "Autenticación y RBAC",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/auth.py",
+    "description": "Infraestructura base: Autenticación JWT, permisos, roles, delegación de permisos"
+  },
+  {
+    "key": "users",
+    "name": "Usuarios y Organizaciones",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/users.py",
+    "description": "Infraestructura base: CRUD de usuarios, perfiles, multi-tenancy (Tenants), organizaciones, contactos"
+  },
+  {
+    "key": "audit",
+    "name": "Auditoría",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/auth.py",
+    "description": "Infraestructura base: Sistema de audit logs, logs automáticos por módulo"
+  },
+  {
+    "key": "reporting",
+    "name": "Motor de Reportes",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Motor de reportes extensible con DataSource, Engine, Visualizaciones. Los módulos empresariales crean sus propios DataSources."
+  },
+  {
+    "key": "config",
+    "name": "Sistema de Configuración",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/config.py",
+    "description": "Infraestructura base: Esquema JSON central, sobreescribible por módulo. Cada módulo empresarial define su propia configuración. Incluye configuración visual del tema (colores, logos, tipografía).",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "pubsub",
+    "name": "Módulo de Pub-Sub (Event Bus)",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/pubsub.py",
+    "description": "Infraestructura base crítica: Bus de eventos interno basado en Redis Streams. Desacopla módulos mediante eventos. Base para Automatización, Notificaciones e Integraciones.",
+    "depends_on": []
+  },
+  {
+    "key": "automation",
+    "name": "Módulo de Automatización",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Motor de reglas y workflows basado en eventos. Permite definir y ejecutar reglas de negocio sin modificar código. Orquesta procesos entre módulos.",
+    "depends_on": ["auth", "users", "pubsub"]
+  },
+  {
+    "key": "preferences",
+    "name": "Módulo de Preferencias y Personalización",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Personalización de experiencia de usuario. Preferencias de usuario, vistas personalizadas, dashboards configurables, configuración de notificaciones.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "notifications",
+    "name": "Notificaciones",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Email/SMS/Webhooks. Los módulos empresariales registran sus eventos y templates. Consume eventos del bus y consulta preferencias de usuario.",
+    "depends_on": ["auth", "users", "pubsub", "preferences"]
+  },
+  {
+    "key": "files",
+    "name": "Sistema de Archivos y Documentos",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Almacenamiento de archivos, gestión de versiones, metadatos, permisos. Relación polimórfica con cualquier entidad.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "activities",
+    "name": "Sistema de Actividades/Timeline",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Timeline de actividades por entidad (polimórfico). Tipos: comentario, llamada, email, reunión, tarea, cambio de estado.",
+    "depends_on": ["auth", "users", "audit"]
+  },
+  {
+    "key": "tasks",
+    "name": "Sistema de Tareas y Workflows",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Tareas asignables, estados, prioridades, checklists, workflows configurables (BPMN-ready), aprobaciones.",
+    "depends_on": ["auth", "users", "notifications"]
+  },
+  {
+    "key": "tags",
+    "name": "Sistema de Etiquetas/Tags",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Sistema de tags polimórfico, categorías de tags, filtrado y búsqueda por tags, tags automáticos.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "search",
+    "name": "Sistema de Búsqueda Global",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: Búsqueda unificada en todas las entidades, índices de búsqueda, resultados categorizados, búsqueda inteligente.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "integrations",
+    "name": "Sistema de Integraciones y Webhooks",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": false,
+    "description": "Infraestructura base: API Gateway, webhooks configurables por evento, gestión de credenciales, logs de integraciones, reintentos automáticos.",
+    "depends_on": ["auth", "users", "notifications"]
+  },
+  {
+    "key": "calendar",
+    "name": "Sistema de Calendario y Eventos",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/calendar.py",
+    "description": "Infraestructura base: Calendario unificado, eventos y citas, recordatorios, sincronización con calendarios externos, disponibilidad de recursos.",
+    "depends_on": ["auth", "users", "notifications"]
+  },
+  {
+    "key": "import_export",
+    "name": "Sistema de Exportación/Importación",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/import_export.py",
+    "description": "Infraestructura base: Exportación a CSV/Excel/PDF, importación masiva con validación, plantillas de importación, mapeo de campos, procesamiento asíncrono.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "views",
+    "name": "Sistema de Filtros Guardados y Vistas",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/views.py",
+    "description": "Infraestructura base: Filtros guardados por usuario/módulo, vistas personalizadas (columnas, ordenamiento), compartir filtros/vistas, vistas por defecto.",
+    "depends_on": ["auth", "users"]
+  },
+  {
+    "key": "approvals",
+    "name": "Sistema de Aprobaciones",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/approvals.py",
+    "description": "Infraestructura base: Flujos de aprobación configurables, múltiples niveles, delegación, notificaciones, historial de aprobaciones.",
+    "depends_on": ["auth", "users", "tasks", "notifications"]
+  },
+  {
+    "key": "templates",
+    "name": "Sistema de Plantillas/Templates",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/templates.py",
+    "description": "Infraestructura base: Plantillas de documentos (PDF, HTML), plantillas de emails/SMS, variables dinámicas, editor visual, versiones de plantillas.",
+    "depends_on": ["auth", "users", "files"]
+  },
+  {
+    "key": "comments",
+    "name": "Sistema de Comentarios y Colaboración",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "path": "backend/app/api/v1/comments.py",
+    "description": "Infraestructura base: Comentarios en entidades (polimórfico), menciones de usuarios, notificaciones, edición/eliminación, archivos adjuntos.",
+    "depends_on": ["auth", "users", "files", "notifications"]
+  },
+  {
+    "key": "products",
+    "name": "Catálogo de Productos",
+    "type": "business",
+    "category": "catalog",
+    "enabled": true,
+    "path": "backend/app/modules/products/api.py",
+    "description": "Módulo empresarial: Productos, categorías, variantes, precios. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (product.created, product.updated, etc.). Estructura modular completa en app/modules/products/.",
+    "depends_on": ["auth", "users", "pubsub"]
+  },
+  {
+    "key": "inventory",
+    "name": "Inventario Base",
+    "type": "business",
+    "category": "operations",
+    "enabled": false,
+    "description": "Módulo empresarial: Stock, ubicaciones, ajustes, movimientos. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (inventory.stock_low, inventory.movement.created, etc.).",
+    "depends_on": ["auth", "users", "products", "pubsub"]
+  },
+  {
+    "key": "crm",
+    "name": "Clientes (CRM)",
+    "type": "business",
+    "category": "sales",
+    "enabled": false,
+    "description": "Módulo empresarial: Contactos, historial, segmentación, campañas. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (customer.created, customer.contact.logged, etc.).",
+    "depends_on": ["auth", "users", "pubsub"]
+  }
+]

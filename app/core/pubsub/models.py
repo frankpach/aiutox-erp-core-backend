@@ -59,28 +59,42 @@ class Event(BaseModel):
         }
 
     @classmethod
-    def from_redis_dict(cls, data: dict[str, str]) -> "Event":
+    def from_redis_dict(cls, data: dict[str, str] | Any) -> "Event":
         """Create Event from Redis Streams dictionary."""
         import json
 
+        # Ensure data is a dictionary (handle both dict and list of tuples from Redis)
+        if not isinstance(data, dict):
+            # If data is a list of tuples (from Redis xreadgroup), convert to dict
+            if isinstance(data, (list, tuple)):
+                data = dict(data)
+            else:
+                data = dict(data) if hasattr(data, 'items') else {}
+
         # Parse additional_data if it's a string representation
         additional_data = {}
-        if "metadata_additional_data" in data and data["metadata_additional_data"]:
+        metadata_additional_data = data.get("metadata_additional_data")
+        if metadata_additional_data:
             try:
                 # Try JSON first
-                additional_data = json.loads(data["metadata_additional_data"])
-            except (json.JSONDecodeError, TypeError):
-                # If it's already a dict (from Redis decode_responses), use it directly
-                if isinstance(data["metadata_additional_data"], dict):
-                    additional_data = data["metadata_additional_data"]
+                if isinstance(metadata_additional_data, str):
+                    additional_data = json.loads(metadata_additional_data)
+                elif isinstance(metadata_additional_data, dict):
+                    # If it's already a dict (from Redis decode_responses), use it directly
+                    additional_data = metadata_additional_data
                 else:
-                    # Try to parse as string representation
-                    try:
-                        # Safe eval for dict literals (not recommended but fallback)
-                        if data["metadata_additional_data"].startswith("{"):
-                            additional_data = eval(data["metadata_additional_data"])
-                    except Exception:
-                        additional_data = {}
+                    additional_data = {}
+            except (json.JSONDecodeError, TypeError):
+                additional_data = {}
+
+        # Extract metadata fields - ensure we get the actual values
+        metadata_source = data.get("metadata_source")
+        if not metadata_source or metadata_source == "":
+            metadata_source = "unknown"
+
+        metadata_version = data.get("metadata_version")
+        if not metadata_version or metadata_version == "":
+            metadata_version = "1.0"
 
         return cls(
             event_id=UUID(data["event_id"]),
@@ -91,8 +105,8 @@ class Event(BaseModel):
             user_id=UUID(data["user_id"]) if data.get("user_id") and data["user_id"] else None,
             timestamp=datetime.fromisoformat(data["timestamp"]),
             metadata=EventMetadata(
-                source=data.get("metadata_source", "unknown"),
-                version=data.get("metadata_version", "1.0"),
+                source=metadata_source,
+                version=metadata_version,
                 additional_data=additional_data,
             ),
         )

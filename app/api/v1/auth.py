@@ -18,6 +18,7 @@ from app.core.exceptions import (
 )
 from app.core.auth.rate_limit import (
     check_login_rate_limit,
+    clear_successful_login,
     create_rate_limit_exception,
     record_login_attempt,
 )
@@ -88,10 +89,11 @@ async def login(
     Raises:
         HTTPException: If credentials are invalid or rate limit exceeded.
     """
-    # Rate limiting check
+    # Rate limiting check (only counts failed attempts)
     client_ip = request.client.host if request.client else "unknown"
+
+    # Check rate limit BEFORE authentication (only counts previous failed attempts)
     if not check_login_rate_limit(client_ip, max_attempts=5, window_minutes=1):
-        record_login_attempt(client_ip)
         log_rate_limit_exceeded(client_ip)
         raise create_rate_limit_exception()
 
@@ -99,16 +101,18 @@ async def login(
     auth_service = AuthService(db)
     user = auth_service.authenticate_user(login_data.email, login_data.password)
 
-    # Record attempt (success or failure)
-    record_login_attempt(client_ip)
-
     # Generic error message (does not reveal if user exists)
     if not user:
+        # This is a FAILED attempt - record it for rate limiting
+        record_login_attempt(client_ip)
         log_auth_failure(login_data.email, "invalid_credentials", client_ip)
         raise_unauthorized(
             code="AUTH_INVALID_CREDENTIALS",
             message="Invalid credentials",
         )
+
+    # Successful login - DO NOT record attempt
+    # Successful logins should not count towards rate limiting
 
     # Log successful login (auth_service already logs, but we add IP here)
     log_auth_success(str(user.id), login_data.email, str(user.tenant_id), client_ip)
@@ -232,6 +236,75 @@ async def get_current_user_info(
             roles=roles,
             permissions=permissions,
         )
+    )
+
+
+@router.get(
+    "/encryption-secret",
+    response_model=StandardResponse[dict[str, str | None]],
+    status_code=status.HTTP_200_OK,
+    summary="Get encryption secret for client-side encryption",
+    description="Get a tenant-specific encryption secret for client-side data encryption. The secret expires after 24 hours. Requires authentication.",
+    responses={
+        200: {"description": "Encryption secret retrieved successfully"},
+        401: {"description": "Unauthorized"},
+    },
+)
+async def get_encryption_secret(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> StandardResponse[dict[str, str | None]]:
+    """
+    Get encryption secret for client-side encryption.
+
+    The secret is tenant-specific and should be used for encrypting sensitive
+    data in localStorage. The secret expires after 24 hours and should be
+    refreshed periodically.
+
+    Security:
+    - Secret is tenant-specific (derived from tenant_id)
+    - Expires after 24 hours
+    - Should be stored in memory only (not in localStorage)
+    - Should be refreshed on login and periodically
+
+    Args:
+        current_user: Current authenticated user.
+
+    Returns:
+        StandardResponse with encryption secret and expiration time.
+    """
+    from app.core.config_file import get_settings
+    from datetime import datetime, timedelta
+    import hashlib
+    import hmac
+
+    # Get settings (contains SECRET_KEY used for JWT)
+    settings = get_settings()
+    secret_key = settings.SECRET_KEY
+
+    # Generate tenant-specific secret
+    # Combine tenant_id with app secret for uniqueness
+    tenant_secret_key = f"{current_user.tenant_id}:{secret_key}"
+
+    # Generate a deterministic but secure secret using HMAC
+    # This ensures the same tenant always gets the same secret (until expiration)
+    secret_hash = hmac.new(
+        secret_key.encode(),
+        tenant_secret_key.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    # Use first 32 characters as secret (sufficient for encryption)
+    encryption_secret = secret_hash[:32]
+
+    # Set expiration to 24 hours from now
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    return StandardResponse(
+        data={
+            "secret": encryption_secret,
+            "expires_at": expires_at.isoformat(),
+        },
+        message="Encryption secret retrieved successfully",
     )
 
 

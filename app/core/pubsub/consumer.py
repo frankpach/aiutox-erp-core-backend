@@ -37,6 +37,8 @@ class EventConsumer:
         event_types: list[str],
         callback: Callable[[Event], Awaitable[None]],
         stream_name: str | None = None,
+        start_id: str = "0",
+        recreate_group: bool = False,
     ):
         """Subscribe to events from a stream.
 
@@ -46,13 +48,17 @@ class EventConsumer:
             event_types: List of event types to subscribe to (empty list = all events)
             callback: Async function to call for each event
             stream_name: Stream name (default: events:domain)
+            start_id: Starting ID for the consumer group. Use "$" to read only new messages
+                     (useful for tests), "0" to read all messages (default)
+            recreate_group: If True, delete and recreate the group if it already exists
+                           (useful for tests to ensure correct start_id)
         """
         if stream_name is None:
             stream_name = self.settings.REDIS_STREAM_DOMAIN
 
-        # Ensure group exists
+        # Ensure group exists with specified start_id
         try:
-            await ensure_group_exists(self.client, stream_name, group_name)
+            await ensure_group_exists(self.client, stream_name, group_name, start_id=start_id, recreate_if_exists=recreate_group)
         except Exception as e:
             logger.error(f"Failed to ensure group exists: {e}")
             raise ConsumeError(f"Failed to setup consumer group: {e}") from e
@@ -98,8 +104,19 @@ class EventConsumer:
                     for stream, message_list in messages:
                         for message_id, data in message_list:
                             try:
-                                # Parse event
-                                event = Event.from_redis_dict(dict(data))
+                                # Parse event - ensure data is a proper dict
+                                # Redis returns data as dict when decode_responses=True
+                                # Handle both dict and list/tuple formats from Redis
+                                if isinstance(data, dict):
+                                    event_data = data
+                                elif isinstance(data, (list, tuple)):
+                                    # Convert list of tuples to dict (Redis sometimes returns this format)
+                                    event_data = dict(data)
+                                else:
+                                    # Fallback: try to convert to dict
+                                    event_data = dict(data) if hasattr(data, 'items') else {}
+
+                                event = Event.from_redis_dict(event_data)
 
                                 # Filter by event types if specified
                                 if event_types and event.event_type not in event_types:
@@ -156,7 +173,13 @@ class EventConsumer:
         failed_data["original_stream"] = stream_name
         failed_data["original_message_id"] = message_id
         failed_data["error_info"] = error_info
-        failed_data["failed_at"] = str(asyncio.get_event_loop().time())
+        # Get current time - use asyncio loop time if available, otherwise use time.time()
+        try:
+            loop = asyncio.get_running_loop()
+            failed_data["failed_at"] = str(loop.time())
+        except RuntimeError:
+            import time
+            failed_data["failed_at"] = str(time.time())
 
         await redis_client.xadd(self.settings.REDIS_STREAM_FAILED, failed_data)
         logger.warning(

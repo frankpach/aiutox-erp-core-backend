@@ -1,70 +1,35 @@
-"""Integrations router for external integrations and webhooks."""
+"""Integration router for third-party service integrations."""
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
-from app.core.exceptions import APIException
+from app.core.exceptions import APIException, raise_not_found
 from app.core.integrations.service import IntegrationService
-from app.core.integrations.webhooks import WebhookHandler
+from app.core.logging import get_client_info
+from app.models.integration import IntegrationStatus, IntegrationType
 from app.models.user import User
 from app.schemas.common import StandardListResponse, StandardResponse
 from app.schemas.integration import (
+    IntegrationActivateRequest,
     IntegrationCreate,
-    IntegrationLogResponse,
     IntegrationResponse,
+    IntegrationTestResponse,
     IntegrationUpdate,
-    WebhookCreate,
-    WebhookDeliveryResponse,
-    WebhookResponse,
-    WebhookUpdate,
 )
 
 router = APIRouter()
 
 
-def get_integration_service(db: Annotated[Session, Depends(get_db)]) -> IntegrationService:
+def get_integration_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> IntegrationService:
     """Dependency to get IntegrationService."""
     return IntegrationService(db)
-
-
-def get_webhook_handler(db: Annotated[Session, Depends(get_db)]) -> WebhookHandler:
-    """Dependency to get WebhookHandler."""
-    return WebhookHandler(db)
-
-
-# Integration endpoints
-@router.post(
-    "",
-    response_model=StandardResponse[IntegrationResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Create integration",
-    description="Create a new integration. Requires integrations.manage permission.",
-)
-async def create_integration(
-    integration_data: IntegrationCreate,
-    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-) -> StandardResponse[IntegrationResponse]:
-    """Create a new integration."""
-    integration = service.create_integration(
-        name=integration_data.name,
-        tenant_id=current_user.tenant_id,
-        integration_type=integration_data.integration_type,
-        config=integration_data.config,
-        credentials=integration_data.credentials,
-        description=integration_data.description,
-        metadata=integration_data.metadata,
-    )
-
-    return StandardResponse(
-        data=IntegrationResponse.model_validate(integration),
-        message="Integration created successfully",
-    )
 
 
 @router.get(
@@ -72,144 +37,186 @@ async def create_integration(
     response_model=StandardListResponse[IntegrationResponse],
     status_code=status.HTTP_200_OK,
     summary="List integrations",
-    description="List integrations. Requires integrations.view permission.",
+    description="List all integrations for the current tenant. Requires integrations.view permission.",
+    responses={
+        200: {"description": "Integrations retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.view"},
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
 async def list_integrations(
     current_user: Annotated[User, Depends(require_permission("integrations.view"))],
     service: Annotated[IntegrationService, Depends(get_integration_service)],
-    page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    integration_type: str | None = Query(default=None, description="Filter by integration type"),
-    status: str | None = Query(default=None, description="Filter by status"),
+    type: str | None = None,
 ) -> StandardListResponse[IntegrationResponse]:
-    """List integrations."""
-    skip = (page - 1) * page_size
-    integrations = service.get_integrations(
-        tenant_id=current_user.tenant_id,
-        integration_type=integration_type,
-        status=status,
-        skip=skip,
-        limit=page_size,
-    )
-    total = len(integrations)  # TODO: Add count method to repository
+    """
+    List all integrations for the current tenant.
 
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+    Requires: integrations.view
+
+    Args:
+        current_user: Current authenticated user (must have integrations.view).
+        service: IntegrationService instance.
+        type: Optional filter by integration type.
+
+    Returns:
+        StandardListResponse with list of integrations.
+    """
+    integration_type = IntegrationType(type) if type else None
+    integrations = service.list_integrations(current_user.tenant_id, integration_type)
 
     return StandardListResponse(
         data=[IntegrationResponse.model_validate(i) for i in integrations],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": max(1, page_size) if total > 0 else page_size,
-            "total_pages": total_pages,
-        },
+        meta={"total": len(integrations)},
         message="Integrations retrieved successfully",
     )
 
 
-# Webhook endpoints - MUST come before /{integration_id} routes to avoid path conflicts
-@router.post(
-    "/webhooks",
-    response_model=StandardResponse[WebhookResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Create webhook",
-    description="Create a new webhook. Requires integrations.manage permission.",
-)
-async def create_webhook(
-    webhook_data: WebhookCreate,
-    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-) -> StandardResponse[WebhookResponse]:
-    """Create a new webhook."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    webhook = repository.create_webhook(
-        {
-            "tenant_id": current_user.tenant_id,
-            "integration_id": webhook_data.integration_id,
-            "name": webhook_data.name,
-            "url": webhook_data.url,
-            "event_type": webhook_data.event_type,
-            "enabled": webhook_data.enabled,
-            "method": webhook_data.method,
-            "headers": webhook_data.headers,
-            "secret": webhook_data.secret,
-            "max_retries": webhook_data.max_retries,
-            "retry_delay": webhook_data.retry_delay,
-            "metadata": webhook_data.metadata,
-        }
-    )
-
-    return StandardResponse(
-        data=WebhookResponse.model_validate(webhook),
-        message="Webhook created successfully",
-    )
-
-
-@router.get(
-    "/webhooks",
-    response_model=StandardListResponse[WebhookResponse],
-    status_code=status.HTTP_200_OK,
-    summary="List webhooks",
-    description="List webhooks. Requires integrations.view permission.",
-)
-async def list_webhooks(
-    current_user: Annotated[User, Depends(require_permission("integrations.view"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-    page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    enabled_only: bool | None = Query(default=False, description="Only return enabled webhooks"),
-) -> StandardListResponse[WebhookResponse]:
-    """List webhooks."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    skip = (page - 1) * page_size
-    webhooks = repository.get_all_webhooks(
-        current_user.tenant_id, enabled_only=enabled_only, skip=skip, limit=page_size
-    )
-    total = len(webhooks)  # TODO: Add count method to repository
-
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-
-    return StandardListResponse(
-        data=[WebhookResponse.model_validate(w) for w in webhooks],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": max(1, page_size) if total > 0 else page_size,
-            "total_pages": total_pages,
-        },
-        message="Webhooks retrieved successfully",
-    )
-
-
-# Integration-specific endpoints - MUST come after /webhooks routes
 @router.get(
     "/{integration_id}",
     response_model=StandardResponse[IntegrationResponse],
     status_code=status.HTTP_200_OK,
     summary="Get integration",
     description="Get a specific integration by ID. Requires integrations.view permission.",
+    responses={
+        200: {"description": "Integration retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.view"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
 async def get_integration(
     integration_id: Annotated[UUID, Path(..., description="Integration ID")],
     current_user: Annotated[User, Depends(require_permission("integrations.view"))],
     service: Annotated[IntegrationService, Depends(get_integration_service)],
 ) -> StandardResponse[IntegrationResponse]:
-    """Get a specific integration."""
-    integration = service.get_integration(integration_id, current_user.tenant_id)
-    if not integration:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="INTEGRATION_NOT_FOUND",
-            message=f"Integration with ID {integration_id} not found",
+    """
+    Get a specific integration by ID.
+
+    Requires: integrations.view
+
+    Args:
+        integration_id: Integration UUID.
+        current_user: Current authenticated user (must have integrations.view).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with integration data.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        integration = service.get_integration(integration_id, current_user.tenant_id)
+        return StandardResponse(
+            data=IntegrationResponse.model_validate(integration),
+            message="Integration retrieved successfully",
         )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
+
+
+@router.post(
+    "",
+    response_model=StandardResponse[IntegrationResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create integration",
+    description="Create a new integration. Requires integrations.manage permission.",
+    responses={
+        201: {"description": "Integration created successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.manage"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def create_integration(
+    integration_data: IntegrationCreate,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
+    service: Annotated[IntegrationService, Depends(get_integration_service)],
+) -> StandardResponse[IntegrationResponse]:
+    """
+    Create a new integration.
+
+    Requires: integrations.manage
+
+    Args:
+        integration_data: Integration data.
+        request: FastAPI request object (for client info).
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with created integration.
+    """
+    try:
+        integration_type = IntegrationType(integration_data.type)
+    except ValueError:
+        raise APIException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="INVALID_INTEGRATION_TYPE",
+            message=f"Invalid integration type: {integration_data.type}",
+        )
+
+    integration = service.create_integration(
+        tenant_id=current_user.tenant_id,
+        name=integration_data.name,
+        type=integration_type,
+        config=integration_data.config,
+        user_id=current_user.id,
+    )
 
     return StandardResponse(
         data=IntegrationResponse.model_validate(integration),
-        message="Integration retrieved successfully",
+        message="Integration created successfully",
     )
 
 
@@ -219,210 +226,383 @@ async def get_integration(
     status_code=status.HTTP_200_OK,
     summary="Update integration",
     description="Update an integration. Requires integrations.manage permission.",
+    responses={
+        200: {"description": "Integration updated successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.manage"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
 async def update_integration(
     integration_id: Annotated[UUID, Path(..., description="Integration ID")],
+    integration_data: IntegrationUpdate,
+    request: Request,
     current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
     service: Annotated[IntegrationService, Depends(get_integration_service)],
-    integration_data: IntegrationUpdate,
 ) -> StandardResponse[IntegrationResponse]:
-    """Update an integration."""
-    update_dict = integration_data.model_dump(exclude_unset=True)
-    integration = service.update_integration(integration_id, current_user.tenant_id, update_dict)
+    """
+    Update an integration.
 
-    if not integration:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="INTEGRATION_NOT_FOUND",
-            message=f"Integration with ID {integration_id} not found",
+    Requires: integrations.manage
+
+    Args:
+        integration_id: Integration UUID.
+        integration_data: Updated integration data.
+        request: FastAPI request object (for client info).
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with updated integration.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    status_enum = None
+    if integration_data.status:
+        try:
+            status_enum = IntegrationStatus(integration_data.status)
+        except ValueError:
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="INVALID_INTEGRATION_STATUS",
+                message=f"Invalid integration status: {integration_data.status}",
+            )
+
+    try:
+        integration = service.update_integration(
+            integration_id=integration_id,
+            tenant_id=current_user.tenant_id,
+            name=integration_data.name,
+            config=integration_data.config,
+            status=status_enum,
+            user_id=current_user.id,
         )
+        return StandardResponse(
+            data=IntegrationResponse.model_validate(integration),
+            message="Integration updated successfully",
+        )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
 
-    return StandardResponse(
-        data=IntegrationResponse.model_validate(integration),
-        message="Integration updated successfully",
-    )
+
+@router.post(
+    "/{integration_id}/activate",
+    response_model=StandardResponse[IntegrationResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Activate integration",
+    description="Activate an integration with configuration. Requires integrations.manage permission.",
+    responses={
+        200: {"description": "Integration activated successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.manage"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def activate_integration(
+    integration_id: Annotated[UUID, Path(..., description="Integration ID")],
+    activation_data: IntegrationActivateRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
+    service: Annotated[IntegrationService, Depends(get_integration_service)],
+) -> StandardResponse[IntegrationResponse]:
+    """
+    Activate an integration with configuration.
+
+    Requires: integrations.manage
+
+    Args:
+        integration_id: Integration UUID.
+        activation_data: Activation data with configuration.
+        request: FastAPI request object (for client info).
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with activated integration.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        integration = service.activate_integration(
+            integration_id=integration_id,
+            tenant_id=current_user.tenant_id,
+            config=activation_data.config,
+            user_id=current_user.id,
+        )
+        return StandardResponse(
+            data=IntegrationResponse.model_validate(integration),
+            message="Integration activated successfully",
+        )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
+
+
+@router.post(
+    "/{integration_id}/deactivate",
+    response_model=StandardResponse[IntegrationResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Deactivate integration",
+    description="Deactivate an integration. Requires integrations.manage permission.",
+    responses={
+        200: {"description": "Integration deactivated successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.manage"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def deactivate_integration(
+    integration_id: Annotated[UUID, Path(..., description="Integration ID")],
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
+    service: Annotated[IntegrationService, Depends(get_integration_service)],
+) -> StandardResponse[IntegrationResponse]:
+    """
+    Deactivate an integration.
+
+    Requires: integrations.manage
+
+    Args:
+        integration_id: Integration UUID.
+        request: FastAPI request object (for client info).
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with deactivated integration.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        integration = service.deactivate_integration(
+            integration_id=integration_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+        )
+        return StandardResponse(
+            data=IntegrationResponse.model_validate(integration),
+            message="Integration deactivated successfully",
+        )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
 
 
 @router.delete(
     "/{integration_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
     summary="Delete integration",
     description="Delete an integration. Requires integrations.manage permission.",
+    responses={
+        200: {"description": "Integration deleted successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.manage"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
 async def delete_integration(
     integration_id: Annotated[UUID, Path(..., description="Integration ID")],
+    request: Request,
     current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
     service: Annotated[IntegrationService, Depends(get_integration_service)],
-) -> None:
-    """Delete an integration."""
-    deleted = service.delete_integration(integration_id, current_user.tenant_id)
-    if not deleted:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="INTEGRATION_NOT_FOUND",
-            message=f"Integration with ID {integration_id} not found",
+) -> StandardResponse[dict]:
+    """
+    Delete an integration.
+
+    Requires: integrations.manage
+
+    Args:
+        integration_id: Integration UUID.
+        request: FastAPI request object (for client info).
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with success message.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        service.delete_integration(
+            integration_id=integration_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
         )
+        return StandardResponse(
+            data={"message": "Integration deleted successfully"},
+            message="Integration deleted successfully",
+        )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
 
 
-@router.get(
-    "/{integration_id}/logs",
-    response_model=StandardListResponse[IntegrationLogResponse],
+@router.post(
+    "/{integration_id}/test",
+    response_model=StandardResponse[IntegrationTestResponse],
     status_code=status.HTTP_200_OK,
-    summary="Get integration logs",
-    description="Get logs for an integration. Requires integrations.view permission.",
+    summary="Test integration",
+    description="Test an integration connection. Requires integrations.view permission.",
+    responses={
+        200: {"description": "Integration test completed"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.view"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
-async def get_integration_logs(
+async def test_integration(
     integration_id: Annotated[UUID, Path(..., description="Integration ID")],
     current_user: Annotated[User, Depends(require_permission("integrations.view"))],
     service: Annotated[IntegrationService, Depends(get_integration_service)],
-    page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-) -> StandardListResponse[IntegrationLogResponse]:
-    """Get logs for an integration."""
-    skip = (page - 1) * page_size
-    logs = service.get_logs(integration_id, current_user.tenant_id, skip, page_size)
-    total = len(logs)  # TODO: Add count method to repository
+) -> StandardResponse[IntegrationTestResponse]:
+    """
+    Test an integration connection.
 
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+    Requires: integrations.view
 
-    return StandardListResponse(
-        data=[IntegrationLogResponse.model_validate(l) for l in logs],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": max(1, page_size) if total > 0 else page_size,
-            "total_pages": total_pages,
-        },
-        message="Integration logs retrieved successfully",
-    )
+    Args:
+        integration_id: Integration UUID.
+        current_user: Current authenticated user (must have integrations.view).
+        service: IntegrationService instance.
 
+    Returns:
+        StandardResponse with test result.
 
-@router.get(
-    "/webhooks/{webhook_id}",
-    response_model=StandardResponse[WebhookResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get webhook",
-    description="Get a specific webhook by ID. Requires integrations.view permission.",
-)
-async def get_webhook(
-    webhook_id: Annotated[UUID, Path(..., description="Webhook ID")],
-    current_user: Annotated[User, Depends(require_permission("integrations.view"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-) -> StandardResponse[WebhookResponse]:
-    """Get a specific webhook."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    webhook = repository.get_webhook_by_id(webhook_id, current_user.tenant_id)
-    if not webhook:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="WEBHOOK_NOT_FOUND",
-            message=f"Webhook with ID {webhook_id} not found",
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        test_result = service.test_integration(integration_id, current_user.tenant_id)
+        return StandardResponse(
+            data=IntegrationTestResponse.model_validate(test_result),
+            message="Integration test completed",
         )
-
-    return StandardResponse(
-        data=WebhookResponse.model_validate(webhook),
-        message="Webhook retrieved successfully",
-    )
-
-
-@router.put(
-    "/webhooks/{webhook_id}",
-    response_model=StandardResponse[WebhookResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update webhook",
-    description="Update a webhook. Requires integrations.manage permission.",
-)
-async def update_webhook(
-    webhook_id: Annotated[UUID, Path(..., description="Webhook ID")],
-    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-    webhook_data: WebhookUpdate,
-) -> StandardResponse[WebhookResponse]:
-    """Update a webhook."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    update_dict = webhook_data.model_dump(exclude_unset=True)
-    webhook = repository.update_webhook(webhook_id, current_user.tenant_id, update_dict)
-
-    if not webhook:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="WEBHOOK_NOT_FOUND",
-            message=f"Webhook with ID {webhook_id} not found",
-        )
-
-    return StandardResponse(
-        data=WebhookResponse.model_validate(webhook),
-        message="Webhook updated successfully",
-    )
-
-
-@router.delete(
-    "/webhooks/{webhook_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete webhook",
-    description="Delete a webhook. Requires integrations.manage permission.",
-)
-async def delete_webhook(
-    webhook_id: Annotated[UUID, Path(..., description="Webhook ID")],
-    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-) -> None:
-    """Delete a webhook."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    deleted = repository.delete_webhook(webhook_id, current_user.tenant_id)
-    if not deleted:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="WEBHOOK_NOT_FOUND",
-            message=f"Webhook with ID {webhook_id} not found",
-        )
-
-
-@router.get(
-    "/webhooks/{webhook_id}/deliveries",
-    response_model=StandardListResponse[WebhookDeliveryResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get webhook deliveries",
-    description="Get deliveries for a webhook. Requires integrations.view permission.",
-)
-async def get_webhook_deliveries(
-    webhook_id: Annotated[UUID, Path(..., description="Webhook ID")],
-    current_user: Annotated[User, Depends(require_permission("integrations.view"))],
-    service: Annotated[IntegrationService, Depends(get_integration_service)],
-    page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    status: str | None = Query(None, description="Filter by delivery status"),
-) -> StandardListResponse[WebhookDeliveryResponse]:
-    """Get deliveries for a webhook."""
-    from app.repositories.integration_repository import IntegrationRepository
-
-    repository = IntegrationRepository(service.db)
-    skip = (page - 1) * page_size
-    deliveries = repository.get_deliveries_by_webhook(
-        webhook_id, current_user.tenant_id, status, skip, page_size
-    )
-    total = len(deliveries)  # TODO: Add count method to repository
-
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-
-    return StandardListResponse(
-        data=[WebhookDeliveryResponse.model_validate(d) for d in deliveries],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": max(1, page_size) if total > 0 else page_size,
-            "total_pages": total_pages,
-        },
-        message="Webhook deliveries retrieved successfully",
-    )
-
-
-
-
-
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))

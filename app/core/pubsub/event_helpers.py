@@ -49,11 +49,16 @@ def safe_publish_event(
         except RuntimeError:
             # No running loop, try to get or create one
             try:
-                # Use get_event_loop() with suppress deprecation warning
-                # In Python 3.10+, get_event_loop() is deprecated but still works
-                loop = asyncio.get_event_loop()
+                # Try to get existing event loop (new way, no deprecation)
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    # No running loop, create a new one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
                 if loop.is_running():
-                    # Loop is running but get_running_loop() failed, use create_task
+                    # Loop is running, use create_task
                     asyncio.create_task(
                         event_publisher.publish(
                             event_type=event_type,

@@ -142,12 +142,29 @@ try:
         result = conn.execute(
             text(f"SELECT 1 FROM pg_database WHERE datname = '{TEST_DB_NAME}'")
         )
-        if not result.fetchone():
-            # Create test database
-            conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
-            print(f"   [DB] Created test database '{TEST_DB_NAME}'")
-        else:
-            print(f"   [DB] Test database '{TEST_DB_NAME}' already exists")
+        if result.fetchone():
+            # Database exists - drop it with FORCE to disconnect all sessions
+            print(f"   [DB] Test database '{TEST_DB_NAME}' already exists, dropping with FORCE...")
+            try:
+                # Terminate all connections to the database first
+                conn.execute(
+                    text(f"""
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = '{TEST_DB_NAME}'
+                    AND pid <> pg_backend_pid();
+                    """)
+                )
+                # Now drop the database
+                conn.execute(text(f"DROP DATABASE {TEST_DB_NAME}"))
+                print(f"   [DB] Dropped existing test database '{TEST_DB_NAME}'")
+            except Exception as drop_error:
+                print(f"   [DB WARNING] Could not drop existing database: {drop_error}")
+                # Try to continue anyway - might work if no connections
+
+        # Create test database
+        conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
+        print(f"   [DB] Created test database '{TEST_DB_NAME}'")
     admin_engine.dispose()
 except Exception as e:
     print(f"   [DB WARNING] Could not create test database (may already exist or not accessible): {e}")
@@ -251,12 +268,27 @@ def db_session(setup_database):
         # This provides complete isolation without needing to clean data
         try:
             db.rollback()
-            transaction.rollback()
         except Exception as e:
-            print(f"[DB CLEANUP] Warning during rollback: {e}")
+            # Session rollback might fail if already closed
+            if "already deassociated" not in str(e).lower():
+                print(f"[DB CLEANUP] Warning during session rollback: {e}")
+
+        try:
+            if transaction.is_active:
+                transaction.rollback()
+        except Exception as e:
+            # Transaction rollback might fail if already deassociated
+            if "already deassociated" not in str(e).lower():
+                print(f"[DB CLEANUP] Warning during transaction rollback: {e}")
         finally:
-            db.close()
-            connection.close()
+            try:
+                db.close()
+            except Exception:
+                pass
+            try:
+                connection.close()
+            except Exception:
+                pass
 
 
 @pytest.fixture(scope="function")
@@ -394,7 +426,7 @@ def pytest_configure(config):
         base_url = _ORIGINAL_TEST_DATABASE_URL.rsplit("/", 1)[0]
         TEST_DATABASE_URL = f"{base_url}/{TEST_DB_NAME}"
 
-        # Create worker-specific database if it doesn't exist
+        # Create worker-specific database if it doesn't exist (drop first if exists)
         admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
         try:
             admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
@@ -402,9 +434,28 @@ def pytest_configure(config):
                 result = conn.execute(
                     text(f"SELECT 1 FROM pg_database WHERE datname = '{TEST_DB_NAME}'")
                 )
-                if not result.fetchone():
-                    conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
-                    print(f"[TEST CONFIG] Created worker database '{TEST_DB_NAME}' for worker {worker_id}")
+                if result.fetchone():
+                    # Database exists - drop it with FORCE
+                    print(f"[TEST CONFIG] Worker database '{TEST_DB_NAME}' already exists, dropping with FORCE...")
+                    try:
+                        # Terminate all connections to the database first
+                        conn.execute(
+                            text(f"""
+                            SELECT pg_terminate_backend(pg_stat_activity.pid)
+                            FROM pg_stat_activity
+                            WHERE pg_stat_activity.datname = '{TEST_DB_NAME}'
+                            AND pid <> pg_backend_pid();
+                            """)
+                        )
+                        # Now drop the database
+                        conn.execute(text(f"DROP DATABASE {TEST_DB_NAME}"))
+                        print(f"[TEST CONFIG] Dropped existing worker database '{TEST_DB_NAME}'")
+                    except Exception as drop_error:
+                        print(f"[TEST CONFIG] Warning: Could not drop existing worker database: {drop_error}")
+
+                # Create worker database
+                conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
+                print(f"[TEST CONFIG] Created worker database '{TEST_DB_NAME}' for worker {worker_id}")
             admin_engine.dispose()
         except Exception as e:
             print(f"[TEST CONFIG] Warning: Could not create worker database: {e}")
@@ -458,3 +509,64 @@ def redis_available():
         return asyncio.run(asyncio.wait_for(check_redis(), timeout=3.0))
     except Exception:
         return False
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Clean up test databases after all tests complete."""
+    # Only clean up if tests passed or if explicitly requested
+    cleanup_enabled = os.getenv("CLEANUP_TEST_DB", "false").lower() == "true"
+
+    if not cleanup_enabled:
+        print("\n[TEST CLEANUP] Skipping database cleanup (set CLEANUP_TEST_DB=true to enable)")
+        return
+
+    print("\n[TEST CLEANUP] Cleaning up test databases...")
+
+    # Get all test database names (base + workers)
+    base_name = os.getenv("TEST_POSTGRES_DB", "aiutox_erp_test")
+    test_db_names = [base_name]
+
+    # Add worker databases if any
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id and worker_id != "master":
+        test_db_names.append(f"{base_name}_{worker_id}")
+    else:
+        # If not a worker, try to find all worker databases
+        admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
+        try:
+            admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+            with admin_engine.connect() as conn:
+                result = conn.execute(
+                    text(f"SELECT datname FROM pg_database WHERE datname LIKE '{base_name}_%'")
+                )
+                for row in result:
+                    test_db_names.append(row[0])
+            admin_engine.dispose()
+        except Exception:
+            pass
+
+    # Drop all test databases
+    admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
+    try:
+        admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+        with admin_engine.connect() as conn:
+            for db_name in test_db_names:
+                try:
+                    # Terminate all connections first
+                    conn.execute(
+                        text(f"""
+                        SELECT pg_terminate_backend(pg_stat_activity.pid)
+                        FROM pg_stat_activity
+                        WHERE pg_stat_activity.datname = '{db_name}'
+                        AND pid <> pg_backend_pid();
+                        """)
+                    )
+                    # Drop database
+                    conn.execute(text(f"DROP DATABASE IF EXISTS {db_name}"))
+                    print(f"   [CLEANUP] Dropped test database '{db_name}'")
+                except Exception as e:
+                    print(f"   [CLEANUP WARNING] Could not drop database '{db_name}': {e}")
+        admin_engine.dispose()
+        print("[TEST CLEANUP] Cleanup complete")
+    except Exception as e:
+        print(f"[TEST CLEANUP] Could not cleanup databases: {e}")

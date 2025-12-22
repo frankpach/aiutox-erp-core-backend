@@ -142,7 +142,7 @@ async def test_backoff_timing(event_publisher, event_consumer):
     call_times = []
 
     async def failing_callback(event: Event):
-        call_times.append(asyncio.get_event_loop().time())
+        call_times.append(asyncio.get_running_loop().time())
         raise ValueError("Error for backoff test")
 
     await event_consumer.subscribe(
