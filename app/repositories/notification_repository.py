@@ -49,6 +49,19 @@ class NotificationRepository:
             query = query.filter(NotificationTemplate.event_type == event_type)
         return query.all()
 
+    def count_templates(
+        self, tenant_id: UUID, event_type: str | None = None
+    ) -> int:
+        """Count templates for a tenant with optional event_type filter."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(NotificationTemplate.id)).filter(
+            NotificationTemplate.tenant_id == tenant_id
+        )
+        if event_type:
+            query = query.filter(NotificationTemplate.event_type == event_type)
+        return query.scalar() or 0
+
     def update_template(
         self, template_id: UUID, tenant_id: UUID, template_data: dict
     ) -> NotificationTemplate | None:
@@ -104,6 +117,19 @@ class NotificationRepository:
         if status:
             query = query.filter(NotificationQueue.status == status)
         return query.order_by(NotificationQueue.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_queue_entries(
+        self, tenant_id: UUID, status: str | None = None
+    ) -> int:
+        """Count queue entries with optional status filter."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(NotificationQueue.id)).filter(
+            NotificationQueue.tenant_id == tenant_id
+        )
+        if status:
+            query = query.filter(NotificationQueue.status == status)
+        return query.scalar() or 0
 
     def get_queue_entry_by_id(
         self, queue_id: UUID, tenant_id: UUID

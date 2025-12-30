@@ -11,12 +11,13 @@ class LoginRequest(BaseModel):
 
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=1, description="User password")
+    remember_me: bool = Field(default=False, description="Keep session active for longer period")
 
 
 class RefreshTokenRequest(BaseModel):
     """Schema for refresh token request."""
 
-    refresh_token: str = Field(..., description="Refresh token to exchange for new access token")
+    refresh_token: str | None = Field(None, description="Refresh token to exchange for new access token (optional, can be read from cookie)")
 
 
 class TokenResponse(BaseModel):

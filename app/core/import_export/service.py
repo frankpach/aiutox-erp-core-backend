@@ -352,6 +352,32 @@ class ImportExportService:
         """Get import templates."""
         return self.repository.get_import_templates(tenant_id, module, skip, limit)
 
+    def count_import_jobs(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count import jobs with optional filters."""
+        return self.repository.count_import_jobs(tenant_id, module, status)
+
+    def count_export_jobs(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count export jobs with optional filters."""
+        return self.repository.count_export_jobs(tenant_id, module, status)
+
+    def count_import_templates(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+    ) -> int:
+        """Count import templates with optional filters."""
+        return self.repository.count_import_templates(tenant_id, module)
+
 
 
 

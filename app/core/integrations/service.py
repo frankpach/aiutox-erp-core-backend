@@ -243,14 +243,136 @@ class IntegrationService:
         self, integration_id: UUID, tenant_id: UUID
     ) -> dict[str, Any]:
         """Test an integration connection."""
+        from app.core.integrations.integration_test import (
+            IntegrationTestResult,
+            test_integration,
+        )
+
         integration = self.repository.get_by_id(integration_id, tenant_id)
         if not integration:
             raise ValueError(f"Integration not found: {integration_id}")
 
-        # TODO: Implement actual integration testing based on type
-        # For now, return a mock success response
-        return {
-            "success": True,
-            "message": f"Integration '{integration.name}' test successful",
-            "details": {"type": integration.type, "status": integration.status},
-        }
+        # Test the integration based on its type
+        try:
+            integration_type = IntegrationType(integration.type)
+            test_result: IntegrationTestResult = test_integration(
+                integration_type, integration.config
+            )
+
+            # Update integration status based on test result
+            if test_result.success:
+                self.repository.update(
+                    integration_id=integration_id,
+                    tenant_id=tenant_id,
+                    status=IntegrationStatus.ACTIVE,
+                    error_message=None,
+                )
+            else:
+                self.repository.update(
+                    integration_id=integration_id,
+                    tenant_id=tenant_id,
+                    status=IntegrationStatus.ERROR,
+                    error_message=test_result.error or test_result.message,
+                )
+
+            return {
+                "success": test_result.success,
+                "message": test_result.message,
+                "details": test_result.details or {},
+                "error": test_result.error,
+            }
+
+        except ValueError as e:
+            # Invalid integration type
+            error_msg = f"Invalid integration type: {integration.type}"
+            self.repository.update(
+                integration_id=integration_id,
+                tenant_id=tenant_id,
+                status=IntegrationStatus.ERROR,
+                error_message=error_msg,
+            )
+            return {
+                "success": False,
+                "message": error_msg,
+                "details": {"type": integration.type},
+                "error": str(e),
+            }
+        except Exception as e:
+            # Unexpected error
+            error_msg = f"Integration test failed: {str(e)}"
+            self.repository.update(
+                integration_id=integration_id,
+                tenant_id=tenant_id,
+                status=IntegrationStatus.ERROR,
+                error_message=error_msg,
+            )
+            return {
+                "success": False,
+                "message": error_msg,
+                "details": {"type": integration.type},
+                "error": str(e),
+            }
+
+    def get_credentials(
+        self, integration_id: UUID, tenant_id: UUID, user_id: UUID | None = None
+    ) -> dict[str, Any]:
+        """Get decrypted credentials for an integration.
+
+        Security:
+        - Credentials are decrypted using tenant-specific key
+        - Access is logged for audit purposes
+        - Returns empty dict if no credentials found
+        - Handles decryption errors gracefully
+
+        Args:
+            integration_id: Integration UUID
+            tenant_id: Tenant UUID
+            user_id: User requesting credentials (for audit)
+
+        Returns:
+            Dictionary with decrypted credentials
+
+        Raises:
+            ValueError: If integration not found
+        """
+        from app.core.security.encryption import decrypt_credentials
+        import json
+
+        integration = self.repository.get_by_id(integration_id, tenant_id)
+        if not integration:
+            raise ValueError(f"Integration not found: {integration_id}")
+
+        credentials_dict: dict[str, Any] = {}
+
+        # Try to get credentials from credentials column first (new method)
+        if integration.credentials:
+            try:
+                decrypted_json = decrypt_credentials(integration.credentials, tenant_id)
+                credentials_dict = json.loads(decrypted_json)
+            except (ValueError, json.JSONDecodeError):
+                # If decryption fails, fall back to config or return empty
+                pass
+
+        # Fallback to config.credentials (backward compatibility)
+        if not credentials_dict and isinstance(integration.config, dict):
+            credentials_dict = integration.config.get("credentials", {})
+            if not isinstance(credentials_dict, dict):
+                credentials_dict = {}
+
+        # Create audit log entry
+        if user_id:
+            create_audit_log_entry(
+                db=self.db,
+                user_id=user_id,
+                tenant_id=tenant_id,
+                action="view_credentials",
+                resource_type="integration",
+                resource_id=str(integration.id),
+                details={
+                    "name": integration.name,
+                    "type": integration.type,
+                    # DO NOT include credentials in audit log
+                },
+            )
+
+        return credentials_dict

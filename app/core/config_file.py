@@ -73,8 +73,14 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_REMEMBER_ME_DAYS: int = 30
+
+    # Cookie Configuration
+    COOKIE_SECURE: bool = True  # Only HTTPS in production
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: str | None = None
 
     # API URLs
     FRONTEND_URL: str = "http://localhost:5173"

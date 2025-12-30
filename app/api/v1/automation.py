@@ -94,7 +94,9 @@ async def list_rules(
         tenant_id=current_user.tenant_id, enabled_only=enabled_only, skip=skip, limit=page_size
     )
 
-    total = len(rules)  # TODO: Add count method to repository
+    total = service.count_all_rules(
+        tenant_id=current_user.tenant_id, enabled_only=enabled_only
+    )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
@@ -280,7 +282,7 @@ async def get_rule_executions(
     skip = (page - 1) * page_size
     executions = service.get_executions(rule_id, skip=skip, limit=page_size)
 
-    total = len(executions)  # TODO: Add count method to repository
+    total = service.count_executions(rule_id)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(

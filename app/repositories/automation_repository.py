@@ -40,6 +40,17 @@ class AutomationRepository:
             query = query.filter(Rule.enabled == True)
         return query.offset(skip).limit(limit).all()
 
+    def count_all_rules(
+        self, tenant_id: UUID, enabled_only: bool = False
+    ) -> int:
+        """Count all rules by tenant."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(Rule.id)).filter(Rule.tenant_id == tenant_id)
+        if enabled_only:
+            query = query.filter(Rule.enabled == True)
+        return query.scalar() or 0
+
     def update_rule(self, rule_id: UUID, tenant_id: UUID, rule_data: dict) -> Rule | None:
         """Update a rule."""
         rule = self.get_rule_by_id(rule_id, tenant_id)
@@ -115,6 +126,16 @@ class AutomationRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def count_executions_by_rule(self, rule_id: UUID) -> int:
+        """Count all executions for a rule."""
+        from sqlalchemy import func
+
+        return (
+            self.db.query(func.count(AutomationExecution.id))
+            .filter(AutomationExecution.rule_id == rule_id)
+            .scalar() or 0
         )
 
 

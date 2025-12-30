@@ -11,7 +11,7 @@ from app.core.db.deps import get_db
 from app.core.exceptions import APIException
 from app.core.views.service import ViewService
 from app.models.user import User
-from app.schemas.common import StandardListResponse, StandardResponse
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.view import (
     CustomViewCreate,
     CustomViewResponse,
@@ -54,8 +54,7 @@ async def create_saved_filter(
     )
 
     return StandardResponse(
-        data=SavedFilterResponse.model_validate(filter_obj),
-        message="Saved filter created successfully",
+        data=SavedFilterResponse.model_validate(filter_obj, from_attributes=True),
     )
 
 
@@ -65,6 +64,7 @@ async def create_saved_filter(
     status_code=status.HTTP_200_OK,
     summary="List saved filters",
     description="List saved filters. Requires views.view permission.",
+    response_model_exclude_none=True,
 )
 async def list_saved_filters(
     current_user: Annotated[User, Depends(require_permission("views.view"))],
@@ -75,27 +75,109 @@ async def list_saved_filters(
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> StandardListResponse[SavedFilterResponse]:
     """List saved filters."""
+    # #region agent log
+    import json
+    try:
+        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"location": "views.py:69", "message": "list_saved_filters endpoint called", "data": {"module": module, "is_shared": is_shared, "page": page, "page_size": page_size, "user_id": str(current_user.id), "tenant_id": str(current_user.tenant_id)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+    except: pass
+    # #endregion agent log
+
     skip = (page - 1) * page_size
-    filters = service.get_saved_filters(
-        tenant_id=current_user.tenant_id,
-        module=module,
-        user_id=current_user.id,
-        is_shared=is_shared,
-        skip=skip,
-        limit=page_size,
-    )
 
-    total = len(filters)
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+    # #region agent log
+    try:
+        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"location": "views.py:87", "message": "Before service.get_saved_filters", "data": {"tenant_id": str(current_user.tenant_id), "module": module, "user_id": str(current_user.id)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+    except: pass
+    # #endregion agent log
 
-    return StandardListResponse(
-        data=[SavedFilterResponse.model_validate(f) for f in filters],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Saved filters retrieved successfully",
-    )
+    try:
+        filters = service.get_saved_filters(
+            tenant_id=current_user.tenant_id,
+            module=module,
+            user_id=current_user.id,
+            is_shared=is_shared,
+            skip=skip,
+            limit=page_size,
+        )
+
+        # #region agent log
+        try:
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps({"location": "views.py:102", "message": "After service.get_saved_filters", "data": {"filters_count": len(filters)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+        except: pass
+        # #endregion agent log
+
+        # Get total count for pagination
+        total = service.count_saved_filters(
+            tenant_id=current_user.tenant_id,
+            module=module,
+            user_id=current_user.id,
+            is_shared=is_shared,
+        )
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+        # #region agent log
+        try:
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps({"location": "views.py:118", "message": "Before returning response", "data": {"total": total, "total_pages": total_pages}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+        except: pass
+        # #endregion agent log
+
+        # Convert filters to response models with error handling
+        try:
+            response_data = []
+            for f in filters:
+                try:
+                    response_data.append(SavedFilterResponse.model_validate(f, from_attributes=True))
+                except Exception as validation_error:
+                    # #region agent log
+                    try:
+                        import traceback
+                        filter_obj = f  # Save filter object before opening file
+                        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                            log_file.write(json.dumps({"location": "views.py:validation", "message": "Error validating filter", "data": {"filter_id": str(filter_obj.id) if hasattr(filter_obj, 'id') else 'unknown', "error": str(validation_error), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "V"}) + "\n")
+                    except: pass
+                    # #endregion agent log
+                    raise
+
+            response = StandardListResponse(
+                data=response_data,
+                meta=PaginationMeta(
+                    total=total,
+                    page=page,
+                    page_size=page_size,
+                    total_pages=total_pages,
+                ),
+            )
+
+            # #region agent log
+            try:
+                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                    log_file.write(json.dumps({"location": "views.py:response", "message": "Response created successfully", "data": {"response_data_count": len(response_data)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "R"}) + "\n")
+            except: pass
+            # #endregion agent log
+
+            return response
+        except Exception as validation_error:
+            # #region agent log
+            try:
+                import traceback
+                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                    log_file.write(json.dumps({"location": "views.py:validation_error", "message": "Error creating response", "data": {"error": str(validation_error), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "VE"}) + "\n")
+            except: pass
+            # #endregion agent log
+            raise
+    except Exception as e:
+        # #region agent log
+        try:
+            import traceback
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+                f.write(json.dumps({"location": "views.py:130", "message": "Exception in list_saved_filters", "data": {"exception_type": type(e).__name__, "exception_msg": str(e), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "I"}) + "\n")
+        except: pass
+        # #endregion agent log
+        raise
 
 
 @router.get(
@@ -120,8 +202,7 @@ async def get_saved_filter(
         )
 
     return StandardResponse(
-        data=SavedFilterResponse.model_validate(filter_obj),
-        message="Saved filter retrieved successfully",
+        data=SavedFilterResponse.model_validate(filter_obj, from_attributes=True),
     )
 
 
@@ -153,8 +234,7 @@ async def update_saved_filter(
         )
 
     return StandardResponse(
-        data=SavedFilterResponse.model_validate(filter_obj),
-        message="Saved filter updated successfully",
+        data=SavedFilterResponse.model_validate(filter_obj, from_attributes=True),
     )
 
 
@@ -200,8 +280,7 @@ async def create_custom_view(
     )
 
     return StandardResponse(
-        data=CustomViewResponse.model_validate(view),
-        message="Custom view created successfully",
+        data=CustomViewResponse.model_validate(view, from_attributes=True),
     )
 
 
@@ -231,16 +310,23 @@ async def list_custom_views(
         limit=page_size,
     )
 
-    total = len(views)
+    # Get total count for pagination
+    total = service.count_custom_views(
+        tenant_id=current_user.tenant_id,
+        module=module,
+        user_id=current_user.id,
+        is_shared=is_shared,
+    )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
-        data=[CustomViewResponse.model_validate(v) for v in views],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        message="Custom views retrieved successfully",
+        data=[CustomViewResponse.model_validate(v, from_attributes=True) for v in views],
+        meta=PaginationMeta(
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        ),
     )
 
 
@@ -266,8 +352,7 @@ async def get_custom_view(
         )
 
     return StandardResponse(
-        data=CustomViewResponse.model_validate(view),
-        message="Custom view retrieved successfully",
+        data=CustomViewResponse.model_validate(view, from_attributes=True),
     )
 
 
@@ -299,8 +384,7 @@ async def update_custom_view(
         )
 
     return StandardResponse(
-        data=CustomViewResponse.model_validate(view),
-        message="Custom view updated successfully",
+        data=CustomViewResponse.model_validate(view, from_attributes=True),
     )
 
 
@@ -347,8 +431,7 @@ async def share_filter(
     )
 
     return StandardResponse(
-        data=ViewShareResponse.model_validate(share),
-        message="Filter shared successfully",
+        data=ViewShareResponse.model_validate(share, from_attributes=True),
     )
 
 
@@ -373,8 +456,7 @@ async def share_view(
     )
 
     return StandardResponse(
-        data=ViewShareResponse.model_validate(share),
-        message="View shared successfully",
+        data=ViewShareResponse.model_validate(share, from_attributes=True),
     )
 
 

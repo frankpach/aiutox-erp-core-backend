@@ -16,11 +16,16 @@ security_logger.setLevel(logging.INFO)
 
 # Create logger for application events
 app_logger = logging.getLogger("app")
-app_logger.setLevel(logging.INFO)
+# Use DEBUG level in development to see all logs
+log_level = logging.DEBUG if settings.DEBUG else logging.INFO
+app_logger.setLevel(log_level)
+# Ensure logs propagate to root logger (for uvicorn to see them)
+app_logger.propagate = True
 
 # Create console handler with structured format
 console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
+# Use DEBUG level in development to see all logs
+console_handler.setLevel(log_level)
 
 # Create formatter
 formatter = logging.Formatter(
@@ -34,6 +39,12 @@ if not security_logger.handlers:
     security_logger.addHandler(console_handler)
 if not app_logger.handlers:
     app_logger.addHandler(console_handler)
+
+# Also configure root logger to ensure logs are visible
+root_logger = logging.getLogger()
+root_logger.setLevel(log_level)
+if not root_logger.handlers:
+    root_logger.addHandler(console_handler)
 
 
 def mask_email(email: str) -> str:

@@ -196,4 +196,60 @@ def test_refresh_token_expiration():
     assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
 
 
+def test_refresh_token_with_remember_me_true():
+    """Test that refresh token with remember_me=True expires in 30 days."""
+    user_id = uuid4()
+    token = create_refresh_token(user_id, remember_me=True)
+    payload = verify_refresh_token(token)
+
+    assert payload is not None
+    exp_timestamp = payload["exp"]
+    iat_timestamp = payload["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS
+    assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
+
+
+def test_refresh_token_with_remember_me_false():
+    """Test that refresh token with remember_me=False expires in 7 days."""
+    user_id = uuid4()
+    token = create_refresh_token(user_id, remember_me=False)
+    payload = verify_refresh_token(token)
+
+    assert payload is not None
+    exp_timestamp = payload["exp"]
+    iat_timestamp = payload["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
+    assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
+
+
+def test_access_token_expires_in_60_minutes():
+    """Test that access token expires in 60 minutes."""
+    data = {
+        "sub": str(uuid4()),
+        "tenant_id": str(uuid4()),
+        "roles": ["admin"],
+        "permissions": ["auth.manage_users"],
+    }
+    token = create_access_token(data)
+    decoded = decode_token(token)
+
+    assert decoded is not None
+    exp_timestamp = decoded["exp"]
+    iat_timestamp = decoded["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    assert abs(diff.total_seconds() / 60 - expected_minutes) < 1  # Allow 1 minute tolerance
+
+
 

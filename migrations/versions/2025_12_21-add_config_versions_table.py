@@ -1,7 +1,7 @@
 """Add config_versions table
 
 Revision ID: 2025_12_21_config_versions
-Revises: 2025_12_11-a8ae578ac76b
+Revises: a8ae578ac76b
 Create Date: 2025-12-21 00:00:00.000000+00:00
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '2025_12_21_config_versions'
-down_revision: Union[str, None] = '2025_12_11-a8ae578ac76b'
+down_revision: Union[str, None] = 'a8ae578ac76b'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

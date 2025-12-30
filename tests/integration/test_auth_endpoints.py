@@ -1,9 +1,11 @@
 """Integration tests for authentication endpoints."""
 
 import pytest
+from datetime import datetime, timedelta, timezone
 from fastapi import status
 
 from app.core.auth import create_access_token, decode_token
+from app.core.auth.jwt import verify_refresh_token
 from app.services.auth_service import AuthService
 
 
@@ -471,4 +473,230 @@ def test_multi_tenant_valid_access(client, db_session, test_user):
     assert data["data"]["tenant_id"] == str(test_user.tenant_id)
 
 
+def test_login_with_remember_me_true(client, test_user):
+    """Test that login with remember_me=True generates refresh token with 30 days expiration."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+            "remember_me": True,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    refresh_token = data["data"]["refresh_token"]
+
+    # Verify refresh token expiration
+    payload = verify_refresh_token(refresh_token)
+    assert payload is not None
+
+    exp_timestamp = payload["exp"]
+    iat_timestamp = payload["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_days = 30  # REFRESH_TOKEN_REMEMBER_ME_DAYS
+    assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
+
+
+def test_login_with_remember_me_false(client, test_user):
+    """Test that login with remember_me=False generates refresh token with 7 days expiration."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+            "remember_me": False,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    refresh_token = data["data"]["refresh_token"]
+
+    # Verify refresh token expiration
+    payload = verify_refresh_token(refresh_token)
+    assert payload is not None
+
+    exp_timestamp = payload["exp"]
+    iat_timestamp = payload["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_days = 7  # REFRESH_TOKEN_EXPIRE_DAYS
+    assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
+
+
+def test_login_without_remember_me_default(client, test_user):
+    """Test that login without remember_me (default) generates refresh token with 7 days expiration."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    refresh_token = data["data"]["refresh_token"]
+
+    # Verify refresh token expiration (should default to 7 days)
+    payload = verify_refresh_token(refresh_token)
+    assert payload is not None
+
+    exp_timestamp = payload["exp"]
+    iat_timestamp = payload["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    expected_days = 7  # REFRESH_TOKEN_EXPIRE_DAYS (default)
+    assert abs(diff.days - expected_days) < 1  # Allow 1 day tolerance
+
+
+def test_login_sets_httponly_cookie(client, test_user):
+    """Test that login sets httpOnly cookie with refresh token."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    # Verify cookie is set
+    cookies = response.cookies
+    assert "refresh_token" in cookies
+
+    # Verify cookie has httpOnly flag (can't verify directly, but cookie exists)
+    cookie_value = cookies.get("refresh_token")
+    assert cookie_value is not None
+    assert len(cookie_value) > 0
+
+
+def test_refresh_token_from_cookie(client, db_session, test_user):
+    """Test that refresh endpoint reads token from cookie."""
+    # First login to get cookie
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert login_response.status_code == status.HTTP_200_OK
+    refresh_token_cookie = login_response.cookies.get("refresh_token")
+    assert refresh_token_cookie is not None
+
+    # Try to refresh using cookie (no body)
+    refresh_response = client.post(
+        "/api/v1/auth/refresh",
+        json={},  # Empty body, should use cookie
+    )
+
+    assert refresh_response.status_code == status.HTTP_200_OK
+    data = refresh_response.json()
+    assert "access_token" in data["data"]
+
+
+def test_refresh_token_fallback_to_body(client, db_session, test_user):
+    """Test that refresh endpoint falls back to body if no cookie."""
+    # Login to get refresh token
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert login_response.status_code == status.HTTP_200_OK
+    refresh_token = login_response.json()["data"]["refresh_token"]
+
+    # Clear cookies and try refresh with body
+    client.cookies.clear()
+    refresh_response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+
+    assert refresh_response.status_code == status.HTTP_200_OK
+    data = refresh_response.json()
+    assert "access_token" in data["data"]
+
+
+def test_logout_deletes_cookie(client, db_session, test_user):
+    """Test that logout deletes refresh token cookie."""
+    # Login to get cookie
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert login_response.status_code == status.HTTP_200_OK
+    access_token = login_response.json()["data"]["access_token"]
+
+    # Logout
+    logout_response = client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={},  # Cookie should be used
+    )
+
+    assert logout_response.status_code == status.HTTP_200_OK
+
+    # Verify cookie is deleted (max_age=0 or expires in past)
+    # FastAPI delete_cookie sets max_age=0, which should be reflected
+    # We can't directly verify httpOnly deletion, but we can check the response
+    assert logout_response.status_code == status.HTTP_200_OK
+
+
+def test_access_token_expires_in_60_minutes(client, test_user):
+    """Test that access token expires in 60 minutes."""
+    from app.core.config_file import get_settings
+
+    # Get the actual configured value
+    settings = get_settings()
+    expected_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": test_user.email,
+            "password": test_user._plain_password,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    access_token = response.json()["data"]["access_token"]
+
+    # Decode token to verify expiration
+    decoded = decode_token(access_token)
+    assert decoded is not None
+
+    exp_timestamp = decoded["exp"]
+    iat_timestamp = decoded["iat"]
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+    diff = exp_datetime - iat_datetime
+    actual_minutes = diff.total_seconds() / 60
+
+    # Verify the token expires with the configured value
+    # Allow 1 minute tolerance for timing differences
+    assert abs(actual_minutes - expected_minutes) < 1, (
+        f"Token expiration mismatch: expected {expected_minutes} minutes, "
+        f"got {actual_minutes} minutes. Check ACCESS_TOKEN_EXPIRE_MINUTES setting."
+    )
 

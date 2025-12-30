@@ -421,6 +421,256 @@ class TestConfig:
         assert isinstance(data["error"]["code"], str)
         assert isinstance(data["error"]["message"], str)
 
+    def test_get_general_settings_requires_permission(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that getting general settings requires config.view permission."""
+        # Arrange: User without config permission
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Try to get general settings
+        response = client.get(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # Assert: Should be denied
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+
+    def test_get_general_settings_with_permission(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that user with config.view can get general settings."""
+        # Arrange: Assign config.viewer role
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="viewer",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Get general settings
+        response = client.get(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # Assert: Should succeed
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "data" in data
+        assert "error" in data
+        assert data["error"] is None
+
+        # Verify response structure
+        settings = data["data"]
+        assert "timezone" in settings
+        assert "date_format" in settings
+        assert "time_format" in settings
+        assert "currency" in settings
+        assert "language" in settings
+
+        # Verify default values
+        assert settings["timezone"] == "America/Mexico_City"
+        assert settings["date_format"] == "DD/MM/YYYY"
+        assert settings["time_format"] == "24h"
+        assert settings["currency"] == "MXN"
+        assert settings["language"] == "es"
+
+    def test_update_general_settings_requires_permission(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that updating general settings requires config.edit permission."""
+        # Arrange: User without config.edit permission
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Try to update general settings
+        response = client.put(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "timezone": "America/New_York",
+                "date_format": "MM/DD/YYYY",
+                "time_format": "12h",
+                "currency": "USD",
+                "language": "en",
+            },
+        )
+
+        # Assert: Should be denied
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
+
+    def test_update_general_settings_with_permission(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that user with config.edit can update general settings."""
+        # Arrange: Assign config.editor role
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="editor",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Update general settings
+        new_settings = {
+            "timezone": "America/New_York",
+            "date_format": "MM/DD/YYYY",
+            "time_format": "12h",
+            "currency": "USD",
+            "language": "en",
+        }
+        response = client.put(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json=new_settings,
+        )
+
+        # Assert: Should succeed
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "data" in data
+        assert "error" in data
+        assert data["error"] is None
+
+        # Verify response contains updated values
+        settings = data["data"]
+        assert settings["timezone"] == new_settings["timezone"]
+        assert settings["date_format"] == new_settings["date_format"]
+        assert settings["time_format"] == new_settings["time_format"]
+        assert settings["currency"] == new_settings["currency"]
+        assert settings["language"] == new_settings["language"]
+
+        # Verify persistence: Get settings again
+        get_response = client.get(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert get_response.status_code == status.HTTP_200_OK
+        get_data = get_response.json()
+        persisted_settings = get_data["data"]
+        assert persisted_settings["timezone"] == new_settings["timezone"]
+        assert persisted_settings["date_format"] == new_settings["date_format"]
+        assert persisted_settings["time_format"] == new_settings["time_format"]
+        assert persisted_settings["currency"] == new_settings["currency"]
+        assert persisted_settings["language"] == new_settings["language"]
+
+    def test_update_general_settings_validation_error(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that invalid general settings are rejected."""
+        # Arrange: Assign config.editor role
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="editor",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Try to update with invalid time_format
+        response = client.put(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "timezone": "America/New_York",
+                "date_format": "MM/DD/YYYY",
+                "time_format": "invalid",  # Invalid: must be "12h" or "24h"
+                "currency": "USD",
+                "language": "en",
+            },
+        )
+
+        # Assert: Should return validation error
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        # FastAPI validation errors can be in "detail" or custom error format
+        assert "detail" in data or ("error" in data and data.get("error", {}).get("code") == "VALIDATION_ERROR")
+
+    def test_update_general_settings_partial_update(
+        self, client, db_session, test_user, test_tenant
+    ):
+        """Test that updating general settings updates all fields."""
+        # Arrange: Assign config.editor role
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="editor",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        # Act: Update with partial changes
+        first_update = {
+            "timezone": "Europe/London",
+            "date_format": "DD/MM/YYYY",
+            "time_format": "24h",
+            "currency": "GBP",
+            "language": "en",
+        }
+        response1 = client.put(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json=first_update,
+        )
+        assert response1.status_code == status.HTTP_200_OK
+
+        # Update again with different values
+        second_update = {
+            "timezone": "Asia/Tokyo",
+            "date_format": "YYYY-MM-DD",
+            "time_format": "12h",
+            "currency": "JPY",
+            "language": "ja",
+        }
+        response2 = client.put(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json=second_update,
+        )
+        assert response2.status_code == status.HTTP_200_OK
+
+        # Assert: Verify final values
+        get_response = client.get(
+            "/api/v1/config/general",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert get_response.status_code == status.HTTP_200_OK
+        final_data = get_response.json()
+        final_settings = final_data["data"]
+
+        assert final_settings["timezone"] == second_update["timezone"]
+        assert final_settings["date_format"] == second_update["date_format"]
+        assert final_settings["time_format"] == second_update["time_format"]
+        assert final_settings["currency"] == second_update["currency"]
+        assert final_settings["language"] == second_update["language"]
+
 
 
 

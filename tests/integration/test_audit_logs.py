@@ -289,6 +289,92 @@ def test_get_audit_logs_endpoint_with_filters(
     assert "meta" in data
 
 
+def test_get_audit_logs_endpoint_with_advanced_filters(
+    client: TestClient, db_session: Session, test_user: User
+) -> None:
+    """Test GET /api/v1/auth/audit-logs endpoint with advanced filters (IP, user_agent, details_search)."""
+    from app.models.user_role import UserRole
+    from app.services.auth_service import AuthService
+    from app.repositories.audit_repository import AuditRepository
+
+    # Assign admin role to test_user
+    admin_role = UserRole(
+        user_id=test_user.id,
+        role="admin",
+        granted_by=test_user.id,
+    )
+    db_session.add(admin_role)
+    db_session.commit()
+
+    # Create audit logs with different IPs, user agents, and details
+    repo = AuditRepository(db_session)
+    repo.create_audit_log(
+        user_id=test_user.id,
+        tenant_id=test_user.tenant_id,
+        action="test_action",
+        ip_address="192.168.1.100",
+        user_agent="Mozilla/5.0 Chrome",
+        details={"key": "value1", "search_term": "found"},
+    )
+    repo.create_audit_log(
+        user_id=test_user.id,
+        tenant_id=test_user.tenant_id,
+        action="test_action",
+        ip_address="192.168.1.200",
+        user_agent="Mozilla/5.0 Firefox",
+        details={"key": "value2", "other": "data"},
+    )
+
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(test_user)
+
+    # Test IP address filter
+    response = client.get(
+        "/api/v1/auth/audit-logs",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "ip_address": "192.168.1",
+            "page": 1,
+            "page_size": 20,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "data" in data
+    assert len(data["data"]) >= 2  # Should match both IPs
+
+    # Test user agent filter
+    response = client.get(
+        "/api/v1/auth/audit-logs",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "user_agent": "Chrome",
+            "page": 1,
+            "page_size": 20,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "data" in data
+    assert len(data["data"]) >= 1
+    assert any("Chrome" in (log.get("user_agent") or "") for log in data["data"])
+
+    # Test details search filter
+    response = client.get(
+        "/api/v1/auth/audit-logs",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "details_search": "found",
+            "page": 1,
+            "page_size": 20,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "data" in data
+    assert len(data["data"]) >= 1
+
+
 def test_audit_log_created_on_permission_grant(
     client: TestClient,
     db_session: Session,

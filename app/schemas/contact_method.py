@@ -10,7 +10,7 @@ class ContactMethodBase(BaseModel):
     """Base contact method schema with common fields."""
 
     method_type: str = Field(..., description="Method type: email, phone, mobile, whatsapp, etc.")
-    value: str = Field(..., description="Contact value")
+    value: str = Field(..., description="Contact value (required for non-address types, auto-constructed for address)")
     label: str | None = Field(None, description="Custom label (e.g., 'Trabajo', 'Personal')")
     is_primary: bool = Field(False, description="Primary contact method")
     is_verified: bool = Field(False, description="Verified contact method")
@@ -34,13 +34,14 @@ class ContactMethodCreate(ContactMethodBase, ContactMethodAddressFields):
     entity_type: str = Field(..., description="Entity type: user, contact, organization, etc.")
     entity_id: UUID = Field(..., description="Entity ID")
 
-    @field_validator("address_line1", "city", "country")
+    @field_validator("address_line1", "city", "country", mode="before")
     @classmethod
     def validate_address_fields(cls, v, info):
         """Validate address fields are provided when method_type is address."""
+        # Only validate if method_type is address and the field is being set
         if info.data.get("method_type") == "address":
-            if not v:
-                raise ValueError("Address fields are required when method_type is 'address'")
+            if v is None or (isinstance(v, str) and not v.strip()):
+                raise ValueError("Address fields (address_line1, city, country) are required when method_type is 'address'")
         return v
 
 

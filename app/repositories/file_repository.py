@@ -44,6 +44,21 @@ class FileRepository:
             query = query.filter(File.is_current == True)
         return query.order_by(File.created_at.desc()).all()
 
+    def count_by_entity(
+        self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
+    ) -> int:
+        """Count files by entity."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(File.id)).filter(
+            File.entity_type == entity_type,
+            File.entity_id == entity_id,
+            File.tenant_id == tenant_id,
+        )
+        if current_only:
+            query = query.filter(File.is_current == True)
+        return query.scalar() or 0
+
     def get_all(
         self, tenant_id: UUID, skip: int = 0, limit: int = 100, current_only: bool = True
     ) -> list[File]:
@@ -52,6 +67,17 @@ class FileRepository:
         if current_only:
             query = query.filter(File.is_current == True)
         return query.order_by(File.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_all(
+        self, tenant_id: UUID, current_only: bool = True
+    ) -> int:
+        """Count all files for a tenant."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(File.id)).filter(File.tenant_id == tenant_id)
+        if current_only:
+            query = query.filter(File.is_current == True)
+        return query.scalar() or 0
 
     def update(self, file_id: UUID, tenant_id: UUID, file_data: dict) -> File | None:
         """Update a file."""

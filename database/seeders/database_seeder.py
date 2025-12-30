@@ -28,6 +28,7 @@ class DatabaseSeeder(Seeder):
         # Import seeders
         from database.seeders.config_seeder import ConfigSeeder
         from database.seeders.theme_seeder import ThemeSeeder
+        from database.seeders.theme_preset_seeder import ThemePresetSeeder
 
         if is_production:
             # Production: Only create owner user
@@ -45,4 +46,5 @@ class DatabaseSeeder(Seeder):
         # Always seed configuration and theme for all environments
         ConfigSeeder().run(db)
         ThemeSeeder().run(db)
+        ThemePresetSeeder().run(db)
 

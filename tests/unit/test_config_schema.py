@@ -224,3 +224,12 @@ class TestConfigSchema:
         assert schema.validate("system", "modules.inventory.enabled", False) is True
         assert schema.validate("system", "modules.sales.enabled", "yes") is False  # wrong type
 
+
+
+
+
+
+
+
+
+

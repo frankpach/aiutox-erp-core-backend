@@ -184,3 +184,12 @@ def show_nano_style_viewer(content: Text, title: str, shortcuts: Dict[str, str] 
     console.print(layout)
 
 
+
+
+
+
+
+
+
+
+

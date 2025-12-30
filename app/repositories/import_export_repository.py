@@ -49,6 +49,24 @@ class ImportExportRepository:
 
         return query.order_by(ImportJob.created_at.desc()).offset(skip).limit(limit).all()
 
+    def count_import_jobs(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count import jobs with optional filters."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(ImportJob.id)).filter(ImportJob.tenant_id == tenant_id)
+
+        if module:
+            query = query.filter(ImportJob.module == module)
+        if status:
+            query = query.filter(ImportJob.status == status)
+
+        return query.scalar() or 0
+
     def update_import_job(self, job: ImportJob, job_data: dict) -> ImportJob:
         """Update import job."""
         for key, value in job_data.items():
@@ -97,6 +115,23 @@ class ImportExportRepository:
             query = query.filter(ImportTemplate.module == module)
 
         return query.order_by(ImportTemplate.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_import_templates(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+    ) -> int:
+        """Count import templates with optional filters."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(ImportTemplate.id)).filter(
+            ImportTemplate.tenant_id == tenant_id
+        )
+
+        if module:
+            query = query.filter(ImportTemplate.module == module)
+
+        return query.scalar() or 0
 
     def update_import_template(
         self, template: ImportTemplate, template_data: dict
@@ -147,6 +182,24 @@ class ImportExportRepository:
             query = query.filter(ExportJob.status == status)
 
         return query.order_by(ExportJob.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_export_jobs(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count export jobs with optional filters."""
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(ExportJob.id)).filter(ExportJob.tenant_id == tenant_id)
+
+        if module:
+            query = query.filter(ExportJob.module == module)
+        if status:
+            query = query.filter(ExportJob.status == status)
+
+        return query.scalar() or 0
 
     def update_export_job(self, job: ExportJob, job_data: dict) -> ExportJob:
         """Update export job."""

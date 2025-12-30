@@ -63,6 +63,18 @@ class ViewService:
             tenant_id, module, user_id, is_shared, skip, limit
         )
 
+    def count_saved_filters(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        user_id: UUID | None = None,
+        is_shared: bool | None = None,
+    ) -> int:
+        """Count saved filters."""
+        return self.repository.count_saved_filters(
+            tenant_id, module, user_id, is_shared
+        )
+
     def update_saved_filter(
         self, filter_id: UUID, tenant_id: UUID, filter_data: dict
     ) -> SavedFilter | None:
@@ -111,6 +123,18 @@ class ViewService:
         """Get custom views."""
         return self.repository.get_custom_views(
             tenant_id, module, user_id, is_shared, skip, limit
+        )
+
+    def count_custom_views(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        user_id: UUID | None = None,
+        is_shared: bool | None = None,
+    ) -> int:
+        """Count custom views with optional filters."""
+        return self.repository.count_custom_views(
+            tenant_id, module, user_id, is_shared
         )
 
     def update_custom_view(

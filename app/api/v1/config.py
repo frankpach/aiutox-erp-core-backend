@@ -12,12 +12,13 @@ from sqlalchemy.orm import Session
 from app.core.auth.dependencies import require_permission
 from app.core.config.exceptions import InvalidColorFormatException
 from app.core.config.service import ConfigService
+from app.core.config.theme_preset_service import ThemePresetService
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException, raise_bad_request, raise_not_found
 from app.core.logging import get_client_info
 from app.core.module_registry import get_module_registry
 from app.models.user import User
-from app.schemas.common import StandardListResponse, StandardResponse
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.config import (
     ConfigUpdate,
     GeneralSettingsRequest,
@@ -25,6 +26,9 @@ from app.schemas.config import (
     ModuleConfigResponse,
     ModuleInfoResponse,
     ModuleListItem,
+    ThemePresetCreate,
+    ThemePresetResponse,
+    ThemePresetUpdate,
 )
 from app.schemas.config_version import (
     CacheStatsResponse,
@@ -94,6 +98,7 @@ def validate_theme_colors(theme_data: dict[str, Any]) -> None:
     status_code=status.HTTP_200_OK,
     summary="List all modules",
     description="List all available modules with their enabled status. Requires config.view permission.",
+    response_model_exclude_none=True,
     responses={
         200: {"description": "List of modules retrieved successfully"},
         403: {
@@ -128,32 +133,130 @@ async def list_modules(
     Returns:
         StandardListResponse with list of modules.
     """
+    import json
+    import traceback
+
     try:
         registry = get_module_registry()
     except RuntimeError:
         # Registry not initialized yet, return empty list
-        return StandardListResponse(data=[], meta={"total": 0})
+        try:
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Registry not initialized, returning empty list", "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "R"}) + "\n")
+        except: pass
 
-    config_service = ConfigService(db)
-    modules_list = []
-
-    for module_id, module_instance in registry.get_all_modules().items():
-        is_enabled = registry.is_module_enabled(module_id, current_user.tenant_id)
-
-        modules_list.append(
-            ModuleListItem(
-                id=module_id,
-                name=module_instance.module_name,
-                type=module_instance.module_type,
-                enabled=is_enabled,
-                dependencies=module_instance.get_dependencies(),
-                description=module_instance.description,
-            )
+        return StandardListResponse(
+            data=[],
+            meta=PaginationMeta(
+                total=0,
+                page=1,
+                page_size=1,  # Must be >= 1 per PaginationMeta validation
+                total_pages=0,
+            ),
         )
+    except Exception as e:
+        # Log unexpected errors
+        try:
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error getting registry", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}) + "\n")
+        except: pass
+        raise
 
-    return StandardListResponse(
-        data=modules_list, meta={"total": len(modules_list)}
-    )
+    try:
+        config_service = ConfigService(db)
+        modules_list = []
+
+        for module_id, module_instance in registry.get_all_modules().items():
+            try:
+                is_enabled = registry.is_module_enabled(module_id, current_user.tenant_id)
+
+                # Ensure all fields are valid and have correct types
+                module_name = getattr(module_instance, "module_name", "") or ""
+                module_type = getattr(module_instance, "module_type", "business") or "business"
+                dependencies = getattr(module_instance, "get_dependencies", lambda: [])() or []
+                description = getattr(module_instance, "description", "") or ""
+
+                # Ensure dependencies is a list of strings
+                if not isinstance(dependencies, list):
+                    dependencies = []
+                dependencies = [str(dep) for dep in dependencies if dep]
+
+                modules_list.append(
+                    ModuleListItem(
+                        id=str(module_id),
+                        name=str(module_name),
+                        type=str(module_type),
+                        enabled=bool(is_enabled),
+                        dependencies=dependencies,
+                        description=str(description),
+                    )
+                )
+            except Exception as module_error:
+                # Log error for individual module but continue
+                try:
+                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error processing module", "data": {"module_id": module_id, "error": str(module_error), "error_type": type(module_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "M"}) + "\n")
+                except: pass
+                continue
+
+        # Create response with proper error handling
+        try:
+            pagination_meta = PaginationMeta(
+                total=len(modules_list),
+                page=1,
+                page_size=len(modules_list) if modules_list else 1,
+                total_pages=1,
+            )
+
+            try:
+                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                    log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Creating PaginationMeta", "data": {"total": len(modules_list), "page": 1, "page_size": len(modules_list) if modules_list else 1, "total_pages": 1}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "PM"}) + "\n")
+            except: pass
+
+            # Validate response before returning
+            try:
+                response = StandardListResponse(
+                    data=modules_list,
+                    meta=pagination_meta,
+                )
+
+                # Try to serialize to catch any validation errors
+                try:
+                    response.model_dump_json()
+                except Exception as serialization_error:
+                    try:
+                        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                            log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Serialization error", "data": {"error": str(serialization_error), "error_type": type(serialization_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "SE"}) + "\n")
+                    except: pass
+                    raise
+
+                try:
+                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Response created successfully", "data": {"modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "S"}) + "\n")
+                except: pass
+
+                return response
+            except Exception as response_creation_error:
+                # Log error creating response
+                try:
+                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_creation_error), "error_type": type(response_creation_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+                except: pass
+                raise
+        except Exception as response_error:
+            # Log error creating response
+            try:
+                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                    log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_error), "error_type": type(response_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+            except: pass
+            raise
+    except Exception as e:
+        # Log error creating response
+        try:
+            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
+                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating response", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+        except: pass
+        raise
 
 
 @router.get(
@@ -493,870 +596,6 @@ async def disable_module(
 
 
 @router.get(
-    "/{module}",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get module configuration",
-    description="Get all configuration for a specific module in the current tenant. Requires config.view permission.",
-    responses={
-        200: {"description": "Module configuration retrieved successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.view"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def get_module_config(
-    module: str,
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Get all configuration for a specific module.
-
-    Requires: config.view
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        current_user: Current authenticated user (must have config.view).
-        db: Database session.
-
-    Returns:
-        StandardResponse with module configuration.
-
-    Raises:
-        APIException: If user lacks permission or module not found.
-    """
-    config_service = ConfigService(db)
-    config_dict = config_service.get_module_config(
-        tenant_id=current_user.tenant_id, module=module
-    )
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module=module, config=config_dict)
-    )
-
-
-@router.get(
-    "/{module}/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Get configuration value",
-    description="Get a specific configuration value for a module. Requires config.view permission.",
-    responses={
-        200: {"description": "Configuration value retrieved successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.view"},
-                        }
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Configuration not found",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "CONFIG_NOT_FOUND",
-                            "message": "Configuration 'products.min_price' not found",
-                            "details": {"module": "products", "key": "min_price"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def get_config_value(
-    module: str,
-    key: str,
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Get a specific configuration value.
-
-    Requires: config.view
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        key: Configuration key.
-        current_user: Current authenticated user (must have config.view).
-        db: Database session.
-
-    Returns:
-        StandardResponse with configuration value.
-
-    Raises:
-        APIException: If user lacks permission or configuration not found.
-    """
-    config_service = ConfigService(db)
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-
-    if value is None:
-        raise APIException(
-            code="CONFIG_NOT_FOUND",
-            message=f"Configuration '{module}.{key}' not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"module": module, "key": key},
-        )
-
-    return StandardResponse(
-        data={"module": module, "key": key, "value": value}
-    )
-
-
-@router.post(
-    "/{module}",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Set module configuration",
-    description="Set multiple configuration values for a module. Requires config.edit permission.",
-    responses={
-        201: {"description": "Module configuration set successfully"},
-        400: {
-            "description": "Invalid request or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_CONFIG_VALUE",
-                            "message": "Invalid value for products.min_price: value does not match schema",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def set_module_config(
-    module: str,
-    config_data: dict[str, Any],
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Set multiple configuration values for a module.
-
-    Requires: config.edit
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        config_data: Dictionary of key-value pairs to set.
-        current_user: Current authenticated user (must have config.edit).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated module configuration.
-
-    Raises:
-        APIException: If user lacks permission or validation fails.
-    """
-    if not isinstance(config_data, dict):
-        raise_bad_request(
-            "INVALID_CONFIG_DATA",
-            "Configuration data must be a dictionary",
-        )
-
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        config_dict = config_service.set_module_config(
-            tenant_id=current_user.tenant_id,
-            module=module,
-            config_dict=config_data,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_CONFIG_VALUE", str(e))
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module=module, config=config_dict)
-    )
-
-
-@router.put(
-    "/{module}/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Set configuration value",
-    description="Set or update a specific configuration value. Requires config.edit permission.",
-    responses={
-        200: {"description": "Configuration value set successfully"},
-        400: {
-            "description": "Invalid request or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_CONFIG_VALUE",
-                            "message": "Invalid value for products.min_price: value does not match schema",
-                            "details": None,
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def set_config_value(
-    module: str,
-    key: str,
-    config_update: ConfigUpdate,
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Set or update a specific configuration value.
-
-    Requires: config.edit
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        key: Configuration key.
-        config_update: Configuration update data.
-        current_user: Current authenticated user (must have config.edit).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated configuration.
-
-    Raises:
-        APIException: If user lacks permission or validation fails.
-    """
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        config_data = config_service.set(
-            tenant_id=current_user.tenant_id,
-            module=module,
-            key=key,
-            value=config_update.value,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_CONFIG_VALUE", str(e))
-
-    return StandardResponse(data=config_data)
-
-
-@router.delete(
-    "/{module}/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Delete configuration value",
-    description="Delete a specific configuration value. Requires config.delete permission.",
-    responses={
-        200: {"description": "Configuration value deleted successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.delete"},
-                        }
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Configuration not found",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "CONFIG_NOT_FOUND",
-                            "message": "Configuration 'products.min_price' not found",
-                            "details": {"module": "products", "key": "min_price"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def delete_config_value(
-    module: str,
-    key: str,
-    current_user: Annotated[User, Depends(require_permission("config.delete"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Delete a specific configuration value.
-
-    Requires: config.delete
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        key: Configuration key.
-        current_user: Current authenticated user (must have config.delete).
-        db: Database session.
-
-    Returns:
-        StandardResponse with success message.
-
-    Raises:
-        APIException: If user lacks permission or configuration not found.
-    """
-    config_service = ConfigService(db)
-
-    # Check if exists before deleting
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-    if value is None:
-        raise APIException(
-            code="CONFIG_NOT_FOUND",
-            message=f"Configuration '{module}.{key}' not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"module": module, "key": key},
-        )
-
-    config_service.delete(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-
-    return StandardResponse(
-        data={"message": f"Configuration '{module}.{key}' deleted successfully"}
-    )
-
-
-# Theme-specific endpoints
-@router.get(
-    "/app_theme",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get theme configuration",
-    description="Get visual theme configuration for the current tenant. Requires config.view or config.view_theme permission.",
-    responses={
-        200: {"description": "Theme configuration retrieved successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.view_theme"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def get_theme_config(
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Get visual theme configuration for the current tenant.
-
-    Returns all theme-related settings including colors, logos, fonts, and component styles.
-
-    Requires: config.view or config.view_theme
-
-    Args:
-        current_user: Current authenticated user (must have config.view or config.view_theme).
-        db: Database session.
-
-    Returns:
-        StandardResponse with theme configuration.
-
-    Raises:
-        APIException: If user lacks permission.
-    """
-    config_service = ConfigService(db)
-    theme_config = config_service.get_module_config(
-        tenant_id=current_user.tenant_id, module="app_theme"
-    )
-
-    # If no theme config exists, return default values
-    if not theme_config:
-        theme_config = {
-            "primary_color": "#1976D2",
-            "secondary_color": "#DC004E",
-            "accent_color": "#FFC107",
-            "background_color": "#FFFFFF",
-            "surface_color": "#F5F5F5",
-            "text_primary": "#212121",
-            "text_secondary": "#757575",
-        }
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module="app_theme", config=theme_config)
-    )
-
-
-@router.post(
-    "/app_theme",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Set theme configuration",
-    description="Set visual theme configuration for the current tenant. Requires config.edit or config.edit_theme permission.",
-    responses={
-        201: {"description": "Theme configuration set successfully"},
-        400: {
-            "description": "Invalid color format or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_COLOR_FORMAT",
-                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: blue)",
-                            "details": {
-                                "key": "primary_color",
-                                "value": "blue",
-                                "expected_format": "#RRGGBB",
-                            },
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit_theme"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def set_theme_config(
-    theme_data: dict[str, Any],
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Set visual theme configuration for the current tenant.
-
-    Validates color formats (must be #RRGGBB) and saves theme settings.
-
-    Requires: config.edit or config.edit_theme
-
-    Args:
-        theme_data: Dictionary of theme settings (colors, logos, fonts, etc.).
-        current_user: Current authenticated user (must have config.edit or config.edit_theme).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated theme configuration.
-
-    Raises:
-        InvalidColorFormatException: If any color format is invalid.
-        APIException: If user lacks permission or validation fails.
-    """
-    if not isinstance(theme_data, dict):
-        raise_bad_request(
-            "INVALID_THEME_DATA",
-            "Theme data must be a dictionary",
-        )
-
-    # Validate all color fields
-    validate_theme_colors(theme_data)
-
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        theme_config = config_service.set_module_config(
-            tenant_id=current_user.tenant_id,
-            module="app_theme",
-            config_dict=theme_data,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_THEME_VALUE", str(e))
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module="app_theme", config=theme_config)
-    )
-
-
-@router.put(
-    "/app_theme/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Update theme property",
-    description="Update a specific theme property. Validates color format if applicable. Requires config.edit or config.edit_theme permission.",
-    responses={
-        200: {"description": "Theme property updated successfully"},
-        400: {
-            "description": "Invalid color format or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_COLOR_FORMAT",
-                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: red)",
-                            "details": {
-                                "key": "primary_color",
-                                "value": "red",
-                                "expected_format": "#RRGGBB",
-                            },
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit_theme"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def update_theme_property(
-    key: str,
-    config_update: ConfigUpdate,
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Update a specific theme property.
-
-    Validates color format if the property is a color field.
-
-    Requires: config.edit or config.edit_theme
-
-    Args:
-        key: Theme property key (e.g., 'primary_color', 'logo_primary').
-        config_update: Configuration update data.
-        current_user: Current authenticated user (must have config.edit or config.edit_theme).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated property.
-
-    Raises:
-        InvalidColorFormatException: If color format is invalid.
-        APIException: If user lacks permission or validation fails.
-    """
-    # Validate color format if it's a color key
-    color_keys = [
-        "primary_color", "secondary_color", "accent_color",
-        "background_color", "surface_color",
-        "error_color", "warning_color", "success_color", "info_color",
-        "text_primary", "text_secondary", "text_disabled",
-        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
-    ]
-
-    if key in color_keys:
-        validate_color(key, config_update.value)
-
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        config_data = config_service.set(
-            tenant_id=current_user.tenant_id,
-            module="app_theme",
-            key=key,
-            value=config_update.value,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_THEME_VALUE", str(e))
-
-    return StandardResponse(data=config_data)
-
-
-# Version management endpoints
-@router.get(
-    "/{module}/{key}/versions",
-    response_model=StandardResponse[ConfigVersionListResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get version history",
-    description="Get version history for a configuration key. Requires config.view permission.",
-    responses={
-        200: {"description": "Version history retrieved successfully"},
-        403: {"description": "Insufficient permissions"},
-    },
-)
-async def get_version_history(
-    module: str,
-    key: str,
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-    skip: int = 0,
-    limit: int = 50,
-) -> StandardResponse[ConfigVersionListResponse]:
-    """
-    Get version history for a configuration key.
-
-    Requires: config.view
-
-    Args:
-        module: Module name
-        key: Configuration key
-        skip: Number of records to skip for pagination
-        limit: Maximum number of records to return
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        StandardResponse with version history
-    """
-    config_service = ConfigService(db)
-
-    versions, total = config_service.get_version_history(
-        tenant_id=current_user.tenant_id,
-        module=module,
-        key=key,
-        skip=skip,
-        limit=limit,
-    )
-
-    version_responses = [
-        ConfigVersionResponse(
-            id=v["id"],
-            version_number=v["version_number"],
-            value=v["value"],
-            change_type=v["change_type"],
-            changed_by=v["changed_by"],
-            change_reason=v.get("change_reason"),
-            created_at=v["created_at"],
-            metadata=v.get("metadata"),
-        )
-        for v in versions
-    ]
-
-    return StandardResponse(
-        data=ConfigVersionListResponse(
-            versions=version_responses,
-            total=total,
-            module=module,
-            key=key,
-        )
-    )
-
-
-@router.post(
-    "/{module}/{key}/rollback",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Rollback to version",
-    description="Rollback a configuration to a specific version. Requires config.edit permission.",
-    responses={
-        200: {"description": "Rollback successful"},
-        400: {"description": "Invalid version number"},
-        403: {"description": "Insufficient permissions"},
-        404: {"description": "Version not found"},
-    },
-)
-async def rollback_to_version(
-    module: str,
-    key: str,
-    rollback_request: ConfigRollbackRequest,
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Rollback a configuration to a specific version.
-
-    Requires: config.edit
-
-    Args:
-        module: Module name
-        key: Configuration key
-        rollback_request: Rollback request with version number
-        request: FastAPI request object
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        StandardResponse with rollback confirmation
-
-    Raises:
-        APIException: If version not found or rollback fails
-    """
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        config_data = config_service.rollback_to_version(
-            tenant_id=current_user.tenant_id,
-            module=module,
-            key=key,
-            version_number=rollback_request.version_number,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-
-        return StandardResponse(
-            data={
-                "message": f"Configuration '{module}.{key}' rolled back to version {rollback_request.version_number}",
-                "config": config_data,
-            }
-        )
-    except ValueError as e:
-        raise_bad_request("ROLLBACK_FAILED", str(e))
-
-
-# Cache management endpoints
-@router.get(
-    "/cache/stats",
-    response_model=StandardResponse[CacheStatsResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get cache statistics",
-    description="Get cache statistics and status. Requires config.view permission.",
-    responses={
-        200: {"description": "Cache statistics retrieved successfully"},
-        403: {"description": "Insufficient permissions"},
-    },
-)
-async def get_cache_stats(
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[CacheStatsResponse]:
-    """
-    Get cache statistics and status.
-
-    Requires: config.view
-
-    Args:
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        StandardResponse with cache statistics
-    """
-    config_service = ConfigService(db)
-    stats = config_service.get_cache_stats()
-
-    return StandardResponse(data=CacheStatsResponse(**stats))
-
-
-@router.post(
-    "/cache/clear",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Clear cache",
-    description="Clear configuration cache. Requires config.edit permission.",
-    responses={
-        200: {"description": "Cache cleared successfully"},
-        403: {"description": "Insufficient permissions"},
-    },
-)
-async def clear_cache(
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-    module: str | None = None,
-) -> StandardResponse[dict]:
-    """
-    Clear configuration cache.
-
-    Requires: config.edit
-
-    Args:
-        module: Optional module name to clear specific module cache
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        StandardResponse with clear confirmation
-    """
-    config_service = ConfigService(db)
-
-    if module:
-        cleared = config_service.clear_cache(
-            tenant_id=current_user.tenant_id, module=module
-        )
-        message = f"Cleared {cleared} cache entries for module '{module}'"
-    else:
-        config_service.clear_cache()
-        message = "Cleared all cache entries"
-
-    return StandardResponse(data={"message": message})
-
-
-@router.get(
     "/general",
     response_model=StandardResponse[GeneralSettingsResponse],
     status_code=status.HTTP_200_OK,
@@ -1539,6 +778,1279 @@ async def update_general_settings(
         ),
         message="General settings updated successfully",
     )
+
+
+# Theme-specific endpoints (must be before generic /{module} routes)
+@router.get(
+    "/app_theme",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get theme configuration",
+    description="Get visual theme configuration for the current tenant. Requires config.view or config.view_theme permission.",
+    responses={
+        200: {"description": "Theme configuration retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view_theme"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_theme_config(
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Get visual theme configuration for the current tenant.
+
+    Returns all theme-related settings including colors, logos, fonts, and component styles.
+
+    Requires: config.view or config.view_theme
+
+    Args:
+        current_user: Current authenticated user (must have config.view or config.view_theme).
+        db: Database session.
+
+    Returns:
+        StandardResponse with theme configuration.
+    """
+    config_service = ConfigService(db)
+    theme_config = config_service.get_module_config(
+        tenant_id=current_user.tenant_id, module="app_theme"
+    )
+
+    # If no theme config exists, return default values
+    # get_module_config returns {} when empty, which is falsy
+    if not theme_config:
+        theme_config = {
+            "primary_color": "#1976D2",
+            "secondary_color": "#DC004E",
+            "accent_color": "#FFC107",
+            "background_color": "#FFFFFF",
+            "surface_color": "#F5F5F5",
+            "error_color": "#F44336",
+            "warning_color": "#FF9800",
+            "success_color": "#4CAF50",
+            "info_color": "#2196F3",
+            "text_primary": "#212121",
+            "text_secondary": "#757575",
+            "text_disabled": "#BDBDBD",
+            "sidebar_bg": "#2C3E50",
+            "sidebar_text": "#ECF0F1",
+            "navbar_bg": "#34495E",
+            "navbar_text": "#FFFFFF",
+        }
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module="app_theme", config=theme_config)
+    )
+
+
+# Cache management endpoints (must come before /{module} routes)
+@router.get(
+    "/cache/stats",
+    response_model=StandardResponse[CacheStatsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get cache statistics",
+    description="Get cache statistics and status. Requires config.view permission.",
+    responses={
+        200: {"description": "Cache statistics retrieved successfully"},
+        403: {"description": "Insufficient permissions"},
+    },
+)
+async def get_cache_stats(
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[CacheStatsResponse]:
+    """
+    Get cache statistics and status.
+
+    Requires: config.view
+
+    Args:
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        StandardResponse with cache statistics
+    """
+    config_service = ConfigService(db)
+    stats = config_service.get_cache_stats()
+
+    return StandardResponse(data=CacheStatsResponse(**stats))
+
+
+@router.post(
+    "/cache/clear",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Clear cache",
+    description="Clear configuration cache. Requires config.edit permission.",
+    responses={
+        200: {"description": "Cache cleared successfully"},
+        403: {"description": "Insufficient permissions"},
+    },
+)
+async def clear_cache(
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+    module: str | None = None,
+) -> StandardResponse[dict]:
+    """
+    Clear configuration cache.
+
+    Requires: config.edit
+
+    Args:
+        module: Optional module name to clear specific module cache
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        StandardResponse with clear confirmation
+    """
+    config_service = ConfigService(db)
+
+    if module:
+        cleared = config_service.clear_cache(
+            tenant_id=current_user.tenant_id, module=module
+        )
+        message = f"Cleared {cleared} cache entries for module '{module}'"
+    else:
+        config_service.clear_cache()
+        message = "Cleared all cache entries"
+
+    return StandardResponse(data={"message": message})
+
+
+# Theme preset endpoints (must come before /{module} routes)
+@router.get(
+    "/app_theme/presets",
+    response_model=StandardListResponse[ThemePresetResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List theme presets",
+    description="List all theme presets for the current tenant. Requires config.view permission.",
+    responses={
+        200: {"description": "Theme presets retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def list_theme_presets(
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardListResponse[ThemePresetResponse]:
+    """
+    List all theme presets for the current tenant.
+
+    Requires: config.view
+
+    Args:
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardListResponse with list of theme presets.
+    """
+    preset_service = ThemePresetService(db)
+    presets = preset_service.list_presets(current_user.tenant_id)
+
+    return StandardListResponse(
+        data=[ThemePresetResponse.model_validate(preset) for preset in presets],
+        meta=PaginationMeta(
+            total=len(presets),
+            page=1,
+            page_size=len(presets) if presets else 1,  # Must be >= 1 per PaginationMeta validation
+            total_pages=1,
+        ),
+    )
+
+
+@router.post(
+    "/app_theme/presets",
+    response_model=StandardResponse[ThemePresetResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create theme preset",
+    description="Create a new theme preset. Requires config.edit permission.",
+    responses={
+        201: {"description": "Theme preset created successfully"},
+        400: {
+            "description": "Invalid request or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "PRESET_NAME_EXISTS",
+                            "message": "Preset with name 'My Theme' already exists",
+                            "details": {"name": "My Theme"},
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def create_theme_preset(
+    preset_data: ThemePresetCreate,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThemePresetResponse]:
+    """
+    Create a new theme preset.
+
+    Requires: config.edit
+
+    Args:
+        preset_data: Preset creation data.
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with created theme preset.
+    """
+    # Validate theme colors if config is provided
+    if preset_data.config:
+        validate_theme_colors(preset_data.config)
+
+    preset_service = ThemePresetService(db)
+    preset = preset_service.create_preset(
+        tenant_id=current_user.tenant_id,
+        name=preset_data.name,
+        config=preset_data.config,
+        description=preset_data.description,
+        is_default=preset_data.is_default,
+        created_by=current_user.id,
+    )
+
+    return StandardResponse(
+        data=ThemePresetResponse.model_validate(preset),
+        message="Theme preset created successfully",
+    )
+
+
+@router.get(
+    "/app_theme/presets/{preset_id}",
+    response_model=StandardResponse[ThemePresetResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get theme preset",
+    description="Get a specific theme preset. Requires config.view permission.",
+    responses={
+        200: {"description": "Theme preset retrieved successfully"},
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Theme preset not found"},
+    },
+)
+async def get_theme_preset(
+    preset_id: UUID,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThemePresetResponse]:
+    """
+    Get a specific theme preset.
+
+    Requires: config.view
+
+    Args:
+        preset_id: Preset ID.
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardResponse with theme preset.
+    """
+    preset_service = ThemePresetService(db)
+    preset = preset_service.get_preset(preset_id, current_user.tenant_id)
+
+    return StandardResponse(data=ThemePresetResponse.model_validate(preset))
+
+
+@router.put(
+    "/app_theme/presets/{preset_id}",
+    response_model=StandardResponse[ThemePresetResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update theme preset",
+    description="Update a theme preset. System presets cannot be updated. Requires config.edit permission.",
+    responses={
+        200: {"description": "Theme preset updated successfully"},
+        400: {
+            "description": "Invalid request or cannot edit system preset",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CANNOT_EDIT_SYSTEM_PRESET",
+                            "message": "System presets cannot be edited",
+                            "details": {"preset_id": "...", "preset_name": "Original"},
+                        }
+                    }
+                }
+            },
+        },
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Theme preset not found"},
+    },
+)
+async def update_theme_preset(
+    preset_id: UUID,
+    preset_data: ThemePresetUpdate,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThemePresetResponse]:
+    """
+    Update a theme preset.
+
+    System presets cannot be updated.
+
+    Requires: config.edit
+
+    Args:
+        preset_id: Preset ID.
+        preset_data: Preset update data.
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated theme preset.
+    """
+    # Validate theme colors if config is provided
+    if preset_data.config:
+        validate_theme_colors(preset_data.config)
+
+    preset_service = ThemePresetService(db)
+    preset = preset_service.update_preset(
+        preset_id=preset_id,
+        tenant_id=current_user.tenant_id,
+        name=preset_data.name,
+        description=preset_data.description,
+        config=preset_data.config,
+        is_default=preset_data.is_default,
+    )
+
+    return StandardResponse(
+        data=ThemePresetResponse.model_validate(preset),
+        message="Theme preset updated successfully",
+    )
+
+
+@router.delete(
+    "/app_theme/presets/{preset_id}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Delete theme preset",
+    description="Delete a theme preset. System presets cannot be deleted. Requires config.edit permission.",
+    responses={
+        200: {"description": "Theme preset deleted successfully"},
+        400: {
+            "description": "Cannot delete system preset",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CANNOT_DELETE_SYSTEM_PRESET",
+                            "message": "System presets cannot be deleted",
+                            "details": {"preset_id": "...", "preset_name": "Original"},
+                        }
+                    }
+                }
+            },
+        },
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Theme preset not found"},
+    },
+)
+async def delete_theme_preset(
+    preset_id: UUID,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Delete a theme preset.
+
+    System presets cannot be deleted.
+
+    Requires: config.edit
+
+    Args:
+        preset_id: Preset ID.
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with success message.
+    """
+    preset_service = ThemePresetService(db)
+    preset_service.delete_preset(preset_id, current_user.tenant_id)
+
+    return StandardResponse(
+        data={"preset_id": str(preset_id)},
+        message="Theme preset deleted successfully",
+    )
+
+
+@router.post(
+    "/app_theme/presets/{preset_id}/apply",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Apply theme preset",
+    description="Apply a theme preset as the active theme. Requires config.edit permission.",
+    responses={
+        200: {"description": "Theme preset applied successfully"},
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Theme preset not found"},
+    },
+)
+async def apply_theme_preset(
+    preset_id: UUID,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Apply a theme preset as the active theme.
+
+    Requires: config.edit
+
+    Args:
+        preset_id: Preset ID.
+        request: FastAPI request object (for audit).
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with applied theme configuration.
+    """
+    preset_service = ThemePresetService(db)
+    config = preset_service.apply_preset(preset_id, current_user.tenant_id)
+
+    # Also update via ConfigService to ensure audit logging
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+    config_service.set_module_config(
+        tenant_id=current_user.tenant_id,
+        module="app_theme",
+        config_dict=config,
+        user_id=current_user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module="app_theme", config=config),
+        message="Theme preset applied successfully",
+    )
+
+
+@router.put(
+    "/app_theme/presets/{preset_id}/set-default",
+    response_model=StandardResponse[ThemePresetResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Set default theme preset",
+    description="Set a theme preset as the default for the tenant. Requires config.edit permission.",
+    responses={
+        200: {"description": "Default preset set successfully"},
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Theme preset not found"},
+    },
+)
+async def set_default_theme_preset(
+    preset_id: UUID,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThemePresetResponse]:
+    """
+    Set a theme preset as the default for the tenant.
+
+    Requires: config.edit
+
+    Args:
+        preset_id: Preset ID.
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated preset.
+    """
+    preset_service = ThemePresetService(db)
+    preset = preset_service.set_default_preset(preset_id, current_user.tenant_id)
+
+    return StandardResponse(
+        data=ThemePresetResponse.model_validate(preset),
+        message="Default preset set successfully",
+    )
+
+
+@router.get(
+    "/{module}",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get module configuration",
+    description="Get all configuration for a specific module in the current tenant. Requires config.view permission.",
+    responses={
+        200: {"description": "Module configuration retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_module_config(
+    module: str,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Get all configuration for a specific module.
+
+    Requires: config.view
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardResponse with module configuration.
+
+    Raises:
+        APIException: If user lacks permission or module not found.
+    """
+    config_service = ConfigService(db)
+    config_dict = config_service.get_module_config(
+        tenant_id=current_user.tenant_id, module=module
+    )
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module=module, config=config_dict)
+    )
+
+
+@router.get(
+    "/{module}/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get configuration value",
+    description="Get a specific configuration value for a module. Requires config.view permission.",
+    responses={
+        200: {"description": "Configuration value retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Configuration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CONFIG_NOT_FOUND",
+                            "message": "Configuration 'products.min_price' not found",
+                            "details": {"module": "products", "key": "min_price"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_config_value(
+    module: str,
+    key: str,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Get a specific configuration value.
+
+    Requires: config.view
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        key: Configuration key.
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardResponse with configuration value.
+
+    Raises:
+        APIException: If user lacks permission or configuration not found.
+    """
+    config_service = ConfigService(db)
+    value = config_service.get(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+
+    if value is None:
+        raise APIException(
+            code="CONFIG_NOT_FOUND",
+            message=f"Configuration '{module}.{key}' not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    return StandardResponse(
+        data={"module": module, "key": key, "value": value}
+    )
+
+
+@router.delete(
+    "/{module}/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Delete configuration value",
+    description="Delete a specific configuration value. Requires config.delete permission.",
+    responses={
+        200: {"description": "Configuration value deleted successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.delete"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Configuration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CONFIG_NOT_FOUND",
+                            "message": "Configuration 'products.min_price' not found",
+                            "details": {"module": "products", "key": "min_price"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def delete_config_value(
+    module: str,
+    key: str,
+    current_user: Annotated[User, Depends(require_permission("config.delete"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Delete a specific configuration value.
+
+    Requires: config.delete
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        key: Configuration key.
+        current_user: Current authenticated user (must have config.delete).
+        db: Database session.
+
+    Returns:
+        StandardResponse with success message.
+
+    Raises:
+        APIException: If user lacks permission or configuration not found.
+    """
+    config_service = ConfigService(db)
+
+    # Check if exists before deleting
+    value = config_service.get(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+    if value is None:
+        raise APIException(
+            code="CONFIG_NOT_FOUND",
+            message=f"Configuration '{module}.{key}' not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    config_service.delete(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+
+    return StandardResponse(
+        data={"message": f"Configuration '{module}.{key}' deleted successfully"}
+    )
+
+
+@router.post(
+    "/app_theme",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Set theme configuration",
+    description="Set visual theme configuration for the current tenant. Requires config.edit or config.edit_theme permission.",
+    responses={
+        201: {"description": "Theme configuration set successfully"},
+        400: {
+            "description": "Invalid color format or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_COLOR_FORMAT",
+                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: blue)",
+                            "details": {
+                                "key": "primary_color",
+                                "value": "blue",
+                                "expected_format": "#RRGGBB",
+                            },
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit_theme"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def set_theme_config(
+    theme_data: dict[str, Any],
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Set visual theme configuration for the current tenant.
+
+    Validates color formats (must be #RRGGBB) and saves theme settings.
+
+    Requires: config.edit or config.edit_theme
+
+    Args:
+        theme_data: Dictionary of theme settings (colors, logos, fonts, etc.).
+        current_user: Current authenticated user (must have config.edit or config.edit_theme).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated theme configuration.
+
+    Raises:
+        InvalidColorFormatException: If any color format is invalid.
+        APIException: If user lacks permission or validation fails.
+    """
+    if not isinstance(theme_data, dict):
+        raise_bad_request(
+            "INVALID_THEME_DATA",
+            "Theme data must be a dictionary",
+        )
+
+    # Validate all color fields
+    validate_theme_colors(theme_data)
+
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        theme_config = config_service.set_module_config(
+            tenant_id=current_user.tenant_id,
+            module="app_theme",
+            config_dict=theme_data,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except ValueError as e:
+        raise_bad_request("INVALID_THEME_VALUE", str(e))
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module="app_theme", config=theme_config)
+    )
+
+
+@router.put(
+    "/app_theme/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Update theme property",
+    description="Update a specific theme property. Validates color format if applicable. Requires config.edit or config.edit_theme permission.",
+    responses={
+        200: {"description": "Theme property updated successfully"},
+        400: {
+            "description": "Invalid color format or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_COLOR_FORMAT",
+                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: red)",
+                            "details": {
+                                "key": "primary_color",
+                                "value": "red",
+                                "expected_format": "#RRGGBB",
+                            },
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit_theme"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def update_theme_property(
+    key: str,
+    config_update: ConfigUpdate,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Update a specific theme property.
+
+    Validates color format if the property is a color field.
+
+    Requires: config.edit or config.edit_theme
+
+    Args:
+        key: Theme property key (e.g., 'primary_color', 'logo_primary').
+        config_update: Configuration update data.
+        current_user: Current authenticated user (must have config.edit or config.edit_theme).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated property.
+
+    Raises:
+        InvalidColorFormatException: If color format is invalid.
+        APIException: If user lacks permission or validation fails.
+    """
+    # Validate color format if it's a color key
+    color_keys = [
+        "primary_color", "secondary_color", "accent_color",
+        "background_color", "surface_color",
+        "error_color", "warning_color", "success_color", "info_color",
+        "text_primary", "text_secondary", "text_disabled",
+        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
+    ]
+
+    if key in color_keys:
+        try:
+            validate_color(key, config_update.value)
+        except InvalidColorFormatException:
+            # Re-raise to ensure FastAPI handles it correctly
+            raise
+
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        config_data = config_service.set(
+            tenant_id=current_user.tenant_id,
+            module="app_theme",
+            key=key,
+            value=config_update.value,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except ValueError as e:
+        raise_bad_request("INVALID_THEME_VALUE", str(e))
+
+    return StandardResponse(data=config_data)
+
+
+@router.put(
+    "/{module}/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Set configuration value",
+    description="Set or update a specific configuration value. Requires config.edit permission.",
+    responses={
+        200: {"description": "Configuration value set successfully"},
+        400: {
+            "description": "Invalid request or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_CONFIG_VALUE",
+                            "message": "Invalid value for products.min_price: value does not match schema",
+                            "details": None,
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def set_config_value(
+    module: str,
+    key: str,
+    config_update: ConfigUpdate,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Set or update a specific configuration value.
+
+    Requires: config.edit
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        key: Configuration key.
+        config_update: Configuration update data.
+        current_user: Current authenticated user (must have config.edit).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated configuration.
+
+    Raises:
+        APIException: If user lacks permission or validation fails.
+    """
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        config_data = config_service.set(
+            tenant_id=current_user.tenant_id,
+            module=module,
+            key=key,
+            value=config_update.value,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except ValueError as e:
+        raise_bad_request("INVALID_CONFIG_VALUE", str(e))
+
+    return StandardResponse(data=config_data)
+
+
+@router.put(
+    "/app_theme/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Update theme property",
+    description="Update a specific theme property. Validates color format if applicable. Requires config.edit or config.edit_theme permission.",
+    responses={
+        200: {"description": "Theme property updated successfully"},
+        400: {
+            "description": "Invalid color format or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_COLOR_FORMAT",
+                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: red)",
+                            "details": {
+                                "key": "primary_color",
+                                "value": "red",
+                                "expected_format": "#RRGGBB",
+                            },
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit_theme"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def update_theme_property(
+    key: str,
+    config_update: ConfigUpdate,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Update a specific theme property.
+
+    Validates color format if the property is a color field.
+
+    Requires: config.edit or config.edit_theme
+
+    Args:
+        key: Theme property key (e.g., 'primary_color', 'logo_primary').
+        config_update: Configuration update data.
+        current_user: Current authenticated user (must have config.edit or config.edit_theme).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated property.
+
+    Raises:
+        InvalidColorFormatException: If color format is invalid.
+        APIException: If user lacks permission or validation fails.
+    """
+    # Validate color format if it's a color key
+    color_keys = [
+        "primary_color", "secondary_color", "accent_color",
+        "background_color", "surface_color",
+        "error_color", "warning_color", "success_color", "info_color",
+        "text_primary", "text_secondary", "text_disabled",
+        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
+    ]
+
+    if key in color_keys:
+        try:
+            validate_color(key, config_update.value)
+        except InvalidColorFormatException:
+            # Re-raise to ensure FastAPI handles it correctly
+            raise
+
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        config_data = config_service.set(
+            tenant_id=current_user.tenant_id,
+            module="app_theme",
+            key=key,
+            value=config_update.value,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except ValueError as e:
+        raise_bad_request("INVALID_THEME_VALUE", str(e))
+
+    return StandardResponse(data=config_data)
+
+
+# Version management endpoints
+@router.get(
+    "/{module}/{key}/versions",
+    response_model=StandardResponse[ConfigVersionListResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get version history",
+    description="Get version history for a configuration key. Requires config.view permission.",
+    responses={
+        200: {"description": "Version history retrieved successfully"},
+        403: {"description": "Insufficient permissions"},
+    },
+)
+async def get_version_history(
+    module: str,
+    key: str,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    skip: int = 0,
+    limit: int = 50,
+) -> StandardResponse[ConfigVersionListResponse]:
+    """
+    Get version history for a configuration key.
+
+    Requires: config.view
+
+    Args:
+        module: Module name
+        key: Configuration key
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        StandardResponse with version history
+    """
+    config_service = ConfigService(db)
+
+    versions, total = config_service.get_version_history(
+        tenant_id=current_user.tenant_id,
+        module=module,
+        key=key,
+        skip=skip,
+        limit=limit,
+    )
+
+    version_responses = [
+        ConfigVersionResponse(
+            id=v["id"],
+            version_number=v["version_number"],
+            value=v["value"],
+            change_type=v["change_type"],
+            changed_by=v["changed_by"],
+            change_reason=v.get("change_reason"),
+            created_at=v["created_at"],
+            metadata=v.get("metadata"),
+        )
+        for v in versions
+    ]
+
+    return StandardResponse(
+        data=ConfigVersionListResponse(
+            versions=version_responses,
+            total=total,
+            module=module,
+            key=key,
+        )
+    )
+
+
+@router.post(
+    "/{module}/{key}/rollback",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Rollback to version",
+    description="Rollback a configuration to a specific version. Requires config.edit permission.",
+    responses={
+        200: {"description": "Rollback successful"},
+        400: {"description": "Invalid version number"},
+        403: {"description": "Insufficient permissions"},
+        404: {"description": "Version not found"},
+    },
+)
+async def rollback_to_version(
+    module: str,
+    key: str,
+    rollback_request: ConfigRollbackRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Rollback a configuration to a specific version.
+
+    Requires: config.edit
+
+    Args:
+        module: Module name
+        key: Configuration key
+        rollback_request: Rollback request with version number
+        request: FastAPI request object
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        StandardResponse with rollback confirmation
+
+    Raises:
+        APIException: If version not found or rollback fails
+    """
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        config_data = config_service.rollback_to_version(
+            tenant_id=current_user.tenant_id,
+            module=module,
+            key=key,
+            version_number=rollback_request.version_number,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        return StandardResponse(
+            data={
+                "message": f"Configuration '{module}.{key}' rolled back to version {rollback_request.version_number}",
+                "config": config_data,
+            }
+        )
+    except ValueError as e:
+        raise_bad_request("ROLLBACK_FAILED", str(e))
 
 
 @router.get(
@@ -2039,12 +2551,12 @@ async def test_smtp_connection(
     config_service = ConfigService(db)
 
     # Get SMTP config
-    smtp_config = config_service.get_all_by_module(current_user.tenant_id, "notifications")
+    notifications_config = config_service.get_module_config(current_user.tenant_id, "notifications")
     smtp_data = {}
-    for config in smtp_config:
-        if config.key.startswith("channels.smtp."):
-            key = config.key.replace("channels.smtp.", "")
-            smtp_data[key] = config.value
+    for key, value in notifications_config.items():
+        if key.startswith("channels.smtp."):
+            config_key = key.replace("channels.smtp.", "")
+            smtp_data[config_key] = value
 
     if not smtp_data.get("enabled", False):
         raise_bad_request(
@@ -2052,10 +2564,24 @@ async def test_smtp_connection(
             "SMTP channel is not enabled",
         )
 
-    # TODO: Implement actual SMTP connection test
-    # For now, return success
+    # Test SMTP connection
+    from app.core.notifications.smtp_test import test_smtp_connection
+
+    test_result = test_smtp_connection(smtp_data)
+
+    if not test_result.success:
+        raise_bad_request(
+            "SMTP_CONNECTION_FAILED",
+            test_result.message,
+            details={"error": test_result.error, "details": test_result.details},
+        )
+
     return StandardResponse(
-        data={"success": True, "message": "SMTP connection test successful"},
+        data={
+            "success": test_result.success,
+            "message": test_result.message,
+            "details": test_result.details,
+        },
         message="SMTP connection test completed",
     )
 

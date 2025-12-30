@@ -101,3 +101,12 @@ class ConfigSeeder(Seeder):
         db.commit()
         print(f"✅ ConfigSeeder: Default configurations created for tenant {tenant_id}")
 
+
+
+
+
+
+
+
+
+

@@ -206,6 +206,31 @@ class CalendarService:
             user_id, tenant_id, start_date, end_date, skip, limit
         )
 
+    def count_events_by_calendar(
+        self,
+        calendar_id: UUID,
+        tenant_id: UUID,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count events by calendar with optional filters."""
+        return self.repository.count_events_by_calendar(
+            calendar_id, tenant_id, start_date, end_date, status
+        )
+
+    def count_user_events(
+        self,
+        user_id: UUID,
+        tenant_id: UUID,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> int:
+        """Count events for a user (as organizer or attendee)."""
+        return self.repository.count_events_by_user(
+            user_id, tenant_id, start_date, end_date
+        )
+
     def update_event(
         self, event_id: UUID, tenant_id: UUID, event_data: dict
     ) -> CalendarEvent | None:

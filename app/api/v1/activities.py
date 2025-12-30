@@ -83,7 +83,12 @@ async def list_activities(
             skip=skip,
             limit=page_size,
         )
-        total = len(activities)  # TODO: Add count method to repository
+        total = service.count_search_activities(
+            tenant_id=current_user.tenant_id,
+            query_text=search,
+            entity_type=entity_type,
+            activity_type=activity_type,
+        )
     elif entity_type and entity_id:
         activities = service.get_activities(
             entity_type=entity_type,
@@ -93,12 +98,20 @@ async def list_activities(
             skip=skip,
             limit=page_size,
         )
-        total = len(activities)  # TODO: Add count method to repository
+        total = service.count_activities(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            tenant_id=current_user.tenant_id,
+            activity_type=activity_type,
+        )
     else:
         activities = service.repository.get_all(
             current_user.tenant_id, activity_type, skip, page_size
         )
-        total = len(activities)  # TODO: Add count method to repository
+        total = service.count_all_activities(
+            tenant_id=current_user.tenant_id,
+            activity_type=activity_type,
+        )
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
@@ -226,7 +239,12 @@ async def get_entity_timeline(
         limit=page_size,
     )
 
-    total = len(activities)  # TODO: Add count method to repository
+    total = service.count_activities(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        tenant_id=current_user.tenant_id,
+        activity_type=activity_type,
+    )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(

@@ -77,6 +77,12 @@ async def list_import_jobs(
 ) -> StandardListResponse[ImportJobResponse]:
     """List import jobs."""
     skip = (page - 1) * page_size
+    total = service.count_import_jobs(
+        tenant_id=current_user.tenant_id,
+        module=module,
+        status=status,
+    )
+
     jobs = service.repository.get_import_jobs(
         tenant_id=current_user.tenant_id,
         module=module,
@@ -84,8 +90,6 @@ async def list_import_jobs(
         skip=skip,
         limit=page_size,
     )
-
-    total = len(jobs)  # TODO: Add count method
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
@@ -169,14 +173,17 @@ async def list_import_templates(
 ) -> StandardListResponse[ImportTemplateResponse]:
     """List import templates."""
     skip = (page - 1) * page_size
+    total = service.count_import_templates(
+        tenant_id=current_user.tenant_id,
+        module=module,
+    )
+
     templates = service.get_import_templates(
         tenant_id=current_user.tenant_id,
         module=module,
         skip=skip,
         limit=page_size,
     )
-
-    total = len(templates)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
@@ -234,6 +241,12 @@ async def list_export_jobs(
 ) -> StandardListResponse[ExportJobResponse]:
     """List export jobs."""
     skip = (page - 1) * page_size
+    total = service.count_export_jobs(
+        tenant_id=current_user.tenant_id,
+        module=module,
+        status=status,
+    )
+
     jobs = service.repository.get_export_jobs(
         tenant_id=current_user.tenant_id,
         module=module,
@@ -241,8 +254,6 @@ async def list_export_jobs(
         skip=skip,
         limit=page_size,
     )
-
-    total = len(jobs)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(

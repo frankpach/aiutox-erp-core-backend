@@ -77,6 +77,9 @@ class TestAuditService:
             resource_type=None,
             date_from=None,
             date_to=None,
+            ip_address=None,
+            user_agent=None,
+            details_search=None,
             skip=0,
             limit=2,
         )

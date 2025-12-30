@@ -14,6 +14,7 @@ from app.models.user_role import UserRole
 # Products models are now loaded dynamically via ModuleRegistry
 # Do not import them here to avoid circular imports
 from app.models.system_config import SystemConfig
+from app.models.theme_preset import ThemePreset
 from app.models.automation import AutomationExecution, Rule, RuleVersion
 from app.models.preference import Dashboard, OrgPreference, RolePreference, SavedView, UserPreference
 from app.models.reporting import DashboardWidget, ReportDefinition
@@ -72,6 +73,7 @@ __all__ = [
     "SeederRecord",
     "SystemConfig",
     "Tag",
+    "ThemePreset",
     "TagCategory",
     "Task",
     "TaskChecklistItem",

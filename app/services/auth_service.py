@@ -122,23 +122,23 @@ class AuthService:
         }
         return create_access_token(token_data)
 
-    def create_refresh_token_for_user(self, user: User) -> str:
+    def create_refresh_token_for_user(self, user: User, remember_me: bool = False) -> str:
         """
         Create a refresh token for a user and store it in the database.
 
         Args:
             user: User object.
+            remember_me: If True, token expires in REFRESH_TOKEN_REMEMBER_ME_DAYS, otherwise REFRESH_TOKEN_EXPIRE_DAYS.
 
         Returns:
             JWT refresh token string (plain text, to be sent to client).
         """
         # Generate refresh token
-        refresh_token = create_refresh_token(user.id)
+        refresh_token = create_refresh_token(user.id, remember_me)
 
         # Calculate expiration
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
+        expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expire_days)
 
         # Store hashed token in database
         self.refresh_token_repository.create(user.id, refresh_token, expires_at)

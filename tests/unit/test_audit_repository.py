@@ -236,6 +236,90 @@ class TestAuditRepository:
         assert total >= 1
         assert all(log.action == "recent_action" for log in logs if log.action)
 
+    def test_get_audit_logs_with_ip_address_filter(self, db_session, test_user, test_tenant):
+        """Test getting audit logs filtered by IP address."""
+        repo = AuditRepository(db_session)
+
+        # Create logs with different IP addresses
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            ip_address="192.168.1.100",
+        )
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            ip_address="192.168.1.200",
+        )
+
+        # Filter by IP address (partial match)
+        logs, total = repo.get_audit_logs(
+            tenant_id=test_tenant.id, ip_address="192.168.1"
+        )
+
+        assert total >= 2  # Should match both IPs
+        assert all("192.168.1" in (log.ip_address or "") for log in logs)
+
+    def test_get_audit_logs_with_user_agent_filter(self, db_session, test_user, test_tenant):
+        """Test getting audit logs filtered by user agent."""
+        repo = AuditRepository(db_session)
+
+        # Create logs with different user agents
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            user_agent="Mozilla/5.0 Chrome",
+        )
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            user_agent="Mozilla/5.0 Firefox",
+        )
+
+        # Filter by user agent (partial match)
+        logs, total = repo.get_audit_logs(
+            tenant_id=test_tenant.id, user_agent="Chrome"
+        )
+
+        assert total >= 1
+        assert all("Chrome" in (log.user_agent or "") for log in logs)
+
+    def test_get_audit_logs_with_details_search(self, db_session, test_user, test_tenant):
+        """Test getting audit logs filtered by details search."""
+        repo = AuditRepository(db_session)
+
+        # Create logs with different details
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            details={"key1": "value1", "key2": "value2"},
+        )
+        repo.create_audit_log(
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            action="test_action",
+            details={"key3": "value3", "key4": "value4"},
+        )
+
+        # Filter by details search (partial match in JSON)
+        logs, total = repo.get_audit_logs(
+            tenant_id=test_tenant.id, details_search="value1"
+        )
+
+        assert total >= 1
+        # Verify that the search found logs containing "value1" in details
+        found = False
+        for log in logs:
+            if log.details and "value1" in str(log.details):
+                found = True
+                break
+        assert found
+
     def test_get_audit_logs_tenant_isolation(self, db_session, test_user, test_tenant):
         """Test that audit logs are isolated by tenant."""
         repo = AuditRepository(db_session)

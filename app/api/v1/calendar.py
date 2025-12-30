@@ -238,6 +238,13 @@ async def list_events(
             skip=skip,
             limit=page_size,
         )
+        total = service.count_events_by_calendar(
+            calendar_id=calendar_id,
+            tenant_id=current_user.tenant_id,
+            start_date=start_date,
+            end_date=end_date,
+            status=status,
+        )
     else:
         events = service.get_user_events(
             user_id=current_user.id,
@@ -247,8 +254,12 @@ async def list_events(
             skip=skip,
             limit=page_size,
         )
-
-    total = len(events)  # TODO: Add count method to repository
+        total = service.count_user_events(
+            user_id=current_user.id,
+            tenant_id=current_user.tenant_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(

@@ -67,7 +67,7 @@ class ActivityService:
                 "title": title,
                 "description": description,
                 "user_id": user_id,
-                "metadata": metadata,
+                "activity_metadata": metadata,  # Model uses activity_metadata as attribute name
             }
         )
 
@@ -121,6 +121,64 @@ class ActivityService:
             entity_type, entity_id, tenant_id, activity_type, skip, limit
         )
 
+    def count_activities(
+        self,
+        entity_type: str,
+        entity_id: UUID,
+        tenant_id: UUID,
+        activity_type: str | None = None,
+    ) -> int:
+        """Count activities for an entity.
+
+        Args:
+            entity_type: Entity type
+            entity_id: Entity ID
+            tenant_id: Tenant ID
+            activity_type: Filter by activity type (optional)
+
+        Returns:
+            Count of activities
+        """
+        return self.repository.count_by_entity(
+            entity_type, entity_id, tenant_id, activity_type
+        )
+
+    def count_all_activities(
+        self,
+        tenant_id: UUID,
+        activity_type: str | None = None,
+    ) -> int:
+        """Count all activities for a tenant.
+
+        Args:
+            tenant_id: Tenant ID
+            activity_type: Filter by activity type (optional)
+
+        Returns:
+            Count of activities
+        """
+        return self.repository.count_all(tenant_id, activity_type)
+
+    def count_search_activities(
+        self,
+        tenant_id: UUID,
+        query_text: str,
+        entity_type: str | None = None,
+        activity_type: str | None = None,
+    ) -> int:
+        """Count activities matching search text.
+
+        Args:
+            tenant_id: Tenant ID
+            query_text: Search text
+            entity_type: Filter by entity type (optional)
+            activity_type: Filter by activity type (optional)
+
+        Returns:
+            Count of matching activities
+        """
+        return self.repository.count_search(tenant_id, query_text, entity_type, activity_type)
+
     def update_activity(
         self,
         activity_id: UUID,
@@ -149,7 +207,7 @@ class ActivityService:
         if description is not None:
             update_data["description"] = description
         if metadata is not None:
-            update_data["metadata"] = metadata
+            update_data["activity_metadata"] = metadata  # Model uses activity_metadata as attribute name
 
         activity = self.repository.update(activity_id, tenant_id, update_data)
 

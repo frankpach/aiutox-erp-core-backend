@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.auth.password import verify_password
@@ -46,16 +47,52 @@ class UserRepository:
         return self.db.query(User).offset(skip).limit(limit).all()
 
     def get_all_by_tenant(
-        self, tenant_id: UUID, skip: int = 0, limit: int = 100
-    ) -> list[User]:
-        """Get all users by tenant with pagination."""
-        return (
-            self.db.query(User)
-            .filter(User.tenant_id == tenant_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        self,
+        tenant_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+        filters: dict | None = None,
+    ) -> tuple[list[User], int]:
+        """
+        Get all users by tenant with pagination and optional filters.
+
+        Args:
+            tenant_id: Tenant ID.
+            skip: Number of records to skip.
+            limit: Maximum number of records to return.
+            filters: Dictionary with filter conditions:
+                - search: str - Search in email, first_name, last_name
+                - is_active: bool - Filter by active status
+
+        Returns:
+            Tuple of (list of users, total count).
+        """
+        query = self.db.query(User).filter(User.tenant_id == tenant_id)
+
+        # Apply filters
+        if filters:
+            # Search filter (email, first_name, last_name)
+            if "search" in filters and filters["search"]:
+                search_term = f"%{filters['search']}%"
+                query = query.filter(
+                    or_(
+                        User.email.ilike(search_term),
+                        User.first_name.ilike(search_term),
+                        User.last_name.ilike(search_term),
+                    )
+                )
+
+            # Active status filter
+            if "is_active" in filters and filters["is_active"] is not None:
+                query = query.filter(User.is_active == filters["is_active"])
+
+        # Get total count before pagination
+        total = query.count()
+
+        # Apply pagination
+        users = query.offset(skip).limit(limit).all()
+
+        return users, total
 
     def verify_password(self, user: User, password: str) -> bool:
         """Verify user password against stored hash."""

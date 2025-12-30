@@ -394,3 +394,12 @@ class TestThemeConfig:
         assert config["primary_color"] == "#E91E63"
         assert config["secondary_color"] == "#9C27B0"
 
+
+
+
+
+
+
+
+
+

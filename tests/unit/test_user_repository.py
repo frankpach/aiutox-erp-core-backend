@@ -134,8 +134,9 @@ class TestUserRepository:
         repo.create(other_user_data)
 
         # Get users for test_tenant
-        tenant_users = repo.get_all_by_tenant(test_tenant.id)
+        tenant_users, total = repo.get_all_by_tenant(test_tenant.id)
         assert len(tenant_users) >= 3
+        assert total >= 3
         assert all(user.tenant_id == test_tenant.id for user in tenant_users)
 
     def test_verify_password_correct(self, db_session, test_user):
@@ -189,6 +190,134 @@ class TestUserRepository:
         # Verify user is deleted
         deleted_user = repo.get_by_id(user_id)
         assert deleted_user is None
+
+    def test_get_all_by_tenant_with_search_filter(self, db_session, test_tenant):
+        """Test filtering users by search term."""
+        repo = UserRepository(db_session)
+
+        # Create users with different names
+        user1_data = {
+            "email": "john.doe@example.com",
+            "password_hash": hash_password("password"),
+            "first_name": "John",
+            "last_name": "Doe",
+            "tenant_id": test_tenant.id,
+            "is_active": True,
+        }
+        user1 = repo.create(user1_data)
+
+        user2_data = {
+            "email": "jane.smith@example.com",
+            "password_hash": hash_password("password"),
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "tenant_id": test_tenant.id,
+            "is_active": True,
+        }
+        user2 = repo.create(user2_data)
+
+        # Search for "john"
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"search": "john"}
+        )
+        assert total == 1
+        assert len(users) == 1
+        assert users[0].id == user1.id
+
+        # Search for "smith"
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"search": "smith"}
+        )
+        assert total == 1
+        assert len(users) == 1
+        assert users[0].id == user2.id
+
+        # Search for "jane" (first name)
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"search": "jane"}
+        )
+        assert total == 1
+        assert len(users) == 1
+        assert users[0].id == user2.id
+
+    def test_get_all_by_tenant_with_is_active_filter(self, db_session, test_tenant):
+        """Test filtering users by active status."""
+        repo = UserRepository(db_session)
+
+        # Create active and inactive users
+        active_user = repo.create(
+            {
+                "email": f"active-{uuid4().hex[:8]}@example.com",
+                "password_hash": hash_password("password"),
+                "full_name": "Active User",
+                "tenant_id": test_tenant.id,
+                "is_active": True,
+            }
+        )
+
+        inactive_user = repo.create(
+            {
+                "email": f"inactive-{uuid4().hex[:8]}@example.com",
+                "password_hash": hash_password("password"),
+                "full_name": "Inactive User",
+                "tenant_id": test_tenant.id,
+                "is_active": False,
+            }
+        )
+
+        # Filter active users
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"is_active": True}
+        )
+        assert total >= 1
+        assert all(user.is_active is True for user in users)
+        assert any(user.id == active_user.id for user in users)
+
+        # Filter inactive users
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"is_active": False}
+        )
+        assert total >= 1
+        assert all(user.is_active is False for user in users)
+        assert any(user.id == inactive_user.id for user in users)
+
+    def test_get_all_by_tenant_with_combined_filters(
+        self, db_session, test_tenant
+    ):
+        """Test filtering users with multiple filters combined."""
+        repo = UserRepository(db_session)
+
+        # Create users
+        active_john = repo.create(
+            {
+                "email": "john.active@example.com",
+                "password_hash": hash_password("password"),
+                "first_name": "John",
+                "last_name": "Active",
+                "tenant_id": test_tenant.id,
+                "is_active": True,
+            }
+        )
+
+        inactive_john = repo.create(
+            {
+                "email": "john.inactive@example.com",
+                "password_hash": hash_password("password"),
+                "first_name": "John",
+                "last_name": "Inactive",
+                "tenant_id": test_tenant.id,
+                "is_active": False,
+            }
+        )
+
+        # Filter: search "john" AND is_active=True
+        users, total = repo.get_all_by_tenant(
+            test_tenant.id, filters={"search": "john", "is_active": True}
+        )
+        assert total >= 1
+        assert all(user.is_active is True for user in users)
+        assert all("john" in user.email.lower() or "john" in (user.first_name or "").lower() for user in users)
+        assert any(user.id == active_john.id for user in users)
 
 
 

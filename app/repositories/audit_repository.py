@@ -67,6 +67,9 @@ class AuditRepository:
         resource_type: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        details_search: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> tuple[list[AuditLog], int]:
@@ -80,12 +83,17 @@ class AuditRepository:
             resource_type: Filter by resource type (optional).
             date_from: Filter by start date (optional).
             date_to: Filter by end date (optional).
+            ip_address: Filter by IP address (partial match, optional).
+            user_agent: Filter by user agent (partial match, optional).
+            details_search: Search in details JSON (partial match, optional).
             skip: Number of records to skip.
             limit: Maximum number of records to return.
 
         Returns:
             Tuple of (list of AuditLog instances, total count).
         """
+        from sqlalchemy import cast, String, func
+
         query = self.db.query(AuditLog).filter(AuditLog.tenant_id == tenant_id)
 
         # Apply filters
@@ -99,6 +107,15 @@ class AuditRepository:
             query = query.filter(AuditLog.created_at >= date_from)
         if date_to is not None:
             query = query.filter(AuditLog.created_at <= date_to)
+        if ip_address is not None:
+            query = query.filter(AuditLog.ip_address.ilike(f"%{ip_address}%"))
+        if user_agent is not None:
+            query = query.filter(AuditLog.user_agent.ilike(f"%{user_agent}%"))
+        if details_search is not None:
+            # Search in details JSON by casting to text and using ilike
+            query = query.filter(
+                cast(AuditLog.details, String).ilike(f"%{details_search}%")
+            )
 
         # Get total count before pagination
         total = query.count()

@@ -203,6 +203,164 @@ class TestConfigService:
         # Should exist for tenant 1
         assert service.get(tenant_id_1, module, key) == 10.0
 
+    def test_set_config_with_audit_log(self, db_session: Session, test_tenant, test_user):
+        """Test setting configuration with audit logging."""
+        service = ConfigService(db_session)
+        tenant_id = test_tenant.id
+        module = "audit_test"
+        key = "audit_key"
+        value = "test_value"
+
+        result = service.set(
+            tenant_id,
+            module,
+            key,
+            value,
+            user_id=test_user.id,
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
+
+        assert result["value"] == value
+
+        # Verify audit log was created
+        from app.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "config.created",
+            AuditLog.resource_type == "config",
+        ).all()
+        assert len(audit_logs) > 0
+
+    def test_set_config_with_versioning(self, db_session: Session, test_tenant, test_user):
+        """Test setting configuration with versioning enabled."""
+        service = ConfigService(db_session, use_versioning=True)
+        tenant_id = test_tenant.id
+        module = "version_test"
+        key = "version_key"
+
+        # Create first version
+        service.set(tenant_id, module, key, "value1", user_id=test_user.id)
+
+        # Update to create second version
+        service.set(tenant_id, module, key, "value2", user_id=test_user.id)
+
+        # Get version history
+        versions, total = service.get_version_history(tenant_id, module, key)
+        assert total >= 2
+        assert len(versions) >= 2
+
+    def test_rollback_to_version(self, db_session: Session, test_tenant, test_user):
+        """Test rolling back to a previous version."""
+        service = ConfigService(db_session, use_versioning=True)
+        tenant_id = test_tenant.id
+        module = "rollback_test"
+        key = "rollback_key"
+
+        # Create initial version
+        service.set(tenant_id, module, key, "initial", user_id=test_user.id)
+
+        # Update to version 2
+        service.set(tenant_id, module, key, "updated", user_id=test_user.id)
+
+        # Rollback to version 1
+        result = service.rollback_to_version(
+            tenant_id, module, key, version_number=1, user_id=test_user.id
+        )
+
+        # Verify rollback
+        assert result["value"] == "initial"
+        current_value = service.get(tenant_id, module, key)
+        assert current_value == "initial"
+
+    def test_service_without_cache(self, db_session: Session, test_tenant):
+        """Test service behavior without cache."""
+        service = ConfigService(db_session, use_cache=False)
+        tenant_id = test_tenant.id
+        module = "no_cache_test"
+        key = "no_cache_key"
+        value = "test_value"
+
+        # Set and get should work without cache
+        service.set(tenant_id, module, key, value)
+        result = service.get(tenant_id, module, key)
+        assert result == value
+
+        # Cache stats should show disabled
+        stats = service.get_cache_stats()
+        assert stats["enabled"] is False
+
+    def test_service_without_versioning(self, db_session: Session, test_tenant, test_user):
+        """Test service behavior without versioning."""
+        service = ConfigService(db_session, use_versioning=False)
+        tenant_id = test_tenant.id
+        module = "no_version_test"
+        key = "no_version_key"
+
+        # Set should work without versioning
+        service.set(tenant_id, module, key, "value1", user_id=test_user.id)
+
+        # Version history should be empty
+        versions, total = service.get_version_history(tenant_id, module, key)
+        assert total == 0
+        assert len(versions) == 0
+
+        # Rollback should raise error
+        with pytest.raises(ValueError, match="Versioning is not enabled"):
+            service.rollback_to_version(tenant_id, module, key, version_number=1)
+
+    def test_delete_config_with_audit(self, db_session: Session, test_tenant, test_user):
+        """Test deleting configuration with audit logging."""
+        service = ConfigService(db_session)
+        tenant_id = test_tenant.id
+        module = "delete_audit_test"
+        key = "delete_key"
+
+        # Create first
+        service.set(tenant_id, module, key, "value", user_id=test_user.id)
+
+        # Delete it
+        service.delete(
+            tenant_id,
+            module,
+            key,
+            user_id=test_user.id,
+            ip_address="127.0.0.1",
+            user_agent="test-agent",
+        )
+
+        # Verify it's gone
+        result = service.get(tenant_id, module, key)
+        assert result is None
+
+        # Verify audit log was created
+        from app.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "config.deleted",
+            AuditLog.resource_type == "config",
+        ).all()
+        assert len(audit_logs) > 0
+
+    def test_cleanup_old_versions(self, db_session: Session, test_tenant, test_user):
+        """Test cleaning up old versions."""
+        service = ConfigService(db_session, use_versioning=True)
+        tenant_id = test_tenant.id
+        module = "cleanup_test"
+        key = "cleanup_key"
+
+        # Create multiple versions
+        for i in range(15):
+            service.set(tenant_id, module, key, f"value{i}", user_id=test_user.id)
+
+        # Cleanup, keeping only 10 versions
+        deleted_count = service.cleanup_old_versions(tenant_id, module, key, keep_versions=10)
+
+        # Verify cleanup happened
+        assert deleted_count > 0
+
+        # Verify we still have versions
+        versions, total = service.get_version_history(tenant_id, module, key)
+        assert total <= 10
+
 
 
 

@@ -42,17 +42,81 @@ class ViewRepository:
         skip: int = 0,
         limit: int = 100,
     ) -> list[SavedFilter]:
-        """Get saved filters with optional filters."""
+        """Get saved filters with optional filters.
+
+        Returns filters where:
+        - If user_id is provided: filters created by user OR shared filters
+        - If is_shared is True: only shared filters
+        - If is_shared is False: only non-shared filters created by user
+        - If is_shared is None and user_id is provided: user's filters OR shared filters
+        """
+        from sqlalchemy import or_
+
         query = self.db.query(SavedFilter).filter(SavedFilter.tenant_id == tenant_id)
 
         if module:
             query = query.filter(SavedFilter.module == module)
-        if user_id:
-            query = query.filter(SavedFilter.created_by == user_id)
-        if is_shared is not None:
+
+        # Handle user_id and is_shared logic
+        if user_id is not None:
+            if is_shared is True:
+                # Only shared filters
+                query = query.filter(SavedFilter.is_shared == True)
+            elif is_shared is False:
+                # Only user's non-shared filters
+                query = query.filter(
+                    SavedFilter.created_by == user_id,
+                    SavedFilter.is_shared == False
+                )
+            else:
+                # User's filters OR shared filters
+                query = query.filter(
+                    or_(
+                        SavedFilter.created_by == user_id,
+                        SavedFilter.is_shared == True
+                    )
+                )
+        elif is_shared is not None:
+            # Filter by shared status only (no user filter)
             query = query.filter(SavedFilter.is_shared == is_shared)
 
         return query.order_by(SavedFilter.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_saved_filters(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        user_id: UUID | None = None,
+        is_shared: bool | None = None,
+    ) -> int:
+        """Count saved filters with optional filters."""
+        from sqlalchemy import or_, func
+
+        query = self.db.query(func.count(SavedFilter.id)).filter(SavedFilter.tenant_id == tenant_id)
+
+        if module:
+            query = query.filter(SavedFilter.module == module)
+
+        # Handle user_id and is_shared logic (same as get_saved_filters)
+        if user_id is not None:
+            if is_shared is True:
+                query = query.filter(SavedFilter.is_shared == True)
+            elif is_shared is False:
+                query = query.filter(
+                    SavedFilter.created_by == user_id,
+                    SavedFilter.is_shared == False
+                )
+            else:
+                query = query.filter(
+                    or_(
+                        SavedFilter.created_by == user_id,
+                        SavedFilter.is_shared == True
+                    )
+                )
+        elif is_shared is not None:
+            query = query.filter(SavedFilter.is_shared == is_shared)
+
+        return query.scalar() or 0
 
     def update_saved_filter(self, filter_obj: SavedFilter, filter_data: dict) -> SavedFilter:
         """Update saved filter."""
@@ -104,6 +168,25 @@ class ViewRepository:
             query = query.filter(CustomView.is_shared == is_shared)
 
         return query.order_by(CustomView.created_at.desc()).offset(skip).limit(limit).all()
+
+    def count_custom_views(
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        user_id: UUID | None = None,
+        is_shared: bool | None = None,
+    ) -> int:
+        """Count custom views with optional filters."""
+        query = self.db.query(CustomView).filter(CustomView.tenant_id == tenant_id)
+
+        if module:
+            query = query.filter(CustomView.module == module)
+        if user_id:
+            query = query.filter(CustomView.created_by == user_id)
+        if is_shared is not None:
+            query = query.filter(CustomView.is_shared == is_shared)
+
+        return query.count()
 
     def update_custom_view(self, view: CustomView, view_data: dict) -> CustomView:
         """Update custom view."""

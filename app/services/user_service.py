@@ -141,8 +141,18 @@ class UserService:
         update_data = user_data.model_dump(exclude_unset=True)
         if "full_name" in update_data and update_data["full_name"] != user.full_name:
             changes["full_name"] = {"old": user.full_name, "new": update_data["full_name"]}
+
+        # If user is being deactivated, revoke all tokens
+        tokens_revoked = 0
         if "is_active" in update_data and update_data["is_active"] != user.is_active:
             changes["is_active"] = {"old": user.is_active, "new": update_data["is_active"]}
+            # If being deactivated, revoke all tokens
+            if update_data["is_active"] is False:
+                from app.repositories.refresh_token_repository import RefreshTokenRepository
+                refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
+                if tokens_revoked > 0:
+                    changes["tokens_revoked"] = tokens_revoked
 
         # Update user
         updated_user = self.repository.update(user, update_data)
@@ -182,7 +192,7 @@ class UserService:
             "updated_at": updated_user.updated_at,
         }
 
-    def delete_user(
+    def deactivate_user(
         self,
         user_id: UUID,
         deactivated_by: UUID | None = None,
@@ -190,7 +200,7 @@ class UserService:
         user_agent: str | None = None,
     ) -> bool:
         """
-        Soft delete user (set is_active=False).
+        Soft delete user (set is_active=False) and revoke all tokens.
 
         Args:
             user_id: User ID to deactivate.
@@ -203,6 +213,13 @@ class UserService:
             return False
 
         tenant_id = user.tenant_id
+
+        # Revoke all refresh tokens for this user
+        from app.repositories.refresh_token_repository import RefreshTokenRepository
+        refresh_token_repo = RefreshTokenRepository(self.repository.db)
+        tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
+
+        # Set user as inactive
         user.is_active = False
         self.repository.update(user, {})
 
@@ -213,7 +230,7 @@ class UserService:
                 user_id=str(deactivated_by),
                 target_user_id=str(user_id),
                 tenant_id=str(tenant_id),
-                details={"email": user.email},
+                details={"email": user.email, "tokens_revoked": tokens_revoked},
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
@@ -225,32 +242,88 @@ class UserService:
                 action="deactivate_user",
                 resource_type="user",
                 resource_id=user_id,
-                details={"email": user.email},
+                details={"email": user.email, "tokens_revoked": tokens_revoked},
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
 
         return True
 
+    def delete_user(
+        self,
+        user_id: UUID,
+        deleted_by: UUID | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> bool:
+        """
+        Hard delete user (permanent deletion with cascade).
+
+        Args:
+            user_id: User ID to delete.
+            deleted_by: UUID of user who deleted this user (None for system).
+            ip_address: Client IP address (optional).
+            user_agent: Client user agent (optional).
+        """
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            return False
+
+        tenant_id = user.tenant_id
+        user_email = user.email
+
+        # Log user deletion before deleting
+        if deleted_by:
+            log_user_action(
+                action="delete_user",
+                user_id=str(deleted_by),
+                target_user_id=str(user_id),
+                tenant_id=str(tenant_id),
+                details={"email": user_email},
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+
+            create_audit_log_entry(
+                db=self.repository.db,
+                user_id=deleted_by,
+                tenant_id=tenant_id,
+                action="delete_user",
+                resource_type="user",
+                resource_id=user_id,
+                details={"email": user_email},
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+
+        # Hard delete with cascade (handled by SQLAlchemy relationships)
+        self.repository.delete(user)
+
+        return True
+
     def list_users(
-        self, tenant_id: UUID, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+        filters: dict | None = None,
     ) -> tuple[list[dict], int]:
         """
-        List users by tenant with pagination.
+        List users by tenant with pagination and optional filters.
 
         Args:
             tenant_id: Tenant UUID.
             skip: Number of records to skip.
             limit: Maximum number of records to return.
+            filters: Dictionary with filter conditions:
+                - search: str - Search in email, first_name, last_name
+                - is_active: bool - Filter by active status
 
         Returns:
             Tuple of (list of user dicts, total count).
         """
-        users = self.repository.get_all_by_tenant(tenant_id, skip=skip, limit=limit)
-        total = (
-            self.repository.db.query(User)
-            .filter(User.tenant_id == tenant_id)
-            .count()
+        users, total = self.repository.get_all_by_tenant(
+            tenant_id=tenant_id, skip=skip, limit=limit, filters=filters or {}
         )
 
         user_dicts = [
@@ -266,4 +339,166 @@ class UserService:
         ]
 
         return user_dicts, total
+
+    def bulk_action(
+        self,
+        user_ids: list[UUID],
+        action: str,
+        tenant_id: UUID,
+        performed_by: UUID | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> dict:
+        """
+        Perform bulk action on users.
+
+        Args:
+            user_ids: List of user IDs.
+            action: Action to perform (activate, deactivate, delete).
+            tenant_id: Tenant ID for security.
+            performed_by: User performing the action.
+            ip_address: Client IP address.
+            user_agent: Client user agent.
+
+        Returns:
+            Dictionary with success and failed counts.
+        """
+        success_count = 0
+        failed_count = 0
+        failed_ids = []
+
+        for user_id in user_ids:
+            try:
+                user = self.repository.get_by_id(user_id)
+
+                # Verify that the user exists and belongs to the tenant
+                if not user or user.tenant_id != tenant_id:
+                    failed_count += 1
+                    failed_ids.append(str(user_id))
+                    continue
+
+                # Apply action
+                if action == "activate":
+                    update_data = {"is_active": True}
+                    self.repository.update(user, update_data)
+
+                    # Log audit entry
+                    if performed_by:
+                        log_user_action(
+                            action="bulk_activate_user",
+                            user_id=str(performed_by),
+                            target_user_id=str(user_id),
+                            tenant_id=str(tenant_id),
+                            details={"action": action, "email": user.email},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                        create_audit_log_entry(
+                            db=self.repository.db,
+                            user_id=performed_by,
+                            tenant_id=tenant_id,
+                            action="bulk_activate_user",
+                            resource_type="user",
+                            resource_id=user_id,
+                            details={"action": action, "email": user.email},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                    success_count += 1
+
+                elif action == "deactivate":
+                    # Soft delete (set is_active=False) and revoke tokens
+                    # Revoke all refresh tokens for this user
+                    from app.repositories.refresh_token_repository import RefreshTokenRepository
+                    refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                    tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
+
+                    # Set user as inactive
+                    update_data = {"is_active": False}
+                    self.repository.update(user, update_data)
+
+                    # Log audit entry
+                    if performed_by:
+                        log_user_action(
+                            action="bulk_deactivate_user",
+                            user_id=str(performed_by),
+                            target_user_id=str(user_id),
+                            tenant_id=str(tenant_id),
+                            details={"action": action, "email": user.email, "tokens_revoked": tokens_revoked},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                        create_audit_log_entry(
+                            db=self.repository.db,
+                            user_id=performed_by,
+                            tenant_id=tenant_id,
+                            action="bulk_deactivate_user",
+                            resource_type="user",
+                            resource_id=user_id,
+                            details={"action": action, "email": user.email, "tokens_revoked": tokens_revoked},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                    success_count += 1
+
+                elif action == "delete":
+                    # Soft delete (set is_active=False) and revoke tokens
+                    # Revoke all refresh tokens for this user
+                    from app.repositories.refresh_token_repository import RefreshTokenRepository
+                    refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                    tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
+
+                    user_email = user.email
+
+                    # Log before deletion
+                    if performed_by:
+                        log_user_action(
+                            action="bulk_delete_user",
+                            user_id=str(performed_by),
+                            target_user_id=str(user_id),
+                            tenant_id=str(tenant_id),
+                            details={"action": action, "email": user_email, "tokens_revoked": tokens_revoked},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                        create_audit_log_entry(
+                            db=self.repository.db,
+                            user_id=performed_by,
+                            tenant_id=tenant_id,
+                            action="bulk_delete_user",
+                            resource_type="user",
+                            resource_id=user_id,
+                            details={"action": action, "email": user_email, "tokens_revoked": tokens_revoked},
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                        )
+
+                    # Soft delete (set is_active=False)
+                    update_data = {"is_active": False}
+                    self.repository.update(user, update_data)
+                    success_count += 1
+
+                else:
+                    failed_count += 1
+                    failed_ids.append(str(user_id))
+                    continue
+
+            except Exception as e:
+                failed_count += 1
+                failed_ids.append(str(user_id))
+                # Log error but continue with other users
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error in bulk action for user {user_id}: {e}")
+
+        return {
+            "success": success_count,
+            "failed": failed_count,
+            "failed_ids": failed_ids,
+        }
 

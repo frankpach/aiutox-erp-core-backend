@@ -77,7 +77,8 @@
     "name": "Notificaciones",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
+    "path": "backend/app/api/v1/notifications.py",
     "description": "Infraestructura base: Email/SMS/Webhooks. Los módulos empresariales registran sus eventos y templates. Consume eventos del bus y consulta preferencias de usuario.",
     "depends_on": ["auth", "users", "pubsub", "preferences"]
   },
@@ -86,7 +87,8 @@
     "name": "Sistema de Archivos y Documentos",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
+    "path": "backend/app/api/v1/files.py",
     "description": "Infraestructura base: Almacenamiento de archivos, gestión de versiones, metadatos, permisos. Relación polimórfica con cualquier entidad.",
     "depends_on": ["auth", "users"]
   },
@@ -95,7 +97,8 @@
     "name": "Sistema de Actividades/Timeline",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
+    "path": "backend/app/api/v1/activities.py",
     "description": "Infraestructura base: Timeline de actividades por entidad (polimórfico). Tipos: comentario, llamada, email, reunión, tarea, cambio de estado.",
     "depends_on": ["auth", "users", "audit"]
   },

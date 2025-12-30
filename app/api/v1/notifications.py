@@ -91,13 +91,17 @@ async def list_templates(
 ) -> StandardListResponse[NotificationTemplateResponse]:
     """List all notification templates."""
     skip = (page - 1) * page_size
+
+    # Get total count for accurate pagination
+    total = repository.count_templates(
+        tenant_id=current_user.tenant_id, event_type=event_type
+    )
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    # Get paginated templates
     templates = repository.get_all_templates(
         tenant_id=current_user.tenant_id, event_type=event_type
     )
-
-    total = len(templates)
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-
     # Apply pagination
     paginated_templates = templates[skip : skip + page_size]
 
@@ -238,13 +242,16 @@ async def list_queue_entries(
 ) -> StandardListResponse[NotificationQueueResponse]:
     """List notification queue entries."""
     skip = (page - 1) * page_size
+
+    # Get total count for accurate pagination
+    total = repository.count_queue_entries(
+        tenant_id=current_user.tenant_id, status=status
+    )
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
     queue_entries = repository.get_queue_entries(
         tenant_id=current_user.tenant_id, status=status, skip=skip, limit=page_size
     )
-
-    # TODO: Add count method to repository for accurate total
-    total = len(queue_entries)
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
         data=[NotificationQueueResponse.model_validate(entry) for entry in queue_entries],

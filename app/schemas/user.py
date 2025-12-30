@@ -103,3 +103,27 @@ class UserResponse(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class BulkUsersAction(BaseModel):
+    """Schema for bulk user actions."""
+
+    action: str = Field(
+        ...,
+        description="Action to perform: 'activate' (set active), 'deactivate' (soft delete), or 'delete' (hard delete with cascade)"
+    )
+    user_ids: list[UUID] = Field(
+        ..., min_length=1, description="List of user IDs to apply action"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "action": "activate",
+                "user_ids": [
+                    "123e4567-e89b-12d3-a456-426614174000",
+                    "123e4567-e89b-12d3-a456-426614174001",
+                ],
+            }
+        }
+    )
+

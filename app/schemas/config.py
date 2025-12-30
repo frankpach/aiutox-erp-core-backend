@@ -129,6 +129,41 @@ class GeneralSettingsRequest(BaseModel):
     )
 
 
+class ThemePresetCreate(BaseModel):
+    """Schema for creating a theme preset."""
+
+    name: str = Field(..., min_length=1, max_length=255, description="Preset name")
+    description: str | None = Field(None, description="Optional description")
+    config: dict[str, Any] = Field(..., description="Theme configuration dictionary")
+    is_default: bool = Field(False, description="Whether this should be the default preset")
+
+
+class ThemePresetUpdate(BaseModel):
+    """Schema for updating a theme preset."""
+
+    name: str | None = Field(None, min_length=1, max_length=255, description="Preset name")
+    description: str | None = Field(None, description="Optional description")
+    config: dict[str, Any] | None = Field(None, description="Theme configuration dictionary")
+    is_default: bool | None = Field(None, description="Whether this should be the default preset")
+
+
+class ThemePresetResponse(BaseModel):
+    """Response schema for theme preset."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID = Field(..., description="Preset ID")
+    tenant_id: UUID = Field(..., description="Tenant ID")
+    name: str = Field(..., description="Preset name")
+    description: str | None = Field(None, description="Optional description")
+    config: dict[str, Any] = Field(..., description="Theme configuration dictionary")
+    is_default: bool = Field(..., description="Whether this is the default preset")
+    is_system: bool = Field(..., description="Whether this is a system preset")
+    created_by: UUID | None = Field(None, description="User who created this preset")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+
+
 class GeneralSettingsResponse(BaseModel):
     """Schema for general system settings response."""
 

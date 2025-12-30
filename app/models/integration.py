@@ -52,6 +52,7 @@ class Integration(Base):
     type = Column(String(50), nullable=False)  # IntegrationType
     status = Column(String(20), nullable=False, default=IntegrationStatus.INACTIVE.value)  # IntegrationStatus
     config = Column(JSON, nullable=False, default=dict)  # Credentials and configuration
+    credentials = Column(Text, nullable=True)  # Encrypted credentials (JSON string)
     last_sync_at = Column(DateTime(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

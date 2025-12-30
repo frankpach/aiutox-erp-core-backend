@@ -57,3 +57,9 @@ class IntegrationTestResponse(BaseModel):
     success: bool
     message: str
     details: dict[str, Any] | None = None
+
+
+class IntegrationCredentialsResponse(BaseModel):
+    """Schema for integration credentials response."""
+
+    credentials: dict[str, Any] = Field(..., description="Decrypted credentials")

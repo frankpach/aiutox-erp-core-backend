@@ -13,10 +13,11 @@ from app.core.integrations.service import IntegrationService
 from app.core.logging import get_client_info
 from app.models.integration import IntegrationStatus, IntegrationType
 from app.models.user import User
-from app.schemas.common import StandardListResponse, StandardResponse
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.integration import (
     IntegrationActivateRequest,
     IntegrationCreate,
+    IntegrationCredentialsResponse,
     IntegrationResponse,
     IntegrationTestResponse,
     IntegrationUpdate,
@@ -78,9 +79,13 @@ async def list_integrations(
     integrations = service.list_integrations(current_user.tenant_id, integration_type)
 
     return StandardListResponse(
-        data=[IntegrationResponse.model_validate(i) for i in integrations],
-        meta={"total": len(integrations)},
-        message="Integrations retrieved successfully",
+        data=[IntegrationResponse.model_validate(i, from_attributes=True) for i in integrations],
+        meta=PaginationMeta(
+            total=len(integrations),
+            page=1,
+            page_size=len(integrations) if integrations else 1,
+            total_pages=1,
+        ),
     )
 
 
@@ -603,6 +608,79 @@ async def test_integration(
         return StandardResponse(
             data=IntegrationTestResponse.model_validate(test_result),
             message="Integration test completed",
+        )
+    except ValueError as e:
+        raise_not_found("Integration", str(integration_id))
+
+
+@router.get(
+    "/{integration_id}/credentials",
+    response_model=StandardResponse[IntegrationCredentialsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get integration credentials",
+    description="Get decrypted credentials for an integration. Requires integrations.view_credentials or integrations.manage permission.",
+    responses={
+        200: {"description": "Credentials retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "integrations.view_credentials"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Integration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INTEGRATION_NOT_FOUND",
+                            "message": "Integration not found",
+                            "details": {"integration_id": "..."},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_integration_credentials(
+    integration_id: Annotated[UUID, Path(..., description="Integration ID")],
+    current_user: Annotated[User, Depends(require_permission("integrations.manage"))],
+    service: Annotated[IntegrationService, Depends(get_integration_service)],
+) -> StandardResponse[IntegrationCredentialsResponse]:
+    """
+    Get decrypted credentials for an integration.
+
+    Requires: integrations.manage (or integrations.view_credentials if implemented)
+
+    Args:
+        integration_id: Integration UUID.
+        current_user: Current authenticated user (must have integrations.manage).
+        service: IntegrationService instance.
+
+    Returns:
+        StandardResponse with decrypted credentials.
+
+    Raises:
+        APIException: If integration not found or user lacks permission.
+    """
+    try:
+        credentials = service.get_credentials(
+            integration_id=integration_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+        )
+        return StandardResponse(
+            data=IntegrationCredentialsResponse(credentials=credentials),
+            message="Credentials retrieved successfully",
         )
     except ValueError as e:
         raise_not_found("Integration", str(integration_id))

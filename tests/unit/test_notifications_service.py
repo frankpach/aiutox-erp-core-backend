@@ -190,3 +190,142 @@ async def test_send_notification_publishes_failed_event(
             assert len(failed_calls) > 0
 
 
+@pytest.mark.asyncio
+async def test_send_sms(notification_service, test_user, test_tenant, db_session):
+    """Test sending SMS notification."""
+    from app.core.config.service import ConfigService
+    from app.repositories.contact_method_repository import ContactMethodRepository
+    from app.models.contact_method import ContactMethodType
+
+    # Create phone contact method for user
+    from app.models.contact_method import EntityType
+
+    contact_repo = ContactMethodRepository(db_session)
+    contact_repo.create(
+        {
+            "entity_type": EntityType.USER,
+            "entity_id": test_user.id,
+            "method_type": ContactMethodType.MOBILE,
+            "value": "+1987654321",
+            "is_primary": True,
+        }
+    )
+
+    # Set SMS configuration
+    config_service = ConfigService(db_session, use_cache=False)
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.enabled",
+        value=True,
+    )
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.provider",
+        value="twilio",
+    )
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.account_sid",
+        value="test_account_sid",
+    )
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.auth_token",
+        value="test_auth_token",
+    )
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.from_number",
+        value="+1234567890",
+    )
+
+    import httpx
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {"sid": "SM1234567890"}
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client_class.return_value = mock_client
+
+        await notification_service._send_sms(test_user.id, "Test SMS message")
+
+        # Verify HTTP request was made
+        assert mock_client.post.called
+        call_args = mock_client.post.call_args
+        assert "https://api.twilio.com" in call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_send_sms_no_phone(notification_service, test_user, test_tenant, db_session):
+    """Test sending SMS when user has no phone number."""
+    from app.core.config.service import ConfigService
+
+    # Set SMS configuration (but user has no phone)
+    config_service = ConfigService(db_session, use_cache=False)
+    config_service.set(
+        tenant_id=test_tenant.id,
+        module="notifications",
+        key="channels.sms.enabled",
+        value=True,
+    )
+
+    with pytest.raises(ValueError, match="phone"):
+        await notification_service._send_sms(test_user.id, "Test SMS message")
+
+
+@pytest.mark.asyncio
+async def test_send_webhook(notification_service):
+    """Test sending webhook notification."""
+    import httpx
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client_class.return_value = mock_client
+
+        payload = {"body": "Test webhook message", "event_type": "test.event"}
+        await notification_service._send_webhook("https://webhook.example.com/test", payload)
+
+        # Verify HTTP request was made
+        assert mock_client.post.called
+        call_args = mock_client.post.call_args
+        assert call_args[0][0] == "https://webhook.example.com/test"
+        assert call_args[1]["json"] == payload
+
+
+@pytest.mark.asyncio
+async def test_send_webhook_no_url(notification_service):
+    """Test sending webhook without URL raises error."""
+    with pytest.raises(ValueError, match="URL is required"):
+        await notification_service._send_webhook(None, {"body": "Test"})
+
+
+@pytest.mark.asyncio
+async def test_send_webhook_timeout(notification_service):
+    """Test webhook timeout handling."""
+    import httpx
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+        mock_client_class.return_value = mock_client
+
+        payload = {"body": "Test webhook message"}
+        with pytest.raises(Exception, match="timeout"):
+            await notification_service._send_webhook("https://webhook.example.com/test", payload)
+
+

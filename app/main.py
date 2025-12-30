@@ -1,13 +1,18 @@
+import logging
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
 from app.core.config_file import get_settings
 from app.core.exceptions import APIException
+# Import logging module to initialize loggers
+from app.core import logging as app_logging  # noqa: F401
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="AiutoX ERP API",
@@ -17,9 +22,93 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS configuration
+
+def add_security_headers(response: Response) -> None:
+    """Add security headers to a response."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+    # Content Security Policy
+    # Note: frame-ancestors must be in CSP header, not meta tag
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' http://localhost:8000 https:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "worker-src 'self' blob:;"
+    )
+    response.headers["Content-Security-Policy"] = csp
+
+
+class CORSEnforcementMiddleware(BaseHTTPMiddleware):
+    """Middleware to ensure CORS headers are always added, even for errors."""
+
+    def __init__(self, app, allowed_origins: list[str]):
+        super().__init__(app)
+        self.allowed_origins = allowed_origins
+
+    async def dispatch(self, request: Request, call_next):
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            # Create error response with CORS headers
+            from fastapi.responses import JSONResponse
+            error_response = JSONResponse(
+                status_code=500,
+                content={
+                    "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "An internal server error occurred",
+                        "details": {"error": str(e)} if settings.DEBUG else None,
+                    },
+                    "data": None,
+                },
+            )
+            origin = request.headers.get("origin")
+            if origin and origin in self.allowed_origins:
+                error_response.headers["Access-Control-Allow-Origin"] = origin
+                error_response.headers["Access-Control-Allow-Credentials"] = "true"
+            add_security_headers(error_response)
+            return error_response
+
+        # Ensure CORS headers are present even if middleware didn't add them
+        origin = request.headers.get("origin")
+        if origin and origin in self.allowed_origins:
+            if "Access-Control-Allow-Origin" not in response.headers:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+
+        add_security_headers(response)
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to add security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        add_security_headers(response)
+        return response
+
+
+# CORS configuration (must be added BEFORE SecurityHeadersMiddleware so CORS headers are added first)
 if settings.CORS_ORIGINS:
     origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
+    # Always include common localhost variants for development
+    if "http://127.0.0.1:3000" not in origins:
+        origins.append("http://127.0.0.1:3000")
+    if "http://localhost:3000" not in origins:
+        origins.append("http://localhost:3000")
+    if "http://localhost:5173" not in origins:
+        origins.append("http://localhost:5173")
 else:
     origins = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:3000"]
 
@@ -30,6 +119,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add CORS enforcement middleware (after CORS middleware to ensure headers are always present)
+app.add_middleware(CORSEnforcementMiddleware, allowed_origins=origins)
+
+# Add security headers middleware (after CORS)
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.exception_handler(APIException)
@@ -42,10 +137,17 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
     # exc.detail already contains {"error": {...}}, add data: null for API contract compliance
     response_content = exc.detail.copy()
     response_content["data"] = None
-    return JSONResponse(
+    response = JSONResponse(
         status_code=exc.status_code,
         content=response_content,
     )
+    # Ensure CORS headers are added even for errors
+    origin = request.headers.get("origin")
+    if origin and origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    add_security_headers(response)
+    return response
 
 
 @app.exception_handler(RequestValidationError)
@@ -78,10 +180,17 @@ async def validation_exception_handler(
         "data": None,
     }
 
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=response_content,
     )
+    # Ensure CORS headers are added even for errors
+    origin = request.headers.get("origin")
+    if origin and origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    add_security_headers(response)
+    return response
 
 
 @app.get("/healthz", tags=["system"])
@@ -92,6 +201,58 @@ def healthz():
         "env": settings.ENV,
         "debug": settings.DEBUG,
     }
+
+
+# Global exception handler for unhandled exceptions
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle all unhandled exceptions and ensure CORS headers are added."""
+    # #region agent log
+    import json
+    try:
+        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"location": "main.py:160", "message": "Global exception handler called", "data": {"exception_type": type(exc).__name__, "exception_msg": str(exc), "path": str(request.url.path), "origin": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "A"}) + "\n")
+    except: pass
+    # #endregion agent log
+
+    logger.exception(f"Unhandled exception: {exc}")
+
+    response_content = {
+        "error": {
+            "code": "INTERNAL_SERVER_ERROR",
+            "message": "An internal server error occurred",
+            "details": {"error": str(exc)} if settings.DEBUG else None,
+        },
+        "data": None,
+    }
+
+    response = JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=response_content,
+    )
+
+    # #region agent log
+    try:
+        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"location": "main.py:178", "message": "Before adding CORS headers", "data": {"origins_defined": "origins" in globals(), "origins_value": globals().get("origins", "NOT_FOUND"), "origin_header": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "B"}) + "\n")
+    except: pass
+    # #endregion agent log
+
+    # Ensure CORS headers are added even for errors
+    origin = request.headers.get("origin")
+    if origin and origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    # #region agent log
+    try:
+        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"location": "main.py:183", "message": "After adding CORS headers", "data": {"cors_origin": response.headers.get("Access-Control-Allow-Origin"), "cors_credentials": response.headers.get("Access-Control-Allow-Credentials"), "all_headers": dict(response.headers)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}) + "\n")
+    except: pass
+    # #endregion agent log
+
+    add_security_headers(response)
+    return response
 
 
 # Include API routers

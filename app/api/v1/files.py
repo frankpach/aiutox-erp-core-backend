@@ -400,13 +400,15 @@ async def list_files(
         files = service.repository.get_by_entity(
             entity_type, entity_id, current_user.tenant_id
         )
-        total = len(files)
+        total = service.count_files_by_entity(
+            entity_type, entity_id, current_user.tenant_id
+        )
     else:
         skip = (page - 1) * page_size
+        total = service.count_all_files(current_user.tenant_id)
         files = service.repository.get_all(
             current_user.tenant_id, skip=skip, limit=page_size
         )
-        total = len(files)  # TODO: Add count method to repository
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 

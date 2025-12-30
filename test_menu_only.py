@@ -83,3 +83,12 @@ print(f"Logs en: {debug_log_path}")
 print("=" * 60)
 
 
+
+
+
+
+
+
+
+
+

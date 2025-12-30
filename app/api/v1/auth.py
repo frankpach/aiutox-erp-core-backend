@@ -5,7 +5,7 @@ from uuid import UUID
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Body, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import get_current_user
@@ -13,6 +13,7 @@ from app.core.exceptions import (
     raise_bad_request,
     raise_conflict,
     raise_forbidden,
+    raise_internal_server_error,
     raise_not_found,
     raise_unauthorized,
 )
@@ -68,6 +69,7 @@ router = APIRouter()
 async def login(
     login_data: LoginRequest,
     request: Request,
+    response: Response,
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardResponse[TokenResponse]:
     """
@@ -115,19 +117,67 @@ async def login(
     # Successful logins should not count towards rate limiting
 
     # Log successful login (auth_service already logs, but we add IP here)
-    log_auth_success(str(user.id), login_data.email, str(user.tenant_id), client_ip)
+    try:
+        log_auth_success(str(user.id), login_data.email, str(user.tenant_id), client_ip)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger("app")
+        logger.warning(f"Failed to log auth success for user {user.id}: {e}", exc_info=True)
+        # Continue even if logging fails
 
     # Create tokens
-    access_token = auth_service.create_access_token_for_user(user)
-    refresh_token = auth_service.create_refresh_token_for_user(user)
+    try:
+        import logging
+        # Use the configured app logger from app.core.logging
+        logger = logging.getLogger("app")
+        logger.info(f"[LOGIN] Creating tokens for user {user.id}, email={login_data.email}")
+
+        logger.debug(f"[LOGIN] Step 1: Creating access token for user {user.id}")
+        access_token = auth_service.create_access_token_for_user(user)
+        logger.debug(f"[LOGIN] Step 1: Access token created successfully")
+
+        logger.debug(f"[LOGIN] Step 2: Creating refresh token for user {user.id}, remember_me={login_data.remember_me}")
+        refresh_token = auth_service.create_refresh_token_for_user(user, remember_me=login_data.remember_me)
+        logger.debug(f"[LOGIN] Step 2: Refresh token created successfully")
+
+        logger.info(f"[LOGIN] Tokens created successfully for user {user.id}")
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        from app.core.config_file import get_settings
+        logger = logging.getLogger("app")
+        settings = get_settings()
+        logger.error(f"[LOGIN] Error creating tokens for user {user.id}: {e}", exc_info=True)
+        raise_internal_server_error(
+            code="TOKEN_CREATION_ERROR",
+            message="Failed to create authentication tokens",
+            details={"error": str(e)} if settings.DEBUG else None,
+        )
+
+    # Calculate cookie max_age based on remember_me
+    from app.core.config_file import get_settings
+    settings = get_settings()
+    max_age_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if login_data.remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+    max_age_seconds = max_age_days * 24 * 60 * 60
+
+    # Set httpOnly cookie for refresh token
+    cookie_secure = settings.COOKIE_SECURE if settings.ENV == "prod" else False
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=cookie_secure,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=max_age_seconds,
+        domain=settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None,
+    )
 
     return StandardResponse(
         data=TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        refresh_token=refresh_token,
+            access_token=access_token,
+            token_type="bearer",
+            refresh_token=refresh_token,  # Also in response for compatibility
         ),
-        message="Login successful",
     )
 
 
@@ -137,14 +187,20 @@ async def login(
     status_code=status.HTTP_200_OK,
 )
 async def refresh_token(
-    refresh_data: RefreshTokenRequest,
+    request: Request,
+    response: Response,
     db: Annotated[Session, Depends(get_db)],
+    refresh_data: RefreshTokenRequest | None = Body(None),
 ) -> StandardResponse[AccessTokenResponse]:
     """
     Refresh an access token using a valid refresh token.
 
+    Reads refresh token from cookie first, falls back to request body if not found.
+
     Args:
-        refresh_data: Refresh token request.
+        request: FastAPI request object (for reading cookies).
+        response: FastAPI response object (for setting cookies).
+        refresh_data: Refresh token request (optional, used as fallback).
         db: Database session.
 
     Returns:
@@ -153,8 +209,20 @@ async def refresh_token(
     Raises:
         HTTPException: If refresh token is invalid, expired, or revoked.
     """
+    # Try to get refresh token from cookie first
+    refresh_token = request.cookies.get("refresh_token")
+
+    # Fallback to request body if no cookie
+    if not refresh_token:
+        if not refresh_data or not refresh_data.refresh_token:
+            raise_unauthorized(
+                code="AUTH_REFRESH_TOKEN_INVALID",
+                message="Refresh token not found",
+            )
+        refresh_token = refresh_data.refresh_token
+
     auth_service = AuthService(db)
-    access_token = auth_service.refresh_access_token(refresh_data.refresh_token)
+    access_token = auth_service.refresh_access_token(refresh_token)
 
     if not access_token:
         raise_unauthorized(
@@ -162,25 +230,48 @@ async def refresh_token(
             message="Invalid or expired refresh token",
         )
 
+    # Update cookie with same settings (refresh token rotation could be added here)
+    from app.core.config_file import get_settings
+    settings = get_settings()
+    cookie_secure = settings.COOKIE_SECURE if settings.ENV == "prod" else False
+
+    # Get max_age from existing cookie or use default
+    # For simplicity, we'll use the default expiration (could decode token to get exact expiration)
+    max_age_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
+    max_age_seconds = max_age_days * 24 * 60 * 60
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,  # Keep same token (or rotate if implementing token rotation)
+        httponly=True,
+        secure=cookie_secure,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=max_age_seconds,
+        domain=settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None,
+    )
+
     return StandardResponse(
         data=AccessTokenResponse(access_token=access_token, token_type="bearer"),
-        message="Token refreshed successfully",
     )
 
 
 @router.post("/logout", response_model=StandardResponse[dict[str, str]], status_code=status.HTTP_200_OK)
 async def logout(
-    refresh_data: RefreshTokenRequest,
     request: Request,
+    response: Response,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    refresh_data: RefreshTokenRequest | None = Body(None),
 ) -> StandardResponse[dict[str, str]]:
     """
     Logout user by revoking refresh token.
 
+    Reads refresh token from cookie first, falls back to request body if not found.
+
     Args:
-        refresh_data: Refresh token to revoke.
-        request: FastAPI request object (for IP address).
+        request: FastAPI request object (for IP address and cookies).
+        response: FastAPI response object (for deleting cookie).
+        refresh_data: Refresh token to revoke (optional, used as fallback).
         current_user: Current authenticated user.
         db: Database session.
 
@@ -190,9 +281,21 @@ async def logout(
     Raises:
         HTTPException: If refresh token is invalid.
     """
+    # Try to get refresh token from cookie first
+    refresh_token = request.cookies.get("refresh_token")
+
+    # Fallback to request body if no cookie
+    if not refresh_token:
+        if not refresh_data or not refresh_data.refresh_token:
+            raise_unauthorized(
+                code="AUTH_REFRESH_TOKEN_INVALID",
+                message="Refresh token not found",
+            )
+        refresh_token = refresh_data.refresh_token
+
     auth_service = AuthService(db)
     success = auth_service.revoke_refresh_token(
-        refresh_data.refresh_token, current_user.id
+        refresh_token, current_user.id
     )
 
     if not success:
@@ -200,6 +303,15 @@ async def logout(
             code="AUTH_REFRESH_TOKEN_INVALID",
             message="Invalid refresh token",
         )
+
+    # Delete cookie
+    from app.core.config_file import get_settings
+    settings = get_settings()
+    response.delete_cookie(
+        key="refresh_token",
+        domain=settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None,
+        samesite=settings.COOKIE_SAMESITE,
+    )
 
     # Log logout
     client_ip = request.client.host if request.client else "unknown"
@@ -1177,6 +1289,9 @@ async def get_audit_logs(
     resource_type: str | None = Query(None, description="Filter by resource type"),
     date_from: datetime | None = Query(None, description="Filter by start date (ISO format)"),
     date_to: datetime | None = Query(None, description="Filter by end date (ISO format)"),
+    ip_address: str | None = Query(None, description="Filter by IP address (partial match)"),
+    user_agent: str | None = Query(None, description="Filter by user agent (partial match)"),
+    details_search: str | None = Query(None, description="Search in details JSON (partial match)"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> AuditLogListResponse:
@@ -1193,6 +1308,9 @@ async def get_audit_logs(
         resource_type: Filter by resource type (optional).
         date_from: Filter by start date (optional).
         date_to: Filter by end date (optional).
+        ip_address: Filter by IP address (partial match, optional).
+        user_agent: Filter by user agent (partial match, optional).
+        details_search: Search in details JSON (partial match, optional).
         page: Page number (default: 1).
         page_size: Page size (default: 20, max: 100).
 
@@ -1212,6 +1330,9 @@ async def get_audit_logs(
         resource_type=resource_type,
         date_from=date_from,
         date_to=date_to,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        details_search=details_search,
         skip=skip,
         limit=page_size,
     )
