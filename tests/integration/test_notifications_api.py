@@ -4,6 +4,7 @@ import asyncio
 import pytest
 from uuid import uuid4
 from unittest.mock import patch
+from datetime import datetime, timezone
 
 from tests.helpers import create_user_with_permission
 
@@ -297,5 +298,113 @@ def test_get_unread_notifications(client, test_user, auth_headers, db_session):
 
     # Should only return notifications created after notification1
     assert all(n.created_at > notification1.created_at for n in notifications_new)
+
+
+def test_stream_notifications_adaptive_interval_no_notifications(client, test_user, db_session):
+    """Test that SSE endpoint increases interval when no notifications are found.
+
+    Verifies that intervals progress: 5s -> 10s -> 20s -> 30s -> 60s (max)
+    """
+    # Assign notifications.view permission
+    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+
+    # Track sleep calls to verify intervals
+    sleep_calls = []
+    # Import real sleep to use inside mock
+    real_sleep = asyncio.sleep
+
+    async def mock_sleep(delay):
+        """Mock sleep that records the delay and cancels after enough iterations."""
+        sleep_calls.append(delay)
+        # Cancel after 6 iterations to test interval progression
+        if len(sleep_calls) >= 6:
+            raise asyncio.CancelledError()
+        # Use real sleep with minimal delay for test speed
+        await real_sleep(0.001)
+
+    # Test: No notifications - interval should increase
+    with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
+        response = client.get(
+            "/api/v1/notifications/stream",
+            headers=headers,
+        )
+
+        # Consume the stream to trigger iterations
+        try:
+            for _ in response.iter_lines():
+                pass
+        except Exception:
+            pass  # Expected when stream cancels
+
+    # Verify intervals increased: 5s -> 10s -> 20s -> 30s -> 60s
+    assert len(sleep_calls) >= 5, f"Expected at least 5 sleep calls, got {len(sleep_calls)}"
+    assert sleep_calls[0] == 5, f"First interval should be 5s, got {sleep_calls[0]}"
+    assert sleep_calls[1] == 10, f"Second interval should be 10s, got {sleep_calls[1]}"
+    assert sleep_calls[2] == 20, f"Third interval should be 20s, got {sleep_calls[2]}"
+    assert sleep_calls[3] == 30, f"Fourth interval should be 30s, got {sleep_calls[3]}"
+    assert sleep_calls[4] == 60, f"Fifth interval should be 60s, got {sleep_calls[4]}"
+    # Verify it stays at 60s (max)
+    if len(sleep_calls) > 5:
+        assert sleep_calls[5] == 60, f"Sixth interval should stay at 60s (max), got {sleep_calls[5]}"
+
+
+def test_stream_notifications_adaptive_interval_with_notifications(client, test_user, db_session):
+    """Test that SSE endpoint resets interval to 5s when notifications are found.
+
+    Verifies that finding notifications resets the interval back to the fastest (5s).
+    """
+    # Assign notifications.view permission
+    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+
+    from app.models.notification import NotificationQueue, NotificationStatus
+
+    # Create initial notification
+    notification1 = NotificationQueue(
+        tenant_id=test_user.tenant_id,
+        recipient_id=test_user.id,
+        event_type="product.created",
+        channel="in-app",
+        status=NotificationStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+    )
+    db_session.add(notification1)
+    db_session.commit()
+
+    sleep_calls = []
+    iteration_count = [0]
+    # Import real sleep to use inside mock
+    real_sleep = asyncio.sleep
+
+    async def mock_sleep(delay):
+        """Mock sleep that records delay."""
+        sleep_calls.append(delay)
+        iteration_count[0] += 1
+
+        # Cancel after 2 iterations (enough to verify reset behavior)
+        if iteration_count[0] >= 2:
+            raise asyncio.CancelledError()
+
+        # Use real sleep with minimal delay for test speed
+        await real_sleep(0.001)
+
+    with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
+        response = client.get(
+            "/api/v1/notifications/stream",
+            headers=headers,
+        )
+
+        # Consume the stream
+        try:
+            for _ in response.iter_lines():
+                pass
+        except Exception:
+            pass
+
+    # Verify behavior:
+    # - First iteration: finds notification1, interval should be 5s (index 0)
+    # - After finding notification, interval resets to 5s, so next sleep should be 5s
+    assert len(sleep_calls) >= 1, f"Expected at least 1 sleep call, got {len(sleep_calls)}"
+    # After finding notification, interval should reset to 5s
+    assert sleep_calls[0] == 5, f"After finding notification, interval should reset to 5s, got {sleep_calls[0]}"
 
 

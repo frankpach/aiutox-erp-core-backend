@@ -19,7 +19,9 @@ class FileBase(BaseModel):
 class FileCreate(FileBase):
     """Schema for creating a file (upload)."""
 
-    pass
+    permissions: list["FilePermissionRequest"] | None = Field(
+        None, description="Initial permissions to assign to the file"
+    )
 
 
 class FileUpdate(BaseModel):
@@ -44,7 +46,12 @@ class FileResponse(FileBase):
     storage_url: str | None
     version_number: int
     is_current: bool
+    folder_id: UUID | None = Field(None, description="Folder ID (null for root)")
     uploaded_by: UUID | None
+    uploaded_by_user: dict[str, Any] | None = Field(
+        None,
+        description="User information (name, email) who uploaded the file",
+    )
     metadata: dict[str, Any] | None = Field(None, alias="file_metadata", description="Additional metadata")
     created_at: datetime
     updated_at: datetime

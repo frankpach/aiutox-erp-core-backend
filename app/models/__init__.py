@@ -20,6 +20,7 @@ from app.models.preference import Dashboard, OrgPreference, RolePreference, Save
 from app.models.reporting import DashboardWidget, ReportDefinition
 from app.models.notification import NotificationQueue, NotificationTemplate
 from app.models.file import File, FilePermission, FileVersion
+from app.models.folder import Folder
 from app.models.activity import Activity
 from app.models.tag import EntityTag, Tag, TagCategory
 from app.models.task import (
@@ -51,6 +52,7 @@ __all__ = [
     "File",
     "FilePermission",
     "FileVersion",
+    "Folder",
     "Integration",
     "ModuleRole",
     "Webhook",

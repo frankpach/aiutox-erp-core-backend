@@ -11,6 +11,7 @@ from app.api.v1 import (
     comments,
     config,
     files,
+    folders,
     import_export,
     integrations,
     notifications,
@@ -40,6 +41,7 @@ api_router.include_router(preferences.router, prefix="/preferences", tags=["pref
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(files.router, prefix="/files", tags=["files"])
+api_router.include_router(folders.router, prefix="/folders", tags=["folders"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
 api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])

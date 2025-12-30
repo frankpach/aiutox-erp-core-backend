@@ -310,8 +310,11 @@ async def stream_notifications(
     """Stream notifications using Server-Sent Events.
 
     This endpoint provides real-time notifications using SSE. The client will receive
-    new notifications as they are created. The stream checks for new notifications
-    every 5 seconds.
+    new notifications as they are created. The stream uses adaptive polling intervals
+    to optimize database load:
+    - Starts checking every 5 seconds when notifications are found
+    - Gradually increases to 10s, 20s, 30s, and up to 60s when no notifications are found
+    - Resets to 5 seconds immediately when new notifications arrive
 
     Example client usage:
         const eventSource = new EventSource('/api/v1/notifications/stream', {
@@ -323,8 +326,13 @@ async def stream_notifications(
         };
     """
     async def event_generator():
-        """Generate SSE events for new notifications."""
+        """Generate SSE events for new notifications with adaptive polling interval."""
         last_id = None
+        # Adaptive polling intervals: start at 5s, increase when no notifications found
+        # Intervals: 5s -> 10s -> 20s -> 30s -> 60s (max)
+        polling_intervals = [5, 10, 20, 30, 60]
+        current_interval_index = 0
+
         try:
             while True:
                 # Get new notifications
@@ -344,8 +352,23 @@ async def stream_notifications(
                     yield f"data: {json.dumps(notification_data)}\n\n"
                     last_id = notification.id
 
-                # Wait before next check (5 seconds)
-                await asyncio.sleep(5)
+                # Adaptive interval logic:
+                # - If new notifications found, reset to fastest interval (5s)
+                # - If no new notifications, increase interval gradually
+                # Get current interval before potentially modifying index
+                current_interval = polling_intervals[current_interval_index]
+
+                # Sleep with current interval first
+                await asyncio.sleep(current_interval)
+
+                # Then adjust interval for next iteration
+                if new_notifications:
+                    # Reset to fastest polling when notifications are found
+                    current_interval_index = 0
+                else:
+                    # Gradually increase interval when no notifications
+                    if current_interval_index < len(polling_intervals) - 1:
+                        current_interval_index += 1
 
         except asyncio.CancelledError:
             # Client disconnected

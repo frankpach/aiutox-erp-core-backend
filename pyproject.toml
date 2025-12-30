@@ -86,8 +86,10 @@ python_functions = ["test_*"]
 # Para forzar mínimo 8 workers: usar -n 4 o configurar en scripts
 addopts = "-v --tb=short --durations=10"
 asyncio_mode = "auto"
-timeout = 300
-timeout_method = "thread"
+# Note: timeout options require pytest-timeout plugin to be installed
+# Uncomment these lines if you install pytest-timeout:
+# timeout = 300
+# timeout_method = "thread"
 # Markers for test organization
 markers = [
     "redis: mark test as requiring Redis",

@@ -96,6 +96,8 @@ class FileService:
         user_id: UUID,
         description: str | None = None,
         metadata: dict | None = None,
+        folder_id: UUID | None = None,
+        permissions: list[dict] | None = None,
     ) -> File:
         """Upload a file.
 
@@ -130,55 +132,109 @@ class FileService:
             backend = backend.backend
 
         if isinstance(backend, S3StorageBackend):
-            storage_backend_type = StorageBackend.S3
+            storage_backend_type = StorageBackend.S3.value  # Use .value to get string
         else:
-            storage_backend_type = StorageBackend.LOCAL
+            storage_backend_type = StorageBackend.LOCAL.value  # Use .value to get string
+
+        logger.debug(f"Storage backend type: {storage_backend_type}, storage_path: {storage_path}")
 
         # Get storage URL
         storage_url = await self.storage_backend.get_url(storage_path)
 
         # Create file record
-        file = self.repository.create(
-            {
-                "tenant_id": tenant_id,
-                "name": filename,
-                "original_name": filename,
-                "mime_type": mime_type,
-                "size": file_size,
-                "extension": file_extension,
-                "storage_backend": storage_backend_type,
-                "storage_path": storage_path,
-                "storage_url": storage_url,
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "description": description,
-                "metadata": metadata,
-                "version_number": 1,
-                "is_current": True,
-                "uploaded_by": user_id,
-            }
-        )
+        file_data = {
+            "tenant_id": tenant_id,
+            "name": filename,
+            "original_name": filename,
+            "mime_type": mime_type,
+            "size": file_size,
+            "extension": file_extension,
+            "storage_backend": storage_backend_type,
+            "storage_path": storage_path,
+            "storage_url": storage_url,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "folder_id": folder_id,
+            "description": description,
+            "metadata": metadata,
+            "version_number": 1,
+            "is_current": True,
+            "uploaded_by": user_id,
+        }
+        logger.info(f"Attempting to create file record in DB with data: tenant_id={tenant_id}, filename={filename}, size={file_size}")
 
-        # Publish event
-        await self.event_publisher.publish(
-            event_type="file.uploaded",
-            entity_type="file",
-            entity_id=file.id,
-            tenant_id=tenant_id,
-            user_id=user_id,
-            metadata=EventMetadata(
-                source="file_service",
-                version="1.0",
-                additional_data={
-                    "filename": filename,
-                    "entity_type": entity_type,
-                    "entity_id": str(entity_id) if entity_id else None,
-                    "size": file_size,
-                },
-            ),
-        )
+        try:
+            file = self.repository.create(file_data)
+            logger.info(f"File record created successfully in DB: {file.id} ({filename})")
 
-        logger.info(f"File uploaded: {file.id} ({filename})")
+            # Verify the file was actually saved
+            verify_file = self.repository.get_by_id(file.id, tenant_id)
+            if verify_file:
+                logger.info(f"File verified in DB: {verify_file.id}")
+            else:
+                logger.error(f"File was created but cannot be retrieved: {file.id}")
+        except Exception as e:
+            logger.error(f"Failed to create file record in DB: {e}", exc_info=True)
+            logger.error(f"File data that failed: {file_data}")
+            # Try to clean up uploaded file from storage
+            try:
+                await self.storage_backend.delete(storage_path)
+                logger.info(f"Cleaned up storage file: {storage_path}")
+            except Exception as cleanup_error:
+                logger.error(f"Failed to cleanup storage file: {cleanup_error}")
+            raise
+
+        # IMPORTANTE: Asegurar que el commit se mantenga antes de continuar
+        # Hacer un flush explícito para asegurar que los cambios están en la sesión
+        try:
+            self.db.flush()
+            logger.debug(f"Session flushed after file creation: {file.id}")
+        except Exception as e:
+            logger.warning(f"Flush after file creation failed (non-critical): {e}")
+
+        # Publish event (non-blocking - don't fail if event fails)
+        try:
+            await self.event_publisher.publish(
+                event_type="file.uploaded",
+                entity_type="file",
+                entity_id=file.id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                metadata=EventMetadata(
+                    source="file_service",
+                    version="1.0",
+                    additional_data={
+                        "filename": filename,
+                        "entity_type": entity_type,
+                        "entity_id": str(entity_id) if entity_id else None,
+                        "size": file_size,
+                    },
+                ),
+            )
+        except Exception as e:
+            logger.warning(f"Failed to publish file.uploaded event: {e}", exc_info=True)
+            # Don't fail the upload if event publishing fails
+
+        # Set permissions if provided (non-blocking - don't fail if permissions fail)
+        if permissions:
+            try:
+                self.set_file_permissions(file.id, permissions, tenant_id)
+                logger.info(f"Permissions set for file: {file.id}")
+            except Exception as e:
+                logger.warning(f"Failed to set file permissions: {e}", exc_info=True)
+                # Don't fail the upload if permissions fail - file is already created
+
+        # Verificación final: asegurar que el archivo todavía está en la BD
+        try:
+            final_check = self.repository.get_by_id(file.id, tenant_id)
+            if not final_check:
+                logger.error(f"CRITICAL: File {file.id} was created but is not in DB after all operations!")
+            else:
+                logger.info(f"Final verification: File {file.id} confirmed in DB")
+        except Exception as e:
+            logger.warning(f"Final verification failed (non-critical): {e}")
+
+        logger.info(f"File uploaded successfully: {file.id} ({filename})")
         return file
 
     async def download_file(self, file_id: UUID, tenant_id: UUID) -> tuple[bytes, File]:
@@ -552,4 +608,72 @@ class FileService:
 
         # No permission found
         return False
+
+    def get_files_user_can_view(
+        self, tenant_id: UUID, user_id: UUID, skip: int = 0, limit: int = 100, folder_id: UUID | None = None
+    ) -> list[File]:
+        """Get files that a user can view based on permissions.
+
+        Args:
+            tenant_id: Tenant ID
+            user_id: User ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            folder_id: Optional folder ID filter
+
+        Returns:
+            List of File objects the user can view
+        """
+        # Get all files for the tenant
+        all_files = self.repository.get_all(
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit * 2,  # Get more files to account for filtering
+            folder_id=folder_id,
+        )
+
+        # Filter files by permissions
+        viewable_files = []
+        for file in all_files:
+            try:
+                if self.check_permissions(file.id, user_id, tenant_id, "view"):
+                    viewable_files.append(file)
+                    if len(viewable_files) >= limit:
+                        break
+            except FileNotFoundError:
+                continue
+
+        return viewable_files[:limit]
+
+    def count_files_user_can_view(
+        self, tenant_id: UUID, user_id: UUID, folder_id: UUID | None = None
+    ) -> int:
+        """Count files that a user can view based on permissions.
+
+        Args:
+            tenant_id: Tenant ID
+            user_id: User ID
+            folder_id: Optional folder ID filter
+
+        Returns:
+            Count of files the user can view
+        """
+        # Get all files for the tenant
+        all_files = self.repository.get_all(
+            tenant_id=tenant_id,
+            skip=0,
+            limit=10000,  # Get a large number to count all
+            folder_id=folder_id,
+        )
+
+        # Count files by permissions
+        count = 0
+        for file in all_files:
+            try:
+                if self.check_permissions(file.id, user_id, tenant_id, "view"):
+                    count += 1
+            except FileNotFoundError:
+                continue
+
+        return count
 

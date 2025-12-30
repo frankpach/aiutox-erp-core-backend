@@ -17,16 +17,59 @@ class FileRepository:
     # File operations
     def create(self, file_data: dict) -> File:
         """Create a new file."""
-        file = File(**file_data)
-        self.db.add(file)
-        self.db.commit()
-        self.db.refresh(file)
-        return file
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.debug(f"Creating file record with data: {file_data}")
+            file = File(**file_data)
+            logger.debug(f"File object created: {file.id}")
+
+            self.db.add(file)
+            logger.debug(f"File added to session: {file.id}")
+
+            # Flush to check for validation errors before commit
+            self.db.flush()
+            logger.debug(f"File flushed to DB: {file.id}")
+
+            self.db.commit()
+            logger.info(f"File committed successfully in DB: {file.id} (name: {file_data.get('name', 'unknown')})")
+
+            # Verificar inmediatamente después del commit que el archivo está en la BD
+            try:
+                # Hacer una consulta directa para verificar que el commit funcionó
+                from sqlalchemy import text
+                result = self.db.execute(
+                    text("SELECT id FROM files WHERE id = :file_id"),
+                    {"file_id": str(file.id)}
+                ).fetchone()
+                if result:
+                    logger.info(f"File verified in DB immediately after commit: {file.id}")
+                else:
+                    logger.error(f"CRITICAL: File {file.id} was committed but not found in DB!")
+            except Exception as verify_error:
+                logger.warning(f"Could not verify file in DB (non-critical): {verify_error}")
+
+            self.db.refresh(file)
+            logger.debug(f"File refreshed from DB: {file.id}")
+
+            return file
+        except Exception as e:
+            logger.error(f"Error creating file record: {e}", exc_info=True)
+            logger.error(f"File data that failed: {file_data}")
+            try:
+                self.db.rollback()
+                logger.debug("Rollback completed")
+            except Exception as rollback_error:
+                logger.error(f"Error during rollback: {rollback_error}")
+            raise
 
     def get_by_id(self, file_id: UUID, tenant_id: UUID) -> File | None:
         """Get file by ID and tenant."""
+        from sqlalchemy.orm import joinedload
         return (
             self.db.query(File)
+            .options(joinedload(File.uploaded_by_user))
             .filter(File.id == file_id, File.tenant_id == tenant_id)
             .first()
         )
@@ -35,7 +78,8 @@ class FileRepository:
         self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
     ) -> list[File]:
         """Get files by entity."""
-        query = self.db.query(File).filter(
+        from sqlalchemy.orm import joinedload
+        query = self.db.query(File).options(joinedload(File.uploaded_by_user)).filter(
             File.entity_type == entity_type,
             File.entity_id == entity_id,
             File.tenant_id == tenant_id,
@@ -60,12 +104,18 @@ class FileRepository:
         return query.scalar() or 0
 
     def get_all(
-        self, tenant_id: UUID, skip: int = 0, limit: int = 100, current_only: bool = True
+        self, tenant_id: UUID, skip: int = 0, limit: int = 100, current_only: bool = True, folder_id: UUID | None = None
     ) -> list[File]:
         """Get all files for a tenant."""
-        query = self.db.query(File).filter(File.tenant_id == tenant_id)
+        from sqlalchemy.orm import joinedload
+        query = self.db.query(File).options(joinedload(File.uploaded_by_user)).filter(File.tenant_id == tenant_id)
         if current_only:
             query = query.filter(File.is_current == True)
+        if folder_id is not None:
+            query = query.filter(File.folder_id == folder_id)
+        elif folder_id is None:
+            # If folder_id is explicitly None, filter for root files (folder_id IS NULL)
+            query = query.filter(File.folder_id.is_(None))
         return query.order_by(File.created_at.desc()).offset(skip).limit(limit).all()
 
     def count_all(

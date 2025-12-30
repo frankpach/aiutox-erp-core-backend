@@ -27,8 +27,12 @@ class DatabaseSeeder(Seeder):
 
         # Import seeders
         from database.seeders.config_seeder import ConfigSeeder
+        from database.seeders.default_tenant_seeder import DefaultTenantSeeder
         from database.seeders.theme_seeder import ThemeSeeder
         from database.seeders.theme_preset_seeder import ThemePresetSeeder
+
+        # Always create default tenant first (required for all other seeders)
+        DefaultTenantSeeder().run(db)
 
         if is_production:
             # Production: Only create owner user

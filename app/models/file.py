@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
 
@@ -59,6 +60,14 @@ class File(Base):
     storage_path = Column(String(500), nullable=False)  # Path in storage (local path or S3 key)
     storage_url = Column(String(1000), nullable=True)  # Public URL if available
 
+    # Folder relationship
+    folder_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("folders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Polymorphic relationship
     entity_type = Column(String(50), nullable=True, index=True)  # e.g., 'product', 'order'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
@@ -79,6 +88,9 @@ class File(Base):
         nullable=True,
         index=True,
     )
+
+    # Relationship to user
+    uploaded_by_user = relationship("User", foreign_keys=[uploaded_by], lazy="select")
 
     # Timestamps
     created_at = Column(
