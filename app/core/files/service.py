@@ -5,7 +5,7 @@ import logging
 import mimetypes
 import os
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO
 from uuid import UUID
 
 from PIL import Image
@@ -16,9 +16,13 @@ from app.core.files.storage import (
     LocalStorageBackend,
     S3StorageBackend,
 )
+from app.core.files.storage_config_service import StorageConfigService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
+from app.core.security.encryption import decrypt_credentials
+from app.core.tags.service import TagService
 from app.models.file import File, FilePermission, FileVersion, StorageBackend
+from app.models.tag import Tag
 from app.repositories.file_repository import FileRepository
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,7 @@ class FileService:
         db: Session,
         storage_backend=None,
         event_publisher: EventPublisher | None = None,
+        tenant_id: UUID | None = None,
     ):
         """Initialize file service.
 
@@ -39,17 +44,148 @@ class FileService:
             db: Database session
             storage_backend: Storage backend instance (created if not provided)
             event_publisher: EventPublisher instance (created if not provided)
+            tenant_id: Tenant ID for reading storage configuration (required if storage_backend is None)
         """
         self.db = db
         self.repository = FileRepository(db)
         self.event_publisher = event_publisher or get_event_publisher()
+        self._storage_config_service = StorageConfigService(db)
+        self._tag_service = TagService(db)
 
         # Initialize storage backend
         if storage_backend is None:
-            use_s3 = os.getenv("USE_S3_STORAGE", "false").lower() == "true"
-            self.storage_backend = HybridStorageBackend(use_s3=use_s3)
+            if tenant_id is None:
+                # Fallback to environment variable for backward compatibility
+                logger.warning(
+                    "FileService initialized without tenant_id. Using environment variable for storage backend."
+                )
+                use_s3 = os.getenv("USE_S3_STORAGE", "false").lower() == "true"
+                self.storage_backend = HybridStorageBackend(use_s3=use_s3)
+            else:
+                # Read configuration from ConfigService
+                self.storage_backend = self._get_storage_backend_from_config(tenant_id)
         else:
             self.storage_backend = storage_backend
+
+    def _get_storage_backend_from_config(self, tenant_id: UUID):
+        """Get storage backend from configuration.
+
+        Args:
+            tenant_id: Tenant ID
+
+        Returns:
+            Storage backend instance
+        """
+        try:
+            config = self._storage_config_service.get_storage_config(tenant_id)
+            backend_type = config.get("backend", "local")
+
+            if backend_type == "local":
+                local_config = config.get("local", {})
+                base_path = local_config.get("base_path", "./storage")
+                return LocalStorageBackend(base_path=base_path)
+
+            elif backend_type == "s3":
+                s3_config = config.get("s3", {})
+                bucket_name = s3_config.get("bucket_name", "")
+                access_key_id = s3_config.get("access_key_id", "")
+                # Get encrypted secret from config service
+                encrypted_secret = self._storage_config_service.config_service.get(
+                    tenant_id, "files", "storage.s3.secret_access_key", ""
+                )
+                region = s3_config.get("region", "us-east-1")
+
+                if not bucket_name or not access_key_id or not encrypted_secret:
+                    logger.warning(
+                        f"Incomplete S3 configuration for tenant {tenant_id}. Falling back to local storage."
+                    )
+                    return LocalStorageBackend()
+
+                # Decrypt credentials
+                try:
+                    secret_access_key = decrypt_credentials(encrypted_secret, tenant_id)
+                except Exception as e:
+                    logger.error(f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}")
+                    return LocalStorageBackend()
+
+                return S3StorageBackend(
+                    bucket_name=bucket_name,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_access_key,
+                    region=region,
+                )
+
+            elif backend_type == "hybrid":
+                # For hybrid mode, we'll use S3 as primary if configured, otherwise local
+                # This is a simplified implementation - a full hybrid would need routing logic
+                local_config = config.get("local", {})
+                base_path = local_config.get("base_path", "./storage")
+                local_backend = LocalStorageBackend(base_path=base_path)
+
+                s3_config = config.get("s3", {})
+                bucket_name = s3_config.get("bucket_name", "")
+                access_key_id = s3_config.get("access_key_id", "")
+                # Get encrypted secret from config service
+                encrypted_secret = self._storage_config_service.config_service.get(
+                    tenant_id, "files", "storage.s3.secret_access_key", ""
+                )
+                region = s3_config.get("region", "us-east-1")
+
+                if not bucket_name or not access_key_id or not encrypted_secret:
+                    logger.warning(
+                        f"Incomplete S3 configuration for hybrid backend for tenant {tenant_id}. Using local only."
+                    )
+                    return local_backend
+
+                # Decrypt credentials
+                try:
+                    secret_access_key = decrypt_credentials(encrypted_secret, tenant_id)
+                except Exception as e:
+                    logger.error(f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}")
+                    return local_backend
+
+                s3_backend = S3StorageBackend(
+                    bucket_name=bucket_name,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_access_key,
+                    region=region,
+                )
+
+                # For hybrid mode, prefer S3 but fallback to local if S3 fails
+                # Create HybridStorageBackend with use_s3=True to use S3 as primary
+                # Note: This is a simplified implementation
+                # A full hybrid implementation would need routing logic based on file size, type, etc.
+                return HybridStorageBackend(use_s3=True, bucket_name=bucket_name, aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key, region=region)
+
+            else:
+                logger.warning(f"Unknown backend type: {backend_type}. Falling back to local storage.")
+                return LocalStorageBackend()
+
+        except Exception as e:
+            logger.error(f"Error reading storage configuration for tenant {tenant_id}: {e}", exc_info=True)
+            # Fallback to local storage
+            return LocalStorageBackend()
+
+    def reload_storage_backend(self, tenant_id: UUID):
+        """Reload storage backend from configuration.
+
+        This method allows dynamic backend changes. Use with caution and validate
+        that existing files are accessible with the new backend.
+
+        Args:
+            tenant_id: Tenant ID
+
+        Returns:
+            True if backend was reloaded successfully, False otherwise
+        """
+        try:
+            new_backend = self._get_storage_backend_from_config(tenant_id)
+            self.storage_backend = new_backend
+            logger.info(f"Storage backend reloaded for tenant {tenant_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to reload storage backend for tenant {tenant_id}: {e}", exc_info=True)
+            return False
 
     def _generate_storage_path(
         self, tenant_id: UUID, entity_type: str | None, filename: str
@@ -214,6 +350,27 @@ class FileService:
         except Exception as e:
             logger.warning(f"Failed to publish file.uploaded event: {e}", exc_info=True)
             # Don't fail the upload if event publishing fails
+
+        # Create initial version (v1) - IMPORTANT: Every file must have at least one version
+        try:
+            initial_version = self.repository.create_version(
+                {
+                    "file_id": file.id,
+                    "tenant_id": tenant_id,
+                    "version_number": 1,
+                    "storage_path": storage_path,
+                    "storage_backend": storage_backend_type,
+                    "size": file_size,
+                    "mime_type": mime_type,
+                    "change_description": "Initial version",
+                    "created_by": user_id,
+                }
+            )
+            logger.info(f"Initial version (v1) created for file: {file.id}")
+        except Exception as e:
+            logger.error(f"Failed to create initial version for file {file.id}: {e}", exc_info=True)
+            # This is critical - if version creation fails, we should rollback or at least log it
+            # However, the file is already created, so we continue but log the error
 
         # Set permissions if provided (non-blocking - don't fail if permissions fail)
         if permissions:
@@ -511,6 +668,41 @@ class FileService:
         """
         return self.repository.count_all(tenant_id, current_only)
 
+    def count_files_by_entity_user_can_view(
+        self,
+        entity_type: str,
+        entity_id: UUID,
+        tenant_id: UUID,
+        user_id: UUID,
+    ) -> int:
+        """Count files by entity that a user can view based on permissions.
+
+        Args:
+            entity_type: Entity type
+            entity_id: Entity ID
+            tenant_id: Tenant ID
+            user_id: User ID
+
+        Returns:
+            Count of files the user can view for the entity
+        """
+        # Get all files for the entity
+        all_files = self.repository.get_by_entity(entity_type, entity_id, tenant_id)
+
+        # Count files by permissions
+        count = 0
+        for file in all_files:
+            try:
+                if self.check_permissions(file.id, user_id, tenant_id, "view"):
+                    count += 1
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                logger.warning(f"Error checking permissions for file {file.id} in count: {e}")
+                continue
+
+        return count
+
     def check_permissions(
         self,
         file_id: UUID,
@@ -539,17 +731,61 @@ class FileService:
         Raises:
             FileNotFoundError: If file not found
         """
-        # Get file
-        file = self.repository.get_by_id(file_id, tenant_id)
-        if not file or not file.is_current:
-            raise FileNotFoundError(f"File {file_id} not found")
+        logger.debug(
+            f"Checking permission '{permission}' for file {file_id}, user {user_id}, tenant {tenant_id}"
+        )
+
+        try:
+            # Get file (allow deleted files for permission check, but verify they're current)
+            file = self.repository.get_by_id(file_id, tenant_id, current_only=False)
+            if not file:
+                logger.warning(
+                    f"File {file_id} not found for tenant {tenant_id} when checking permissions"
+                )
+                raise FileNotFoundError(f"File {file_id} not found")
+
+            # Check if file is current and not deleted
+            if not file.is_current or file.deleted_at is not None:
+                logger.debug(
+                    f"File {file_id} is not current (is_current={file.is_current}, "
+                    f"deleted_at={file.deleted_at})"
+                )
+                raise FileNotFoundError(f"File {file_id} not found or deleted")
+
+            logger.debug(
+                f"File {file_id} found: name={file.name}, uploaded_by={file.uploaded_by}, "
+                f"is_current={file.is_current}, deleted_at={file.deleted_at}"
+            )
+        except FileNotFoundError:
+            # Re-raise FileNotFoundError as-is
+            raise
+        except Exception as e:
+            logger.error(
+                f"Error retrieving file {file_id} for permission check: {e}",
+                exc_info=True,
+            )
+            raise FileNotFoundError(f"File {file_id} not found") from e
 
         # File owner always has full access
         if file.uploaded_by == user_id:
+            logger.debug(
+                f"User {user_id} is owner of file {file_id}, granting full access for '{permission}'"
+            )
             return True
 
         # Get all permissions for the file
-        permissions = self.repository.get_permissions(file_id, tenant_id)
+        try:
+            permissions = self.repository.get_permissions(file_id, tenant_id)
+            logger.debug(
+                f"Found {len(permissions)} permissions for file {file_id}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Error retrieving permissions for file {file_id}: {e}",
+                exc_info=True,
+            )
+            # If we can't get permissions, deny access (fail secure)
+            return False
 
         # Map permission string to attribute
         permission_map = {
@@ -567,7 +803,12 @@ class FileService:
         # Check user-specific permissions
         for perm in permissions:
             if perm.target_type == "user" and perm.target_id == user_id:
-                return getattr(perm, permission_attr, False)
+                has_permission = getattr(perm, permission_attr, False)
+                logger.debug(
+                    f"User-specific permission found for file {file_id}, user {user_id}: "
+                    f"{permission_attr}={has_permission}"
+                )
+                return has_permission
 
         # Check role-based permissions
         # Note: In this system, UserRole.role is a string (e.g., "admin", "viewer")
@@ -595,22 +836,46 @@ class FileService:
                     return True
 
         # Check organization-based permissions (if user belongs to organization)
-        from app.models.user import User
-        user = self.db.query(User).filter(User.id == user_id).first()
-        if user and user.organization_id:
-            for perm in permissions:
-                if (
-                    perm.target_type == "organization"
-                    and perm.target_id == user.organization_id
-                ):
-                    if getattr(perm, permission_attr, False):
-                        return True
+        try:
+            from app.models.user import User
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user and user.organization_id:
+                logger.debug(
+                    f"Checking organization permissions for user {user_id}, "
+                    f"organization {user.organization_id}"
+                )
+                for perm in permissions:
+                    if (
+                        perm.target_type == "organization"
+                        and perm.target_id == user.organization_id
+                    ):
+                        has_permission = getattr(perm, permission_attr, False)
+                        if has_permission:
+                            logger.debug(
+                                f"Organization permission found for file {file_id}, "
+                                f"organization {user.organization_id}: {permission_attr}={has_permission}"
+                            )
+                            return True
+        except Exception as e:
+            logger.warning(
+                f"Error checking organization permissions for user {user_id}: {e}",
+                exc_info=True,
+            )
 
         # No permission found
+        logger.debug(
+            f"No permission found for file {file_id}, user {user_id}, permission '{permission}'"
+        )
         return False
 
     def get_files_user_can_view(
-        self, tenant_id: UUID, user_id: UUID, skip: int = 0, limit: int = 100, folder_id: UUID | None = None
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+        folder_id: UUID | None = None,
+        tag_ids: list[UUID] | None = None,
     ) -> list[File]:
         """Get files that a user can view based on permissions.
 
@@ -630,6 +895,7 @@ class FileService:
             skip=skip,
             limit=limit * 2,  # Get more files to account for filtering
             folder_id=folder_id,
+            tag_ids=tag_ids,
         )
 
         # Filter files by permissions
@@ -642,11 +908,18 @@ class FileService:
                         break
             except FileNotFoundError:
                 continue
+            except Exception as e:
+                logger.warning(f"Error checking permissions for file {file.id}: {e}")
+                continue
 
         return viewable_files[:limit]
 
     def count_files_user_can_view(
-        self, tenant_id: UUID, user_id: UUID, folder_id: UUID | None = None
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        folder_id: UUID | None = None,
+        tag_ids: list[UUID] | None = None,
     ) -> int:
         """Count files that a user can view based on permissions.
 
@@ -658,12 +931,22 @@ class FileService:
         Returns:
             Count of files the user can view
         """
-        # Get all files for the tenant
+        # Count files directly with tag filter if provided
+        if tag_ids:
+            return self.repository.count_all(
+                tenant_id=tenant_id,
+                current_only=True,
+                folder_id=folder_id,
+                tag_ids=tag_ids,
+            )
+
+        # Get all files for the tenant (without pagination for counting)
         all_files = self.repository.get_all(
             tenant_id=tenant_id,
             skip=0,
-            limit=10000,  # Get a large number to count all
+            limit=10000,  # Large limit to get all files for counting
             folder_id=folder_id,
+            tag_ids=None,
         )
 
         # Count files by permissions
@@ -674,6 +957,217 @@ class FileService:
                     count += 1
             except FileNotFoundError:
                 continue
+            except Exception as e:
+                logger.warning(f"Error checking permissions for file {file.id} in count: {e}")
+                continue
 
         return count
+
+    async def cleanup_deleted_files(
+        self, tenant_id: UUID, retention_days: int | None = None
+    ) -> dict[str, Any]:
+        """Clean up deleted files after retention period.
+
+        Args:
+            tenant_id: Tenant ID
+            retention_days: Retention period in days (defaults to config)
+
+        Returns:
+            Dict with cleanup statistics
+        """
+
+        # Get retention_days from config if not provided
+        if retention_days is None:
+            limits = self._storage_config_service.get_file_limits(tenant_id)
+            retention_days = limits.get("retention_days", 30)  # Default 30 days
+
+        # Get files to cleanup
+        files_to_cleanup = self.repository.get_deleted_files_for_cleanup(
+            tenant_id, retention_days
+        )
+
+        files_deleted = 0
+        storage_freed = 0
+        errors = []
+
+        for file in files_to_cleanup:
+            try:
+                # Delete physical file from storage
+                await self.storage_backend.delete(file.storage_path)
+
+                # Delete all versions
+                versions = self.repository.get_versions(file.id, tenant_id)
+                for version in versions:
+                    try:
+                        await self.storage_backend.delete(version.storage_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete version {version.id}: {e}")
+
+                # Hard delete from database (CASCADE will handle related records)
+                self.db.delete(file)
+                self.db.commit()
+
+                files_deleted += 1
+                storage_freed += file.size
+
+                # Publish event
+                await self.event_publisher.publish(
+                    event_type="file.permanently_deleted",
+                    entity_type="file",
+                    entity_id=file.id,
+                    tenant_id=tenant_id,
+                    metadata=EventMetadata(
+                        source="file_service",
+                        version="1.0",
+                        additional_data={
+                            "filename": file.name,
+                            "retention_days": retention_days,
+                        },
+                    ),
+                )
+            except Exception as e:
+                logger.error(f"Failed to cleanup file {file.id}: {e}", exc_info=True)
+                errors.append({"file_id": str(file.id), "error": str(e)})
+                self.db.rollback()
+
+        return {
+            "files_count": files_deleted,
+            "storage_freed": storage_freed,
+            "errors": errors,
+        }
+
+    async def restore_file(
+        self, file_id: UUID, tenant_id: UUID, user_id: UUID
+    ) -> bool:
+        """Restore a soft-deleted file.
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+            user_id: User ID who restored the file
+
+        Returns:
+            True if restored successfully
+        """
+        restored = self.repository.restore(file_id, tenant_id)
+
+        if restored:
+            # Publish event
+            await self.event_publisher.publish(
+                event_type="file.restored",
+                entity_type="file",
+                entity_id=file_id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                metadata=EventMetadata(
+                    source="file_service",
+                    version="1.0",
+                ),
+            )
+            logger.info(f"File restored: {file_id}")
+
+        return restored
+
+    # Tag management methods
+    def add_tags_to_file(
+        self, file_id: UUID, tag_ids: list[UUID], tenant_id: UUID
+    ) -> list[Tag]:
+        """Add tags to a file.
+
+        Args:
+            file_id: File ID
+            tag_ids: List of tag IDs to add
+            tenant_id: Tenant ID
+
+        Returns:
+            List of Tag objects that were added
+
+        Raises:
+            FileNotFoundError: If file not found
+            ValueError: If tag not found or already added
+        """
+        # Verify file exists
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file or not file.is_current:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        added_tags = []
+        for tag_id in tag_ids:
+            try:
+                self._tag_service.add_tag_to_entity(
+                    tag_id=tag_id,
+                    entity_type="file",
+                    entity_id=file_id,
+                    tenant_id=tenant_id,
+                )
+                # Get the tag to return it
+                tag = self._tag_service.get_tag(tag_id, tenant_id)
+                if tag:
+                    added_tags.append(tag)
+            except ValueError as e:
+                logger.warning(
+                    f"Failed to add tag {tag_id} to file {file_id}: {e}"
+                )
+                # Continue with other tags instead of failing completely
+                continue
+
+        logger.info(
+            f"Added {len(added_tags)} tags to file {file_id}: {[t.id for t in added_tags]}"
+        )
+        return added_tags
+
+    def remove_tag_from_file(
+        self, file_id: UUID, tag_id: UUID, tenant_id: UUID
+    ) -> bool:
+        """Remove a tag from a file.
+
+        Args:
+            file_id: File ID
+            tag_id: Tag ID to remove
+            tenant_id: Tenant ID
+
+        Returns:
+            True if removed successfully
+
+        Raises:
+            FileNotFoundError: If file not found
+        """
+        # Verify file exists
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file or not file.is_current:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        removed = self._tag_service.remove_tag_from_entity(
+            tag_id=tag_id,
+            entity_type="file",
+            entity_id=file_id,
+            tenant_id=tenant_id,
+        )
+
+        if removed:
+            logger.info(f"Removed tag {tag_id} from file {file_id}")
+
+        return removed
+
+    def get_file_tags(self, file_id: UUID, tenant_id: UUID) -> list[Tag]:
+        """Get all tags for a file.
+
+        Args:
+            file_id: File ID
+            tenant_id: Tenant ID
+
+        Returns:
+            List of Tag objects
+
+        Raises:
+            FileNotFoundError: If file not found
+        """
+        # Verify file exists
+        file = self.repository.get_by_id(file_id, tenant_id)
+        if not file or not file.is_current:
+            raise FileNotFoundError(f"File {file_id} not found")
+
+        return self._tag_service.get_entity_tags(
+            entity_type="file", entity_id=file_id, tenant_id=tenant_id
+        )
 

@@ -30,6 +30,17 @@ from app.schemas.config import (
     ThemePresetResponse,
     ThemePresetUpdate,
 )
+from app.schemas.file_config import (
+    StorageConfigResponse,
+    StorageConfigUpdate,
+    StorageStatsResponse,
+    FileLimitsResponse,
+    FileLimitsUpdate,
+    ThumbnailConfigResponse,
+    ThumbnailConfigUpdate,
+    S3ConnectionTestRequest,
+    S3ConnectionTestResponse,
+)
 from app.schemas.config_version import (
     CacheStatsResponse,
     ConfigRollbackRequest,
@@ -1314,224 +1325,6 @@ async def set_default_theme_preset(
     )
 
 
-@router.get(
-    "/{module}",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get module configuration",
-    description="Get all configuration for a specific module in the current tenant. Requires config.view permission.",
-    responses={
-        200: {"description": "Module configuration retrieved successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.view"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def get_module_config(
-    module: str,
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Get all configuration for a specific module.
-
-    Requires: config.view
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        current_user: Current authenticated user (must have config.view).
-        db: Database session.
-
-    Returns:
-        StandardResponse with module configuration.
-
-    Raises:
-        APIException: If user lacks permission or module not found.
-    """
-    config_service = ConfigService(db)
-    config_dict = config_service.get_module_config(
-        tenant_id=current_user.tenant_id, module=module
-    )
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module=module, config=config_dict)
-    )
-
-
-@router.get(
-    "/{module}/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Get configuration value",
-    description="Get a specific configuration value for a module. Requires config.view permission.",
-    responses={
-        200: {"description": "Configuration value retrieved successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.view"},
-                        }
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Configuration not found",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "CONFIG_NOT_FOUND",
-                            "message": "Configuration 'products.min_price' not found",
-                            "details": {"module": "products", "key": "min_price"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def get_config_value(
-    module: str,
-    key: str,
-    current_user: Annotated[User, Depends(require_permission("config.view"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Get a specific configuration value.
-
-    Requires: config.view
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        key: Configuration key.
-        current_user: Current authenticated user (must have config.view).
-        db: Database session.
-
-    Returns:
-        StandardResponse with configuration value.
-
-    Raises:
-        APIException: If user lacks permission or configuration not found.
-    """
-    config_service = ConfigService(db)
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-
-    if value is None:
-        raise APIException(
-            code="CONFIG_NOT_FOUND",
-            message=f"Configuration '{module}.{key}' not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"module": module, "key": key},
-        )
-
-    return StandardResponse(
-        data={"module": module, "key": key, "value": value}
-    )
-
-
-@router.delete(
-    "/{module}/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Delete configuration value",
-    description="Delete a specific configuration value. Requires config.delete permission.",
-    responses={
-        200: {"description": "Configuration value deleted successfully"},
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.delete"},
-                        }
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Configuration not found",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "CONFIG_NOT_FOUND",
-                            "message": "Configuration 'products.min_price' not found",
-                            "details": {"module": "products", "key": "min_price"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def delete_config_value(
-    module: str,
-    key: str,
-    current_user: Annotated[User, Depends(require_permission("config.delete"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Delete a specific configuration value.
-
-    Requires: config.delete
-
-    Args:
-        module: Module name (e.g., 'products', 'inventory').
-        key: Configuration key.
-        current_user: Current authenticated user (must have config.delete).
-        db: Database session.
-
-    Returns:
-        StandardResponse with success message.
-
-    Raises:
-        APIException: If user lacks permission or configuration not found.
-    """
-    config_service = ConfigService(db)
-
-    # Check if exists before deleting
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-    if value is None:
-        raise APIException(
-            code="CONFIG_NOT_FOUND",
-            message=f"Configuration '{module}.{key}' not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"module": module, "key": key},
-        )
-
-    config_service.delete(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
-
-    return StandardResponse(
-        data={"message": f"Configuration '{module}.{key}' deleted successfully"}
-    )
-
-
 @router.post(
     "/app_theme",
     response_model=StandardResponse[ModuleConfigResponse],
@@ -2692,5 +2485,475 @@ async def test_webhook_connection(
             f"Failed to connect to webhook: {str(e)}",
         )
 
+
+# Files module configuration endpoints (MUST come before /{module} and /{module}/{key} routes)
+# These endpoints are defined before the generic routes to ensure FastAPI matches them first
+@router.get(
+    "/files/storage",
+    response_model=StandardResponse[StorageConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get storage configuration",
+    description="Get current storage configuration (Local/S3/Hybrid). Requires system.configure permission.",
+)
+async def get_storage_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[StorageConfigResponse]:
+    """Get storage configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    config = service.get_storage_config(current_user.tenant_id)
+
+    return StandardResponse(
+        data=StorageConfigResponse(**config),
+        message="Storage configuration retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/storage",
+    response_model=StandardResponse[StorageConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update storage configuration",
+    description="Update storage configuration. Requires system.configure permission.",
+)
+async def update_storage_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    config_data: StorageConfigUpdate,
+    request: Request,
+) -> StandardResponse[StorageConfigResponse]:
+    """Update storage configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    service = StorageConfigService(db)
+    client_info = get_client_info(request)
+
+    updated_config = service.update_storage_config(
+        tenant_id=current_user.tenant_id,
+        config=config_data.model_dump(),
+        user_id=current_user.id,
+        ip_address=client_info.get("ip_address"),
+        user_agent=client_info.get("user_agent"),
+    )
+
+    return StandardResponse(
+        data=StorageConfigResponse(**updated_config),
+        message="Storage configuration updated successfully",
+    )
+
+
+@router.post(
+    "/files/storage/test",
+    response_model=StandardResponse[S3ConnectionTestResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Test S3 connection",
+    description="Test S3 connection with provided credentials. Requires system.configure permission.",
+)
+async def test_s3_connection(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    test_data: S3ConnectionTestRequest,
+) -> StandardResponse[S3ConnectionTestResponse]:
+    """Test S3 connection."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    result = await service.test_s3_connection(
+        tenant_id=current_user.tenant_id,
+        config=test_data.model_dump(),
+    )
+
+    return StandardResponse(
+        data=S3ConnectionTestResponse(**result),
+        message="S3 connection test completed",
+    )
+
+
+@router.get(
+    "/files/stats",
+    response_model=StandardResponse[StorageStatsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get storage statistics",
+    description="Get storage statistics (space used, file counts, distributions). Requires system.configure permission.",
+)
+async def get_storage_stats(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[StorageStatsResponse]:
+    """Get storage statistics."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+    from app.core.files.storage_config_service import StorageConfigService
+
+    try:
+        service = StorageConfigService(db)
+        stats = service.get_storage_stats(current_user.tenant_id)
+
+        return StandardResponse(
+            data=StorageStatsResponse(**stats),
+            message="Storage statistics retrieved successfully",
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving storage stats for tenant {current_user.tenant_id}: {e}", exc_info=True)
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="STATS_RETRIEVAL_FAILED",
+            message=f"Failed to retrieve storage statistics: {str(e)}",
+        )
+
+
+@router.get(
+    "/files/limits",
+    response_model=StandardResponse[FileLimitsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get file limits",
+    description="Get file limits configuration. Requires system.configure permission.",
+)
+async def get_file_limits(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[FileLimitsResponse]:
+    """Get file limits configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    limits = service.get_file_limits(current_user.tenant_id)
+
+    return StandardResponse(
+        data=FileLimitsResponse(**limits),
+        message="File limits retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/limits",
+    response_model=StandardResponse[FileLimitsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update file limits",
+    description="Update file limits configuration. Requires system.configure permission.",
+)
+async def update_file_limits(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    limits_data: FileLimitsUpdate,
+    request: Request,
+) -> StandardResponse[FileLimitsResponse]:
+    """Update file limits configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    service = StorageConfigService(db)
+    client_info = get_client_info(request)
+
+    updated_limits = service.update_file_limits(
+        tenant_id=current_user.tenant_id,
+        limits=limits_data.model_dump(exclude_unset=True),
+        user_id=current_user.id,
+        ip_address=client_info.get("ip_address"),
+        user_agent=client_info.get("user_agent"),
+    )
+
+    return StandardResponse(
+        data=FileLimitsResponse(**updated_limits),
+        message="File limits updated successfully",
+    )
+
+
+@router.get(
+    "/files/thumbnails",
+    response_model=StandardResponse[ThumbnailConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get thumbnail configuration",
+    description="Get thumbnail configuration. Requires system.configure permission.",
+)
+async def get_thumbnail_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThumbnailConfigResponse]:
+    """Get thumbnail configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    config = service.get_thumbnail_config(current_user.tenant_id)
+
+    return StandardResponse(
+        data=ThumbnailConfigResponse(**config),
+        message="Thumbnail configuration retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/thumbnails",
+    response_model=StandardResponse[ThumbnailConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update thumbnail configuration",
+    description="Update thumbnail configuration. Requires system.configure permission.",
+)
+async def update_thumbnail_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    config_data: ThumbnailConfigUpdate,
+    request: Request,
+) -> StandardResponse[ThumbnailConfigResponse]:
+    """Update thumbnail configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    service = StorageConfigService(db)
+    client_info = get_client_info(request)
+
+    updated_config = service.update_thumbnail_config(
+        tenant_id=current_user.tenant_id,
+        config=config_data.model_dump(exclude_unset=True),
+        user_id=current_user.id,
+        ip_address=client_info.get("ip_address"),
+        user_agent=client_info.get("user_agent"),
+    )
+
+    return StandardResponse(
+        data=ThumbnailConfigResponse(**updated_config),
+        message="Thumbnail configuration updated successfully",
+    )
+
+
+@router.get(
+    "/{module}",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get module configuration",
+    description="Get all configuration for a specific module in the current tenant. Requires config.view permission.",
+    responses={
+        200: {"description": "Module configuration retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_module_config(
+    module: str,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Get all configuration for a specific module.
+
+    Requires: config.view
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardResponse with module configuration.
+
+    Raises:
+        APIException: If user lacks permission or module not found.
+    """
+    config_service = ConfigService(db)
+    config_dict = config_service.get_module_config(
+        tenant_id=current_user.tenant_id, module=module
+    )
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module=module, config=config_dict)
+    )
+
+
+@router.get(
+    "/{module}/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get configuration value",
+    description="Get a specific configuration value for a module. Requires config.view permission.",
+    responses={
+        200: {"description": "Configuration value retrieved successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.view"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Configuration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CONFIG_NOT_FOUND",
+                            "message": "Configuration 'products.min_price' not found",
+                            "details": {"module": "products", "key": "min_price"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def get_config_value(
+    module: str,
+    key: str,
+    current_user: Annotated[User, Depends(require_permission("config.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Get a specific configuration value.
+
+    Requires: config.view
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        key: Configuration key.
+        current_user: Current authenticated user (must have config.view).
+        db: Database session.
+
+    Returns:
+        StandardResponse with configuration value.
+
+    Raises:
+        APIException: If user lacks permission or configuration not found.
+    """
+    # Prevent this generic endpoint from handling files module specific routes
+    # These should be handled by the specific /files/* endpoints defined above
+    if module == "files" and key in ("storage", "limits", "thumbnails", "stats"):
+        raise APIException(
+            code="ENDPOINT_NOT_FOUND",
+            message=f"Endpoint '/config/{module}/{key}' not found. Use the specific endpoint instead.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    config_service = ConfigService(db)
+    value = config_service.get(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+
+    if value is None:
+        raise APIException(
+            code="CONFIG_NOT_FOUND",
+            message=f"Configuration '{module}.{key}' not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    return StandardResponse(
+        data={"module": module, "key": key, "value": value}
+    )
+
+
+@router.delete(
+    "/{module}/{key}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Delete configuration value",
+    description="Delete a specific configuration value. Requires config.delete permission.",
+    responses={
+        200: {"description": "Configuration value deleted successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.delete"},
+                        }
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Configuration not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "CONFIG_NOT_FOUND",
+                            "message": "Configuration 'products.min_price' not found",
+                            "details": {"module": "products", "key": "min_price"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def delete_config_value(
+    module: str,
+    key: str,
+    current_user: Annotated[User, Depends(require_permission("config.delete"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Delete a specific configuration value.
+
+    Requires: config.delete
+
+    Args:
+        module: Module name (e.g., 'products', 'inventory').
+        key: Configuration key.
+        current_user: Current authenticated user (must have config.delete).
+        db: Database session.
+
+    Returns:
+        StandardResponse confirming deletion.
+
+    Raises:
+        APIException: If user lacks permission or configuration not found.
+    """
+    # Prevent this generic endpoint from handling files module specific routes
+    # These should be handled by the specific /files/* endpoints defined above
+    if module == "files" and key in ("storage", "limits", "thumbnails", "stats"):
+        raise APIException(
+            code="ENDPOINT_NOT_FOUND",
+            message=f"Endpoint '/config/{module}/{key}' not found. Use the specific endpoint instead.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    config_service = ConfigService(db)
+    value = config_service.get(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+    if value is None:
+        raise APIException(
+            code="CONFIG_NOT_FOUND",
+            message=f"Configuration '{module}.{key}' not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"module": module, "key": key},
+        )
+
+    config_service.delete(
+        tenant_id=current_user.tenant_id, module=module, key=key
+    )
+
+    return StandardResponse(
+        data={"module": module, "key": key, "deleted": True},
+        message="Configuration value deleted successfully",
+    )
 
 

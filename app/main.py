@@ -10,6 +10,10 @@ from app.core.config_file import get_settings
 from app.core.exceptions import APIException
 # Import logging module to initialize loggers
 from app.core import logging as app_logging  # noqa: F401
+# Import async tasks to register them
+from app.core.files import tasks as files_tasks  # noqa: F401
+from app.core.async_tasks import AsyncTaskService
+from app.core.db.session import SessionLocal
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -257,6 +261,36 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")
+
+# Initialize async task scheduler
+async_task_service: AsyncTaskService | None = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize async task scheduler on startup."""
+    global async_task_service
+    try:
+        db = SessionLocal()
+        async_task_service = AsyncTaskService(db)
+        await async_task_service.start_scheduler()
+        logger.info("Async task scheduler started")
+    except Exception as e:
+        logger.error(f"Failed to start async task scheduler: {e}", exc_info=True)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop async task scheduler on shutdown."""
+    global async_task_service
+    if async_task_service:
+        try:
+            await async_task_service.stop_scheduler()
+            if hasattr(async_task_service, 'db'):
+                async_task_service.db.close()
+            logger.info("Async task scheduler stopped")
+        except Exception as e:
+            logger.error(f"Error stopping async task scheduler: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

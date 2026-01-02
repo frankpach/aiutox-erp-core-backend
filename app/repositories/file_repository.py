@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.file import File, FilePermission, FileVersion
+from app.models.tag import EntityTag
 
 
 class FileRepository:
@@ -64,15 +65,17 @@ class FileRepository:
                 logger.error(f"Error during rollback: {rollback_error}")
             raise
 
-    def get_by_id(self, file_id: UUID, tenant_id: UUID) -> File | None:
+    def get_by_id(self, file_id: UUID, tenant_id: UUID, current_only: bool = True) -> File | None:
         """Get file by ID and tenant."""
         from sqlalchemy.orm import joinedload
-        return (
+        query = (
             self.db.query(File)
             .options(joinedload(File.uploaded_by_user))
             .filter(File.id == file_id, File.tenant_id == tenant_id)
-            .first()
         )
+        if current_only:
+            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+        return query.first()
 
     def get_by_entity(
         self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
@@ -85,7 +88,7 @@ class FileRepository:
             File.tenant_id == tenant_id,
         )
         if current_only:
-            query = query.filter(File.is_current == True)
+            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
         return query.order_by(File.created_at.desc()).all()
 
     def count_by_entity(
@@ -104,29 +107,114 @@ class FileRepository:
         return query.scalar() or 0
 
     def get_all(
-        self, tenant_id: UUID, skip: int = 0, limit: int = 100, current_only: bool = True, folder_id: UUID | None = None
+        self,
+        tenant_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+        current_only: bool = True,
+        folder_id: UUID | None = None,
+        tag_ids: list[UUID] | None = None,
     ) -> list[File]:
-        """Get all files for a tenant."""
+        """Get all files for a tenant.
+
+        Args:
+            tenant_id: Tenant ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            current_only: Only get current files (not deleted)
+            folder_id: Filter by folder ID (None for root)
+            tag_ids: Filter by tag IDs (files must have ALL specified tags)
+
+        Returns:
+            List of File objects
+        """
         from sqlalchemy.orm import joinedload
-        query = self.db.query(File).options(joinedload(File.uploaded_by_user)).filter(File.tenant_id == tenant_id)
+
+        query = (
+            self.db.query(File)
+            .options(joinedload(File.uploaded_by_user))
+            .filter(File.tenant_id == tenant_id)
+        )
         if current_only:
-            query = query.filter(File.is_current == True)
+            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+        # Only filter by folder_id if it's explicitly provided (not None)
+        # If folder_id is None, we don't filter (get all files regardless of folder)
         if folder_id is not None:
             query = query.filter(File.folder_id == folder_id)
-        elif folder_id is None:
-            # If folder_id is explicitly None, filter for root files (folder_id IS NULL)
-            query = query.filter(File.folder_id.is_(None))
+
+        # Filter by tags if provided
+        if tag_ids:
+            # Files must have ALL specified tags (AND logic)
+            # Use subquery approach to avoid GROUP BY issues with joinedload
+            from sqlalchemy import func
+
+            # First, find file IDs that have all the specified tags
+            subquery = (
+                self.db.query(EntityTag.entity_id)
+                .filter(
+                    EntityTag.entity_type == "file",
+                    EntityTag.tag_id.in_(tag_ids),
+                    EntityTag.tenant_id == tenant_id,
+                )
+                .group_by(EntityTag.entity_id)
+                .having(func.count(func.distinct(EntityTag.tag_id)) == len(tag_ids))
+                .subquery()
+            )
+
+            # Filter the main query by file IDs from subquery
+            query = query.filter(File.id.in_(self.db.query(subquery.c.entity_id)))
+
         return query.order_by(File.created_at.desc()).offset(skip).limit(limit).all()
 
     def count_all(
-        self, tenant_id: UUID, current_only: bool = True
+        self,
+        tenant_id: UUID,
+        current_only: bool = True,
+        folder_id: UUID | None = None,
+        tag_ids: list[UUID] | None = None,
     ) -> int:
-        """Count all files for a tenant."""
+        """Count all files for a tenant.
+
+        Args:
+            tenant_id: Tenant ID
+            current_only: Only count current files (not deleted)
+            folder_id: Filter by folder ID (None for root)
+            tag_ids: Filter by tag IDs (files must have ALL specified tags)
+
+        Returns:
+            Count of files
+        """
         from sqlalchemy import func
 
         query = self.db.query(func.count(File.id)).filter(File.tenant_id == tenant_id)
         if current_only:
-            query = query.filter(File.is_current == True)
+            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+        # Only filter by folder_id if it's explicitly provided (not None)
+        # If folder_id is None, we don't filter (count all files regardless of folder)
+        if folder_id is not None:
+            query = query.filter(File.folder_id == folder_id)
+
+        # Filter by tags if provided
+        if tag_ids:
+            # Files must have ALL specified tags (AND logic)
+            from sqlalchemy import func
+
+            # Use subquery to count distinct files with all tags
+            subquery = (
+                self.db.query(EntityTag.entity_id)
+                .filter(
+                    EntityTag.entity_type == "file",
+                    EntityTag.tag_id.in_(tag_ids),
+                    EntityTag.tenant_id == tenant_id,
+                )
+                .group_by(EntityTag.entity_id)
+                .having(func.count(EntityTag.tag_id.distinct()) == len(tag_ids))
+                .subquery()
+            )
+            query = query.filter(File.id.in_(self.db.query(subquery.c.entity_id)))
+            # Count distinct files
+            return query.scalar() or 0
+
         return query.scalar() or 0
 
     def update(self, file_id: UUID, tenant_id: UUID, file_data: dict) -> File | None:
@@ -141,11 +229,14 @@ class FileRepository:
         return file
 
     def delete(self, file_id: UUID, tenant_id: UUID) -> bool:
-        """Delete a file (soft delete by setting is_current=False)."""
+        """Soft delete by setting is_current=False and deleted_at."""
+        from datetime import UTC, datetime
+
         file = self.get_by_id(file_id, tenant_id)
         if not file:
             return False
         file.is_current = False
+        file.deleted_at = datetime.now(UTC)
         self.db.commit()
         return True
 
@@ -245,4 +336,34 @@ class FileRepository:
         self.db.delete(permission)
         self.db.commit()
         return True
+
+    def restore(self, file_id: UUID, tenant_id: UUID) -> bool:
+        """Restore a soft-deleted file."""
+        # Get file even if deleted (current_only=False)
+        file = self.get_by_id(file_id, tenant_id, current_only=False)
+        if not file:
+            return False
+        if file.deleted_at is None:
+            return False  # Already restored or never deleted
+        file.is_current = True
+        file.deleted_at = None
+        self.db.commit()
+        return True
+
+    def get_deleted_files_for_cleanup(
+        self, tenant_id: UUID, retention_days: int
+    ) -> list[File]:
+        """Get files deleted more than retention_days ago."""
+        from datetime import UTC, datetime, timedelta
+
+        cutoff_date = datetime.now(UTC) - timedelta(days=retention_days)
+        return (
+            self.db.query(File)
+            .filter(
+                File.tenant_id == tenant_id,
+                File.deleted_at.isnot(None),
+                File.deleted_at < cutoff_date,
+            )
+            .all()
+        )
 

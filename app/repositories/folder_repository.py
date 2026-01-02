@@ -4,9 +4,9 @@ from typing import List
 from uuid import UUID
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models.folder import Folder
+from app.models.folder import Folder, FolderPermission
 
 
 class FolderRepository:
@@ -103,7 +103,8 @@ class FolderRepository:
         if entity_id:
             query = query.filter(Folder.entity_id == entity_id)
 
-        return query.options(joinedload(Folder.children)).order_by(Folder.name).all()
+        # Use selectinload for recursive loading of children
+        return query.options(selectinload(Folder.children)).order_by(Folder.name).all()
 
     def update(self, folder_id: UUID, tenant_id: UUID, folder_data: dict) -> Folder | None:
         """Update a folder.
@@ -233,5 +234,96 @@ class FolderRepository:
                 current = None
 
         return path
+
+    def create_permission(self, permission_data: dict) -> FolderPermission:
+        """Create a new folder permission.
+
+        Args:
+            permission_data: Permission data dictionary
+
+        Returns:
+            Created FolderPermission object
+        """
+        permission = FolderPermission(**permission_data)
+        self.db.add(permission)
+        self.db.commit()
+        self.db.refresh(permission)
+        return permission
+
+    def get_permissions(self, folder_id: UUID, tenant_id: UUID) -> list[FolderPermission]:
+        """Get all permissions for a folder.
+
+        Args:
+            folder_id: Folder ID
+            tenant_id: Tenant ID
+
+        Returns:
+            List of FolderPermission objects
+        """
+        return (
+            self.db.query(FolderPermission)
+            .filter(
+                FolderPermission.folder_id == folder_id,
+                FolderPermission.tenant_id == tenant_id,
+            )
+            .all()
+        )
+
+    def update_permission(
+        self, permission_id: UUID, tenant_id: UUID, permission_data: dict
+    ) -> FolderPermission | None:
+        """Update a folder permission.
+
+        Args:
+            permission_id: Permission ID
+            tenant_id: Tenant ID
+            permission_data: Permission data to update
+
+        Returns:
+            Updated FolderPermission object or None
+        """
+        permission = (
+            self.db.query(FolderPermission)
+            .filter(
+                FolderPermission.id == permission_id,
+                FolderPermission.tenant_id == tenant_id,
+            )
+            .first()
+        )
+        if not permission:
+            return None
+
+        for key, value in permission_data.items():
+            if value is not None:
+                setattr(permission, key, value)
+
+        self.db.commit()
+        self.db.refresh(permission)
+        return permission
+
+    def delete_permission(self, permission_id: UUID, tenant_id: UUID) -> bool:
+        """Delete a folder permission.
+
+        Args:
+            permission_id: Permission ID
+            tenant_id: Tenant ID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        permission = (
+            self.db.query(FolderPermission)
+            .filter(
+                FolderPermission.id == permission_id,
+                FolderPermission.tenant_id == tenant_id,
+            )
+            .first()
+        )
+        if not permission:
+            return False
+
+        self.db.delete(permission)
+        self.db.commit()
+        return True
 
 

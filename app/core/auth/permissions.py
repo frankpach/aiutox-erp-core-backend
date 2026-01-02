@@ -208,6 +208,15 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "files.manage_users",
         },
     },
+    "folders": {
+        "internal.viewer": {"folders.view"},
+        "internal.editor": {"folders.view", "folders.manage"},
+        "internal.manager": {
+            "folders.view",
+            "folders.manage",
+            "folders.manage_users",
+        },
+    },
     "activities": {
         "internal.viewer": {"activities.view"},
         "internal.editor": {"activities.view", "activities.create", "activities.edit"},

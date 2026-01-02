@@ -85,3 +85,4 @@ def downgrade() -> None:
 
     # Note: We don't drop the folders table in downgrade as it might be used elsewhere
 
+

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 from app.core.auth.dependencies import require_permission
+from app.core.config_file import get_settings
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
 from app.core.notifications.service import NotificationService
@@ -26,6 +27,8 @@ from app.schemas.notification import (
     NotificationTemplateResponse,
     NotificationTemplateUpdate,
 )
+
+settings = get_settings()
 
 router = APIRouter()
 
@@ -327,63 +330,137 @@ async def stream_notifications(
     """
     async def event_generator():
         """Generate SSE events for new notifications with adaptive polling interval."""
+        import time
+
         last_id = None
         # Adaptive polling intervals: start at 5s, increase when no notifications found
         # Intervals: 5s -> 10s -> 20s -> 30s -> 60s (max)
         polling_intervals = [5, 10, 20, 30, 60]
         current_interval_index = 0
 
+        # Heartbeat configuration (from settings)
+        HEARTBEAT_INTERVAL = settings.SSE_HEARTBEAT_INTERVAL
+        last_heartbeat = time.time()
+
+        logger.info(
+            f"SSE stream started for user {current_user.id}, tenant {current_user.tenant_id}"
+        )
+
         try:
             while True:
-                # Get new notifications
-                new_notifications = repository.get_unread_notifications(
-                    tenant_id=current_user.tenant_id,
-                    user_id=current_user.id,
-                    since_id=last_id,
-                    limit=50,
-                )
+                try:
+                    # Get new notifications
+                    new_notifications = repository.get_unread_notifications(
+                        tenant_id=current_user.tenant_id,
+                        user_id=current_user.id,
+                        since_id=last_id,
+                        limit=50,
+                    )
 
-                # Send each notification as an SSE event
-                for notification in new_notifications:
-                    notification_data = NotificationQueueResponse.model_validate(
-                        notification
-                    ).model_dump(mode='json')  # Use mode='json' to serialize UUIDs as strings
-                    # Format as SSE: "data: {json}\n\n"
-                    yield f"data: {json.dumps(notification_data)}\n\n"
-                    last_id = notification.id
+                    # Send each notification as an SSE event
+                    for notification in new_notifications:
+                        try:
+                            notification_data = NotificationQueueResponse.model_validate(
+                                notification
+                            ).model_dump(mode='json')  # Use mode='json' to serialize UUIDs as strings
+                            # Format as SSE: "data: {json}\n\n"
+                            yield f"data: {json.dumps(notification_data)}\n\n"
+                            last_id = notification.id
+                            logger.debug(
+                                f"Sent notification {notification.id} to user {current_user.id}"
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Error serializing notification {notification.id}: {e}",
+                                exc_info=True,
+                            )
+                            # Continue with next notification instead of breaking the stream
+                            continue
 
-                # Adaptive interval logic:
-                # - If new notifications found, reset to fastest interval (5s)
-                # - If no new notifications, increase interval gradually
-                # Get current interval before potentially modifying index
-                current_interval = polling_intervals[current_interval_index]
+                    # Send heartbeat to keep connection alive
+                    current_time = time.time()
+                    if current_time - last_heartbeat >= HEARTBEAT_INTERVAL:
+                        # Send SSE comment (heartbeat) to keep connection alive
+                        yield ": heartbeat\n\n"
+                        last_heartbeat = current_time
+                        logger.debug(f"Heartbeat sent to user {current_user.id}")
 
-                # Sleep with current interval first
-                await asyncio.sleep(current_interval)
+                    # Adaptive interval logic:
+                    # - If new notifications found, reset to fastest interval (5s)
+                    # - If no new notifications, increase interval gradually
+                    # Get current interval before potentially modifying index
+                    current_interval = polling_intervals[current_interval_index]
 
-                # Then adjust interval for next iteration
-                if new_notifications:
-                    # Reset to fastest polling when notifications are found
-                    current_interval_index = 0
-                else:
-                    # Gradually increase interval when no notifications
-                    if current_interval_index < len(polling_intervals) - 1:
-                        current_interval_index += 1
+                    # Sleep with current interval first
+                    await asyncio.sleep(current_interval)
+
+                    # Then adjust interval for next iteration
+                    if new_notifications:
+                        # Reset to fastest polling when notifications are found
+                        current_interval_index = 0
+                        logger.debug(
+                            f"Notifications found, resetting polling interval to 5s for user {current_user.id}"
+                        )
+                    else:
+                        # Gradually increase interval when no notifications
+                        if current_interval_index < len(polling_intervals) - 1:
+                            current_interval_index += 1
+                            logger.debug(
+                                f"No notifications, increasing polling interval to "
+                                f"{polling_intervals[current_interval_index]}s for user {current_user.id}"
+                            )
+
+                except Exception as e:
+                    # Log error but don't break the stream
+                    logger.error(
+                        f"Error in SSE stream loop for user {current_user.id}: {e}",
+                        exc_info=True,
+                    )
+                    # Send error event to client
+                    try:
+                        error_data = {
+                            "error": {
+                                "code": "STREAM_ERROR",
+                                "message": "Error in notification stream",
+                                "details": str(e) if settings.DEBUG else None,
+                            }
+                        }
+                        yield f"data: {json.dumps(error_data)}\n\n"
+                    except Exception as send_error:
+                        logger.error(
+                            f"Failed to send error event to client: {send_error}",
+                            exc_info=True,
+                        )
+                    # Wait a bit before retrying to avoid tight error loop
+                    await asyncio.sleep(5)
 
         except asyncio.CancelledError:
             # Client disconnected
-            logger.info(f"SSE stream disconnected for user {current_user.id}")
+            logger.info(
+                f"SSE stream disconnected for user {current_user.id} (cancelled)"
+            )
             raise
         except Exception as e:
-            logger.error(f"Error in SSE stream for user {current_user.id}: {e}", exc_info=True)
-            # Send error event
-            error_data = {
-                "error": {
-                    "code": "STREAM_ERROR",
-                    "message": "Error in notification stream",
+            logger.error(
+                f"Fatal error in SSE stream for user {current_user.id}: {e}",
+                exc_info=True,
+            )
+            # Send final error event before closing
+            try:
+                error_data = {
+                    "error": {
+                        "code": "STREAM_FATAL_ERROR",
+                        "message": "Fatal error in notification stream",
+                    }
                 }
-            }
-            yield f"data: {json.dumps(error_data)}\n\n"
+                yield f"data: {json.dumps(error_data)}\n\n"
+            except Exception:
+                pass  # Ignore errors when sending final error
+            raise
+
+    # Configure timeout for SSE stream (from settings)
+    # Note: This is a client-side timeout hint. Server/proxy timeout must be configured separately.
+    sse_timeout = settings.SSE_TIMEOUT
 
     return StreamingResponse(
         event_generator(),
@@ -391,7 +468,8 @@ async def stream_notifications(
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable buffering in Nginx
+            "X-Accel-Buffering": "no",  # Disable buffering in nginx
+            "X-SSE-Timeout": str(sse_timeout),  # Hint for client about expected timeout
         },
     )
 

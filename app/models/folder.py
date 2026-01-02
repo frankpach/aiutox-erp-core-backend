@@ -83,19 +83,81 @@ class Folder(Base):
     def get_path(self) -> str:
         """Get the full path of the folder (e.g., /Root/Documents/Projects)."""
         path_parts = [self.name]
-        current = self.parent
-        while current:
-            path_parts.insert(0, current.name)
-            current = current.parent
+        try:
+            current = self.parent
+            while current:
+                path_parts.insert(0, current.name)
+                current = current.parent
+        except Exception:
+            # If parent not loaded or access fails, return just the folder name
+            pass
         return "/" + "/".join(path_parts)
 
     def get_depth(self) -> int:
         """Get the depth of the folder in the hierarchy (0 for root folders)."""
         depth = 0
-        current = self.parent
-        while current:
-            depth += 1
-            current = current.parent
+        try:
+            current = self.parent
+            while current:
+                depth += 1
+                current = current.parent
+        except Exception:
+            # If parent not loaded or access fails, return 0
+            pass
         return depth
+
+
+class FolderPermission(Base):
+    """Folder permission model for access control."""
+
+    __tablename__ = "folder_permissions"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    folder_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("folders.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Permission target (polymorphic)
+    # Can be user, role, or organization
+    target_type = Column(String(50), nullable=False)  # 'user', 'role', 'organization'
+    target_id = Column(PG_UUID(as_uuid=True), nullable=False)
+
+    # Permissions
+    can_view = Column(Boolean, default=True, nullable=False)
+    can_create_files = Column(Boolean, default=False, nullable=False)  # Create files in folder
+    can_create_folders = Column(Boolean, default=False, nullable=False)  # Create subfolders
+    can_edit = Column(Boolean, default=False, nullable=False)  # Edit name, description, etc.
+    can_delete = Column(Boolean, default=False, nullable=False)  # Delete folder
+
+    # Timestamps
+    created_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("idx_folder_permissions_folder", "folder_id"),
+        Index("idx_folder_permissions_target", "target_type", "target_id"),
+        Index("idx_folder_permissions_tenant", "tenant_id", "target_type", "target_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<FolderPermission(id={self.id}, folder_id={self.folder_id}, target={self.target_type}:{self.target_id})>"
 
 

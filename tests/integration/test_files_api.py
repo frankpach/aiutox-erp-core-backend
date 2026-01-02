@@ -108,7 +108,16 @@ def test_delete_file(client, test_user, db_session):
 
     assert response.status_code == 204
 
-    # Verify it's deleted (soft delete)
+    # Verify it's deleted (soft delete with deleted_at)
+    from app.repositories.file_repository import FileRepository
+    from uuid import UUID
+    repo = FileRepository(db_session)
+    deleted_file = repo.get_by_id(UUID(file_id), test_user.tenant_id, current_only=False)
+    if deleted_file:
+        assert deleted_file.is_current is False
+        assert deleted_file.deleted_at is not None
+
+    # Verify it's not accessible via API (excluded from queries)
     get_response = client.get(f"/api/v1/files/{file_id}", headers=headers)
     assert get_response.status_code == 404
 
@@ -183,4 +192,107 @@ def test_get_file_preview_non_image(client, test_user, db_session):
     data = response.json()
     assert "error" in data
     assert data["error"]["code"] == "FILE_NOT_IMAGE"
+
+
+def test_get_file_content_text_file(client, test_user, db_session):
+    """Test getting file content for a text file."""
+    # Assign files.manage permission for upload, files.view for content
+    headers = create_user_with_permission(db_session, test_user, "files", "manager")
+
+    # Upload a text file
+    file_content = b"This is a test text file content"
+    files = {"file": ("test.txt", file_content, "text/plain")}
+    upload_response = client.post(
+        "/api/v1/files/upload",
+        files=files,
+        headers=headers,
+    )
+    assert upload_response.status_code == 201
+    file_id = upload_response.json()["data"]["id"]
+
+    # Get file content
+    response = client.get(f"/api/v1/files/{file_id}/content", headers=headers)
+
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    assert response.text == file_content.decode("utf-8")
+
+
+def test_get_file_content_json_file(client, test_user, db_session):
+    """Test getting file content for a JSON file."""
+    # Assign files.manage permission for upload, files.view for content
+    headers = create_user_with_permission(db_session, test_user, "files", "manager")
+
+    # Upload a JSON file
+    json_content = b'{"test": "data", "number": 123}'
+    files = {"file": ("test.json", json_content, "application/json")}
+    upload_response = client.post(
+        "/api/v1/files/upload",
+        files=files,
+        headers=headers,
+    )
+    assert upload_response.status_code == 201
+    file_id = upload_response.json()["data"]["id"]
+
+    # Get file content
+    response = client.get(f"/api/v1/files/{file_id}/content", headers=headers)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/json"
+    assert response.text == json_content.decode("utf-8")
+
+
+def test_get_file_content_file_not_found(client, test_user, db_session):
+    """Test getting file content for non-existent file."""
+    # Assign files.view permission
+    headers = create_user_with_permission(db_session, test_user, "files", "viewer")
+
+    # Try to get content of non-existent file
+    fake_file_id = str(uuid4())
+    response = client.get(f"/api/v1/files/{fake_file_id}/content", headers=headers)
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "error" in data
+    assert data["error"]["code"] == "FILE_NOT_FOUND"
+
+
+def test_get_file_content_no_permission(client, test_user, db_session):
+    """Test getting file content without permission."""
+    # Create another user without files.view permission
+    from app.models.user import User
+    from app.models.tenant import Tenant
+
+    from app.core.auth import hash_password
+    other_user = User(
+        email="other@test.com",
+        full_name="Other User",
+        tenant_id=test_user.tenant_id,
+        is_active=True,
+        password_hash=hash_password("test_password_123"),
+    )
+    db_session.add(other_user)
+    db_session.commit()
+
+    # Upload file with first user
+    headers = create_user_with_permission(db_session, test_user, "files", "manager")
+    file_content = b"test content"
+    files = {"file": ("test.txt", file_content, "text/plain")}
+    upload_response = client.post(
+        "/api/v1/files/upload",
+        files=files,
+        headers=headers,
+    )
+    file_id = upload_response.json()["data"]["id"]
+
+    # Try to get content with other user (no permission)
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    other_token = auth_service.create_access_token_for_user(other_user)
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    response = client.get(f"/api/v1/files/{file_id}/content", headers=other_headers)
+
+    # Should return 403 or 404 depending on implementation
+    assert response.status_code in [403, 404]
 

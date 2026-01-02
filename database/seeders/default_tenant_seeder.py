@@ -41,3 +41,4 @@ class DefaultTenantSeeder(Seeder):
             print(f"✅ DefaultTenantSeeder: Default tenant already exists (ID: {tenant.id})")
 
 
+

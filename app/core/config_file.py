@@ -89,6 +89,10 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:3000"
 
+    # SSE (Server-Sent Events) Configuration
+    SSE_TIMEOUT: int = 3600  # Timeout in seconds (default: 1 hour)
+    SSE_HEARTBEAT_INTERVAL: int = 30  # Heartbeat interval in seconds (default: 30s)
+
     # Logging
     LOG_LEVEL: str = "INFO"  # INFO for dev, WARNING for prod
     LOG_TO_FILE: bool = False  # False for dev, True for prod

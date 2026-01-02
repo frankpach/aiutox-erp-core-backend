@@ -73,8 +73,15 @@ async def list_users(
         StandardListResponse with list of users and pagination metadata.
 
     Raises:
-        APIException: If user lacks permission.
+        APIException: If user lacks permission or tenant_id is missing.
     """
+    # Validate tenant_id
+    if not current_user.tenant_id:
+        raise_bad_request(
+            code="MISSING_TENANT",
+            message="User must have a tenant assigned. Please contact administrator.",
+        )
+
     user_service = UserService(db)
     skip = (page - 1) * page_size
 
@@ -83,18 +90,30 @@ async def list_users(
 
     # If saved_filter_id is provided, get the saved filter and apply its conditions
     if saved_filter_id:
-        from app.core.views.service import ViewService
-        view_service = ViewService(db)
-        saved_filter = view_service.get_saved_filter(saved_filter_id, current_user.tenant_id)
-        if saved_filter:
-            # Parse filter conditions from saved filter
-            # Saved filters store conditions in a JSON field
-            import json
-            if hasattr(saved_filter, 'conditions') and saved_filter.conditions:
-                if isinstance(saved_filter.conditions, str):
-                    filter_conditions.update(json.loads(saved_filter.conditions))
-                elif isinstance(saved_filter.conditions, dict):
-                    filter_conditions.update(saved_filter.conditions)
+        try:
+            from app.core.views.service import ViewService
+            view_service = ViewService(db)
+            saved_filter = view_service.get_saved_filter(saved_filter_id, current_user.tenant_id)
+            if saved_filter:
+                # Parse filter conditions from saved filter
+                # Saved filters store conditions in a JSON field
+                import json
+                if hasattr(saved_filter, 'conditions') and saved_filter.conditions:
+                    try:
+                        if isinstance(saved_filter.conditions, str):
+                            filter_conditions.update(json.loads(saved_filter.conditions))
+                        elif isinstance(saved_filter.conditions, dict):
+                            filter_conditions.update(saved_filter.conditions)
+                    except (json.JSONDecodeError, ValueError) as e:
+                        # Log error but don't fail the request
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Failed to parse saved filter conditions: {e}")
+        except Exception as e:
+            # Log error but don't fail the request - saved filter is optional
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to load saved filter {saved_filter_id}: {e}")
 
     # Override with explicit parameters (explicit params take precedence)
     if search:

@@ -80,6 +80,11 @@ class File(Base):
     # Versioning
     version_number = Column(Integer, default=1, nullable=False)
     is_current = Column(Boolean, default=True, nullable=False, index=True)
+    deleted_at = Column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+        index=True,
+    )
 
     # Ownership
     uploaded_by = Column(

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.tag import TagResponse
+
 
 class FileBase(BaseModel):
     """Base schema for file."""
@@ -46,11 +48,16 @@ class FileResponse(FileBase):
     storage_url: str | None
     version_number: int
     is_current: bool
+    deleted_at: datetime | None = Field(None, description="Timestamp when file was deleted (soft delete)")
     folder_id: UUID | None = Field(None, description="Folder ID (null for root)")
     uploaded_by: UUID | None
     uploaded_by_user: dict[str, Any] | None = Field(
         None,
         description="User information (name, email) who uploaded the file",
+    )
+    tags: list[TagResponse] | None = Field(
+        None,
+        description="Tags associated with the file",
     )
     metadata: dict[str, Any] | None = Field(None, alias="file_metadata", description="Additional metadata")
     created_at: datetime

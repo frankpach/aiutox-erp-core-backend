@@ -75,3 +75,33 @@ class MoveItemsRequest(BaseModel):
     target_folder_id: UUID | None = Field(None, description="Target folder ID (null for root)")
 
 
+class FolderPermissionRequest(BaseModel):
+    """Schema for folder permission request."""
+
+    target_type: str = Field(..., description="Target type: 'user', 'role', 'organization'")
+    target_id: UUID = Field(..., description="Target ID")
+    can_view: bool = Field(default=True, description="Can view folder")
+    can_create_files: bool = Field(default=False, description="Can create files in folder")
+    can_create_folders: bool = Field(default=False, description="Can create subfolders")
+    can_edit: bool = Field(default=False, description="Can edit folder")
+    can_delete: bool = Field(default=False, description="Can delete folder")
+
+
+class FolderPermissionResponse(BaseModel):
+    """Schema for folder permission response."""
+
+    id: UUID
+    folder_id: UUID
+    target_type: str
+    target_id: UUID
+    can_view: bool
+    can_create_files: bool
+    can_create_folders: bool
+    can_edit: bool
+    can_delete: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
