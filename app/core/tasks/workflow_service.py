@@ -230,6 +230,129 @@ class WorkflowService:
 
         return execution
 
+    def get_execution(self, execution_id: UUID, tenant_id: UUID) -> WorkflowExecution | None:
+        """Get a workflow execution by ID.
+
+        Args:
+            execution_id: Execution ID
+            tenant_id: Tenant ID
+
+        Returns:
+            WorkflowExecution object or None if not found
+        """
+        return self.repository.get_execution_by_id(execution_id, tenant_id)
+
+    def get_executions(
+        self,
+        tenant_id: UUID,
+        workflow_id: UUID | None = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[WorkflowExecution]:
+        """Get workflow executions for a tenant.
+
+        Args:
+            tenant_id: Tenant ID
+            workflow_id: Filter by workflow (optional)
+            status: Filter by status (optional)
+            entity_type: Filter by entity type (optional)
+            entity_id: Filter by entity ID (optional)
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of WorkflowExecution objects
+        """
+        return self.repository.get_executions(
+            tenant_id, workflow_id, status, entity_type, entity_id, skip, limit
+        )
+
+    def count_executions(
+        self,
+        tenant_id: UUID,
+        workflow_id: UUID | None = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+    ) -> int:
+        """Count workflow executions for a tenant.
+
+        Args:
+            tenant_id: Tenant ID
+            workflow_id: Filter by workflow (optional)
+            status: Filter by status (optional)
+            entity_type: Filter by entity type (optional)
+            entity_id: Filter by entity ID (optional)
+
+        Returns:
+            Total count of executions
+        """
+        return self.repository.count_executions(
+            tenant_id, workflow_id, status, entity_type, entity_id
+        )
+
+    def advance_execution(
+        self, execution_id: UUID, tenant_id: UUID, action: str | None = None
+    ) -> WorkflowExecution | None:
+        """Advance a workflow execution to the next step.
+
+        Args:
+            execution_id: Execution ID
+            tenant_id: Tenant ID
+            action: Action taken (e.g., 'approve', 'reject') (optional)
+
+        Returns:
+            Updated WorkflowExecution object or None if not found
+        """
+        execution = self.get_execution(execution_id, tenant_id)
+        if not execution or execution.status != "running":
+            return execution
+
+        if not execution.current_step_id:
+            # If no current step, mark as completed
+            return self.update_execution(execution_id, tenant_id, {"status": "completed"})
+
+        # Get current step
+        steps = self.get_workflow_steps(execution.workflow_id, tenant_id)
+        current_step = next((s for s in steps if s.id == execution.current_step_id), None)
+
+        if not current_step:
+             return self.update_execution(execution_id, tenant_id, {"status": "failed", "error_message": "Current step not found"})
+
+        # Determine next step based on transitions
+        # transitions is JSONB: list of { "action": "...", "next_step_order": N } or similar
+        # For simplicity, if no transitions or no match, move to next order
+        next_step = None
+        if current_step.transitions:
+            # Try to find transition by action
+            if action:
+                match = next((t for t in current_step.transitions if t.get("action") == action), None)
+                if match:
+                    next_order = match.get("next_step_order")
+                    next_step = next((s for s in steps if s.order == next_order), None)
+
+            # If no action match or no action provided, try default transition
+            if not next_step:
+                default_match = next((t for t in current_step.transitions if t.get("is_default")), None)
+                if default_match:
+                    next_order = default_match.get("next_step_order")
+                    next_step = next((s for s in steps if s.order == next_order), None)
+
+        # Fallback: next order
+        if not next_step:
+            next_step = next((s for s in steps if s.order == current_step.order + 1), None)
+
+        if next_step:
+            return self.update_execution(
+                execution_id, tenant_id, {"current_step_id": next_step.id}
+            )
+        else:
+            # No more steps
+            return self.update_execution(execution_id, tenant_id, {"status": "completed"})
+
 
 
 

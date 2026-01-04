@@ -260,6 +260,48 @@ class WorkflowRepository:
         self.db.refresh(execution)
         return execution
 
+    def get_executions(
+        self,
+        tenant_id: UUID,
+        workflow_id: UUID | None = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[WorkflowExecution]:
+        """Get workflow executions for a tenant with filters."""
+        query = self.db.query(WorkflowExecution).filter(WorkflowExecution.tenant_id == tenant_id)
+        if workflow_id:
+            query = query.filter(WorkflowExecution.workflow_id == workflow_id)
+        if status:
+            query = query.filter(WorkflowExecution.status == status)
+        if entity_type:
+            query = query.filter(WorkflowExecution.entity_type == entity_type)
+        if entity_id:
+            query = query.filter(WorkflowExecution.entity_id == entity_id)
+        return query.order_by(WorkflowExecution.started_at.desc()).offset(skip).limit(limit).all()
+
+    def count_executions(
+        self,
+        tenant_id: UUID,
+        workflow_id: UUID | None = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+    ) -> int:
+        """Count workflow executions for a tenant with filters."""
+        query = self.db.query(WorkflowExecution).filter(WorkflowExecution.tenant_id == tenant_id)
+        if workflow_id:
+            query = query.filter(WorkflowExecution.workflow_id == workflow_id)
+        if status:
+            query = query.filter(WorkflowExecution.status == status)
+        if entity_type:
+            query = query.filter(WorkflowExecution.entity_type == entity_type)
+        if entity_id:
+            query = query.filter(WorkflowExecution.entity_id == entity_id)
+        return query.count()
+
 
 
 

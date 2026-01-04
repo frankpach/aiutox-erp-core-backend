@@ -60,6 +60,47 @@ async def create_import_job(
     )
 
 
+@router.post(
+    "/import/upload",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload file for import",
+    description="Upload a file to be used for an import job. Requires import_export.import permission.",
+)
+async def upload_import_file(
+    file: Annotated[UploadFile, FastAPIFile(..., description="File to upload")],
+    current_user: Annotated[User, Depends(require_permission("import_export.import"))],
+    service: Annotated[ImportExportService, Depends(get_import_export_service)],
+) -> StandardResponse[dict]:
+    """Upload file for import."""
+    # Validate file size/type if needed
+
+    # Read file content
+    content = await file.read()
+
+    # Upload using FileService
+    uploaded_file = await service.file_service.upload_file(
+        file_content=content,
+        filename=file.filename,
+        entity_type="import_job",
+        entity_id=None,  # Not linked to job yet
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        description="Import file",
+    )
+
+    return StandardResponse(
+        data={
+            "id": uploaded_file.id,
+            "name": uploaded_file.name,
+            "url": uploaded_file.storage_url,
+            "storage_path": uploaded_file.storage_path,
+        },
+        message="File uploaded successfully",
+    )
+
+
+
 @router.get(
     "/import/jobs",
     response_model=StandardListResponse[ImportJobResponse],
@@ -131,6 +172,34 @@ async def get_import_job(
     )
 
 
+@router.get(
+    "/import/jobs/{job_id}/errors",
+    response_model=StandardResponse[list[dict]],
+    status_code=status.HTTP_200_OK,
+    summary="Get import job errors",
+    description="Get validation errors for a specific import job. Requires import_export.view permission.",
+)
+async def get_import_job_errors(
+    job_id: Annotated[UUID, Path(..., description="Import job ID")],
+    current_user: Annotated[User, Depends(require_permission("import_export.view"))],
+    service: Annotated[ImportExportService, Depends(get_import_export_service)],
+) -> StandardResponse[list[dict]]:
+    """Get import job errors."""
+    errors = await service.get_import_job_errors(job_id, current_user.tenant_id)
+    if errors is None:  # Job not found
+         raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="IMPORT_JOB_NOT_FOUND",
+            message=f"Import job with ID {job_id} not found",
+        )
+
+    return StandardResponse(
+        data=errors,
+        message="Import job errors retrieved successfully",
+    )
+
+
+
 # Import Template endpoints
 @router.post(
     "/import/templates",
@@ -196,6 +265,36 @@ async def list_import_templates(
         },
         message="Import templates retrieved successfully",
     )
+
+
+@router.get(
+    "/import/templates/{template_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Download import template",
+    description="Download import template file (Excel). Requires import_export.view permission.",
+)
+async def download_import_template(
+    template_id: Annotated[UUID, Path(..., description="Import template ID")],
+    current_user: Annotated[User, Depends(require_permission("import_export.view"))],
+    service: Annotated[ImportExportService, Depends(get_import_export_service)],
+) -> StreamingResponse:
+    """Download import template file."""
+    import io
+
+    file_content = await service.generate_import_template_file(template_id, current_user.tenant_id)
+    if not file_content:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="IMPORT_TEMPLATE_NOT_FOUND",
+            message=f"Import template with ID {template_id} not found",
+        )
+
+    return StreamingResponse(
+        io.BytesIO(file_content),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=template_{template_id}.xlsx"},
+    )
+
 
 
 # Export Job endpoints
@@ -293,6 +392,47 @@ async def get_export_job(
         data=ExportJobResponse.model_validate(job),
         message="Export job retrieved successfully",
     )
+
+
+@router.get(
+    "/export/jobs/{job_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Download export file",
+    description="Download the generated export file. Requires import_export.view permission.",
+)
+async def download_export_file(
+    job_id: Annotated[UUID, Path(..., description="Export job ID")],
+    current_user: Annotated[User, Depends(require_permission("import_export.view"))],
+    service: Annotated[ImportExportService, Depends(get_import_export_service)],
+) -> StreamingResponse:
+    """Download export file."""
+    import io
+
+    result = await service.get_export_job_file(job_id, current_user.tenant_id)
+    if not result:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="EXPORT_FILE_NOT_FOUND",
+            message=f"Export file for job {job_id} not found",
+        )
+
+    content, filename = result
+
+    # Determine media type based on extension
+    media_type = "application/octet-stream"
+    if filename.endswith(".xlsx"):
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif filename.endswith(".csv"):
+        media_type = "text/csv"
+    elif filename.endswith(".pdf"):
+        media_type = "application/pdf"
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
 
 
 

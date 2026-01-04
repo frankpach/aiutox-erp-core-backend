@@ -29,6 +29,20 @@ from app.modules.products.models.product import (  # noqa: F401
     ProductVariant,
 )
 
+# Import inventory models from modules
+from app.modules.inventory.models.inventory import (  # noqa: F401
+    Location,
+    StockMove,
+    Warehouse,
+)
+
+# Import CRM models from modules
+from app.modules.crm.models.crm import (  # noqa: F401
+    Lead,
+    Opportunity,
+    Pipeline,
+)
+
 # this is the Alembic Config object
 config = context.config
 

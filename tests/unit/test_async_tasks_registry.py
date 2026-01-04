@@ -131,3 +131,6 @@ class TestTaskRegistry:
         assert task_config["schedule"]["hours"] == 12
         assert task_config["enabled"] is True
 
+
+
+

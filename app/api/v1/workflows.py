@@ -268,6 +268,111 @@ async def start_workflow_execution(
     )
 
 
+@router.get(
+    "/executions",
+    response_model=StandardListResponse[WorkflowExecutionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List workflow executions",
+    description="List workflow executions for a tenant. Requires workflows.view permission.",
+)
+async def list_workflow_executions(
+    current_user: Annotated[User, Depends(require_permission("workflows.view"))],
+    service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    workflow_id: UUID | None = Query(default=None, description="Filter by workflow"),
+    status: str | None = Query(default=None, description="Filter by status"),
+    entity_type: str | None = Query(default=None, description="Filter by entity type"),
+    entity_id: UUID | None = Query(default=None, description="Filter by entity ID"),
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
+) -> StandardListResponse[WorkflowExecutionResponse]:
+    """List workflow executions."""
+    skip = (page - 1) * page_size
+    executions = service.get_executions(
+        tenant_id=current_user.tenant_id,
+        workflow_id=workflow_id,
+        status=status,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        skip=skip,
+        limit=page_size,
+    )
+    total = service.count_executions(
+        tenant_id=current_user.tenant_id,
+        workflow_id=workflow_id,
+        status=status,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return StandardListResponse(
+        data=[WorkflowExecutionResponse.model_validate(e) for e in executions],
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
+        message="Workflow executions retrieved successfully",
+    )
+
+
+@router.get(
+    "/executions/{execution_id}",
+    response_model=StandardResponse[WorkflowExecutionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get workflow execution",
+    description="Get a specific workflow execution by ID. Requires workflows.view permission.",
+)
+async def get_workflow_execution(
+    execution_id: Annotated[UUID, Path(..., description="Execution ID")],
+    current_user: Annotated[User, Depends(require_permission("workflows.view"))],
+    service: Annotated[WorkflowService, Depends(get_workflow_service)],
+) -> StandardResponse[WorkflowExecutionResponse]:
+    """Get a specific workflow execution."""
+    execution = service.get_execution(execution_id, current_user.tenant_id)
+    if not execution:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="EXECUTION_NOT_FOUND",
+            message=f"Workflow execution with ID {execution_id} not found",
+        )
+
+    return StandardResponse(
+        data=WorkflowExecutionResponse.model_validate(execution),
+        message="Workflow execution retrieved successfully",
+    )
+
+
+@router.post(
+    "/executions/{execution_id}/advance",
+    response_model=StandardResponse[WorkflowExecutionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Advance workflow execution",
+    description="Advance a workflow execution to the next step. Requires workflows.manage permission.",
+)
+async def advance_workflow_execution(
+    execution_id: Annotated[UUID, Path(..., description="Execution ID")],
+    current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
+    service: Annotated[WorkflowService, Depends(get_workflow_service)],
+    action: str | None = Query(default=None, description="Action to take (e.g., 'approve', 'reject')"),
+) -> StandardResponse[WorkflowExecutionResponse]:
+    """Advance a workflow execution."""
+    execution = service.advance_execution(execution_id, current_user.tenant_id, action)
+    if not execution:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="EXECUTION_NOT_FOUND",
+            message=f"Workflow execution with ID {execution_id} not found",
+        )
+
+    return StandardResponse(
+        data=WorkflowExecutionResponse.model_validate(execution),
+        message="Workflow execution advanced successfully",
+    )
+
+
 
 
 

@@ -108,3 +108,6 @@ class TestCleanupDeletedFilesTask:
                 with pytest.raises(Exception, match="Service error"):
                     await task.execute(test_tenant.id)
 
+
+
+

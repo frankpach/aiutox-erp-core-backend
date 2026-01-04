@@ -15,6 +15,7 @@ from app.schemas.common import StandardListResponse, StandardResponse
 from app.schemas.template import (
     TemplateCategoryCreate,
     TemplateCategoryResponse,
+    TemplateCategoryUpdate,
     TemplateCreate,
     TemplateRenderRequest,
     TemplateRenderResponse,
@@ -247,6 +248,146 @@ async def render_template(
             status_code=status.HTTP_404_NOT_FOUND,
             code="TEMPLATE_NOT_FOUND",
             message=str(e),
+        )
+
+
+# Template Category endpoints
+@router.post(
+    "/categories",
+    response_model=StandardResponse[TemplateCategoryResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create template category",
+    description="Create a new template category. Requires templates.manage permission.",
+)
+async def create_template_category(
+    category_data: TemplateCategoryCreate,
+    current_user: Annotated[User, Depends(require_permission("templates.manage"))],
+    service: Annotated[TemplateService, Depends(get_template_service)],
+) -> StandardResponse[TemplateCategoryResponse]:
+    """Create a new template category."""
+    category = service.create_template_category(
+        category_data=category_data.model_dump(exclude_none=True),
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardResponse(
+        data=TemplateCategoryResponse.model_validate(category),
+        message="Template category created successfully",
+    )
+
+
+@router.get(
+    "/categories",
+    response_model=StandardListResponse[TemplateCategoryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List template categories",
+    description="List template categories. Requires templates.view permission.",
+)
+async def list_template_categories(
+    current_user: Annotated[User, Depends(require_permission("templates.view"))],
+    service: Annotated[TemplateService, Depends(get_template_service)],
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
+) -> StandardListResponse[TemplateCategoryResponse]:
+    """List template categories."""
+    skip = (page - 1) * page_size
+    categories = service.get_template_categories(
+        tenant_id=current_user.tenant_id,
+        skip=skip,
+        limit=page_size,
+    )
+
+    total = len(categories)  # For simplicity, we don't have a count method for categories yet
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return StandardListResponse(
+        data=[TemplateCategoryResponse.model_validate(c) for c in categories],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        message="Template categories retrieved successfully",
+    )
+
+
+@router.get(
+    "/categories/{category_id}",
+    response_model=StandardResponse[TemplateCategoryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get template category",
+    description="Get a specific template category by ID. Requires templates.view permission.",
+)
+async def get_template_category(
+    category_id: Annotated[UUID, Path(..., description="Category ID")],
+    current_user: Annotated[User, Depends(require_permission("templates.view"))],
+    service: Annotated[TemplateService, Depends(get_template_service)],
+) -> StandardResponse[TemplateCategoryResponse]:
+    """Get a specific template category."""
+    category = service.get_template_category(category_id, current_user.tenant_id)
+    if not category:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TEMPLATE_CATEGORY_NOT_FOUND",
+            message=f"Template category with ID {category_id} not found",
+        )
+
+    return StandardResponse(
+        data=TemplateCategoryResponse.model_validate(category),
+        message="Template category retrieved successfully",
+    )
+
+
+@router.put(
+    "/categories/{category_id}",
+    response_model=StandardResponse[TemplateCategoryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update template category",
+    description="Update a template category. Requires templates.manage permission.",
+)
+async def update_template_category(
+    category_id: Annotated[UUID, Path(..., description="Category ID")],
+    current_user: Annotated[User, Depends(require_permission("templates.manage"))],
+    service: Annotated[TemplateService, Depends(get_template_service)],
+    category_data: TemplateCategoryUpdate,
+) -> StandardResponse[TemplateCategoryResponse]:
+    """Update a template category."""
+    category = service.update_template_category(
+        category_id=category_id,
+        tenant_id=current_user.tenant_id,
+        category_data=category_data.model_dump(exclude_none=True),
+    )
+
+    if not category:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TEMPLATE_CATEGORY_NOT_FOUND",
+            message=f"Template category with ID {category_id} not found",
+        )
+
+    return StandardResponse(
+        data=TemplateCategoryResponse.model_validate(category),
+        message="Template category updated successfully",
+    )
+
+
+@router.delete(
+    "/categories/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete template category",
+    description="Delete a template category. Requires templates.manage permission.",
+)
+async def delete_template_category(
+    category_id: Annotated[UUID, Path(..., description="Category ID")],
+    current_user: Annotated[User, Depends(require_permission("templates.manage"))],
+    service: Annotated[TemplateService, Depends(get_template_service)],
+) -> None:
+    """Delete a template category."""
+    success = service.delete_template_category(category_id, current_user.tenant_id)
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TEMPLATE_CATEGORY_NOT_FOUND",
+            message=f"Template category with ID {category_id} not found",
         )
 
 

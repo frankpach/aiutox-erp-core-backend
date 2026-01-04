@@ -323,6 +323,49 @@ class ImportExportService:
 
         return self.repository.create_export_job(job_data)
 
+    async def get_import_job_errors(self, job_id: UUID, tenant_id: UUID) -> list[dict] | None:
+        """Get errors for an import job."""
+        job = self.repository.get_import_job_by_id(job_id, tenant_id)
+        if not job:
+            return None
+        return job.errors
+
+    async def get_export_job_file(self, job_id: UUID, tenant_id: UUID) -> tuple[bytes, str] | None:
+        """Get export job file content and filename.
+
+        Returns:
+            Tuple of (file_content, filename) or None if job/file not found
+        """
+        job = self.repository.get_export_job_by_id(job_id, tenant_id)
+        if not job or not job.file_path:
+            return None
+
+        # Check if file exists via storage backend
+        # We assume file_path is relative to storage root as managed by FileService
+        try:
+            content = await self.file_service.storage_backend.download(job.file_path)
+            return content, job.file_name or "export"
+        except Exception as e:
+            logger.error(f"Failed to download export file {job.file_path}: {e}")
+            return None
+
+    async def generate_import_template_file(self, template_id: UUID, tenant_id: UUID) -> bytes | None:
+        """Generate import template file (Excel)."""
+        template = self.repository.get_import_template_by_id(template_id, tenant_id)
+        if not template:
+            return None
+
+        # Extract headers from field_mapping
+        # field_mapping is JSONB: { "csv_col": "model_field" } or { "model_field": "csv_col" }?
+        # Usually template defines what columns are expected.
+        # Assuming field_mapping keys are the CSV headers.
+        headers = []
+        if template.field_mapping:
+            headers = list(template.field_mapping.keys())
+
+        # Generate empty Excel with headers
+        return self.exporter.export_to_excel([], columns=headers)
+
     def get_import_job(self, job_id: UUID, tenant_id: UUID) -> ImportJob | None:
         """Get import job by ID."""
         return self.repository.get_import_job_by_id(job_id, tenant_id)

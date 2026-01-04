@@ -67,6 +67,23 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "inventory.manage_users",  # Permite delegar permisos
         },
     },
+    "crm": {
+        "internal.editor": {
+            "crm.view",
+            "crm.edit",
+            "crm.create",
+        },
+        "internal.viewer": {
+            "crm.view",
+        },
+        "internal.manager": {
+            "crm.view",
+            "crm.edit",
+            "crm.create",
+            "crm.delete",
+            "crm.manage_users",  # Permite delegar permisos
+        },
+    },
     "products": {
         "internal.editor": {
             "products.view",

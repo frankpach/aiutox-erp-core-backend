@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.files.service import FileService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
-from app.models.template import Template, TemplateVersion
+from app.models.template import Template, TemplateVersion, TemplateCategory
 from app.repositories.template_repository import TemplateRepository
 
 logger = logging.getLogger(__name__)
@@ -332,4 +332,43 @@ class TemplateService:
     ) -> list[TemplateVersion]:
         """Get template versions."""
         return self.repository.get_template_versions(template_id, tenant_id)
+
+    # Template Category methods
+    def create_template_category(
+        self, category_data: dict, tenant_id: UUID
+    ) -> TemplateCategory:
+        """Create a new template category."""
+        category_data["tenant_id"] = tenant_id
+        return self.repository.create_template_category(category_data)
+
+    def get_template_category(
+        self, category_id: UUID, tenant_id: UUID
+    ) -> TemplateCategory | None:
+        """Get template category by ID."""
+        return self.repository.get_template_category_by_id(category_id, tenant_id)
+
+    def get_template_categories(
+        self, tenant_id: UUID, skip: int = 0, limit: int = 100
+    ) -> list[TemplateCategory]:
+        """Get template categories."""
+        return self.repository.get_template_categories(tenant_id, skip, limit)
+
+    def update_template_category(
+        self, category_id: UUID, tenant_id: UUID, category_data: dict
+    ) -> TemplateCategory | None:
+        """Update template category."""
+        category = self.repository.get_template_category_by_id(category_id, tenant_id)
+        if not category:
+            return None
+
+        return self.repository.update_template_category(category, category_data)
+
+    def delete_template_category(self, category_id: UUID, tenant_id: UUID) -> bool:
+        """Delete template category."""
+        category = self.repository.get_template_category_by_id(category_id, tenant_id)
+        if not category:
+            return False
+
+        self.repository.delete_template_category(category)
+        return True
 

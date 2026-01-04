@@ -134,6 +134,33 @@ class TemplateRepository:
             .all()
         )
 
+    def get_template_category_by_id(
+        self, category_id: UUID, tenant_id: UUID
+    ) -> TemplateCategory | None:
+        """Get template category by ID."""
+        return (
+            self.db.query(TemplateCategory)
+            .filter(
+                TemplateCategory.id == category_id, TemplateCategory.tenant_id == tenant_id
+            )
+            .first()
+        )
+
+    def update_template_category(
+        self, category: TemplateCategory, category_data: dict
+    ) -> TemplateCategory:
+        """Update template category."""
+        for key, value in category_data.items():
+            setattr(category, key, value)
+        self.db.commit()
+        self.db.refresh(category)
+        return category
+
+    def delete_template_category(self, category: TemplateCategory) -> None:
+        """Delete template category."""
+        self.db.delete(category)
+        self.db.commit()
+
 
 
 

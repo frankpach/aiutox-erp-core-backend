@@ -116,6 +116,15 @@ class TemplateCategoryCreate(TemplateCategoryBase):
     pass
 
 
+class TemplateCategoryUpdate(BaseModel):
+    """Schema for updating a template category."""
+
+    name: str | None = Field(None, description="Category name", max_length=100)
+    description: str | None = Field(None, description="Category description")
+    parent_id: UUID | None = Field(None, description="Parent category ID")
+    is_active: bool | None = Field(None, description="Whether category is active")
+
+
 class TemplateCategoryResponse(TemplateCategoryBase):
     """Schema for template category response."""
 
