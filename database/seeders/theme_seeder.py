@@ -46,43 +46,43 @@ class ThemeSeeder(Seeder):
         # Default theme configuration
         default_theme = {
             # Main colors
-            "primary_color": "#1976D2",  # Material Blue 700
-            "secondary_color": "#DC004E",  # Material Pink 700
-            "accent_color": "#FFC107",  # Material Amber 500
+            "primary_color": "#023E87",
+            "secondary_color": "#F1F5F9",
+            "accent_color": "#F1F5F9",
             "background_color": "#FFFFFF",
-            "surface_color": "#F5F5F5",
+            "surface_color": "#FFFFFF",
             # Status colors
-            "error_color": "#F44336",  # Material Red 500
-            "warning_color": "#FF9800",  # Material Orange 500
-            "success_color": "#4CAF50",  # Material Green 500
-            "info_color": "#2196F3",  # Material Blue 500
+            "error_color": "#EF4444",
+            "warning_color": "#F59E0B",
+            "success_color": "#10B981",
+            "info_color": "#3B82F6",
             # Text colors
-            "text_primary": "#212121",  # Material Grey 900
-            "text_secondary": "#757575",  # Material Grey 600
-            "text_disabled": "#BDBDBD",  # Material Grey 400
+            "text_primary": "#0F172A",
+            "text_secondary": "#64748B",
+            "text_disabled": "#94A3B8",
             # Logos (default paths - tenants can override)
             "logo_primary": "/assets/logos/logo.png",
             "logo_white": "/assets/logos/logo-white.png",
             "logo_small": "/assets/logos/logo-sm.png",
             "logo_name": "/assets/logos/logo-name.png",
-            "favicon": "/assets/logos/favicon.ico",
-            "login_background": "/assets/images/login-bg.jpg",
+            "favicon": "/favicon.ico",
+            "login_background": "",
             # Typography
-            "font_family_primary": "Roboto",
+            "font_family_primary": "Manrope",
             "font_family_secondary": "Arial",
             "font_family_monospace": "Courier New",
             "font_size_base": "14px",
             "font_size_small": "12px",
-            "font_size_large": "16px",
+            "font_size_large": "18px",
             "font_size_heading": "24px",
             # Component styles
-            "sidebar_bg": "#2C3E50",  # Dark Blue Grey
-            "sidebar_text": "#ECF0F1",  # Light Grey
-            "navbar_bg": "#34495E",  # Midnight Blue
-            "navbar_text": "#FFFFFF",
-            "button_radius": "4px",
-            "card_radius": "8px",
-            "input_radius": "4px",
+            "sidebar_bg": "#FAFAFA",
+            "sidebar_text": "#0F172A",
+            "navbar_bg": "#FFFFFF",
+            "navbar_text": "#0F172A",
+            "button_radius": "0.25rem",
+            "card_radius": "0.5rem",
+            "input_radius": "0.25rem",
             # Shadows
             "shadow_elevation_1": "0 2px 4px rgba(0,0,0,0.1)",
             "shadow_elevation_2": "0 4px 8px rgba(0,0,0,0.15)",
@@ -112,6 +112,7 @@ class ThemeSeeder(Seeder):
 
         db.commit()
         print(f"✅ ThemeSeeder: Default theme configuration created for tenant {tenant_id}")
+
 
 
 

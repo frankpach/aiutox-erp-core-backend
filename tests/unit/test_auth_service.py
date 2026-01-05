@@ -91,7 +91,7 @@ class TestAuthService:
                 token = service.create_refresh_token_for_user(test_user)
 
                 assert token == "test_refresh_token"
-                mock_create.assert_called_once_with(test_user.id)
+                mock_create.assert_called_once_with(test_user.id, False)
                 mock_repo_create.assert_called_once()
 
     def test_refresh_access_token_success(self, db_session, test_user):
@@ -99,21 +99,33 @@ class TestAuthService:
         service = AuthService(db_session)
 
         refresh_token = "valid_refresh_token"
-        payload = {"sub": str(test_user.id)}
+        payload = {"sub": str(test_user.id), "exp": 4102444800}
 
         with patch("app.services.auth_service.verify_refresh_token", return_value=payload):
             mock_stored_token = Mock()
             service.refresh_token_repository.find_valid_token = Mock(
                 return_value=mock_stored_token
             )
+            service.refresh_token_repository.create = Mock()
+            service.refresh_token_repository.revoke_token = Mock()
             service.user_repository.get_by_id = Mock(return_value=test_user)
 
-            with patch.object(service, "create_access_token_for_user") as mock_create_token:
+            with patch.object(service, "create_access_token_for_user") as mock_create_token, \
+                patch("app.services.auth_service.create_refresh_token") as mock_create_refresh:
                 mock_create_token.return_value = "new_access_token"
+                mock_create_refresh.return_value = "new_refresh_token"
 
                 result = service.refresh_access_token(refresh_token)
 
-                assert result == "new_access_token"
+                assert result is not None
+                access_token, new_refresh_token, refresh_expires_at = result
+                assert access_token == "new_access_token"
+                assert new_refresh_token == "new_refresh_token"
+                assert refresh_expires_at is not None
+                service.refresh_token_repository.create.assert_called_once()
+                service.refresh_token_repository.revoke_token.assert_called_once_with(
+                    mock_stored_token
+                )
                 service.refresh_token_repository.find_valid_token.assert_called_once_with(
                     test_user.id, refresh_token
                 )
@@ -134,7 +146,7 @@ class TestAuthService:
         service = AuthService(db_session)
 
         refresh_token = "valid_but_not_stored_token"
-        payload = {"sub": str(test_user.id)}
+        payload = {"sub": str(test_user.id), "exp": 4102444800}
 
         with patch("app.services.auth_service.verify_refresh_token", return_value=payload):
             service.refresh_token_repository.find_valid_token = Mock(return_value=None)

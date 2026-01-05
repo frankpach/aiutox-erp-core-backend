@@ -99,11 +99,15 @@ def test_refresh_access_token_valid(db_session, test_user):
     refresh_token = auth_service.create_refresh_token_for_user(test_user)
 
     # Refresh access token
-    new_access_token = auth_service.refresh_access_token(refresh_token)
+    result = auth_service.refresh_access_token(refresh_token)
 
-    assert new_access_token is not None
+    assert result is not None
+    new_access_token, new_refresh_token, refresh_expires_at = result
     assert isinstance(new_access_token, str)
     assert len(new_access_token) > 0
+    assert isinstance(new_refresh_token, str)
+    assert len(new_refresh_token) > 0
+    assert refresh_expires_at is not None
 
     # Verify new token is valid
     from app.core.auth import decode_token
@@ -112,6 +116,11 @@ def test_refresh_access_token_valid(db_session, test_user):
     assert decoded is not None
     assert decoded["sub"] == str(test_user.id)
     assert decoded["type"] == "access"
+
+    # Old refresh token should be revoked, new one should be valid
+    refresh_token_repo = RefreshTokenRepository(db_session)
+    assert refresh_token_repo.find_valid_token(test_user.id, refresh_token) is None
+    assert refresh_token_repo.find_valid_token(test_user.id, new_refresh_token) is not None
 
 
 def test_refresh_access_token_expired(db_session, test_user):

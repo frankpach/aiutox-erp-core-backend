@@ -107,6 +107,12 @@ def test_refresh_token_success(client, db_session, test_user):
     assert decoded["sub"] == str(test_user.id)
     assert decoded["type"] == "access"
 
+    # Verify refresh token rotation (cookie updated, old token revoked)
+    rotated_refresh_token = response.cookies.get("refresh_token")
+    assert rotated_refresh_token is not None
+    assert rotated_refresh_token != refresh_token
+    assert auth_service.refresh_access_token(refresh_token) is None
+
 
 def test_refresh_token_invalid(client):
     """Test that refresh token endpoint returns error for invalid token."""
@@ -605,6 +611,9 @@ def test_refresh_token_from_cookie(client, db_session, test_user):
     assert refresh_response.status_code == status.HTTP_200_OK
     data = refresh_response.json()
     assert "access_token" in data["data"]
+    rotated_refresh_token = refresh_response.cookies.get("refresh_token")
+    assert rotated_refresh_token is not None
+    assert rotated_refresh_token != refresh_token_cookie
 
 
 def test_refresh_token_fallback_to_body(client, db_session, test_user):
@@ -631,6 +640,9 @@ def test_refresh_token_fallback_to_body(client, db_session, test_user):
     assert refresh_response.status_code == status.HTTP_200_OK
     data = refresh_response.json()
     assert "access_token" in data["data"]
+    rotated_refresh_token = refresh_response.cookies.get("refresh_token")
+    assert rotated_refresh_token is not None
+    assert rotated_refresh_token != refresh_token
 
 
 def test_logout_deletes_cookie(client, db_session, test_user):
@@ -699,4 +711,3 @@ def test_access_token_expires_in_60_minutes(client, test_user):
         f"Token expiration mismatch: expected {expected_minutes} minutes, "
         f"got {actual_minutes} minutes. Check ACCESS_TOKEN_EXPIRE_MINUTES setting."
     )
-

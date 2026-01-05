@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
@@ -222,27 +222,29 @@ async def refresh_token(
         refresh_token = refresh_data.refresh_token
 
     auth_service = AuthService(db)
-    access_token = auth_service.refresh_access_token(refresh_token)
+    refresh_result = auth_service.refresh_access_token(refresh_token)
 
-    if not access_token:
+    if not refresh_result:
         raise_unauthorized(
             code="AUTH_REFRESH_TOKEN_INVALID",
             message="Invalid or expired refresh token",
         )
+    access_token, new_refresh_token, refresh_expires_at = refresh_result
 
     # Update cookie with same settings (refresh token rotation could be added here)
     from app.core.config_file import get_settings
     settings = get_settings()
     cookie_secure = settings.COOKIE_SECURE if settings.ENV == "prod" else False
 
-    # Get max_age from existing cookie or use default
-    # For simplicity, we'll use the default expiration (could decode token to get exact expiration)
-    max_age_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
-    max_age_seconds = max_age_days * 24 * 60 * 60
+    # Use the refresh token's remaining lifetime for cookie max_age
+    max_age_seconds = max(
+        int((refresh_expires_at - datetime.now(timezone.utc)).total_seconds()),
+        0,
+    )
 
     response.set_cookie(
         key="refresh_token",
-        value=refresh_token,  # Keep same token (or rotate if implementing token rotation)
+        value=new_refresh_token,
         httponly=True,
         secure=cookie_secure,
         samesite=settings.COOKIE_SAMESITE,
@@ -1346,4 +1348,3 @@ async def get_audit_logs(
             "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
         },
     )
-

@@ -43,7 +43,11 @@ def create_access_token(
     return encoded_jwt
 
 
-def create_refresh_token(user_id: UUID, remember_me: bool = False) -> str:
+def create_refresh_token(
+    user_id: UUID,
+    remember_me: bool = False,
+    expires_at: datetime | None = None,
+) -> str:
     """
     Create a JWT refresh token.
 
@@ -61,8 +65,11 @@ def create_refresh_token(user_id: UUID, remember_me: bool = False) -> str:
         >>> len(token) > 0
         True
     """
-    expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
-    expire = datetime.now(timezone.utc) + timedelta(days=expire_days)
+    if expires_at is None:
+        expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        expire = datetime.now(timezone.utc) + timedelta(days=expire_days)
+    else:
+        expire = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=timezone.utc)
     to_encode = {
         "sub": str(user_id),
         "exp": expire,

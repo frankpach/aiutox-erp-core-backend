@@ -843,22 +843,22 @@ async def get_theme_config(
     # get_module_config returns {} when empty, which is falsy
     if not theme_config:
         theme_config = {
-            "primary_color": "#1976D2",
-            "secondary_color": "#DC004E",
-            "accent_color": "#FFC107",
+            "primary_color": "#023E87",
+            "secondary_color": "#F1F5F9",
+            "accent_color": "#F1F5F9",
             "background_color": "#FFFFFF",
-            "surface_color": "#F5F5F5",
-            "error_color": "#F44336",
-            "warning_color": "#FF9800",
-            "success_color": "#4CAF50",
-            "info_color": "#2196F3",
-            "text_primary": "#212121",
-            "text_secondary": "#757575",
-            "text_disabled": "#BDBDBD",
-            "sidebar_bg": "#2C3E50",
-            "sidebar_text": "#ECF0F1",
-            "navbar_bg": "#34495E",
-            "navbar_text": "#FFFFFF",
+            "surface_color": "#FFFFFF",
+            "error_color": "#EF4444",
+            "warning_color": "#F59E0B",
+            "success_color": "#10B981",
+            "info_color": "#3B82F6",
+            "text_primary": "#0F172A",
+            "text_secondary": "#64748B",
+            "text_disabled": "#94A3B8",
+            "sidebar_bg": "#FAFAFA",
+            "sidebar_text": "#0F172A",
+            "navbar_bg": "#FFFFFF",
+            "navbar_text": "#0F172A",
         }
 
     return StandardResponse(
@@ -2955,5 +2955,4 @@ async def delete_config_value(
         data={"module": module, "key": key, "deleted": True},
         message="Configuration value deleted successfully",
     )
-
 

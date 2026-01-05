@@ -145,7 +145,9 @@ class AuthService:
 
         return refresh_token
 
-    def refresh_access_token(self, refresh_token: str) -> str | None:
+    def refresh_access_token(
+        self, refresh_token: str
+    ) -> tuple[str, str, datetime] | None:
         """
         Refresh an access token using a valid refresh token.
 
@@ -153,7 +155,7 @@ class AuthService:
             refresh_token: Refresh token string.
 
         Returns:
-            New access token if refresh token is valid, None otherwise.
+            Tuple of (new access token, new refresh token, refresh token expiry) if valid, None otherwise.
         """
         # Verify refresh token signature and expiration
         payload = verify_refresh_token(refresh_token)
@@ -162,6 +164,11 @@ class AuthService:
             return None
 
         user_id = UUID(payload["sub"])
+        refresh_exp = payload.get("exp")
+        if not isinstance(refresh_exp, (int, float)):
+            log_refresh_token_invalid("missing_exp")
+            return None
+        refresh_expires_at = datetime.fromtimestamp(refresh_exp, tz=timezone.utc)
 
         # Verify token exists in database and is not revoked
         stored_token = self.refresh_token_repository.find_valid_token(
@@ -180,8 +187,16 @@ class AuthService:
         # Log successful refresh token usage
         log_refresh_token_used(str(user_id))
 
+        # Rotate refresh token (reuse original expiry)
+        new_refresh_token = create_refresh_token(
+            user_id, expires_at=refresh_expires_at
+        )
+        self.refresh_token_repository.create(user_id, new_refresh_token, refresh_expires_at)
+        self.refresh_token_repository.revoke_token(stored_token)
+
         # Generate new access token
-        return self.create_access_token_for_user(user)
+        access_token = self.create_access_token_for_user(user)
+        return access_token, new_refresh_token, refresh_expires_at
 
     def revoke_refresh_token(self, refresh_token: str, user_id: UUID) -> bool:
         """
