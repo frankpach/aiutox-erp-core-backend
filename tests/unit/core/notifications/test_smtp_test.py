@@ -7,7 +7,7 @@ from smtplib import SMTPAuthenticationError, SMTPConnectError, SMTPServerDisconn
 
 from app.core.notifications.smtp_test import (
     SMTPTestResult,
-    test_smtp_connection,
+    check_smtp_connection,
 )
 
 
@@ -31,7 +31,7 @@ class TestSMTPConnection:
             mock_smtp_instance.__exit__ = Mock(return_value=None)
             mock_smtp_class.return_value = mock_smtp_instance
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is True
             assert "successful" in result.message.lower()
@@ -57,7 +57,7 @@ class TestSMTPConnection:
             mock_smtp_instance.__exit__ = Mock(return_value=None)
             mock_smtp_class.return_value = mock_smtp_instance
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is True
             mock_server.starttls.assert_not_called()
@@ -82,7 +82,7 @@ class TestSMTPConnection:
             mock_server.starttls.return_value = None
             mock_server.login.side_effect = SMTPAuthenticationError(535, b"Authentication failed")
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is False
             assert "authentication" in result.message.lower() or "auth" in result.message.lower()
@@ -102,7 +102,7 @@ class TestSMTPConnection:
         with patch("app.core.notifications.smtp_test.SMTP") as mock_smtp_class:
             mock_smtp_class.side_effect = SMTPConnectError(421, b"Connection refused")
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is False
             assert "connection" in result.message.lower() or "connect" in result.message.lower()
@@ -122,7 +122,7 @@ class TestSMTPConnection:
         with patch("app.core.notifications.smtp_test.SMTP") as mock_smtp_class:
             mock_smtp_class.side_effect = TimeoutError("Connection timed out")
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is False
             assert "timeout" in result.message.lower() or "timed out" in result.message.lower()
@@ -146,7 +146,7 @@ class TestSMTPConnection:
             mock_smtp_class.return_value = mock_smtp_instance
             mock_server.starttls.side_effect = SMTPServerDisconnected("Server disconnected")
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is False
             assert "disconnected" in result.message.lower() or "connection" in result.message.lower()
@@ -160,7 +160,7 @@ class TestSMTPConnection:
             "use_tls": True,
         }
 
-        result = test_smtp_connection(config_no_host)
+        result = check_smtp_connection(config_no_host)
 
         assert result.success is False
         assert "required" in result.message.lower() or "host" in result.message.lower()
@@ -171,7 +171,7 @@ class TestSMTPConnection:
             "use_tls": True,
         }
 
-        result = test_smtp_connection(config_no_port)
+        result = check_smtp_connection(config_no_port)
 
         assert result.success is False
         assert "port" in result.message.lower()
@@ -186,7 +186,7 @@ class TestSMTPConnection:
             "use_tls": True,
         }
 
-        result = test_smtp_connection(config)
+        result = check_smtp_connection(config)
 
         assert result.success is False
         assert "port" in result.message.lower() or "65535" in result.message
@@ -205,7 +205,7 @@ class TestSMTPConnection:
         with patch("app.core.notifications.smtp_test.SMTP") as mock_smtp_class:
             mock_smtp_class.side_effect = Exception("Unexpected error")
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             assert result.success is False
             assert result.error is not None
@@ -226,7 +226,7 @@ class TestSMTPConnection:
             mock_smtp_instance.__exit__ = Mock(return_value=None)
             mock_smtp_class.return_value = mock_smtp_instance
 
-            result = test_smtp_connection(config)
+            result = check_smtp_connection(config)
 
             # Should succeed if server allows open relay
             assert result.success is True

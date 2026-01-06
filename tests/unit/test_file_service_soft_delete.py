@@ -106,9 +106,12 @@ class TestFileServiceSoftDelete:
             "size": 2048,
             "storage_backend": "local",
             "storage_path": "/test/old",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC) - timedelta(days=31),
+            "is_current": True,  # Initially current
+            "deleted_at": datetime.now(UTC) - timedelta(days=31),  # But marked as deleted long ago
         })
+
+        # Store the file ID before any potential deletion
+        file_id = old_deleted_file.id
 
         # Mock storage to raise error
         mock_storage_backend.delete.side_effect = Exception("Storage error")
@@ -125,7 +128,7 @@ class TestFileServiceSoftDelete:
         assert result["files_count"] == 0
         assert result["storage_freed"] == 0
         assert len(result["errors"]) == 1
-        assert result["errors"][0]["file_id"] == str(old_deleted_file.id)
+        assert result["errors"][0]["file_id"] == str(file_id)
 
     @pytest.mark.asyncio
     async def test_cleanup_deleted_files_uses_config_retention(self, file_service, db_session, test_tenant):

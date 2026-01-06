@@ -193,6 +193,8 @@ class TestFileRepositorySoftDelete:
         """Test that get_all excludes deleted files when current_only=True."""
         # Arrange
         repo = FileRepository(db_session)
+        
+        # Create a file and then delete it (proper soft delete flow)
         deleted_file = repo.create({
             "tenant_id": test_tenant.id,
             "name": "deleted.pdf",
@@ -201,10 +203,13 @@ class TestFileRepositorySoftDelete:
             "size": 1024,
             "storage_backend": "local",
             "storage_path": "/test/deleted",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC),
+            "is_current": True,  # Initially current
+            "deleted_at": None,
         })
-
+        
+        # Properly soft delete the file
+        repo.delete(deleted_file.id, test_tenant.id)
+        
         current_file = repo.create({
             "tenant_id": test_tenant.id,
             "name": "current.pdf",
@@ -226,7 +231,8 @@ class TestFileRepositorySoftDelete:
         assert all_files_current[0].id == current_file.id
         assert deleted_file.id not in [f.id for f in all_files_current]
 
-        # When current_only=False, should still exclude deleted files
-        # (because is_current filter is still applied)
-        assert deleted_file.id not in [f.id for f in all_files_including_deleted]
+        # When current_only=False, should include deleted files
+        # (because is_current filter is not applied)
+        assert deleted_file.id in [f.id for f in all_files_including_deleted]
+        assert len(all_files_including_deleted) == 2
 

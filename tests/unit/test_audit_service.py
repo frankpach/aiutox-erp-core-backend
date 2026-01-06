@@ -115,6 +115,9 @@ class TestAuditService:
             resource_type=None,
             date_from=None,
             date_to=None,
+            ip_address=None,
+            user_agent=None,
+            details_search=None,
             skip=0,
             limit=100,
         )
@@ -149,6 +152,9 @@ class TestAuditService:
             resource_type=None,
             date_from=None,
             date_to=None,
+            ip_address=None,
+            user_agent=None,
+            details_search=None,
             skip=0,
             limit=100,
         )
@@ -186,6 +192,9 @@ class TestAuditService:
             resource_type=None,
             date_from=date_from,
             date_to=date_to,
+            ip_address=None,
+            user_agent=None,
+            details_search=None,
             skip=0,
             limit=100,
         )

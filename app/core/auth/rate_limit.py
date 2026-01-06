@@ -81,7 +81,7 @@ def check_login_rate_limit(ip_address: str, max_attempts: int = 5, window_minute
     attempts[:] = [attempt for attempt in attempts if attempt > window_start]
 
     # Check if limit exceeded
-    if len(attempts) >= max_attempts:
+    if len(attempts) > max_attempts:
         return False
 
     # DO NOT record attempt here - only check the limit

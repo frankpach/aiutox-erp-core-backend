@@ -101,13 +101,13 @@ class TestAsyncTaskScheduler:
         registry.register(task, schedule, enabled=True)
 
         # Mock Tenant model
-        with patch("app.core.async_tasks.scheduler.Tenant") as mock_tenant_class:
+        with patch("app.models.tenant.Tenant") as mock_tenant_class:
             mock_tenant1 = MagicMock()
             mock_tenant1.id = uuid4()
             mock_tenant2 = MagicMock()
             mock_tenant2.id = uuid4()
 
-            with patch("app.core.async_tasks.scheduler.SessionLocal") as mock_session_local:
+            with patch("app.core.db.session.SessionLocal") as mock_session_local:
                 mock_db = MagicMock()
                 mock_db.query.return_value.all.return_value = [mock_tenant1, mock_tenant2]
                 mock_session_local.return_value = mock_db

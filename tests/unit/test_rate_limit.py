@@ -40,12 +40,18 @@ def test_check_login_rate_limit_exceeded():
     """Test that check_login_rate_limit returns False when limit is exceeded."""
     ip_address = "127.0.0.1"
 
-    # Make 5 attempts (at limit)
+    # Record 5 attempts (at limit)
     for i in range(5):
-        result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
-        assert result is True
+        record_login_attempt(ip_address)
+    
+    # Should still be under limit
+    result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
+    assert result is True
 
-    # 6th attempt should exceed limit
+    # Record 6th attempt (exceeds limit)
+    record_login_attempt(ip_address)
+    
+    # Now should be rate limited
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is False
 
@@ -59,10 +65,11 @@ def test_check_login_rate_limit_cleans_old_attempts():
     _login_attempts[ip_address] = [old_time, old_time, old_time]
 
     # Should clean old attempts and allow new ones
+    record_login_attempt(ip_address)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is True
 
-    # Verify old attempts were cleaned
+    # Verify old attempts were cleaned (only the new attempt should remain)
     attempts = _login_attempts[ip_address]
     assert len(attempts) == 1  # Only the new attempt
     assert all(attempt > datetime.now(timezone.utc) - timedelta(minutes=1) for attempt in attempts)
@@ -75,9 +82,11 @@ def test_check_login_rate_limit_per_ip():
 
     # Exceed limit for IP1
     for i in range(5):
+        record_login_attempt(ip1)
         check_login_rate_limit(ip1, max_attempts=5, window_minutes=1)
 
     # IP1 should be rate limited
+    record_login_attempt(ip1)
     result1 = check_login_rate_limit(ip1, max_attempts=5, window_minutes=1)
     assert result1 is False
 
@@ -90,16 +99,25 @@ def test_check_login_rate_limit_custom_max_attempts():
     """Test that check_login_rate_limit respects custom max_attempts."""
     ip_address = "127.0.0.1"
 
-    # Make 2 attempts with max_attempts=3
+    # Record 2 attempts with max_attempts=3
     for i in range(2):
-        result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
-        assert result is True
-
-    # 3rd attempt should still pass
+        record_login_attempt(ip_address)
+    
+    # Should still be under limit
     result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
     assert result is True
 
-    # 4th attempt should exceed limit
+    # Record 3rd attempt
+    record_login_attempt(ip_address)
+    
+    # Should still be under limit (3 attempts with max_attempts=3)
+    result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
+    assert result is True
+
+    # Record 4th attempt (exceeds limit)
+    record_login_attempt(ip_address)
+    
+    # Now should be rate limited
     result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
     assert result is False
 
@@ -110,9 +128,11 @@ def test_check_login_rate_limit_window_reset():
 
     # Exceed limit
     for i in range(5):
+        record_login_attempt(ip_address)
         check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
 
     # Should be rate limited
+    record_login_attempt(ip_address)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is False
 
@@ -189,15 +209,19 @@ def test_check_login_rate_limit_integration():
     """Integration test: check and record work together."""
     ip_address = "127.0.0.1"
 
-    # Use check which also records
+    # Record 4 attempts
     for i in range(4):
+        record_login_attempt(ip_address)
         result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
         assert result is True
 
-    # Manually record one more (simulating failed login)
+    # Record 5th attempt (still at limit)
     record_login_attempt(ip_address)
+    result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
+    assert result is True
 
-    # Now check should fail
+    # Record 6th attempt (exceeds limit)
+    record_login_attempt(ip_address)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is False
 

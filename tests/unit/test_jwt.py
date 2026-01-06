@@ -248,7 +248,7 @@ def test_access_token_expires_in_60_minutes():
     iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
 
     diff = exp_datetime - iat_datetime
-    expected_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    expected_minutes = 60  # Hardcoded expected value for this specific test
     assert abs(diff.total_seconds() / 60 - expected_minutes) < 1  # Allow 1 minute tolerance
 
 

@@ -19,7 +19,7 @@ class SMTPTestResult:
     details: dict[str, Any] | None = None
 
 
-def test_smtp_connection(config: dict[str, Any]) -> SMTPTestResult:
+def check_smtp_connection(config: dict[str, Any]) -> SMTPTestResult:
     """Test SMTP connection with provided configuration.
 
     Args:

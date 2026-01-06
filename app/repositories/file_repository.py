@@ -136,7 +136,7 @@ class FileRepository:
             .filter(File.tenant_id == tenant_id)
         )
         if current_only:
-            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+            query = query.filter(File.is_current == True).filter(File.deleted_at.is_(None))
         # Only filter by folder_id if it's explicitly provided (not None)
         # If folder_id is None, we don't filter (get all files regardless of folder)
         if folder_id is not None:

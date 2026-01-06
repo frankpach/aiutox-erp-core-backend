@@ -122,7 +122,7 @@ async def test_delete_file(
     assert deleted is True
 
     # Verify file is soft deleted
-    deleted_file = file_service.repository.get_by_id(file.id, test_tenant.id)
+    deleted_file = file_service.repository.get_by_id(file.id, test_tenant.id, current_only=False)
     assert deleted_file.is_current is False
 
     # Verify event was published
