@@ -97,9 +97,15 @@ def validate_theme_colors(theme_data: dict[str, Any]) -> None:
         "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
     ]
 
-    for key in color_keys:
-        if key in theme_data:
-            validate_color(key, theme_data[key])
+    for key, value in theme_data.items():
+        if key in color_keys:
+            validate_color(key, value)
+            continue
+
+        if isinstance(key, str) and key.startswith("dark_"):
+            base_key = key.replace("dark_", "", 1)
+            if base_key in color_keys:
+                validate_color(key, value)
 
 
 # Module management endpoints (must come before /{module} routes)
@@ -1499,7 +1505,7 @@ async def update_theme_property(
         "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
     ]
 
-    if key in color_keys:
+    if key in color_keys or (key.startswith("dark_") and key.replace("dark_", "", 1) in color_keys):
         try:
             validate_color(key, config_update.value)
         except InvalidColorFormatException:

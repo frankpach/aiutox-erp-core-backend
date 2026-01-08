@@ -42,6 +42,7 @@ class UserMeResponse(BaseModel):
     email: str
     full_name: str | None
     tenant_id: UUID = Field(..., description="Tenant ID for multi-tenancy isolation")
+    tenant_name: str | None = Field(None, description="Tenant name")
     roles: list[str] = Field(default_factory=list, description="Global roles assigned to the user")
     permissions: list[str] = Field(default_factory=list, description="Effective permissions (from roles, module roles, and delegated permissions)")
 

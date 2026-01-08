@@ -61,11 +61,32 @@ app = FastAPI(
 
 def add_security_headers(response: Response) -> None:
     """Add security headers to a response."""
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    # Ensure all header values are properly encoded as UTF-8 strings
+    def set_header_safely(key: str, value: str) -> None:
+        """Set header with proper UTF-8 encoding."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode('utf-8')
+            except UnicodeDecodeError:
+                # If bytes can't be decoded, use a safe fallback
+                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+        elif not isinstance(value, str):
+            value = str(value)
+        
+        # Ensure the value can be encoded as UTF-8
+        try:
+            value.encode('utf-8')
+            response.headers[key] = value
+        except UnicodeEncodeError:
+            # Replace problematic characters
+            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            response.headers[key] = safe_value
+    
+    set_header_safely("X-Content-Type-Options", "nosniff")
+    set_header_safely("X-Frame-Options", "DENY")
+    set_header_safely("X-XSS-Protection", "1; mode=block")
+    set_header_safely("Referrer-Policy", "strict-origin-when-cross-origin")
+    set_header_safely("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
     # Content Security Policy
     # Note: frame-ancestors must be in CSP header, not meta tag
@@ -81,7 +102,7 @@ def add_security_headers(response: Response) -> None:
         "form-action 'self'; "
         "worker-src 'self' blob:;"
     )
-    response.headers["Content-Security-Policy"] = csp
+    set_header_safely("Content-Security-Policy", csp)
 
 
 class CORSEnforcementMiddleware(BaseHTTPMiddleware):
@@ -92,6 +113,23 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
         self.allowed_origins = allowed_origins
 
     async def dispatch(self, request: Request, call_next):
+        def set_header_safely(response, key: str, value: str) -> None:
+            """Set header with proper UTF-8 encoding."""
+            if isinstance(value, bytes):
+                try:
+                    value = value.decode('utf-8')
+                except UnicodeDecodeError:
+                    value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+            elif not isinstance(value, str):
+                value = str(value)
+            
+            try:
+                value.encode('utf-8')
+                response.headers[key] = value
+            except UnicodeEncodeError:
+                safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+                response.headers[key] = safe_value
+        
         try:
             response = await call_next(request)
         except Exception as e:
@@ -110,8 +148,8 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
             )
             origin = request.headers.get("origin")
             if origin and origin in self.allowed_origins:
-                error_response.headers["Access-Control-Allow-Origin"] = origin
-                error_response.headers["Access-Control-Allow-Credentials"] = "true"
+                set_header_safely(error_response, "Access-Control-Allow-Origin", origin)
+                set_header_safely(error_response, "Access-Control-Allow-Credentials", "true")
             add_security_headers(error_response)
             return error_response
 
@@ -119,8 +157,8 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("origin")
         if origin and origin in self.allowed_origins:
             if "Access-Control-Allow-Origin" not in response.headers:
-                response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Credentials"] = "true"
+                set_header_safely(response, "Access-Control-Allow-Origin", origin)
+                set_header_safely(response, "Access-Control-Allow-Credentials", "true")
 
         add_security_headers(response)
         return response
@@ -162,6 +200,54 @@ app.add_middleware(CORSEnforcementMiddleware, allowed_origins=origins)
 # Add security headers middleware (after CORS)
 app.add_middleware(SecurityHeadersMiddleware)
 
+# Add header encoding fix middleware (innermost to catch all headers)
+class HeaderEncodingMiddleware(BaseHTTPMiddleware):
+    """Middleware to ensure all headers are properly UTF-8 encoded."""
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Clean up any problematic headers
+        headers_to_remove = []
+        headers_to_update = {}
+        
+        for key, value in response.headers.items():
+            try:
+                # Try to encode as UTF-8 to check for issues
+                if isinstance(value, str):
+                    value.encode('utf-8')
+                elif isinstance(value, bytes):
+                    value.decode('utf-8')
+                else:
+                    # Convert to string and check
+                    str(value).encode('utf-8')
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                # This header has encoding issues, remove it or fix it
+                if key.lower() not in ['content-type', 'content-length']:  # Keep essential headers
+                    headers_to_remove.append(key)
+                else:
+                    # Try to fix essential headers
+                    try:
+                        if isinstance(value, bytes):
+                            fixed_value = value.decode('utf-8', errors='replace')
+                        else:
+                            fixed_value = str(value).encode('utf-8', errors='replace').decode('utf-8')
+                        headers_to_update[key] = fixed_value
+                    except:
+                        headers_to_remove.append(key)
+        
+        # Remove problematic headers
+        for key in headers_to_remove:
+            response.headers.pop(key, None)
+        
+        # Update fixed headers
+        for key, value in headers_to_update.items():
+            response.headers[key] = value
+        
+        return response
+
+app.add_middleware(HeaderEncodingMiddleware)
+
 
 @app.exception_handler(APIException)
 async def api_exception_handler(request: Request, exc: APIException) -> JSONResponse:
@@ -170,6 +256,23 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
     This ensures all APIException instances return the standard error format
     defined in rules/api-contract.md.
     """
+    def set_header_safely(response, key: str, value: str) -> None:
+        """Set header with proper UTF-8 encoding."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode('utf-8')
+            except UnicodeDecodeError:
+                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+        elif not isinstance(value, str):
+            value = str(value)
+        
+        try:
+            value.encode('utf-8')
+            response.headers[key] = value
+        except UnicodeEncodeError:
+            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            response.headers[key] = safe_value
+    
     # exc.detail already contains {"error": {...}}, add data: null for API contract compliance
     response_content = exc.detail.copy()
     response_content["data"] = None
@@ -180,8 +283,8 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
     # Ensure CORS headers are added even for errors
     origin = request.headers.get("origin")
     if origin and origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        set_header_safely(response, "Access-Control-Allow-Origin", origin)
+        set_header_safely(response, "Access-Control-Allow-Credentials", "true")
     add_security_headers(response)
     return response
 
@@ -194,6 +297,23 @@ async def validation_exception_handler(
 
     Converts FastAPI's default validation error format to the standard API contract format.
     """
+    def set_header_safely(response, key: str, value: str) -> None:
+        """Set header with proper UTF-8 encoding."""
+        if isinstance(value, bytes):
+            try:
+                value = value.decode('utf-8')
+            except UnicodeDecodeError:
+                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+        elif not isinstance(value, str):
+            value = str(value)
+        
+        try:
+            value.encode('utf-8')
+            response.headers[key] = value
+        except UnicodeEncodeError:
+            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            response.headers[key] = safe_value
+    
     # Convert FastAPI validation errors to standard format
     details = {}
     for error in exc.errors():
@@ -223,8 +343,8 @@ async def validation_exception_handler(
     # Ensure CORS headers are added even for errors
     origin = request.headers.get("origin")
     if origin and origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        set_header_safely(response, "Access-Control-Allow-Origin", origin)
+        set_header_safely(response, "Access-Control-Allow-Credentials", "true")
     add_security_headers(response)
     return response
 

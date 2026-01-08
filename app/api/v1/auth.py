@@ -341,12 +341,16 @@ async def get_current_user_info(
     roles = auth_service.get_user_roles(current_user.id)
     permissions = auth_service.get_user_permissions(current_user.id)
 
+    # Get tenant name if tenant exists
+    tenant_name = current_user.tenant.name if current_user.tenant else None
+
     return StandardResponse(
         data=UserMeResponse(
             id=current_user.id,
             email=current_user.email,
             full_name=current_user.full_name,
             tenant_id=current_user.tenant_id,
+            tenant_name=tenant_name,
             roles=roles,
             permissions=permissions,
         )
