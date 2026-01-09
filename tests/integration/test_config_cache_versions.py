@@ -10,13 +10,13 @@ class TestCacheAndVersions:
     """Test suite for cache and version management endpoints."""
 
     def test_get_cache_stats_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting cache stats requires config.view permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/cache/stats",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -27,7 +27,7 @@ class TestCacheAndVersions:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_cache_stats_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get cache stats."""
         module_role = ModuleRole(
@@ -42,7 +42,7 @@ class TestCacheAndVersions:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/cache/stats",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -61,13 +61,13 @@ class TestCacheAndVersions:
         assert isinstance(data["data"], dict)
 
     def test_clear_cache_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that clearing cache requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/cache/clear",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -75,7 +75,7 @@ class TestCacheAndVersions:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_clear_cache_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can clear cache."""
         module_role = ModuleRole(
@@ -90,7 +90,7 @@ class TestCacheAndVersions:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/cache/clear",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -101,7 +101,7 @@ class TestCacheAndVersions:
         assert "message" in data["data"]
 
     def test_clear_cache_for_module(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user can clear cache for a specific module."""
         module_role = ModuleRole(
@@ -116,7 +116,7 @@ class TestCacheAndVersions:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/cache/clear?module=products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -127,13 +127,13 @@ class TestCacheAndVersions:
         assert "products" in data["data"]["message"]
 
     def test_get_version_history_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting version history requires config.view permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products/min_price/versions",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -141,7 +141,7 @@ class TestCacheAndVersions:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_version_history_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get version history."""
         module_role = ModuleRole(
@@ -167,14 +167,14 @@ class TestCacheAndVersions:
         db_session.commit()
         access_token_editor = auth_service.create_access_token_for_user(test_user)
 
-        client.put(
+        client_with_db.put(
             "/api/v1/config/products/min_price",
             headers={"Authorization": f"Bearer {access_token_editor}"},
             json={"value": 10.0},
         )
 
         # Get version history
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products/min_price/versions",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -187,13 +187,13 @@ class TestCacheAndVersions:
         assert isinstance(data["data"]["versions"], list)
 
     def test_rollback_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that rolling back requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/products/min_price/rollback",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"version_number": 1},
@@ -202,7 +202,7 @@ class TestCacheAndVersions:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_rollback_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can rollback to a version."""
         module_role = ModuleRole(
@@ -218,7 +218,7 @@ class TestCacheAndVersions:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, set a config value to create a version
-        client.put(
+        client_with_db.put(
             "/api/v1/config/products/min_price",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -235,7 +235,7 @@ class TestCacheAndVersions:
         db_session.commit()
         access_token_viewer = auth_service.create_access_token_for_user(test_user)
 
-        versions_response = client.get(
+        versions_response = client_with_db.get(
             "/api/v1/config/products/min_price/versions",
             headers={"Authorization": f"Bearer {access_token_viewer}"},
         )
@@ -245,7 +245,7 @@ class TestCacheAndVersions:
             version_number = versions[0]["version_number"]
 
             # Rollback to that version
-            response = client.post(
+            response = client_with_db.post(
                 "/api/v1/config/products/min_price/rollback",
                 headers={"Authorization": f"Bearer {access_token}"},
                 json={"version_number": version_number},

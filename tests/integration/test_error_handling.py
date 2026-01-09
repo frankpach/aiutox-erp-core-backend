@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_calendar_invalid_data(client, test_user, auth_headers, db_session):
+def test_calendar_invalid_data(client_with_db, test_user, auth_headers, db_session):
     """Test calendar creation with invalid data."""
     # Assign permissions
     module_role = ModuleRole(
@@ -21,7 +21,7 @@ def test_calendar_invalid_data(client, test_user, auth_headers, db_session):
     # Missing required field
     invalid_data = {"name": "Test Calendar"}  # Missing calendar_type
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=invalid_data,
         headers=auth_headers,
@@ -30,7 +30,7 @@ def test_calendar_invalid_data(client, test_user, auth_headers, db_session):
     assert response.status_code == 422  # Validation error
 
 
-def test_event_invalid_time_range(client, test_user, auth_headers, db_session):
+def test_event_invalid_time_range(client_with_db, test_user, auth_headers, db_session):
     """Test event creation with invalid time range."""
     # Assign permissions
     module_role = ModuleRole(
@@ -44,7 +44,7 @@ def test_event_invalid_time_range(client, test_user, auth_headers, db_session):
 
     # Create calendar
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -63,7 +63,7 @@ def test_event_invalid_time_range(client, test_user, auth_headers, db_session):
         "end_time": end_time,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/events",
         json=event_data,
         headers=auth_headers,
@@ -74,7 +74,7 @@ def test_event_invalid_time_range(client, test_user, auth_headers, db_session):
     assert response.status_code in [400, 422, 201]  # Depends on validation
 
 
-def test_comment_not_found(client, test_user, auth_headers, db_session):
+def test_comment_not_found(client_with_db, test_user, auth_headers, db_session):
     """Test accessing non-existent comment."""
     # Assign permissions
     module_role = ModuleRole(
@@ -88,7 +88,7 @@ def test_comment_not_found(client, test_user, auth_headers, db_session):
 
     fake_id = uuid4()
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/comments/{fake_id}",
         headers=auth_headers,
     )
@@ -97,7 +97,7 @@ def test_comment_not_found(client, test_user, auth_headers, db_session):
     assert "not found" in response.json()["error"]["message"].lower()
 
 
-def test_approval_flow_not_found(client, test_user, auth_headers, db_session):
+def test_approval_flow_not_found(client_with_db, test_user, auth_headers, db_session):
     """Test accessing non-existent approval flow."""
     # Assign permissions
     module_role = ModuleRole(
@@ -111,7 +111,7 @@ def test_approval_flow_not_found(client, test_user, auth_headers, db_session):
 
     fake_id = uuid4()
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/approvals/flows/{fake_id}",
         headers=auth_headers,
     )
@@ -120,7 +120,7 @@ def test_approval_flow_not_found(client, test_user, auth_headers, db_session):
     assert "not found" in response.json()["error"]["message"].lower()
 
 
-def test_template_render_missing_variables(client, test_user, auth_headers, db_session):
+def test_template_render_missing_variables(client_with_db, test_user, auth_headers, db_session):
     """Test template rendering with missing required variables."""
     # Assign permissions
     module_role = ModuleRole(
@@ -139,7 +139,7 @@ def test_template_render_missing_variables(client, test_user, auth_headers, db_s
         "template_format": "html",
         "content": "Hello {{ name }}, your order {{ order_id }} is ready!",
     }
-    template_response = client.post(
+    template_response = client_with_db.post(
         "/api/v1/templates",
         json=template_data,
         headers=auth_headers,
@@ -152,7 +152,7 @@ def test_template_render_missing_variables(client, test_user, auth_headers, db_s
         "variables": {"name": "John"},  # Missing order_id
     }
 
-    render_response = client.post(
+    render_response = client_with_db.post(
         f"/api/v1/templates/{template_id}/render",
         json=render_data,
         headers=auth_headers,
@@ -165,7 +165,7 @@ def test_template_render_missing_variables(client, test_user, auth_headers, db_s
     # order_id will be empty in rendered content
 
 
-def test_validation_error_format(client, test_user, auth_headers, db_session):
+def test_validation_error_format(client_with_db, test_user, auth_headers, db_session):
     """Test that validation errors (422) follow the standard API contract format."""
     # Assign permissions
     module_role = ModuleRole(
@@ -180,7 +180,7 @@ def test_validation_error_format(client, test_user, auth_headers, db_session):
     # Send request with missing required field
     invalid_data = {"name": "Test Calendar"}  # Missing calendar_type
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=invalid_data,
         headers=auth_headers,

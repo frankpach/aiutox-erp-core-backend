@@ -6,7 +6,7 @@ from uuid import uuid4
 from tests.helpers import create_user_with_permission
 
 
-def test_create_folder(client, test_user, db_session):
+def test_create_folder(client_with_db, test_user, db_session):
     """Test creating a folder."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -16,7 +16,7 @@ def test_create_folder(client, test_user, db_session):
         "description": "Test description",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -28,14 +28,14 @@ def test_create_folder(client, test_user, db_session):
     assert "id" in data
 
 
-def test_get_folder_permissions(client, test_user, db_session):
+def test_get_folder_permissions(client_with_db, test_user, db_session):
     """Test getting folder permissions."""
     # Assign files.manage permission (folders uses files module)
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a folder
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -44,7 +44,7 @@ def test_get_folder_permissions(client, test_user, db_session):
 
     # Get folder permissions - requires folders.manage but we'll use files.manage
     # Note: This may fail if folders.manage is required, in which case we need to add that permission
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/folders/{folder_id}/permissions",
         headers=headers,
     )
@@ -53,14 +53,14 @@ def test_get_folder_permissions(client, test_user, db_session):
     assert response.status_code in [200, 403]
 
 
-def test_update_folder_permissions(client, test_user, db_session):
+def test_update_folder_permissions(client_with_db, test_user, db_session):
     """Test updating folder permissions."""
     # Assign files.manage permission (folders uses files module)
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a folder
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -70,7 +70,7 @@ def test_update_folder_permissions(client, test_user, db_session):
     # Create another user for permission assignment
     from app.models.user import User
     other_user = User(
-        email="other@test.com",
+        email=f"other-folder-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
         tenant_id=test_user.tenant_id,
         is_active=True,
@@ -93,7 +93,7 @@ def test_update_folder_permissions(client, test_user, db_session):
         }
     ]
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/folders/{folder_id}/permissions",
         json={"permissions": permissions},
         headers=headers,
@@ -103,14 +103,14 @@ def test_update_folder_permissions(client, test_user, db_session):
     assert response.status_code in [200, 403]
 
 
-def test_update_folder_permissions_invalid_user(client, test_user, db_session):
+def test_update_folder_permissions_invalid_user(client_with_db, test_user, db_session):
     """Test updating folder permissions with invalid user ID."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a folder
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -126,7 +126,7 @@ def test_update_folder_permissions_invalid_user(client, test_user, db_session):
         }
     ]
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/folders/{folder_id}/permissions",
         json={"permissions": permissions},
         headers=headers,
@@ -136,14 +136,14 @@ def test_update_folder_permissions_invalid_user(client, test_user, db_session):
     assert response.status_code in [400, 403]
 
 
-def test_update_folder_permissions_invalid_target_type(client, test_user, db_session):
+def test_update_folder_permissions_invalid_target_type(client_with_db, test_user, db_session):
     """Test updating folder permissions with invalid target type."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a folder
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -159,7 +159,7 @@ def test_update_folder_permissions_invalid_target_type(client, test_user, db_ses
         }
     ]
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/folders/{folder_id}/permissions",
         json={"permissions": permissions},
         headers=headers,
@@ -169,12 +169,12 @@ def test_update_folder_permissions_invalid_target_type(client, test_user, db_ses
     assert response.status_code in [400, 403]
 
 
-def test_get_folder_permissions_requires_manage_users(client, test_user, db_session):
+def test_get_folder_permissions_requires_manage_users(client_with_db, test_user, db_session):
     """Test that getting folder permissions requires folders.manage_users or ownership."""
     # Create another user
     from app.models.user import User
     other_user = User(
-        email="other@test.com",
+        email=f"other-perms-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
         tenant_id=test_user.tenant_id,
         is_active=True,
@@ -187,7 +187,7 @@ def test_get_folder_permissions_requires_manage_users(client, test_user, db_sess
     # Create folder with first user
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -196,7 +196,7 @@ def test_get_folder_permissions_requires_manage_users(client, test_user, db_sess
 
     # Try to get permissions with other user (only files.view permission)
     other_headers = create_user_with_permission(db_session, other_user, "files", "viewer")
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/folders/{folder_id}/permissions",
         headers=other_headers,
     )
@@ -205,38 +205,38 @@ def test_get_folder_permissions_requires_manage_users(client, test_user, db_sess
     assert response.status_code in [200, 403]
 
 
-def test_list_folders(client, test_user, db_session):
+def test_list_folders(client_with_db, test_user, db_session):
     """Test listing folders."""
     # Assign files.view permission
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
 
-    response = client.get("/api/v1/folders", headers=headers)
+    response = client_with_db.get("/api/v1/folders", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
 
 
-def test_get_folder_tree(client, test_user, db_session):
+def test_get_folder_tree(client_with_db, test_user, db_session):
     """Test getting folder tree."""
     # Assign files.view permission
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
 
-    response = client.get("/api/v1/folders/tree", headers=headers)
+    response = client_with_db.get("/api/v1/folders/tree", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
 
 
-def test_delete_folder(client, test_user, db_session):
+def test_delete_folder(client_with_db, test_user, db_session):
     """Test deleting a folder."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a folder
     folder_data = {"name": "Test Folder to Delete"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=headers,
@@ -245,7 +245,7 @@ def test_delete_folder(client, test_user, db_session):
     folder_id = create_response.json()["data"]["id"]
 
     # Delete the folder
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/folders/{folder_id}",
         headers=headers,
     )
@@ -256,21 +256,21 @@ def test_delete_folder(client, test_user, db_session):
     assert "data" in data or "message" in data
 
     # Verify folder is deleted (should return 404)
-    get_response = client.get(
+    get_response = client_with_db.get(
         f"/api/v1/folders/{folder_id}",
         headers=headers,
     )
     assert get_response.status_code == 404
 
 
-def test_delete_folder_not_found(client, test_user, db_session):
+def test_delete_folder_not_found(client_with_db, test_user, db_session):
     """Test deleting a non-existent folder."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Try to delete non-existent folder
     fake_folder_id = uuid4()
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/folders/{fake_folder_id}",
         headers=headers,
     )
@@ -280,12 +280,12 @@ def test_delete_folder_not_found(client, test_user, db_session):
     assert "error" in data
 
 
-def test_delete_folder_no_permission(client, test_user, db_session):
+def test_delete_folder_no_permission(client_with_db, test_user, db_session):
     """Test deleting a folder without permission."""
     # Create folder with manager permission
     manager_headers = create_user_with_permission(db_session, test_user, "files", "manager")
     folder_data = {"name": "Test Folder"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/folders",
         json=folder_data,
         headers=manager_headers,
@@ -305,7 +305,7 @@ def test_delete_folder_no_permission(client, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
 
     # Try to delete without manage permission
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/folders/{folder_id}",
         headers=headers,
     )

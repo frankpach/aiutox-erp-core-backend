@@ -11,7 +11,7 @@ from app.modules.products.schemas.product import ProductCreate
 from tests.helpers import create_user_with_permission
 
 
-def test_create_product_publishes_event(client, test_user, db_session):
+def test_create_product_publishes_event(client_with_db, test_user, db_session):
     """Test that creating a product publishes product.created event."""
     # Assign products.create permission
     headers = create_user_with_permission(db_session, test_user, "products", "editor")
@@ -27,7 +27,7 @@ def test_create_product_publishes_event(client, test_user, db_session):
             "currency": "USD",
         }
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             json=product_data,
             headers=headers,
@@ -42,7 +42,7 @@ def test_create_product_publishes_event(client, test_user, db_session):
         assert mock_publish.called or True  # Background task may not execute immediately
 
 
-def test_update_product_publishes_event(client, test_user, db_session):
+def test_update_product_publishes_event(client_with_db, test_user, db_session):
     """Test that updating a product publishes product.updated event."""
     # Assign products permissions
     headers = create_user_with_permission(db_session, test_user, "products", "editor")
@@ -69,7 +69,7 @@ def test_update_product_publishes_event(client, test_user, db_session):
 
         update_data = {"name": "Updated Product Name"}
 
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/products/{product['id']}",
             json=update_data,
             headers=headers,
@@ -80,7 +80,7 @@ def test_update_product_publishes_event(client, test_user, db_session):
         assert True  # Background task scheduled
 
 
-def test_delete_product_publishes_event(client, test_user, db_session):
+def test_delete_product_publishes_event(client_with_db, test_user, db_session):
     """Test that deleting a product publishes product.deleted event."""
     # Assign products permissions
     headers = create_user_with_permission(db_session, test_user, "products", "manager")
@@ -105,7 +105,7 @@ def test_delete_product_publishes_event(client, test_user, db_session):
     with patch("app.core.pubsub.publisher.EventPublisher.publish") as mock_publish:
         mock_publish.return_value = AsyncMock(return_value="test-message-id")
 
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/products/{product['id']}",
             headers=headers,
         )

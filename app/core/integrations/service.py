@@ -1,5 +1,6 @@
 """Integration service for managing third-party integrations."""
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -19,18 +20,35 @@ class IntegrationService:
         self.db = db
         self.repository = IntegrationRepository(db)
 
+    @staticmethod
+    def _ensure_config_is_dict(config: Any) -> dict[str, Any]:
+        """Ensure config is a dict, handling JSON strings."""
+        if config is None:
+            return {}
+        if isinstance(config, dict):
+            return config
+        if isinstance(config, str):
+            try:
+                return json.loads(config)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return {}
+
     def get_integration(self, integration_id: UUID, tenant_id: UUID) -> dict[str, Any]:
         """Get integration by ID."""
         integration = self.repository.get_by_id(integration_id, tenant_id)
         if not integration:
             raise ValueError(f"Integration not found: {integration_id}")
+        
+        config = self._ensure_config_is_dict(integration.config)
+        
         return {
             "id": integration.id,
             "tenant_id": integration.tenant_id,
             "name": integration.name,
             "type": integration.type,
             "status": integration.status,
-            "config": integration.config,
+            "config": config,
             "last_sync_at": integration.last_sync_at,
             "error_message": integration.error_message,
             "created_at": integration.created_at,
@@ -38,25 +56,81 @@ class IntegrationService:
         }
 
     def list_integrations(
-        self, tenant_id: UUID, type: IntegrationType | None = None
-    ) -> list[dict[str, Any]]:
-        """List all integrations for a tenant."""
-        integrations = self.repository.get_all(tenant_id, type)
-        return [
-            {
-                "id": i.id,
-                "tenant_id": i.tenant_id,
-                "name": i.name,
-                "type": i.type,
-                "status": i.status,
-                "config": i.config,
-                "last_sync_at": i.last_sync_at,
-                "error_message": i.error_message,
-                "created_at": i.created_at,
-                "updated_at": i.updated_at,
+        self,
+        tenant_id: UUID,
+        integration_type: IntegrationType | None = None,
+        page: int | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]] | dict[str, Any]:
+        """List integrations for a tenant, with optional pagination.
+
+        Args:
+            tenant_id: Tenant ID
+            integration_type: Optional filter by integration type
+            page: Optional page number for pagination
+            limit: Optional limit per page for pagination
+
+        Returns:
+            If page and limit are provided: dict with 'items' and 'total'
+            Otherwise: list of integration dicts
+        """
+        if page is not None and limit is not None:
+            result = self.repository.get_all_paginated(
+                tenant_id=tenant_id,
+                integration_type=integration_type,
+                page=page,
+                limit=limit,
+            )
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"get_all_paginated result type: {type(result)}, value: {result}")
+            
+            items_list = []
+            for idx, i in enumerate(result["items"]):
+                try:
+                    item_dict = {
+                        "id": i.id,
+                        "tenant_id": i.tenant_id,
+                        "name": i.name,
+                        "type": i.type,
+                        "status": i.status,
+                        "config": self._ensure_config_is_dict(i.config),
+                        "last_sync_at": i.last_sync_at,
+                        "error_message": i.error_message,
+                        "created_at": i.created_at,
+                        "updated_at": i.updated_at,
+                    }
+                    items_list.append(item_dict)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error converting integration {idx} to dict: {e}", exc_info=True)
+                    logger.error(f"Integration object: {i}, type: {type(i)}")
+                    logger.error(f"Integration config: {i.config}, type: {type(i.config)}")
+                    raise
+            return_value = {
+                "items": items_list,
+                "total": result["total"],
             }
-            for i in integrations
-        ]
+            logger.info(f"list_integrations return value type: {type(return_value)}, value: {return_value}")
+            return return_value
+        else:
+            integrations = self.repository.get_all(tenant_id, integration_type)
+            return [
+                {
+                    "id": i.id,
+                    "tenant_id": i.tenant_id,
+                    "name": i.name,
+                    "type": i.type,
+                    "status": i.status,
+                    "config": self._ensure_config_is_dict(i.config),
+                    "last_sync_at": i.last_sync_at,
+                    "error_message": i.error_message,
+                    "created_at": i.created_at,
+                    "updated_at": i.updated_at,
+                }
+                for i in integrations
+            ]
 
     def create_integration(
         self,
@@ -93,7 +167,7 @@ class IntegrationService:
             "name": integration.name,
             "type": integration.type,
             "status": integration.status,
-            "config": integration.config,
+            "config": self._ensure_config_is_dict(integration.config),
             "last_sync_at": integration.last_sync_at,
             "error_message": integration.error_message,
             "created_at": integration.created_at,

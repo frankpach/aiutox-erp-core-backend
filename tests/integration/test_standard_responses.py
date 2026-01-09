@@ -16,7 +16,7 @@ class TestStandardResponseFormat:
     """Test that endpoints return StandardResponse format."""
 
     def test_list_users_returns_standard_list_response(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that GET /api/v1/users returns StandardListResponse format."""
         # Arrange: Assign admin role
@@ -32,7 +32,7 @@ class TestStandardResponseFormat:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List users
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -59,7 +59,7 @@ class TestStandardResponseFormat:
         assert isinstance(data["meta"]["total_pages"], int)
 
     def test_get_user_returns_standard_response(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that GET /api/v1/users/{id} returns StandardResponse format."""
         # Arrange: Assign admin role
@@ -75,7 +75,7 @@ class TestStandardResponseFormat:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get user
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -93,7 +93,7 @@ class TestStandardResponseFormat:
         assert "email" in data["data"]
 
     def test_create_user_returns_standard_response(
-        self, client: TestClient, db_session: Session, test_user: User, test_tenant
+        self, client_with_db: TestClient, db_session: Session, test_user: User, test_tenant
     ) -> None:
         """Test that POST /api/v1/users returns StandardResponse format."""
         # Arrange: Assign admin role
@@ -110,7 +110,7 @@ class TestStandardResponseFormat:
 
         # Act: Create user
         new_email = f"new-{uuid4().hex[:8]}@example.com"
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -132,7 +132,7 @@ class TestStandardResponseFormat:
         assert data["data"]["email"] == new_email
 
     def test_list_roles_returns_standard_list_response(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that GET /api/v1/auth/roles returns StandardListResponse format."""
         # Arrange: Authenticated user
@@ -140,7 +140,7 @@ class TestStandardResponseFormat:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List roles
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/auth/roles",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -167,7 +167,7 @@ class TestAPIExceptionFormat:
     """Test that APIException returns correct error format."""
 
     def test_not_found_error_format(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that 404 errors return correct format."""
         # Arrange: Assign admin role
@@ -184,7 +184,7 @@ class TestAPIExceptionFormat:
 
         # Act: Get non-existent user
         fake_id = uuid4()
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -203,7 +203,7 @@ class TestAPIExceptionFormat:
         assert "User not found" in data["error"]["message"]
 
     def test_bad_request_error_format(
-        self, client: TestClient, db_session: Session, test_user: User, test_tenant
+        self, client_with_db: TestClient, db_session: Session, test_user: User, test_tenant
     ) -> None:
         """Test that 400 errors return correct format."""
         # Arrange: Assign admin role
@@ -219,7 +219,7 @@ class TestAPIExceptionFormat:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to create user with existing email
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -242,7 +242,7 @@ class TestAPIExceptionFormat:
         assert data["error"]["code"] == "USER_ALREADY_EXISTS"
 
     def test_forbidden_error_format(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that 403 errors return correct format."""
         # Arrange: User without admin role
@@ -250,7 +250,7 @@ class TestAPIExceptionFormat:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to list users without permission
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -268,11 +268,11 @@ class TestAPIExceptionFormat:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_unauthorized_error_format(
-        self, client: TestClient, test_user: User
+        self, client_with_db: TestClient, test_user: User
     ) -> None:
         """Test that 401 errors return correct format."""
         # Act: Try to login with invalid credentials
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/auth/login",
             json={
                 "email": test_user.email,
@@ -293,7 +293,7 @@ class TestAPIExceptionFormat:
         assert data["error"]["code"] == "AUTH_INVALID_CREDENTIALS"
 
     def test_exception_handler_works_globally(
-        self, client: TestClient, db_session: Session, test_user: User
+        self, client_with_db: TestClient, db_session: Session, test_user: User
     ) -> None:
         """Test that exception handler works globally for all APIException."""
         # Arrange: Assign admin role
@@ -332,7 +332,7 @@ class TestAPIExceptionFormat:
         db_session.refresh(other_user)
 
         # Try to access user from different tenant
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{other_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )

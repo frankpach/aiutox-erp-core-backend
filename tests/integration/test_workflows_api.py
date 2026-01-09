@@ -5,7 +5,7 @@ import pytest
 from tests.helpers import create_user_with_permission
 
 
-def test_create_workflow(client, test_user, db_session):
+def test_create_workflow(client_with_db, test_user, db_session):
     """Test creating a workflow."""
     # Assign workflows.manage permission
     headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
@@ -17,7 +17,7 @@ def test_create_workflow(client, test_user, db_session):
         "definition": {"steps": []},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=headers,
@@ -30,12 +30,12 @@ def test_create_workflow(client, test_user, db_session):
     assert "id" in data
 
 
-def test_list_workflows(client, test_user, db_session):
+def test_list_workflows(client_with_db, test_user, db_session):
     """Test listing workflows."""
     # Assign workflows.view permission
     headers = create_user_with_permission(db_session, test_user, "workflows", "viewer")
 
-    response = client.get("/api/v1/workflows", headers=headers)
+    response = client_with_db.get("/api/v1/workflows", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -44,14 +44,14 @@ def test_list_workflows(client, test_user, db_session):
     assert "total" in response.json()["meta"]
 
 
-def test_get_workflow(client, test_user, db_session):
+def test_get_workflow(client_with_db, test_user, db_session):
     """Test getting a workflow."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
 
     # Create a workflow
     workflow_data = {"name": "Test Workflow", "definition": {"steps": []}}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=headers,
@@ -59,7 +59,7 @@ def test_get_workflow(client, test_user, db_session):
     workflow_id = create_response.json()["data"]["id"]
 
     # Get it
-    response = client.get(f"/api/v1/workflows/{workflow_id}", headers=headers)
+    response = client_with_db.get(f"/api/v1/workflows/{workflow_id}", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -67,14 +67,14 @@ def test_get_workflow(client, test_user, db_session):
     assert data["name"] == "Test Workflow"
 
 
-def test_update_workflow(client, test_user, db_session):
+def test_update_workflow(client_with_db, test_user, db_session):
     """Test updating a workflow."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
 
     # Create a workflow
     workflow_data = {"name": "Original Name", "definition": {"steps": []}}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=headers,
@@ -83,7 +83,7 @@ def test_update_workflow(client, test_user, db_session):
 
     # Update it
     update_data = {"name": "Updated Name", "enabled": False}
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/workflows/{workflow_id}",
         json=update_data,
         headers=headers,
@@ -95,14 +95,14 @@ def test_update_workflow(client, test_user, db_session):
     assert data["enabled"] is False
 
 
-def test_delete_workflow(client, test_user, db_session):
+def test_delete_workflow(client_with_db, test_user, db_session):
     """Test deleting a workflow."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
 
     # Create a workflow
     workflow_data = {"name": "Test Workflow", "definition": {"steps": []}}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=headers,
@@ -110,23 +110,23 @@ def test_delete_workflow(client, test_user, db_session):
     workflow_id = create_response.json()["data"]["id"]
 
     # Delete it
-    response = client.delete(f"/api/v1/workflows/{workflow_id}", headers=headers)
+    response = client_with_db.delete(f"/api/v1/workflows/{workflow_id}", headers=headers)
 
     assert response.status_code == 204
 
     # Verify it's deleted
-    get_response = client.get(f"/api/v1/workflows/{workflow_id}", headers=headers)
+    get_response = client_with_db.get(f"/api/v1/workflows/{workflow_id}", headers=headers)
     assert get_response.status_code == 404
 
 
-def test_create_workflow_step(client, test_user, db_session):
+def test_create_workflow_step(client_with_db, test_user, db_session):
     """Test creating a workflow step."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
 
     # Create a workflow
     workflow_data = {"name": "Test Workflow", "definition": {"steps": []}}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=headers,
@@ -141,7 +141,7 @@ def test_create_workflow_step(client, test_user, db_session):
         "order": 0,
         "config": {"action": "create_task"},
     }
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/workflows/{workflow_id}/steps",
         json=step_data,
         headers=headers,
@@ -154,7 +154,7 @@ def test_create_workflow_step(client, test_user, db_session):
     assert data["order"] == 0
 
 
-def test_list_workflow_steps(client, test_user, db_session):
+def test_list_workflow_steps(client_with_db, test_user, db_session):
     """Test listing workflow steps."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "workflows", "viewer")
@@ -162,7 +162,7 @@ def test_list_workflow_steps(client, test_user, db_session):
     # Create a workflow (need manager for creation)
     manager_headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
     workflow_data = {"name": "Test Workflow", "definition": {"steps": []}}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/workflows",
         json=workflow_data,
         headers=manager_headers,
@@ -171,14 +171,14 @@ def test_list_workflow_steps(client, test_user, db_session):
 
     # Create steps
     step_data = {"workflow_id": workflow_id, "name": "Step 1", "step_type": "task", "order": 0}
-    client.post(
+    client_with_db.post(
         f"/api/v1/workflows/{workflow_id}/steps",
         json=step_data,
         headers=manager_headers,
     )
 
     # List steps
-    response = client.get(f"/api/v1/workflows/{workflow_id}/steps", headers=headers)
+    response = client_with_db.get(f"/api/v1/workflows/{workflow_id}/steps", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]

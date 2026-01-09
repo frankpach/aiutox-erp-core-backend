@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_saved_filter(client, test_user, auth_headers, db_session):
+def test_create_saved_filter(client_with_db, test_user, auth_headers, db_session):
     """Test creating a saved filter."""
     # Assign views.manage permission
     module_role = ModuleRole(
@@ -24,7 +24,7 @@ def test_create_saved_filter(client, test_user, auth_headers, db_session):
         "filters": {"status": "active"},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/views/filters",
         json=filter_data,
         headers=auth_headers,
@@ -37,7 +37,7 @@ def test_create_saved_filter(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_create_custom_view(client, test_user, auth_headers, db_session):
+def test_create_custom_view(client_with_db, test_user, auth_headers, db_session):
     """Test creating a custom view."""
     # Assign views.manage permission
     module_role = ModuleRole(
@@ -55,7 +55,7 @@ def test_create_custom_view(client, test_user, auth_headers, db_session):
         "columns": {"name": True, "price": True},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/views/views",
         json=view_data,
         headers=auth_headers,

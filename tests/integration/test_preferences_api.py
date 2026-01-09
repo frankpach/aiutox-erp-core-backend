@@ -4,19 +4,19 @@ import pytest
 from tests.helpers import create_user_with_permission
 
 
-def test_get_preferences(client, test_user, db_session):
+def test_get_preferences(client_with_db, test_user, db_session):
     """Test getting user preferences."""
     # Assign preferences.view permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "viewer")
 
-    response = client.get("/api/v1/preferences", headers=headers)
+    response = client_with_db.get("/api/v1/preferences", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, dict)
 
 
-def test_update_preferences(client, test_user, db_session):
+def test_update_preferences(client_with_db, test_user, db_session):
     """Test updating user preferences."""
     # Assign preferences.manage permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
@@ -29,7 +29,7 @@ def test_update_preferences(client, test_user, db_session):
         }
     }
 
-    response = client.put(
+    response = client_with_db.put(
         "/api/v1/preferences?preference_type=basic",
         json=preference_data,
         headers=headers,
@@ -41,19 +41,19 @@ def test_update_preferences(client, test_user, db_session):
     assert data["timezone"] == "UTC"
 
 
-def test_get_notification_preferences(client, test_user, db_session):
+def test_get_notification_preferences(client_with_db, test_user, db_session):
     """Test getting notification preferences."""
     # Assign preferences.view permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "viewer")
 
-    response = client.get("/api/v1/preferences/notifications", headers=headers)
+    response = client_with_db.get("/api/v1/preferences/notifications", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, dict)
 
 
-def test_update_notification_preferences(client, test_user, db_session):
+def test_update_notification_preferences(client_with_db, test_user, db_session):
     """Test updating notification preferences."""
     # Assign preferences.manage permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
@@ -68,7 +68,7 @@ def test_update_notification_preferences(client, test_user, db_session):
         }
     }
 
-    response = client.put(
+    response = client_with_db.put(
         "/api/v1/preferences/notifications",
         json=notification_data,
         headers=headers,
@@ -79,7 +79,7 @@ def test_update_notification_preferences(client, test_user, db_session):
     assert "product.created" in data
 
 
-def test_save_view(client, test_user, db_session):
+def test_save_view(client_with_db, test_user, db_session):
     """Test saving a view."""
     # Assign preferences.manage permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
@@ -90,7 +90,7 @@ def test_save_view(client, test_user, db_session):
         "is_default": False,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/preferences/views/products",
         json=view_data,
         headers=headers,
@@ -102,7 +102,7 @@ def test_save_view(client, test_user, db_session):
     assert data["module"] == "products"
 
 
-def test_get_saved_views(client, test_user, db_session):
+def test_get_saved_views(client_with_db, test_user, db_session):
     """Test getting saved views."""
     # Assign preferences.manage permission (to create view) and viewer (to view)
     headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
@@ -118,14 +118,14 @@ def test_get_saved_views(client, test_user, db_session):
         config={"columns": ["name"]},
     )
 
-    response = client.get("/api/v1/preferences/views/products", headers=headers)
+    response = client_with_db.get("/api/v1/preferences/views/products", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) > 0
 
 
-def test_create_dashboard(client, test_user, db_session):
+def test_create_dashboard(client_with_db, test_user, db_session):
     """Test creating a dashboard."""
     # Assign preferences.manage permission
     headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
@@ -139,7 +139,7 @@ def test_create_dashboard(client, test_user, db_session):
         "is_default": False,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/preferences/dashboards",
         json=dashboard_data,
         headers=headers,

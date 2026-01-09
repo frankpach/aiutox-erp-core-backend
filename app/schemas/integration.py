@@ -23,6 +23,33 @@ class IntegrationCreate(IntegrationBase):
     pass
 
 
+class WebhookCreate(BaseModel):
+    """Schema for creating a webhook integration."""
+
+    name: str = Field(..., description="Webhook name", max_length=255)
+    url: str = Field(..., description="Webhook URL", max_length=500)
+    event_type: str = Field(..., description="Event type (e.g., 'product.created')", max_length=100)
+
+
+class WebhookResponse(BaseModel):
+    """Schema for webhook response."""
+
+    id: UUID
+    tenant_id: UUID
+    name: str
+    type: str
+    event_type: str
+    url: str
+    enabled: bool
+    status: str
+    last_sync_at: datetime | None
+    error_message: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class IntegrationUpdate(BaseModel):
     """Schema for updating an integration."""
 
@@ -57,6 +84,20 @@ class IntegrationTestResponse(BaseModel):
     success: bool
     message: str
     details: dict[str, Any] | None = None
+
+
+class IntegrationLogResponse(BaseModel):
+    """Schema for integration log response."""
+
+    id: UUID
+    integration_id: UUID
+    tenant_id: UUID
+    level: str
+    message: str
+    details: dict[str, Any] | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class IntegrationCredentialsResponse(BaseModel):

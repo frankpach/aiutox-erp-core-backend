@@ -9,7 +9,7 @@ from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 
-def test_calendar_event_publishes_event(client, test_user, auth_headers, db_session):
+def test_calendar_event_publishes_event(client_with_db, test_user, auth_headers, db_session):
     """Test that creating a calendar event publishes calendar.event.created event."""
     # Assign permissions
     module_role = ModuleRole(
@@ -23,7 +23,7 @@ def test_calendar_event_publishes_event(client, test_user, auth_headers, db_sess
 
     # Create calendar
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -43,7 +43,7 @@ def test_calendar_event_publishes_event(client, test_user, auth_headers, db_sess
             "end_time": end_time,
         }
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/calendar/events",
             json=event_data,
             headers=auth_headers,
@@ -54,7 +54,7 @@ def test_calendar_event_publishes_event(client, test_user, auth_headers, db_sess
         assert True  # Background task scheduled
 
 
-def test_calendar_event_with_reminders(client, test_user, auth_headers, db_session):
+def test_calendar_event_with_reminders(client_with_db, test_user, auth_headers, db_session):
     """Test creating an event with reminders."""
     # Assign permissions
     module_role = ModuleRole(
@@ -68,7 +68,7 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
 
     # Create calendar
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -85,7 +85,7 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
         "end_time": end_time,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/events",
         json=event_data,
         headers=auth_headers,
@@ -99,7 +99,7 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
         "minutes_before": 30,
     }
 
-    reminder_response = client.post(
+    reminder_response = client_with_db.post(
         f"/api/v1/calendar/events/{event_id}/reminders",
         json=reminder_data,
         headers=auth_headers,
@@ -111,14 +111,14 @@ def test_calendar_event_with_reminders(client, test_user, auth_headers, db_sessi
     assert reminder["minutes_before"] == 30
 
 
-def test_calendar_event_attendee_response(client, test_user, db_session):
+def test_calendar_event_attendee_response(client_with_db, test_user, db_session):
     """Test attendee response to event invitation."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "calendar", "manager")
 
     # Create calendar and event
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=headers,
@@ -135,7 +135,7 @@ def test_calendar_event_attendee_response(client, test_user, db_session):
         "end_time": end_time,
     }
 
-    event_response = client.post(
+    event_response = client_with_db.post(
         "/api/v1/calendar/events",
         json=event_data,
         headers=headers,
@@ -146,7 +146,7 @@ def test_calendar_event_attendee_response(client, test_user, db_session):
     # Note: EventAttendeeCreate requires event_id in the body, but it's also in the path
     # The schema expects event_id, user_id, and status
     attendee_data = {"event_id": str(event_id), "user_id": str(test_user.id), "status": "pending"}
-    add_response = client.post(
+    add_response = client_with_db.post(
         f"/api/v1/calendar/events/{event_id}/attendees",
         json=attendee_data,
         headers=headers,
@@ -157,7 +157,7 @@ def test_calendar_event_attendee_response(client, test_user, db_session):
     assert add_response.status_code == 201
 
     # Then update attendee response
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/calendar/events/{event_id}/attendees/me?status=accepted",
         headers=headers,
     )
@@ -167,14 +167,14 @@ def test_calendar_event_attendee_response(client, test_user, db_session):
     assert attendee["status"] == "accepted"
 
 
-def test_calendar_multi_tenant_isolation(client, test_user, test_tenant, db_session):
+def test_calendar_multi_tenant_isolation(client_with_db, test_user, test_tenant, db_session):
     """Test that calendars are isolated by tenant."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "calendar", "manager")
 
     # Create calendar in current tenant
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=headers,
@@ -185,7 +185,7 @@ def test_calendar_multi_tenant_isolation(client, test_user, test_tenant, db_sess
 
     # Try to access with different tenant (should fail or return empty)
     # This test verifies multi-tenancy is respected
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/calendar/calendars/{calendar_id}",
         headers=headers,
     )

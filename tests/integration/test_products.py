@@ -13,7 +13,7 @@ class TestProducts:
     """Test suite for products functionality."""
 
     def test_list_products_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing products requires products.view permission."""
         # Arrange: User without products permission
@@ -21,7 +21,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to list products
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -38,7 +38,7 @@ class TestProducts:
             assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_products_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with products.view can list products."""
         # Arrange: Assign products.viewer role
@@ -55,7 +55,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List products
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -69,7 +69,7 @@ class TestProducts:
         assert data["meta"]["total"] >= 0
 
     def test_create_product_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating product requires products.create permission."""
         # Arrange: User without products.create permission
@@ -77,7 +77,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to create product
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -93,7 +93,7 @@ class TestProducts:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_product_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with products.create can create product."""
         # Arrange: Assign products.editor role
@@ -112,7 +112,7 @@ class TestProducts:
         sku = f"SKU-{uuid4().hex[:8]}"
 
         # Act: Create product
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -135,7 +135,7 @@ class TestProducts:
         assert data["data"]["is_active"] is True
 
     def test_create_product_duplicate_sku(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating product with duplicate SKU fails."""
         # Arrange: Assign products.editor role
@@ -154,7 +154,7 @@ class TestProducts:
         sku = f"SKU-{uuid4().hex[:8]}"
 
         # Create first product
-        client.post(
+        client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -167,7 +167,7 @@ class TestProducts:
         )
 
         # Act: Try to create product with same SKU
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -186,7 +186,7 @@ class TestProducts:
         assert "error" in data
         assert data["error"]["code"] == "PRODUCT_ALREADY_EXISTS"
 
-    def test_get_product_by_id(self, client, db_session, test_user, test_tenant):
+    def test_get_product_by_id(self, client_with_db, db_session, test_user, test_tenant):
         """Test getting product by ID."""
         # Arrange: Assign products.viewer role for reading and editor for creating
         viewer_role = ModuleRole(
@@ -209,7 +209,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -224,7 +224,7 @@ class TestProducts:
         product_id = create_response.json()["data"]["id"]
 
         # Act: Get product
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/{product_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -235,7 +235,7 @@ class TestProducts:
         assert "data" in data
         assert data["data"]["id"] == product_id
 
-    def test_get_product_not_found(self, client, db_session, test_user, test_tenant):
+    def test_get_product_not_found(self, client_with_db, db_session, test_user, test_tenant):
         """Test getting non-existent product returns 404."""
         # Arrange: Assign products.viewer role
         module_role = ModuleRole(
@@ -253,7 +253,7 @@ class TestProducts:
         fake_id = str(uuid4())
 
         # Act: Get non-existent product
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -261,7 +261,7 @@ class TestProducts:
         # Assert: Should return 404
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_update_product(self, client, db_session, test_user, test_tenant):
+    def test_update_product(self, client_with_db, db_session, test_user, test_tenant):
         """Test updating product."""
         # Arrange: Assign products.editor role and create product
         module_role = ModuleRole(
@@ -277,7 +277,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -292,7 +292,7 @@ class TestProducts:
         product_id = create_response.json()["data"]["id"]
 
         # Act: Update product
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/products/{product_id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -309,7 +309,7 @@ class TestProducts:
         assert data["data"]["price"] == "15.00"
 
     def test_delete_product_soft_delete(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test soft delete product."""
         # Arrange: Assign products.editor role for creation and products.delete for deletion
@@ -333,7 +333,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -347,7 +347,7 @@ class TestProducts:
         product_id = create_response.json()["data"]["id"]
 
         # Act: Delete product
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/products/{product_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -356,7 +356,7 @@ class TestProducts:
         assert response.status_code == status.HTTP_200_OK
 
         # Verify product is soft deleted (is_active=False)
-        get_response = client.get(
+        get_response = client_with_db.get(
             f"/api/v1/products/{product_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -364,7 +364,7 @@ class TestProducts:
         assert get_response.json()["data"]["is_active"] is False
 
     def test_list_products_with_filters(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test listing products with category and search filters."""
         # Arrange: Assign products.viewer role for reading and editor for creating
@@ -388,7 +388,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create category
-        category_response = client.post(
+        category_response = client_with_db.post(
             "/api/v1/products/categories",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -401,7 +401,7 @@ class TestProducts:
         category_id = category_response.json()["data"]["id"]
 
         # Create products
-        client.post(
+        client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -415,7 +415,7 @@ class TestProducts:
         )
 
         # Act: List products with category filter
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products?category_id={category_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -427,7 +427,7 @@ class TestProducts:
         assert len(data["data"]) >= 1
 
         # Act: Search products
-        search_response = client.get(
+        search_response = client_with_db.get(
             "/api/v1/products?search=Laptop",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -438,7 +438,7 @@ class TestProducts:
         assert len(search_data["data"]) >= 1
 
     def test_products_isolated_by_tenant(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that products are isolated by tenant."""
         # Arrange: Create second tenant and user
@@ -493,7 +493,7 @@ class TestProducts:
         db_session.add(editor_role1)
         db_session.commit()
 
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {token1}"},
             json={
@@ -508,7 +508,7 @@ class TestProducts:
         product_id = create_response.json()["data"]["id"]
 
         # Act: User2 tries to access tenant1's product
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/{product_id}",
             headers={"Authorization": f"Bearer {token2}"},
         )
@@ -517,7 +517,7 @@ class TestProducts:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_list_products_returns_standard_format(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that list products returns standard response format."""
         # Arrange: Assign products.viewer role
@@ -534,7 +534,7 @@ class TestProducts:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List products
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -555,7 +555,7 @@ class TestProducts:
 class TestCategories:
     """Test suite for categories functionality."""
 
-    def test_list_categories(self, client, db_session, test_user, test_tenant):
+    def test_list_categories(self, client_with_db, db_session, test_user, test_tenant):
         """Test listing categories."""
         # Arrange: Assign products.viewer role
         module_role = ModuleRole(
@@ -571,7 +571,7 @@ class TestCategories:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List categories
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/products/categories",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -582,7 +582,7 @@ class TestCategories:
         assert "data" in data
         assert isinstance(data["data"], list)
 
-    def test_create_category(self, client, db_session, test_user, test_tenant):
+    def test_create_category(self, client_with_db, db_session, test_user, test_tenant):
         """Test creating category."""
         # Arrange: Assign products.editor role
         module_role = ModuleRole(
@@ -598,7 +598,7 @@ class TestCategories:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Create category
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products/categories",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -616,7 +616,7 @@ class TestCategories:
         assert data["data"]["name"] == "Electronics"
 
     def test_create_category_duplicate_slug(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating category with duplicate slug fails."""
         # Arrange: Assign products.editor role
@@ -635,7 +635,7 @@ class TestCategories:
         slug = f"electronics-{uuid4().hex[:8]}"
 
         # Create first category
-        client.post(
+        client_with_db.post(
             "/api/v1/products/categories",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -646,7 +646,7 @@ class TestCategories:
         )
 
         # Act: Try to create category with same slug
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products/categories",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -663,7 +663,7 @@ class TestCategories:
 class TestVariants:
     """Test suite for product variants functionality."""
 
-    def test_list_variants(self, client, db_session, test_user, test_tenant):
+    def test_list_variants(self, client_with_db, db_session, test_user, test_tenant):
         """Test listing variants for a product."""
         # Arrange: Assign products.viewer role for reading and editor for creating
         viewer_role = ModuleRole(
@@ -686,7 +686,7 @@ class TestVariants:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -701,7 +701,7 @@ class TestVariants:
         product_id = create_response.json()["data"]["id"]
 
         # Act: List variants
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/{product_id}/variants",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -712,7 +712,7 @@ class TestVariants:
         assert "data" in data
         assert isinstance(data["data"], list)
 
-    def test_create_variant(self, client, db_session, test_user, test_tenant):
+    def test_create_variant(self, client_with_db, db_session, test_user, test_tenant):
         """Test creating variant."""
         # Arrange: Assign products.editor role and create product
         module_role = ModuleRole(
@@ -728,7 +728,7 @@ class TestVariants:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -742,7 +742,7 @@ class TestVariants:
         product_id = create_response.json()["data"]["id"]
 
         # Act: Create variant
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/products/{product_id}/variants",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -764,7 +764,7 @@ class TestVariants:
 class TestBarcodes:
     """Test suite for product barcodes functionality."""
 
-    def test_get_by_barcode(self, client, db_session, test_user, test_tenant):
+    def test_get_by_barcode(self, client_with_db, db_session, test_user, test_tenant):
         """Test getting product by barcode."""
         # Arrange: Assign products.viewer role for reading and editor for creating
         viewer_role = ModuleRole(
@@ -787,7 +787,7 @@ class TestBarcodes:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -804,7 +804,7 @@ class TestBarcodes:
         barcode = "1234567890123"
 
         # Create barcode
-        client.post(
+        client_with_db.post(
             f"/api/v1/products/{product_id}/barcodes",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -816,7 +816,7 @@ class TestBarcodes:
         )
 
         # Act: Get by barcode
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/by-barcode/{barcode}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -828,7 +828,7 @@ class TestBarcodes:
         assert "barcode" in data["data"]
         assert data["data"]["barcode"] == barcode
 
-    def test_list_barcodes(self, client, db_session, test_user, test_tenant):
+    def test_list_barcodes(self, client_with_db, db_session, test_user, test_tenant):
         """Test listing barcodes for a product."""
         # Arrange: Assign products.viewer role for reading and editor for creating
         viewer_role = ModuleRole(
@@ -851,7 +851,7 @@ class TestBarcodes:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create product
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -866,23 +866,27 @@ class TestBarcodes:
         product_id = create_response.json()["data"]["id"]
 
         # Create barcode
-        client.post(
+        client_with_db.post(
             f"/api/v1/products/{product_id}/barcodes",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
                 "tenant_id": str(test_tenant.id),
-                "barcode": "1234567890123",
+                "barcode": f"1234567890{uuid4().hex[:3]}",
                 "barcode_type": "EAN13",
             },
         )
 
         # Act: List barcodes
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/products/{product_id}/barcodes",
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
         # Assert: Should succeed
+        if response.status_code != status.HTTP_200_OK:
+            print(f"ERROR: {response.status_code}")
+            print(f"Response: {response.text}")
+            print(f"Headers: {response.headers}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "data" in data
@@ -892,7 +896,7 @@ class TestBarcodes:
 class TestProductValidations:
     """Test suite for product validation edge cases."""
 
-    def test_create_product_invalid_sku_format(self, client, db_session, test_user, test_tenant):
+    def test_create_product_invalid_sku_format(self, client_with_db, db_session, test_user, test_tenant):
         """Test product creation fails with invalid SKU format."""
         # Arrange
         editor_role = ModuleRole(
@@ -915,7 +919,7 @@ class TestProductValidations:
         }
 
         # Act
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             json=product_data,
             headers={"Authorization": f"Bearer {access_token}"},
@@ -927,7 +931,7 @@ class TestProductValidations:
         assert "error" in data
         assert "SKU" in data["error"]["message"] or "alphanumeric" in data["error"]["message"]
 
-    def test_create_product_invalid_currency(self, client, db_session, test_user, test_tenant):
+    def test_create_product_invalid_currency(self, client_with_db, db_session, test_user, test_tenant):
         """Test product creation fails with invalid currency."""
         # Arrange
         editor_role = ModuleRole(
@@ -950,7 +954,7 @@ class TestProductValidations:
         }
 
         # Act
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/products",
             json=product_data,
             headers={"Authorization": f"Bearer {access_token}"},
@@ -962,7 +966,7 @@ class TestProductValidations:
         assert "error" in data
         assert "Currency" in data["error"]["message"] or "not supported" in data["error"]["message"]
 
-    def test_create_barcode_invalid_ean13(self, client, db_session, test_user, test_tenant):
+    def test_create_barcode_invalid_ean13(self, client_with_db, db_session, test_user, test_tenant):
         """Test barcode creation fails with invalid EAN13 format."""
         # Arrange
         editor_role = ModuleRole(
@@ -984,7 +988,7 @@ class TestProductValidations:
             "name": "Test Product",
             "currency": "USD",
         }
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/products",
             json=product_data,
             headers={"Authorization": f"Bearer {access_token}"},
@@ -1000,7 +1004,7 @@ class TestProductValidations:
         }
 
         # Act
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/products/{product_id}/barcodes",
             json=barcode_data,
             headers={"Authorization": f"Bearer {access_token}"},

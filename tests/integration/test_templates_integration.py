@@ -7,7 +7,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_template_versioning(client, test_user, auth_headers, db_session):
+def test_template_versioning(client_with_db, test_user, auth_headers, db_session):
     """Test template versioning when content is updated."""
     # Assign permissions
     template_role = ModuleRole(
@@ -26,7 +26,7 @@ def test_template_versioning(client, test_user, auth_headers, db_session):
         "template_format": "html",
         "content": "Version 1: Hello {{ name }}!",
     }
-    template_response = client.post(
+    template_response = client_with_db.post(
         "/api/v1/templates",
         json=template_data,
         headers=auth_headers,
@@ -34,7 +34,7 @@ def test_template_versioning(client, test_user, auth_headers, db_session):
     template_id = template_response.json()["data"]["id"]
 
     # Get versions (should have 1)
-    versions_response = client.get(
+    versions_response = client_with_db.get(
         f"/api/v1/templates/{template_id}/versions",
         headers=auth_headers,
     )
@@ -42,14 +42,14 @@ def test_template_versioning(client, test_user, auth_headers, db_session):
 
     # Update template content (should create new version)
     update_data = {"content": "Version 2: Hello {{ name }}, welcome!"}
-    client.put(
+    client_with_db.put(
         f"/api/v1/templates/{template_id}",
         json=update_data,
         headers=auth_headers,
     )
 
     # Get versions again (should have 2)
-    versions_response = client.get(
+    versions_response = client_with_db.get(
         f"/api/v1/templates/{template_id}/versions",
         headers=auth_headers,
     )
@@ -61,7 +61,7 @@ def test_template_versioning(client, test_user, auth_headers, db_session):
     assert "Version 2" in current_versions[0]["content"]
 
 
-def test_template_render_with_variables(client, test_user, auth_headers, db_session):
+def test_template_render_with_variables(client_with_db, test_user, auth_headers, db_session):
     """Test rendering template with various variable types."""
     # Assign permissions
     template_role = ModuleRole(
@@ -80,7 +80,7 @@ def test_template_render_with_variables(client, test_user, auth_headers, db_sess
         "template_format": "html",
         "content": "Order {{ order_id }} for {{ customer_name }}: Total ${{ total }}",
     }
-    template_response = client.post(
+    template_response = client_with_db.post(
         "/api/v1/templates",
         json=template_data,
         headers=auth_headers,
@@ -97,7 +97,7 @@ def test_template_render_with_variables(client, test_user, auth_headers, db_sess
         },
     }
 
-    render_response = client.post(
+    render_response = client_with_db.post(
         f"/api/v1/templates/{template_id}/render",
         json=render_data,
         headers=auth_headers,
@@ -110,7 +110,7 @@ def test_template_render_with_variables(client, test_user, auth_headers, db_sess
     assert "99.99" in rendered
 
 
-def test_template_publishes_events(client, test_user, auth_headers, db_session):
+def test_template_publishes_events(client_with_db, test_user, auth_headers, db_session):
     """Test that templates publish events."""
     # Assign permissions
     template_role = ModuleRole(
@@ -132,7 +132,7 @@ def test_template_publishes_events(client, test_user, auth_headers, db_session):
     with patch("app.core.pubsub.publisher.EventPublisher.publish") as mock_publish:
         mock_publish.return_value = AsyncMock(return_value="test-message-id")
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/templates",
             json=template_data,
             headers=auth_headers,

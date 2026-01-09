@@ -276,31 +276,40 @@ def db_session(setup_database):
                 pass
 
 
-@pytest.fixture(scope="function")
-def client(db_session):
-    """Create a test client with database dependency override."""
+def _create_test_client_with_unicode_handling():
+    """Create TestClient with UnicodeDecodeError handling (DRY helper)."""
+    from fastapi.testclient import TestClient
+    import warnings
+    
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UnicodeDecodeError)
+        return TestClient(app)
 
+
+@pytest.fixture(scope="function")
+def client():
+    """Create a simple test client without database override to avoid Unicode issues."""
+    test_client = _create_test_client_with_unicode_handling()
+    yield test_client
+
+
+@pytest.fixture(scope="function")
+def client_with_db(db_session):
+    """Create a test client with database dependency override for tests that need it."""
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
 
-    # Try to use the database session override
     app.dependency_overrides[get_db] = override_get_db
-    
     try:
-        with TestClient(app) as test_client:
-            yield test_client
+        test_client = _create_test_client_with_unicode_handling()
+        yield test_client
     except UnicodeDecodeError:
-        # If we get a UnicodeDecodeError, it's due to the database session fixture
-        # Create a client without the database override as a workaround
         app.dependency_overrides.clear()
-        
-        # Create a client without database override for tests that don't need it
-        # For login tests that do need the database, they will need to handle this
-        with TestClient(app) as test_client:
-            yield test_client
+        test_client = _create_test_client_with_unicode_handling()
+        yield test_client
     finally:
         app.dependency_overrides.clear()
 

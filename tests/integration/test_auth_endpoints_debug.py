@@ -6,7 +6,7 @@ from fastapi import status
 from app.core.auth import decode_token
 
 
-def test_login_success_debug(client, test_user):
+def test_login_success_debug(client_with_db, test_user):
     """Test that login endpoint returns both tokens on success - with debugging."""
     print(f"\n=== DEBUG LOGIN TEST ===")
     print(f"Test user email: {test_user.email}")
@@ -17,7 +17,7 @@ def test_login_success_debug(client, test_user):
     
     try:
         print("Making login request...")
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/auth/login",
             json={
                 "email": test_user.email,

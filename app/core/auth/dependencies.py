@@ -167,14 +167,22 @@ def require_permission(permission: str):
         current_user: Annotated[User, Depends(get_current_user)],
         user_permissions: Annotated[set[str], Depends(get_user_permissions)],
     ) -> User:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"require_permission called for permission: {permission}")
+        logger.info(f"user_permissions type: {type(user_permissions)}, value: {user_permissions}")
+        
         from app.core.auth.permissions import has_permission
 
         if not has_permission(user_permissions, permission):
+            logger.error(f"Permission denied: {permission} not in {user_permissions}")
             raise_forbidden(
                 code="AUTH_INSUFFICIENT_PERMISSIONS",
                 message="Insufficient permissions",
                 details={"required_permission": permission},
             )
+        
+        logger.info(f"Permission granted: {permission}")
         return current_user
 
     return permission_check

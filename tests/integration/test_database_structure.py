@@ -10,7 +10,7 @@ def test_database_connection(db_session):
     """Test that database connection works."""
     # Print connection info for debugging
     settings = get_settings()
-    database_url = settings.DATABASE_URL
+    database_url = settings.database_url  # Use computed field, not DATABASE_URL
 
     # Mask password in URL for security
     if "@" in database_url:

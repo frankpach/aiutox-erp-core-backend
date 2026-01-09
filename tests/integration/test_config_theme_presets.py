@@ -13,13 +13,13 @@ class TestThemePresets:
     """Test suite for theme preset endpoints."""
 
     def test_list_presets_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing presets requires config.view permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -30,7 +30,7 @@ class TestThemePresets:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_presets_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can list presets."""
         module_role = ModuleRole(
@@ -45,7 +45,7 @@ class TestThemePresets:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -64,13 +64,13 @@ class TestThemePresets:
         assert "meta" in data
 
     def test_create_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating a preset requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -85,7 +85,7 @@ class TestThemePresets:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_create_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can create a preset."""
         module_role = ModuleRole(
@@ -109,7 +109,7 @@ class TestThemePresets:
             "description": "A custom theme preset",
         }
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json=preset_data,
@@ -124,7 +124,7 @@ class TestThemePresets:
         assert data["data"]["is_system"] is False
 
     def test_create_preset_duplicate_name(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating a preset with duplicate name fails."""
         module_role = ModuleRole(
@@ -145,7 +145,7 @@ class TestThemePresets:
         }
 
         # Create first preset
-        response1 = client.post(
+        response1 = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json=preset_data,
@@ -153,7 +153,7 @@ class TestThemePresets:
         assert response1.status_code == status.HTTP_201_CREATED
 
         # Try to create duplicate
-        response2 = client.post(
+        response2 = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json=preset_data,
@@ -165,14 +165,14 @@ class TestThemePresets:
         assert data["error"]["code"] == "PRESET_NAME_EXISTS"
 
     def test_get_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting a preset requires config.view permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         fake_id = uuid4()
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/config/app_theme/presets/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -180,7 +180,7 @@ class TestThemePresets:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get a preset."""
         # Create preset first
@@ -197,7 +197,7 @@ class TestThemePresets:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create preset
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -209,7 +209,7 @@ class TestThemePresets:
         preset_id = create_response.json()["data"]["id"]
 
         # Get preset
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/config/app_theme/presets/{preset_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -221,14 +221,14 @@ class TestThemePresets:
         assert data["data"]["name"] == "Get Test Preset"
 
     def test_update_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating a preset requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         fake_id = uuid4()
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/app_theme/presets/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"name": "Updated Name"},
@@ -237,7 +237,7 @@ class TestThemePresets:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can update a preset."""
         module_role = ModuleRole(
@@ -253,7 +253,7 @@ class TestThemePresets:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create preset
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -264,7 +264,7 @@ class TestThemePresets:
         preset_id = create_response.json()["data"]["id"]
 
         # Update preset
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/app_theme/presets/{preset_id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -282,14 +282,14 @@ class TestThemePresets:
         assert data["data"]["config"]["primary_color"] == "#FFFFFF"
 
     def test_delete_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that deleting a preset requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         fake_id = uuid4()
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/config/app_theme/presets/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -297,7 +297,7 @@ class TestThemePresets:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can delete a preset."""
         module_role = ModuleRole(
@@ -313,7 +313,7 @@ class TestThemePresets:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create preset
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -324,7 +324,7 @@ class TestThemePresets:
         preset_id = create_response.json()["data"]["id"]
 
         # Delete preset
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/config/app_theme/presets/{preset_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -335,21 +335,21 @@ class TestThemePresets:
         assert data["data"]["preset_id"] == str(preset_id)
 
         # Verify it's deleted
-        get_response = client.get(
+        get_response = client_with_db.get(
             f"/api/v1/config/app_theme/presets/{preset_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_apply_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that applying a preset requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         fake_id = uuid4()
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/config/app_theme/presets/{fake_id}/apply",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -357,7 +357,7 @@ class TestThemePresets:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_apply_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can apply a preset."""
         module_role = ModuleRole(
@@ -377,7 +377,7 @@ class TestThemePresets:
             "primary_color": "#1976D2",
             "secondary_color": "#DC004E",
         }
-        create_response = client.post(
+        create_response = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -388,7 +388,7 @@ class TestThemePresets:
         preset_id = create_response.json()["data"]["id"]
 
         # Apply preset
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/config/app_theme/presets/{preset_id}/apply",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -400,14 +400,14 @@ class TestThemePresets:
         assert data["data"]["config"] == preset_config
 
     def test_set_default_preset_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that setting default preset requires config.edit permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         fake_id = uuid4()
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/app_theme/presets/{fake_id}/set-default",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -415,7 +415,7 @@ class TestThemePresets:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_set_default_preset_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can set default preset."""
         module_role = ModuleRole(
@@ -431,7 +431,7 @@ class TestThemePresets:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create two presets
-        preset1 = client.post(
+        preset1 = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -441,7 +441,7 @@ class TestThemePresets:
             },
         ).json()["data"]
 
-        preset2 = client.post(
+        preset2 = client_with_db.post(
             "/api/v1/config/app_theme/presets",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -451,7 +451,7 @@ class TestThemePresets:
         ).json()["data"]
 
         # Set preset2 as default
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/app_theme/presets/{preset2['id']}/set-default",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -462,7 +462,7 @@ class TestThemePresets:
         assert data["data"]["is_default"] is True
 
         # Verify preset1 is no longer default
-        get_response = client.get(
+        get_response = client_with_db.get(
             f"/api/v1/config/app_theme/presets/{preset1['id']}",
             headers={"Authorization": f"Bearer {access_token}"},
         )

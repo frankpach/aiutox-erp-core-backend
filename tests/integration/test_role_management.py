@@ -15,17 +15,17 @@ class TestRoleManagement:
     """Test suite for role management functionality."""
 
     def test_list_available_roles_requires_authentication(
-        self, client, db_session
+        self, client_with_db, db_session
     ):
         """Test that listing available roles requires authentication."""
         # Act: Try to list roles without authentication
-        response = client.get("/api/v1/auth/roles")
+        response = client_with_db.get("/api/v1/auth/roles")
 
         # Assert: Should be denied
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_list_available_roles_with_authentication(
-        self, client, db_session, test_user
+        self, client_with_db, db_session, test_user
     ):
         """Test that authenticated user can list available roles."""
         # Arrange: Authenticated user
@@ -33,7 +33,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List roles
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/auth/roles",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -52,7 +52,7 @@ class TestRoleManagement:
         assert "permissions" in role
 
     def test_get_user_roles_requires_auth_manage_users(
-        self, client, db_session, test_user
+        self, client_with_db, db_session, test_user
     ):
         """Test that getting user roles requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -60,7 +60,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get user roles
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/auth/roles/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -69,7 +69,7 @@ class TestRoleManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_user_roles_with_permission(
-        self, client, db_session, test_user
+        self, client_with_db, db_session, test_user
     ):
         """Test that admin can get user roles."""
         # Arrange: Assign admin role
@@ -94,7 +94,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get user roles
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/auth/roles/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -110,7 +110,7 @@ class TestRoleManagement:
         assert "viewer" in role_names
 
     def test_assign_role_requires_auth_manage_roles(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that assigning role requires auth.manage_roles permission."""
         # Arrange: User without admin role
@@ -129,7 +129,7 @@ class TestRoleManagement:
         db_session.commit()
 
         # Act: Try to assign role
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/auth/roles/{target_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"role": "viewer"},
@@ -139,7 +139,7 @@ class TestRoleManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_assign_role_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can assign role."""
         # Arrange: Assign admin role
@@ -166,7 +166,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Assign role
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/auth/roles/{target_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"role": "viewer"},
@@ -179,7 +179,7 @@ class TestRoleManagement:
         assert data["granted_by"] == str(test_user.id)
 
     def test_assign_role_duplicate(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that assigning duplicate role fails."""
         # Arrange: Assign admin role
@@ -214,7 +214,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to assign same role again
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/auth/roles/{target_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"role": "viewer"},
@@ -227,7 +227,7 @@ class TestRoleManagement:
         assert data["error"]["code"] == "ROLE_ALREADY_ASSIGNED"
 
     def test_assign_role_invalid_role(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that assigning invalid role fails."""
         # Arrange: Assign admin role
@@ -254,17 +254,17 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to assign invalid role
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/auth/roles/{target_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"role": "invalid_role"},
         )
 
         # Assert: Should fail
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_remove_role_requires_auth_manage_roles(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that removing role requires auth.manage_roles permission."""
         # Arrange: User without admin role
@@ -291,7 +291,7 @@ class TestRoleManagement:
         db_session.commit()
 
         # Act: Try to remove role
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/auth/roles/{target_user.id}/viewer",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -300,7 +300,7 @@ class TestRoleManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_remove_role_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can remove role."""
         # Arrange: Assign admin role
@@ -335,7 +335,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Remove role
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/auth/roles/{target_user.id}/viewer",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -355,7 +355,7 @@ class TestRoleManagement:
         assert remaining_roles is None
 
     def test_remove_role_not_assigned(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that removing non-assigned role returns 404."""
         # Arrange: Assign admin role
@@ -382,7 +382,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to remove non-assigned role
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/auth/roles/{target_user.id}/viewer",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -394,7 +394,7 @@ class TestRoleManagement:
         assert data["error"]["code"] == "ROLE_NOT_FOUND"
 
     def test_role_management_multi_tenant_isolation(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that role management is isolated per tenant."""
         from app.models.tenant import Tenant
@@ -430,7 +430,7 @@ class TestRoleManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to assign role to user from different tenant
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/auth/roles/{user2.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"role": "viewer"},

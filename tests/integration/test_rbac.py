@@ -170,7 +170,7 @@ def test_owner_role_has_all_permissions(db_session, test_user):
     assert "*" in permissions
 
 
-def test_require_permission_allows_access_with_permission(client, db_session, test_user):
+def test_require_permission_allows_access_with_permission(client_with_db, db_session, test_user):
     """Test that require_permission allows access when user has permission."""
     # Arrange: Assign admin role (has auth.manage_users)
     role = UserRole(
@@ -183,7 +183,7 @@ def test_require_permission_allows_access_with_permission(client, db_session, te
 
     # Act: Login to get token
 
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -194,7 +194,7 @@ def test_require_permission_allows_access_with_permission(client, db_session, te
     token = login_response.json()["data"]["access_token"]
 
     # Act: Try to access endpoint with required permission
-    response = client.get(
+    response = client_with_db.get(
         "/test/permission/auth.manage_users",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -207,9 +207,7 @@ def test_require_permission_allows_access_with_permission(client, db_session, te
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_permission_denies_access_without_permission(
-    client, db_session, test_user
-):
+def test_require_permission_denies_access_without_permission(client_with_db, db_session, test_user):
     """Test that require_permission denies access when user lacks permission."""
     # Arrange: Assign viewer role (doesn't have auth.manage_users)
     role = UserRole(
@@ -221,7 +219,7 @@ def test_require_permission_denies_access_without_permission(
     db_session.commit()
 
     # Act: Login and try to access endpoint without required permission
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -231,7 +229,7 @@ def test_require_permission_denies_access_without_permission(
     assert login_response.status_code == status.HTTP_200_OK
     token = login_response.json()["data"]["access_token"]
 
-    response = client.get(
+    response = client_with_db.get(
         "/test/permission/auth.manage_users",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -314,7 +312,7 @@ def test_wildcard_matching_total_wildcard(db_session, test_user):
     assert has_permission(permissions, "any.module.permission")
 
 
-def test_require_roles_allows_access_with_role(client, db_session, test_user):
+def test_require_roles_allows_access_with_role(client_with_db, db_session, test_user):
     """Test that require_roles allows access when user has required role."""
     # Arrange: Assign admin role
     role = UserRole(
@@ -326,7 +324,7 @@ def test_require_roles_allows_access_with_role(client, db_session, test_user):
     db_session.commit()
 
     # Act: Login and access endpoint
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -337,7 +335,7 @@ def test_require_roles_allows_access_with_role(client, db_session, test_user):
     token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint with required role
-    response = client.get(
+    response = client_with_db.get(
         "/test/roles",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -348,7 +346,7 @@ def test_require_roles_allows_access_with_role(client, db_session, test_user):
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_roles_denies_access_without_role(client, db_session, test_user):
+def test_require_roles_denies_access_without_role(client_with_db, db_session, test_user):
     """Test that require_roles denies access when user lacks required role."""
     # Arrange: Assign viewer role (not admin or owner)
     role = UserRole(
@@ -360,7 +358,7 @@ def test_require_roles_denies_access_without_role(client, db_session, test_user)
     db_session.commit()
 
     # Act: Login and try to access endpoint
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -371,7 +369,7 @@ def test_require_roles_denies_access_without_role(client, db_session, test_user)
     token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint without required role
-    response = client.get(
+    response = client_with_db.get(
         "/test/roles",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -386,9 +384,7 @@ def test_require_roles_denies_access_without_role(client, db_session, test_user)
     assert "required_roles" in data["error"]["details"]
 
 
-def test_require_any_permission_allows_access_with_any_permission(
-    client, db_session, test_user
-):
+def test_require_any_permission_allows_access_with_any_permission(client_with_db, db_session, test_user):
     """Test that require_any_permission allows access with any of the permissions."""
     # Arrange: Assign viewer role (has *.*.view which matches inventory.view)
     role = UserRole(
@@ -400,7 +396,7 @@ def test_require_any_permission_allows_access_with_any_permission(
     db_session.commit()
 
     # Act: Login and access endpoint
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -411,7 +407,7 @@ def test_require_any_permission_allows_access_with_any_permission(
     token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint (viewer has *.*.view which matches inventory.view)
-    response = client.get(
+    response = client_with_db.get(
         "/test/any-permission",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -422,9 +418,7 @@ def test_require_any_permission_allows_access_with_any_permission(
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_any_permission_denies_access_without_any_permission(
-    client, db_session, test_user
-):
+def test_require_any_permission_denies_access_without_any_permission(client_with_db, db_session, test_user):
     """Test that require_any_permission denies access without any of the permissions."""
     # Arrange: Assign staff role (has minimal permissions, no inventory.view or products.view)
     role = UserRole(
@@ -436,7 +430,7 @@ def test_require_any_permission_denies_access_without_any_permission(
     db_session.commit()
 
     # Act: Login and try to access endpoint
-    login_response = client.post(
+    login_response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -447,7 +441,7 @@ def test_require_any_permission_denies_access_without_any_permission(
     token = login_response.json()["data"]["access_token"]
 
     # Try to access endpoint without any of the required permissions
-    response = client.get(
+    response = client_with_db.get(
         "/test/any-permission",
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -462,7 +456,7 @@ def test_require_any_permission_denies_access_without_any_permission(
     assert "required_permissions" in data["error"]["details"]
 
 
-def test_rbac_multi_tenant_isolation(client, db_session, test_user, test_tenant):
+def test_rbac_multi_tenant_isolation(client_with_db, db_session, test_user, test_tenant):
     """Test that RBAC permissions are isolated per tenant."""
     from uuid import uuid4
 

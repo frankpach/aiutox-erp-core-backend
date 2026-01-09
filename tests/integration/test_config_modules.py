@@ -11,7 +11,7 @@ class TestConfigModules:
     """Test suite for module management endpoints."""
 
     def test_list_modules_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing modules requires config.view permission."""
         # Arrange: User without config permission
@@ -19,7 +19,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to list modules
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -31,7 +31,7 @@ class TestConfigModules:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_modules_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can list modules."""
         # Arrange: Assign config.viewer role
@@ -48,7 +48,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List modules
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -64,7 +64,7 @@ class TestConfigModules:
         assert "meta" in data
 
     def test_list_modules_returns_standard_format(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that GET /api/v1/config/modules returns StandardListResponse format."""
         # Arrange: Assign config.viewer role
@@ -81,7 +81,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List modules
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -98,7 +98,7 @@ class TestConfigModules:
         assert "page_size" in data["meta"]
 
     def test_get_module_info_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting module info requires config.view permission."""
         # Arrange: User without config permission
@@ -106,7 +106,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get module info
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/modules/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -118,7 +118,7 @@ class TestConfigModules:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_module_info_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get module info."""
         # Arrange: Assign config.viewer role
@@ -135,7 +135,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, list modules to get a valid module_id
-        list_response = client.get(
+        list_response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -150,7 +150,7 @@ class TestConfigModules:
         module_id = modules[0]["id"]
 
         # Act: Get module info
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/config/modules/{module_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -164,7 +164,7 @@ class TestConfigModules:
         assert "enabled" in data["data"]
 
     def test_enable_module_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that enabling a module requires config.edit permission."""
         # Arrange: User without config.edit permission
@@ -172,7 +172,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to enable module
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/modules/products/enable",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -184,7 +184,7 @@ class TestConfigModules:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_enable_module_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can enable a module."""
         # Arrange: Assign config.editor role
@@ -201,7 +201,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, list modules to get a valid module_id
-        list_response = client.get(
+        list_response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -216,7 +216,7 @@ class TestConfigModules:
         module_id = modules[0]["id"]
 
         # Act: Enable module
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/modules/{module_id}/enable",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -228,7 +228,7 @@ class TestConfigModules:
         assert data["data"]["enabled"] is True
 
     def test_disable_module_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that disabling a module requires config.edit permission."""
         # Arrange: User without config.edit permission
@@ -236,7 +236,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to disable module
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/modules/products/disable",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -248,7 +248,7 @@ class TestConfigModules:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_disable_module_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can disable a module."""
         # Arrange: Assign config.editor role
@@ -265,7 +265,7 @@ class TestConfigModules:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, list modules to get a valid module_id
-        list_response = client.get(
+        list_response = client_with_db.get(
             "/api/v1/config/modules",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -280,7 +280,7 @@ class TestConfigModules:
         module_id = modules[0]["id"]
 
         # Act: Disable module
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/modules/{module_id}/disable",
             headers={"Authorization": f"Bearer {access_token}"},
         )

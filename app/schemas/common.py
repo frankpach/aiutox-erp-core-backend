@@ -97,5 +97,5 @@ class ErrorResponse(BaseModel):
 
 
 # Rebuild models to ensure Generic types work correctly with FastAPI
-StandardResponse.model_rebuild()
-StandardListResponse.model_rebuild()
+# StandardResponse.model_rebuild()
+# StandardListResponse.model_rebuild()

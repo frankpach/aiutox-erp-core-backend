@@ -10,7 +10,7 @@ class TestThemeConfig:
     """Test suite for theme configuration endpoints."""
 
     def test_get_theme_config_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting theme config requires config.view permission."""
         # Arrange: User without config permission
@@ -18,7 +18,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get theme config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -30,7 +30,7 @@ class TestThemeConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_theme_config_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get theme config."""
         # Arrange: Assign config.viewer role
@@ -47,7 +47,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get theme config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -60,7 +60,7 @@ class TestThemeConfig:
         assert isinstance(data["data"]["config"], dict)
 
     def test_get_theme_config_returns_defaults_when_empty(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that GET /api/v1/config/app_theme returns defaults when no theme is set."""
         # Arrange: Assign config.viewer role
@@ -77,7 +77,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get theme config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -93,7 +93,7 @@ class TestThemeConfig:
         assert "background_color" in config
 
     def test_set_theme_config_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that setting theme config requires config.edit permission."""
         # Arrange: User without config.edit permission
@@ -105,7 +105,7 @@ class TestThemeConfig:
             "primary_color": "#1976D2",
             "secondary_color": "#DC004E",
         }
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -118,7 +118,7 @@ class TestThemeConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_set_theme_config_with_valid_colors(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test setting theme config with valid hex colors."""
         # Arrange: Assign config.editor role
@@ -141,7 +141,7 @@ class TestThemeConfig:
             "accent_color": "#FFC107",
             "background_color": "#FFFFFF",
         }
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -156,7 +156,7 @@ class TestThemeConfig:
         assert data["data"]["config"]["secondary_color"] == "#DC004E"
 
     def test_set_theme_config_rejects_invalid_color_format(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that theme config rejects invalid color formats."""
         # Arrange: Assign config.editor role
@@ -176,7 +176,7 @@ class TestThemeConfig:
         theme_data = {
             "primary_color": "blue",  # Invalid - not hex format
         }
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -191,7 +191,7 @@ class TestThemeConfig:
         assert "#RRGGBB" in data["error"]["message"]
 
     def test_set_theme_config_rejects_invalid_hex_length(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that theme config rejects colors with wrong hex length."""
         # Arrange: Assign config.editor role
@@ -211,7 +211,7 @@ class TestThemeConfig:
         theme_data = {
             "primary_color": "#1976D",  # Invalid - only 5 hex digits
         }
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -224,7 +224,7 @@ class TestThemeConfig:
         assert data["error"]["code"] == "INVALID_COLOR_FORMAT"
 
     def test_set_theme_config_rejects_invalid_hex_characters(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that theme config rejects colors with invalid hex characters."""
         # Arrange: Assign config.editor role
@@ -244,7 +244,7 @@ class TestThemeConfig:
         theme_data = {
             "primary_color": "#GGGGGG",  # Invalid - G is not hex
         }
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -257,7 +257,7 @@ class TestThemeConfig:
         assert data["error"]["code"] == "INVALID_COLOR_FORMAT"
 
     def test_update_theme_property_with_valid_color(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test updating a single theme property with valid color."""
         # Arrange: Assign config.editor role
@@ -274,7 +274,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Update primary_color
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/app_theme/primary_color",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": "#FF5722"},
@@ -287,7 +287,7 @@ class TestThemeConfig:
         assert data["data"]["value"] == "#FF5722"
 
     def test_update_theme_property_rejects_invalid_color(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test updating theme property rejects invalid color."""
         # Arrange: Assign config.editor role
@@ -304,7 +304,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to update with invalid color
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/app_theme/primary_color",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": "red"},
@@ -317,7 +317,7 @@ class TestThemeConfig:
         assert data["error"]["code"] == "INVALID_COLOR_FORMAT"
 
     def test_update_theme_property_non_color_field(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test updating non-color theme properties (like logos)."""
         # Arrange: Assign config.editor role
@@ -334,7 +334,7 @@ class TestThemeConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Update logo_primary (not a color field, no validation)
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/app_theme/logo_primary",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": "/assets/logos/custom-logo.png"},
@@ -346,7 +346,7 @@ class TestThemeConfig:
         assert data["data"]["value"] == "/assets/logos/custom-logo.png"
 
     def test_theme_config_persists_across_requests(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that theme configuration persists across requests."""
         # Arrange: Assign config roles
@@ -374,7 +374,7 @@ class TestThemeConfig:
             "primary_color": "#E91E63",
             "secondary_color": "#9C27B0",
         }
-        set_response = client.post(
+        set_response = client_with_db.post(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
             json=theme_data,
@@ -382,7 +382,7 @@ class TestThemeConfig:
         assert set_response.status_code == status.HTTP_201_CREATED
 
         # Act: Get theme in a new request
-        get_response = client.get(
+        get_response = client_with_db.get(
             "/api/v1/config/app_theme",
             headers={"Authorization": f"Bearer {access_token}"},
         )

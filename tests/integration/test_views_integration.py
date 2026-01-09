@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_saved_filter_sharing(client, test_user, auth_headers, db_session):
+def test_saved_filter_sharing(client_with_db, test_user, auth_headers, db_session):
     """Test sharing saved filters with other users."""
     # Assign permissions
     view_role = ModuleRole(
@@ -32,7 +32,7 @@ def test_saved_filter_sharing(client, test_user, auth_headers, db_session):
         "filters": {"status": "active"},
         "is_shared": True,
     }
-    filter_response = client.post(
+    filter_response = client_with_db.post(
         "/api/v1/views/filters",
         json=filter_data,
         headers=auth_headers,
@@ -55,7 +55,7 @@ def test_saved_filter_sharing(client, test_user, auth_headers, db_session):
         "filter_id": filter_id,
         "shared_with_user_id": str(shared_user.id),
     }
-    share_response = client.post(
+    share_response = client_with_db.post(
         f"/api/v1/views/filters/{filter_id}/share",
         json=share_data,
         headers=auth_headers,
@@ -65,7 +65,7 @@ def test_saved_filter_sharing(client, test_user, auth_headers, db_session):
     assert share_response.json()["data"]["filter_id"] == filter_id
 
 
-def test_custom_view_with_filters(client, test_user, auth_headers, db_session):
+def test_custom_view_with_filters(client_with_db, test_user, auth_headers, db_session):
     """Test custom view with associated filters."""
     # Assign permissions
     view_role = ModuleRole(
@@ -83,7 +83,7 @@ def test_custom_view_with_filters(client, test_user, auth_headers, db_session):
         "module": "products",
         "filters": {"status": "active"},
     }
-    filter_response = client.post(
+    filter_response = client_with_db.post(
         "/api/v1/views/filters",
         json=filter_data,
         headers=auth_headers,
@@ -97,7 +97,7 @@ def test_custom_view_with_filters(client, test_user, auth_headers, db_session):
         "columns": {"name": True, "price": True, "status": True},
         "filters": {"saved_filter_id": filter_id},
     }
-    view_response = client.post(
+    view_response = client_with_db.post(
         "/api/v1/views/views",
         json=view_data,
         headers=auth_headers,

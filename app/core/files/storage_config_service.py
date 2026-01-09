@@ -324,43 +324,62 @@ class StorageConfigService:
             .count()
         )
 
-        # Count files with permissions assigned
-        files_with_permissions = (
-            self.db.query(func.count(distinct(FilePermission.file_id)))
-            .filter(FilePermission.tenant_id == tenant_id)
-            .scalar()
-        ) or 0
+        # Check if file_permissions table exists and get stats
+        files_with_permissions = 0
+        file_permission_distribution = {}
+        try:
+            # Check if table exists
+            from sqlalchemy import inspect
+            inspector = inspect(self.db.bind)
+            if 'file_permissions' in inspector.get_table_names():
+                files_with_permissions = (
+                    self.db.query(func.count(distinct(FilePermission.file_id)))
+                    .filter(FilePermission.tenant_id == tenant_id)
+                    .scalar()
+                ) or 0
 
-        # Count folders with permissions assigned
-        folders_with_permissions = (
-            self.db.query(func.count(distinct(FolderPermission.folder_id)))
-            .filter(FolderPermission.tenant_id == tenant_id)
-            .scalar()
-        ) or 0
+                file_permission_targets = (
+                    self.db.query(
+                        FilePermission.target_type,
+                        func.count(FilePermission.id).label("count")
+                    )
+                    .filter(FilePermission.tenant_id == tenant_id)
+                    .group_by(FilePermission.target_type)
+                    .all()
+                )
+                file_permission_distribution = {target_type: count for target_type, count in file_permission_targets}
+        except Exception:
+            # Any error, default to 0/empty
+            files_with_permissions = 0
+            file_permission_distribution = {}
 
-        # Distribution of permissions by target type (files)
-        file_permission_targets = (
-            self.db.query(
-                FilePermission.target_type,
-                func.count(FilePermission.id).label("count")
-            )
-            .filter(FilePermission.tenant_id == tenant_id)
-            .group_by(FilePermission.target_type)
-            .all()
-        )
-        file_permission_distribution = {target_type: count for target_type, count in file_permission_targets}
+        # Check if folder_permissions table exists and get stats
+        folders_with_permissions = 0
+        folder_permission_distribution = {}
+        try:
+            from sqlalchemy import inspect
+            inspector = inspect(self.db.bind)
+            if 'folder_permissions' in inspector.get_table_names():
+                folders_with_permissions = (
+                    self.db.query(func.count(distinct(FolderPermission.folder_id)))
+                    .filter(FolderPermission.tenant_id == tenant_id)
+                    .scalar()
+                ) or 0
 
-        # Distribution of permissions by target type (folders)
-        folder_permission_targets = (
-            self.db.query(
-                FolderPermission.target_type,
-                func.count(FolderPermission.id).label("count")
-            )
-            .filter(FolderPermission.tenant_id == tenant_id)
-            .group_by(FolderPermission.target_type)
-            .all()
-        )
-        folder_permission_distribution = {target_type: count for target_type, count in folder_permission_targets}
+                folder_permission_targets = (
+                    self.db.query(
+                        FolderPermission.target_type,
+                        func.count(FolderPermission.id).label("count")
+                    )
+                    .filter(FolderPermission.tenant_id == tenant_id)
+                    .group_by(FolderPermission.target_type)
+                    .all()
+                )
+                folder_permission_distribution = {target_type: count for target_type, count in folder_permission_targets}
+        except Exception:
+            # Any error, default to 0/empty
+            folders_with_permissions = 0
+            folder_permission_distribution = {}
 
         # Ensure all values are of correct type (no None values)
         return {

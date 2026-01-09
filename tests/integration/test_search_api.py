@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_search(client, test_user, auth_headers, db_session):
+def test_search(client_with_db, test_user, auth_headers, db_session):
     """Test global search."""
     # Assign search.view permission
     module_role = ModuleRole(
@@ -35,7 +35,7 @@ def test_search(client, test_user, auth_headers, db_session):
         "title": "Test Product",
         "content": "This is a test product",
     }
-    client.post(
+    client_with_db.post(
         "/api/v1/search/index",
         json=index_data,
         headers=auth_headers,
@@ -43,7 +43,7 @@ def test_search(client, test_user, auth_headers, db_session):
 
     # Now search
     search_data = {"query": "Test", "limit": 10}
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/search",
         json=search_data,
         headers=auth_headers,
@@ -56,7 +56,7 @@ def test_search(client, test_user, auth_headers, db_session):
     assert "total" in data
 
 
-def test_get_suggestions(client, test_user, auth_headers, db_session):
+def test_get_suggestions(client_with_db, test_user, auth_headers, db_session):
     """Test getting search suggestions."""
     # Assign search.view permission
     module_role = ModuleRole(
@@ -68,7 +68,7 @@ def test_get_suggestions(client, test_user, auth_headers, db_session):
     db_session.add(module_role)
     db_session.commit()
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/search/suggestions?query=test&limit=10",
         headers=auth_headers,
     )
@@ -78,7 +78,7 @@ def test_get_suggestions(client, test_user, auth_headers, db_session):
     assert isinstance(data, list)
 
 
-def test_index_entity(client, test_user, auth_headers, db_session):
+def test_index_entity(client_with_db, test_user, auth_headers, db_session):
     """Test indexing an entity."""
     # Assign search.manage permission
     module_role = ModuleRole(
@@ -99,7 +99,7 @@ def test_index_entity(client, test_user, auth_headers, db_session):
         "metadata": {"price": 100},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/search/index",
         json=index_data,
         headers=auth_headers,
@@ -111,7 +111,7 @@ def test_index_entity(client, test_user, auth_headers, db_session):
     assert data["entity_id"] == str(entity_id)
 
 
-def test_remove_index(client, test_user, auth_headers, db_session):
+def test_remove_index(client_with_db, test_user, auth_headers, db_session):
     """Test removing an entity from index."""
     # Assign search.manage permission
     module_role = ModuleRole(
@@ -130,14 +130,14 @@ def test_remove_index(client, test_user, auth_headers, db_session):
         "entity_id": str(entity_id),
         "title": "Test Product",
     }
-    client.post(
+    client_with_db.post(
         "/api/v1/search/index",
         json=index_data,
         headers=auth_headers,
     )
 
     # Remove it
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/search/index/product/{entity_id}",
         headers=auth_headers,
     )

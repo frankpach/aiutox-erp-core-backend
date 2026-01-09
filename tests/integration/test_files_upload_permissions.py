@@ -7,20 +7,21 @@ from app.models.file import FilePermission
 from tests.helpers import create_user_with_permission
 
 
-def test_upload_file_with_permissions(client, test_user, db_session):
+def test_upload_file_with_permissions(client_with_db, test_user, db_session):
     """Test uploading a file with specific permissions."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create another user
     from app.models.user import User
+    from app.core.auth.password import hash_password
     other_user = User(
-        email="other@test.com",
+        email=f"other-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
         tenant_id=test_user.tenant_id,
         is_active=True,
+        password_hash=hash_password("test_password_123"),
     )
-    other_user.set_password("test_password_123")
     db_session.add(other_user)
     db_session.commit()
 
@@ -28,24 +29,23 @@ def test_upload_file_with_permissions(client, test_user, db_session):
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
 
-    permissions_data = {
-        "permissions": [
-            {
-                "target_type": "user",
-                "target_id": str(other_user.id),
-                "can_view": True,
-                "can_download": True,
-                "can_edit": False,
-                "can_delete": False,
-            }
-        ]
-    }
+    import json
+    permissions_data = json.dumps([
+        {
+            "target_type": "user",
+            "target_id": str(other_user.id),
+            "can_view": True,
+            "can_download": True,
+            "can_edit": False,
+            "can_delete": False,
+        }
+    ])
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
-        data=permissions_data,
+        params={"permissions": permissions_data},
     )
 
     assert response.status_code == 201
@@ -69,20 +69,21 @@ def test_upload_file_with_permissions(client, test_user, db_session):
     assert user_permission.can_delete is False
 
 
-def test_upload_file_with_multiple_permissions(client, test_user, db_session):
+def test_upload_file_with_multiple_permissions(client_with_db, test_user, db_session):
     """Test uploading a file with multiple permissions (user, role, organization)."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create another user
     from app.models.user import User
+    from app.core.auth.password import hash_password
     other_user = User(
-        email="other@test.com",
+        email=f"other-multi-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
         tenant_id=test_user.tenant_id,
         is_active=True,
+        password_hash=hash_password("test_password_123"),
     )
-    other_user.set_password("test_password_123")
     db_session.add(other_user)
     db_session.commit()
 
@@ -90,32 +91,31 @@ def test_upload_file_with_multiple_permissions(client, test_user, db_session):
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
 
-    permissions_data = {
-        "permissions": [
-            {
-                "target_type": "user",
-                "target_id": str(other_user.id),
-                "can_view": True,
-                "can_download": True,
-                "can_edit": False,
-                "can_delete": False,
-            },
-            {
-                "target_type": "organization",
-                "target_id": str(test_user.organization_id) if test_user.organization_id else str(uuid4()),
-                "can_view": True,
-                "can_download": False,
-                "can_edit": False,
-                "can_delete": False,
-            },
-        ]
-    }
+    import json
+    permissions_data = json.dumps([
+        {
+            "target_type": "user",
+            "target_id": str(other_user.id),
+            "can_view": True,
+            "can_download": True,
+            "can_edit": False,
+            "can_delete": False,
+        },
+        {
+            "target_type": "organization",
+            "target_id": str(test_user.tenant_id),
+            "can_view": True,
+            "can_download": False,
+            "can_edit": False,
+            "can_delete": False,
+        },
+    ])
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
-        data=permissions_data,
+        params={"permissions": permissions_data},
     )
 
     assert response.status_code == 201
@@ -131,7 +131,7 @@ def test_upload_file_with_multiple_permissions(client, test_user, db_session):
     assert len(permissions) >= 2
 
 
-def test_upload_file_without_permissions(client, test_user, db_session):
+def test_upload_file_without_permissions(client_with_db, test_user, db_session):
     """Test uploading a file without specifying permissions (should work, owner has access)."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -140,7 +140,7 @@ def test_upload_file_without_permissions(client, test_user, db_session):
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,

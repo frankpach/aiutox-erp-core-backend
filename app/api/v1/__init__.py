@@ -9,6 +9,7 @@ from app.api.v1 import (
     automation,
     comments,
     config,
+    contact_methods,
     files,
     folders,
     import_export,
@@ -58,3 +59,4 @@ api_router.include_router(views.router, prefix="/views", tags=["views"])
 api_router.include_router(approvals.router, prefix="/approvals", tags=["approvals"])
 api_router.include_router(templates.router, prefix="/templates", tags=["templates"])
 api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
+api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])

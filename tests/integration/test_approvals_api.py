@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_approval_flow(client, test_user, auth_headers, db_session):
+def test_create_approval_flow(client_with_db, test_user, auth_headers, db_session):
     """Test creating an approval flow."""
     # Assign approvals.manage permission
     module_role = ModuleRole(
@@ -24,7 +24,7 @@ def test_create_approval_flow(client, test_user, auth_headers, db_session):
         "module": "orders",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/approvals/flows",
         json=flow_data,
         headers=auth_headers,
@@ -37,7 +37,7 @@ def test_create_approval_flow(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_create_approval_request(client, test_user, auth_headers, db_session):
+def test_create_approval_request(client_with_db, test_user, auth_headers, db_session):
     """Test creating an approval request."""
     # Assign permissions
     module_role = ModuleRole(
@@ -51,7 +51,7 @@ def test_create_approval_request(client, test_user, auth_headers, db_session):
 
     # First create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
-    flow_response = client.post(
+    flow_response = client_with_db.post(
         "/api/v1/approvals/flows",
         json=flow_data,
         headers=auth_headers,
@@ -67,7 +67,7 @@ def test_create_approval_request(client, test_user, auth_headers, db_session):
         "entity_id": str(entity_id),
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/approvals/requests",
         json=request_data,
         headers=auth_headers,

@@ -1,9 +1,10 @@
 """Integration repository for data access operations."""
 
 from typing import Any
-from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.models.integration import (
     Integration,
@@ -39,6 +40,27 @@ class IntegrationRepository:
         if type:
             query = query.filter(Integration.type == type.value)
         return query.all()
+
+    def get_all_paginated(
+        self,
+        tenant_id: UUID,
+        integration_type: IntegrationType | None = None,
+        page: int = 1,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Get integrations with pagination."""
+        query = self.db.query(Integration).filter(Integration.tenant_id == tenant_id)
+        if integration_type:
+            query = query.filter(Integration.type == integration_type.value)
+
+        total = query.count()
+        offset = (page - 1) * limit
+        items = query.offset(offset).limit(limit).all()
+
+        return {
+            "items": items,
+            "total": total,
+        }
 
     def get_by_type(self, tenant_id: UUID, type: IntegrationType) -> Integration | None:
         """Get integration by type for a tenant."""

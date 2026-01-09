@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from tests.helpers import create_user_with_permission
 
 
-def test_create_notification_template(client, test_user, db_session):
+def test_create_notification_template(client_with_db, test_user, db_session):
     """Test creating a notification template."""
     # Assign notifications.manage permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
@@ -23,7 +23,7 @@ def test_create_notification_template(client, test_user, db_session):
         "is_active": True,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/notifications/templates",
         json=template_data,
         headers=headers,
@@ -37,7 +37,7 @@ def test_create_notification_template(client, test_user, db_session):
     assert "id" in data
 
 
-def test_list_notification_templates(client, test_user, db_session):
+def test_list_notification_templates(client_with_db, test_user, db_session):
     """Test listing notification templates."""
     # Assign notifications.view permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
@@ -58,7 +58,7 @@ def test_list_notification_templates(client, test_user, db_session):
         }
     )
 
-    response = client.get("/api/v1/notifications/templates", headers=headers)
+    response = client_with_db.get("/api/v1/notifications/templates", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -66,7 +66,7 @@ def test_list_notification_templates(client, test_user, db_session):
     assert data[0]["name"] == "Test Template"
 
 
-def test_get_notification_template(client, test_user, db_session):
+def test_get_notification_template(client_with_db, test_user, db_session):
     """Test getting a specific notification template."""
     # Assign notifications.view permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
@@ -87,7 +87,7 @@ def test_get_notification_template(client, test_user, db_session):
         }
     )
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/notifications/templates/{template.id}", headers=headers
     )
 
@@ -97,7 +97,7 @@ def test_get_notification_template(client, test_user, db_session):
     assert data["name"] == "Test Template"
 
 
-def test_update_notification_template(client, test_user, db_session):
+def test_update_notification_template(client_with_db, test_user, db_session):
     """Test updating a notification template."""
     # Assign notifications.manage permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
@@ -120,7 +120,7 @@ def test_update_notification_template(client, test_user, db_session):
 
     update_data = {"name": "Updated Template", "body": "Updated body"}
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/notifications/templates/{template.id}",
         json=update_data,
         headers=headers,
@@ -132,7 +132,7 @@ def test_update_notification_template(client, test_user, db_session):
     assert data["body"] == "Updated body"
 
 
-def test_delete_notification_template(client, test_user, db_session):
+def test_delete_notification_template(client_with_db, test_user, db_session):
     """Test deleting a notification template."""
     # Assign notifications.manage permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
@@ -153,32 +153,32 @@ def test_delete_notification_template(client, test_user, db_session):
         }
     )
 
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/notifications/templates/{template.id}", headers=headers
     )
 
     assert response.status_code == 204
 
     # Verify it's deleted
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/notifications/templates/{template.id}", headers=headers
     )
     assert response.status_code == 404
 
 
-def test_list_notification_queue(client, test_user, db_session):
+def test_list_notification_queue(client_with_db, test_user, db_session):
     """Test listing notification queue entries."""
     # Assign notifications.view permission
     headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
 
-    response = client.get("/api/v1/notifications/queue", headers=headers)
+    response = client_with_db.get("/api/v1/notifications/queue", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
 
 
-def test_send_notification_requires_permission(client, test_user, auth_headers):
+def test_send_notification_requires_permission(client_with_db, test_user, auth_headers):
     """Test that sending notification requires notifications.manage permission."""
     send_data = {
         "event_type": "product.created",
@@ -187,14 +187,14 @@ def test_send_notification_requires_permission(client, test_user, auth_headers):
         "data": {"product_name": "Test Product"},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/notifications/send", json=send_data, headers=auth_headers
     )
 
     assert response.status_code == 403
 
 
-def test_stream_notifications_sse(client, test_user, db_session):
+def test_stream_notifications_sse(client_with_db, test_user, db_session):
     """Test SSE endpoint for streaming notifications.
 
     This test verifies that the SSE endpoint exists and responds correctly.
@@ -236,7 +236,7 @@ def test_stream_notifications_sse(client, test_user, db_session):
 
     # Make request to SSE endpoint with mocked sleep
     with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
         )
@@ -255,7 +255,7 @@ def test_stream_notifications_sse(client, test_user, db_session):
     assert content is not None
 
 
-def test_get_unread_notifications(client, test_user, auth_headers, db_session):
+def test_get_unread_notifications(client_with_db, test_user, auth_headers, db_session):
     """Test get_unread_notifications repository method."""
     from app.models.notification import NotificationQueue, NotificationStatus
     from app.repositories.notification_repository import NotificationRepository
@@ -300,7 +300,7 @@ def test_get_unread_notifications(client, test_user, auth_headers, db_session):
     assert all(n.created_at > notification1.created_at for n in notifications_new)
 
 
-def test_stream_notifications_adaptive_interval_no_notifications(client, test_user, db_session):
+def test_stream_notifications_adaptive_interval_no_notifications(client_with_db, test_user, db_session):
     """Test that SSE endpoint increases interval when no notifications are found.
 
     Verifies that intervals progress: 5s -> 10s -> 20s -> 30s -> 60s (max)
@@ -324,7 +324,7 @@ def test_stream_notifications_adaptive_interval_no_notifications(client, test_us
 
     # Test: No notifications - interval should increase
     with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
         )
@@ -348,7 +348,7 @@ def test_stream_notifications_adaptive_interval_no_notifications(client, test_us
         assert sleep_calls[5] == 60, f"Sixth interval should stay at 60s (max), got {sleep_calls[5]}"
 
 
-def test_stream_notifications_adaptive_interval_with_notifications(client, test_user, db_session):
+def test_stream_notifications_adaptive_interval_with_notifications(client_with_db, test_user, db_session):
     """Test that SSE endpoint resets interval to 5s when notifications are found.
 
     Verifies that finding notifications resets the interval back to the fastest (5s).
@@ -388,7 +388,7 @@ def test_stream_notifications_adaptive_interval_with_notifications(client, test_
         await real_sleep(0.001)
 
     with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
         )

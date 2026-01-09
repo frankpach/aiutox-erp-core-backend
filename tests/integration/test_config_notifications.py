@@ -10,13 +10,13 @@ class TestNotificationChannels:
     """Test suite for notification channels endpoints."""
 
     def test_get_channels_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting channels requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/notifications/channels",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -27,7 +27,7 @@ class TestNotificationChannels:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_channels_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can get channels."""
         # Assign role first
@@ -47,7 +47,7 @@ class TestNotificationChannels:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/notifications/channels",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -70,13 +70,13 @@ class TestNotificationChannels:
         assert "webhook" in data["data"]
 
     def test_update_smtp_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating SMTP requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/smtp",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -93,7 +93,7 @@ class TestNotificationChannels:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_smtp_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can update SMTP."""
         module_role = ModuleRole(
@@ -119,7 +119,7 @@ class TestNotificationChannels:
             "from_name": "Test App",
         }
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/smtp",
             headers={"Authorization": f"Bearer {access_token}"},
             json=smtp_config,
@@ -137,13 +137,13 @@ class TestNotificationChannels:
         assert data["data"]["from_email"] == smtp_config["from_email"]
 
     def test_update_sms_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating SMS requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/sms",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -158,7 +158,7 @@ class TestNotificationChannels:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_sms_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can update SMS."""
         module_role = ModuleRole(
@@ -181,7 +181,7 @@ class TestNotificationChannels:
             "from_number": "+1234567890",
         }
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/sms",
             headers={"Authorization": f"Bearer {access_token}"},
             json=sms_config,
@@ -197,13 +197,13 @@ class TestNotificationChannels:
         assert data["data"]["from_number"] == sms_config["from_number"]
 
     def test_update_webhook_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating webhook requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/webhook",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -217,7 +217,7 @@ class TestNotificationChannels:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_webhook_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can update webhook."""
         module_role = ModuleRole(
@@ -239,7 +239,7 @@ class TestNotificationChannels:
             "timeout": 30,
         }
 
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/notifications/channels/webhook",
             headers={"Authorization": f"Bearer {access_token}"},
             json=webhook_config,
@@ -254,13 +254,13 @@ class TestNotificationChannels:
         assert data["data"]["timeout"] == webhook_config["timeout"]
 
     def test_test_smtp_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that testing SMTP requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/notifications/channels/smtp/test",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -268,7 +268,7 @@ class TestNotificationChannels:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_test_smtp_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can test SMTP."""
         module_role = ModuleRole(
@@ -284,7 +284,7 @@ class TestNotificationChannels:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, enable SMTP
-        client.put(
+        client_with_db.put(
             "/api/v1/config/notifications/channels/smtp",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -302,7 +302,7 @@ class TestNotificationChannels:
         # Note: This will fail with a real connection attempt to smtp.example.com
         # In a real scenario, this would succeed with valid SMTP credentials
         # For testing, we verify the endpoint works and returns appropriate error
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/notifications/channels/smtp/test",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -316,13 +316,13 @@ class TestNotificationChannels:
         assert "message" in data["error"]
 
     def test_test_webhook_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that testing webhook requires notifications.manage permission."""
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/notifications/channels/webhook/test",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -330,7 +330,7 @@ class TestNotificationChannels:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_test_webhook_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with notifications.manage can test webhook."""
         module_role = ModuleRole(
@@ -346,7 +346,7 @@ class TestNotificationChannels:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # First, enable webhook
-        client.put(
+        client_with_db.put(
             "/api/v1/config/notifications/channels/webhook",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -360,7 +360,7 @@ class TestNotificationChannels:
         # Test webhook connection
         # Note: This will fail with a real URL, but we're testing that the endpoint
         # is accessible and returns a proper error response
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/config/notifications/channels/webhook/test",
             headers={"Authorization": f"Bearer {access_token}"},
         )

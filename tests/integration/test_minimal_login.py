@@ -17,7 +17,7 @@ def test_minimal_login(client):
     assert "error" in response.json()
 
 
-def test_login_with_simple_user(client, db_session):
+def test_login_with_simple_user(client_with_db, db_session):
     """Test login with a manually created simple user."""
     from app.core.auth import hash_password
     from app.models.tenant import Tenant
@@ -51,7 +51,7 @@ def test_login_with_simple_user(client, db_session):
     user._plain_password = password
     
     # Now test login
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": user.email,

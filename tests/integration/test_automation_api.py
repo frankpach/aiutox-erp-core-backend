@@ -7,7 +7,7 @@ from app.models.automation import Rule
 from app.models.module_role import ModuleRole
 
 
-def test_create_rule(client, test_user, auth_headers, db_session):
+def test_create_rule(client_with_db, test_user, auth_headers, db_session):
     """Test creating an automation rule."""
     # Assign automation.manage permission
     module_role = ModuleRole(
@@ -36,7 +36,7 @@ def test_create_rule(client, test_user, auth_headers, db_session):
         ],
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/automation/rules",
         json=rule_data,
         headers=auth_headers,
@@ -49,7 +49,7 @@ def test_create_rule(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_rules(client, test_user, auth_headers, db_session):
+def test_list_rules(client_with_db, test_user, auth_headers, db_session):
     """Test listing automation rules."""
     # Assign automation.view permission
     module_role = ModuleRole(
@@ -74,14 +74,14 @@ def test_list_rules(client, test_user, auth_headers, db_session):
         }
     )
 
-    response = client.get("/api/v1/automation/rules", headers=auth_headers)
+    response = client_with_db.get("/api/v1/automation/rules", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) > 0
 
 
-def test_get_rule(client, test_user, auth_headers, db_session):
+def test_get_rule(client_with_db, test_user, auth_headers, db_session):
     """Test getting a specific rule."""
     # Assign automation.view permission
     module_role = ModuleRole(
@@ -106,7 +106,7 @@ def test_get_rule(client, test_user, auth_headers, db_session):
         }
     )
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/automation/rules/{rule.id}", headers=auth_headers
     )
 
@@ -116,7 +116,7 @@ def test_get_rule(client, test_user, auth_headers, db_session):
     assert data["name"] == "Test Rule"
 
 
-def test_update_rule(client, test_user, auth_headers, db_session):
+def test_update_rule(client_with_db, test_user, auth_headers, db_session):
     """Test updating a rule."""
     # Assign automation.manage permission
     module_role = ModuleRole(
@@ -143,7 +143,7 @@ def test_update_rule(client, test_user, auth_headers, db_session):
 
     update_data = {"name": "Updated Rule", "enabled": False}
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/automation/rules/{rule.id}",
         json=update_data,
         headers=auth_headers,
@@ -155,7 +155,7 @@ def test_update_rule(client, test_user, auth_headers, db_session):
     assert data["enabled"] is False
 
 
-def test_delete_rule(client, test_user, auth_headers, db_session):
+def test_delete_rule(client_with_db, test_user, auth_headers, db_session):
     """Test deleting a rule."""
     # Assign automation.manage permission
     module_role = ModuleRole(
@@ -180,14 +180,14 @@ def test_delete_rule(client, test_user, auth_headers, db_session):
         }
     )
 
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/automation/rules/{rule.id}", headers=auth_headers
     )
 
     assert response.status_code == 204
 
     # Verify rule is deleted
-    get_response = client.get(
+    get_response = client_with_db.get(
         f"/api/v1/automation/rules/{rule.id}", headers=auth_headers
     )
     assert get_response.status_code == 404

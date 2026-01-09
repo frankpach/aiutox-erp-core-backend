@@ -7,7 +7,7 @@ from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 
-def test_create_comment(client, test_user, auth_headers, db_session):
+def test_create_comment(client_with_db, test_user, auth_headers, db_session):
     """Test creating a comment."""
     # Assign comments.create permission
     module_role = ModuleRole(
@@ -26,7 +26,7 @@ def test_create_comment(client, test_user, auth_headers, db_session):
         "content": "This is a test comment",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/comments",
         json=comment_data,
         headers=auth_headers,
@@ -39,7 +39,7 @@ def test_create_comment(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_comments(client, test_user, auth_headers, db_session):
+def test_list_comments(client_with_db, test_user, auth_headers, db_session):
     """Test listing comments for an entity."""
     # Assign comments.view permission
     module_role = ModuleRole(
@@ -53,7 +53,7 @@ def test_list_comments(client, test_user, auth_headers, db_session):
 
     entity_id = uuid4()
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/comments?entity_type=product&entity_id={entity_id}",
         headers=auth_headers,
     )
@@ -63,7 +63,7 @@ def test_list_comments(client, test_user, auth_headers, db_session):
     assert isinstance(data, list)
 
 
-def test_update_comment(client, test_user, db_session):
+def test_update_comment(client_with_db, test_user, db_session):
     """Test updating a comment."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "comments", "editor")
@@ -75,7 +75,7 @@ def test_update_comment(client, test_user, db_session):
         "entity_id": str(entity_id),
         "content": "Original comment",
     }
-    comment_response = client.post(
+    comment_response = client_with_db.post(
         "/api/v1/comments",
         json=comment_data,
         headers=headers,
@@ -85,7 +85,7 @@ def test_update_comment(client, test_user, db_session):
     # Update comment
     update_data = {"content": "Updated comment"}
 
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/comments/{comment_id}",
         json=update_data,
         headers=headers,

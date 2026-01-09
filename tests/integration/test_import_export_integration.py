@@ -7,7 +7,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_import_job_lifecycle(client, test_user, auth_headers, db_session):
+def test_import_job_lifecycle(client_with_db, test_user, auth_headers, db_session):
     """Test complete import job lifecycle."""
     # Assign permissions
     import_role = ModuleRole(
@@ -24,7 +24,7 @@ def test_import_job_lifecycle(client, test_user, auth_headers, db_session):
         "module": "products",
         "file_name": "products.csv",
     }
-    job_response = client.post(
+    job_response = client_with_db.post(
         "/api/v1/import-export/import/jobs",
         json=job_data,
         headers=auth_headers,
@@ -33,7 +33,7 @@ def test_import_job_lifecycle(client, test_user, auth_headers, db_session):
     assert job_response.json()["data"]["status"] == "pending"
 
     # Get job status
-    status_response = client.get(
+    status_response = client_with_db.get(
         f"/api/v1/import-export/import/jobs/{job_id}",
         headers=auth_headers,
     )
@@ -42,7 +42,7 @@ def test_import_job_lifecycle(client, test_user, auth_headers, db_session):
     assert status_response.json()["data"]["status"] == "pending"
 
 
-def test_import_template_reusability(client, test_user, auth_headers, db_session):
+def test_import_template_reusability(client_with_db, test_user, auth_headers, db_session):
     """Test that import templates can be reused."""
     # Assign permissions
     import_role = ModuleRole(
@@ -65,7 +65,7 @@ def test_import_template_reusability(client, test_user, auth_headers, db_session
         "skip_header": True,
         "delimiter": ",",
     }
-    template_response = client.post(
+    template_response = client_with_db.post(
         "/api/v1/import-export/import/templates",
         json=template_data,
         headers=auth_headers,
@@ -78,7 +78,7 @@ def test_import_template_reusability(client, test_user, auth_headers, db_session
         "file_name": "products.csv",
         "template_id": template_id,
     }
-    job_response = client.post(
+    job_response = client_with_db.post(
         "/api/v1/import-export/import/jobs",
         json=job_data,
         headers=auth_headers,
@@ -88,7 +88,7 @@ def test_import_template_reusability(client, test_user, auth_headers, db_session
     assert job_response.json()["data"]["template_id"] == template_id
 
 
-def test_export_multiple_formats(client, test_user, auth_headers, db_session):
+def test_export_multiple_formats(client_with_db, test_user, auth_headers, db_session):
     """Test exporting to different formats."""
     # Assign permissions
     export_role = ModuleRole(
@@ -107,7 +107,7 @@ def test_export_multiple_formats(client, test_user, auth_headers, db_session):
             "module": "products",
             "export_format": export_format,
         }
-        job_response = client.post(
+        job_response = client_with_db.post(
             "/api/v1/import-export/export/jobs",
             json=job_data,
             headers=auth_headers,

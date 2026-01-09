@@ -100,8 +100,8 @@ class TestAsyncTaskScheduler:
         schedule = {"type": "interval", "hours": 24}
         registry.register(task, schedule, enabled=True)
 
-        # Mock Tenant model - patch where it's imported in scheduler
-        with patch("app.core.async_tasks.scheduler.Tenant") as mock_tenant_class:
+        # Mock Tenant model - patch where it's actually defined
+        with patch("app.models.tenant.Tenant") as mock_tenant_class:
             mock_tenant1 = MagicMock()
             mock_tenant1.id = uuid4()
             mock_tenant2 = MagicMock()

@@ -15,7 +15,7 @@ def second_tenant(db_session):
     tenant = Tenant(
         id=uuid4(),
         name="Second Tenant",
-        slug="second-tenant",
+        slug=f"second-tenant-{uuid4().hex[:8]}",
     )
     db_session.add(tenant)
     db_session.commit()
@@ -27,7 +27,7 @@ def second_user(db_session, second_tenant):
     """Create a user in second tenant."""
     user = User(
         id=uuid4(),
-        email="second@test.com",
+        email=f"second-{uuid4().hex[:8]}@test.com",
         password_hash=hash_password("password"),
         full_name="Second User",
         tenant_id=second_tenant.id,
@@ -39,8 +39,19 @@ def second_user(db_session, second_tenant):
     return user
 
 
-def test_calendar_tenant_isolation(client, test_user, second_user, db_session):
+def test_calendar_tenant_isolation(client_with_db, test_user, second_user, db_session):
     """Test that calendars are isolated by tenant."""
+    # Clean up any existing roles for these users and modules
+    db_session.query(ModuleRole).filter(
+        ModuleRole.user_id == test_user.id,
+        ModuleRole.module == "calendar"
+    ).delete()
+    db_session.query(ModuleRole).filter(
+        ModuleRole.user_id == second_user.id,
+        ModuleRole.module == "calendar"
+    ).delete()
+    db_session.flush()
+
     # Assign permissions to both users
     role1 = ModuleRole(
         user_id=test_user.id,
@@ -73,8 +84,19 @@ def test_calendar_tenant_isolation(client, test_user, second_user, db_session):
     assert calendar2 is None  # Should not be accessible from different tenant
 
 
-def test_comments_tenant_isolation(client, test_user, second_user, db_session):
+def test_comments_tenant_isolation(client_with_db, test_user, second_user, db_session):
     """Test that comments are isolated by tenant."""
+    # Clean up any existing roles for these users and modules
+    db_session.query(ModuleRole).filter(
+        ModuleRole.user_id == test_user.id,
+        ModuleRole.module == "comments"
+    ).delete()
+    db_session.query(ModuleRole).filter(
+        ModuleRole.user_id == second_user.id,
+        ModuleRole.module == "comments"
+    ).delete()
+    db_session.flush()
+
     # Assign permissions
     role1 = ModuleRole(
         user_id=test_user.id,
@@ -117,7 +139,7 @@ def test_comments_tenant_isolation(client, test_user, second_user, db_session):
     assert len(comments2) == 0  # Should be empty for different tenant
 
 
-def test_approvals_tenant_isolation(client, test_user, second_user, db_session):
+def test_approvals_tenant_isolation(client_with_db, test_user, second_user, db_session):
     """Test that approvals are isolated by tenant."""
     # Assign permissions
     role1 = ModuleRole(
@@ -155,12 +177,12 @@ def test_approvals_tenant_isolation(client, test_user, second_user, db_session):
     assert flow2 is None  # Should not be accessible from different tenant
 
 
-def test_permission_required_for_operations(client, test_user, auth_headers, db_session):
+def test_permission_required_for_operations(client_with_db, test_user, auth_headers, db_session):
     """Test that operations require proper permissions."""
     # Try to create calendar without permission
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -168,6 +190,13 @@ def test_permission_required_for_operations(client, test_user, auth_headers, db_
 
     # Should fail without permission
     assert response.status_code == 403
+
+    # Clean up any existing calendar role for test_user
+    db_session.query(ModuleRole).filter(
+        ModuleRole.user_id == test_user.id,
+        ModuleRole.module == "calendar"
+    ).delete()
+    db_session.flush()
 
     # Assign permission
     module_role = ModuleRole(
@@ -180,7 +209,7 @@ def test_permission_required_for_operations(client, test_user, auth_headers, db_
     db_session.commit()
 
     # Now should succeed
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,

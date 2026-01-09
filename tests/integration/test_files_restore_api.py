@@ -9,7 +9,7 @@ from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 
-def test_restore_file_success(client, test_user, db_session):
+def test_restore_file_success(client_with_db, test_user, db_session):
     """Test restoring a deleted file."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -30,7 +30,7 @@ def test_restore_file_success(client, test_user, db_session):
     })
 
     # Restore the file
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{deleted_file.id}/restore",
         headers=headers,
     )
@@ -48,13 +48,13 @@ def test_restore_file_success(client, test_user, db_session):
     assert deleted_file.deleted_at is None
 
 
-def test_restore_file_not_found(client, test_user, db_session):
+def test_restore_file_not_found(client_with_db, test_user, db_session):
     """Test restoring a non-existent file."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     fake_id = uuid4()
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{fake_id}/restore",
         headers=headers,
     )
@@ -66,7 +66,7 @@ def test_restore_file_not_found(client, test_user, db_session):
     assert data["error"]["code"] == "FILE_NOT_FOUND"
 
 
-def test_restore_file_already_restored(client, test_user, db_session):
+def test_restore_file_already_restored(client_with_db, test_user, db_session):
     """Test restoring a file that was never deleted."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -87,7 +87,7 @@ def test_restore_file_already_restored(client, test_user, db_session):
     })
 
     # Try to restore
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{current_file.id}/restore",
         headers=headers,
     )
@@ -99,7 +99,7 @@ def test_restore_file_already_restored(client, test_user, db_session):
     assert data["error"]["code"] == "FILE_NOT_FOUND"
 
 
-def test_restore_file_requires_permission(client, test_user, db_session):
+def test_restore_file_requires_permission(client_with_db, test_user, db_session):
     """Test that restore requires files.manage permission."""
     # Create a deleted file
     from app.repositories.file_repository import FileRepository
@@ -122,7 +122,7 @@ def test_restore_file_requires_permission(client, test_user, db_session):
     token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {token}"}
 
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{deleted_file.id}/restore",
         headers=headers,
     )

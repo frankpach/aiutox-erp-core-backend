@@ -6,7 +6,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, Request, UploadFile, File, status
+from fastapi import APIRouter, Body, Depends, Request, UploadFile, File, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
@@ -20,6 +20,8 @@ from app.core.module_registry import get_module_registry
 from app.models.user import User
 from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.config import (
+    ConfigCreate,
+    ConfigResponse,
     ConfigUpdate,
     GeneralSettingsRequest,
     GeneralSettingsResponse,
@@ -928,25 +930,191 @@ async def clear_cache(
     Requires: config.edit
 
     Args:
-        module: Optional module name to clear specific module cache
         current_user: Current authenticated user
+        db: Database session
+        module: Optional module name to clear cache for specific module
+
+    Returns:
+        StandardResponse with success message
+    """
+    config_service = ConfigService(db)
+    config_service.clear_cache()
+
+    if module:
+        message = f"Cache cleared for module '{module}'"
+    else:
+        message = "Cache cleared successfully"
+
+    return StandardResponse(data={"message": message})
+
+
+# Theme-specific endpoints (must be before generic /{module} routes)
+@router.post(
+    "/app_theme",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Set theme configuration",
+    description="Set visual theme configuration for the current tenant. Requires config.edit or config.edit_theme permission.",
+    responses={
+        201: {"description": "Theme configuration set successfully"},
+        400: {
+            "description": "Invalid color format or validation failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_COLOR_FORMAT",
+                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: blue)",
+                            "details": {
+                                "key": "primary_color",
+                                "value": "blue",
+                                "expected_format": "#RRGGBB",
+                            },
+                        }
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit_theme"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def set_theme_config(
+    theme_data: Annotated[dict[str, Any], Body()],
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Set visual theme configuration for the current tenant.
+
+    Validates color formats (must be #RRGGBB) and saves theme settings.
+
+    Requires: config.edit or config.edit_theme
+
+    Args:
+        theme_data: Dictionary of theme settings (colors, logos, fonts, etc.).
+        current_user: Current authenticated user (must have config.edit or config.edit_theme).
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated theme configuration.
+
+    Raises:
+        InvalidColorFormatException: If any color format is invalid.
+        APIException: If user lacks permission or validation fails.
+    """
+    if not isinstance(theme_data, dict):
+        raise_bad_request(
+            "INVALID_THEME_DATA",
+            "Theme data must be a dictionary",
+        )
+
+    # Validate all color fields
+    try:
+        validate_theme_colors(theme_data)
+    except InvalidColorFormatException as e:
+        # Re-raise to ensure FastAPI exception handler handles it correctly
+        raise e
+
+    config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        theme_config = config_service.set_module_config(
+            tenant_id=current_user.tenant_id,
+            module="app_theme",
+            config_dict=theme_data,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except ValueError as e:
+        raise_bad_request("INVALID_THEME_VALUE", str(e))
+
+    return StandardResponse(
+        data=ModuleConfigResponse(module="app_theme", config=theme_config)
+    )
+
+
+# Generic module configuration endpoints (must come after specific routes)
+@router.post(
+    "/{module}",
+    response_model=StandardResponse[ModuleConfigResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Set module configuration",
+    description="Set multiple configuration values for a module. Requires config.edit permission.",
+    responses={
+        201: {"description": "Module configuration set successfully"},
+        403: {
+            "description": "Insufficient permissions",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
+                            "message": "Insufficient permissions",
+                            "details": {"required_permission": "config.edit"},
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def set_module_config(
+    module: str,
+    config_data: dict[str, Any],
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("config.edit"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ModuleConfigResponse]:
+    """
+    Set multiple configuration values for a module.
+
+    Requires: config.edit
+
+    Args:
+        module: Module name
+        config_data: Configuration data as key-value pairs
+        request: FastAPI request object
+        current_user: Current authenticated user (must have config.edit)
         db: Database session
 
     Returns:
-        StandardResponse with clear confirmation
+        StandardResponse with module configuration
     """
     config_service = ConfigService(db)
+    ip_address, user_agent = get_client_info(request)
 
-    if module:
-        cleared = config_service.clear_cache(
-            tenant_id=current_user.tenant_id, module=module
+    # Set each configuration value
+    for key, value in config_data.items():
+        config_service.set(
+            tenant_id=current_user.tenant_id,
+            module=module,
+            key=key,
+            value=value,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
-        message = f"Cleared {cleared} cache entries for module '{module}'"
-    else:
-        config_service.clear_cache()
-        message = "Cleared all cache entries"
 
-    return StandardResponse(data={"message": message})
+    return StandardResponse(
+        data=ModuleConfigResponse(module=module, config=config_data),
+        message=f"Module '{module}' configuration set successfully",
+    )
 
 
 # Theme preset endpoints (must come before /{module} routes)
@@ -1331,100 +1499,6 @@ async def set_default_theme_preset(
     )
 
 
-@router.post(
-    "/app_theme",
-    response_model=StandardResponse[ModuleConfigResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="Set theme configuration",
-    description="Set visual theme configuration for the current tenant. Requires config.edit or config.edit_theme permission.",
-    responses={
-        201: {"description": "Theme configuration set successfully"},
-        400: {
-            "description": "Invalid color format or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_COLOR_FORMAT",
-                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: blue)",
-                            "details": {
-                                "key": "primary_color",
-                                "value": "blue",
-                                "expected_format": "#RRGGBB",
-                            },
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit_theme"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def set_theme_config(
-    theme_data: dict[str, Any],
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ModuleConfigResponse]:
-    """
-    Set visual theme configuration for the current tenant.
-
-    Validates color formats (must be #RRGGBB) and saves theme settings.
-
-    Requires: config.edit or config.edit_theme
-
-    Args:
-        theme_data: Dictionary of theme settings (colors, logos, fonts, etc.).
-        current_user: Current authenticated user (must have config.edit or config.edit_theme).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated theme configuration.
-
-    Raises:
-        InvalidColorFormatException: If any color format is invalid.
-        APIException: If user lacks permission or validation fails.
-    """
-    if not isinstance(theme_data, dict):
-        raise_bad_request(
-            "INVALID_THEME_DATA",
-            "Theme data must be a dictionary",
-        )
-
-    # Validate all color fields
-    validate_theme_colors(theme_data)
-
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        theme_config = config_service.set_module_config(
-            tenant_id=current_user.tenant_id,
-            module="app_theme",
-            config_dict=theme_data,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_THEME_VALUE", str(e))
-
-    return StandardResponse(
-        data=ModuleConfigResponse(module="app_theme", config=theme_config)
-    )
 
 
 @router.put(
@@ -1529,6 +1603,247 @@ async def update_theme_property(
         raise_bad_request("INVALID_THEME_VALUE", str(e))
 
     return StandardResponse(data=config_data)
+
+
+# Files module configuration endpoints (MUST come before /{module} and /{module}/{key} routes)
+# These endpoints are defined before the generic routes to ensure FastAPI matches them first
+@router.get(
+    "/files/storage",
+    response_model=StandardResponse[StorageConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get storage configuration",
+    description="Get current storage configuration (Local/S3/Hybrid). Requires system.configure permission.",
+)
+async def get_storage_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[StorageConfigResponse]:
+    """Get storage configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    config = service.get_storage_config(current_user.tenant_id)
+
+    return StandardResponse(
+        data=StorageConfigResponse(**config),
+        message="Storage configuration retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/storage",
+    response_model=StandardResponse[StorageConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update storage configuration",
+    description="Update storage configuration. Requires system.configure permission.",
+)
+async def update_storage_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    config_data: StorageConfigUpdate,
+    request: Request,
+) -> StandardResponse[StorageConfigResponse]:
+    """Update storage configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    service = StorageConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    updated_config = service.update_storage_config(
+        tenant_id=current_user.tenant_id,
+        config=config_data.model_dump(),
+        user_id=current_user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    return StandardResponse(
+        data=StorageConfigResponse(**updated_config),
+        message="Storage configuration updated successfully",
+    )
+
+
+@router.post(
+    "/files/storage/test",
+    response_model=StandardResponse[S3ConnectionTestResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Test S3 connection",
+    description="Test S3 connection with provided credentials. Requires system.configure permission.",
+)
+async def test_s3_connection(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    test_data: S3ConnectionTestRequest,
+) -> StandardResponse[S3ConnectionTestResponse]:
+    """Test S3 connection."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    result = await service.test_s3_connection(
+        tenant_id=current_user.tenant_id,
+        config=test_data.model_dump(),
+    )
+
+    return StandardResponse(
+        data=S3ConnectionTestResponse(**result),
+        message="S3 connection test completed",
+    )
+
+
+@router.get(
+    "/files/stats",
+    response_model=StandardResponse[StorageStatsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get storage statistics",
+    description="Get storage statistics (space used, file counts, distributions). Requires system.configure permission.",
+)
+async def get_storage_stats(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[StorageStatsResponse]:
+    """Get storage statistics."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+    from app.core.files.storage_config_service import StorageConfigService
+
+    try:
+        service = StorageConfigService(db)
+        stats = service.get_storage_stats(current_user.tenant_id)
+
+        return StandardResponse(
+            data=StorageStatsResponse(**stats),
+            message="Storage statistics retrieved successfully",
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving storage stats for tenant {current_user.tenant_id}: {e}", exc_info=True)
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="STATS_RETRIEVAL_FAILED",
+            message=f"Failed to retrieve storage statistics: {str(e)}",
+        )
+
+
+@router.get(
+    "/files/limits",
+    response_model=StandardResponse[FileLimitsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get file limits",
+    description="Get file limits configuration. Requires system.configure permission.",
+)
+async def get_file_limits(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[FileLimitsResponse]:
+    """Get file limits configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    limits = service.get_file_limits(current_user.tenant_id)
+
+    return StandardResponse(
+        data=FileLimitsResponse(**limits),
+        message="File limits retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/limits",
+    response_model=StandardResponse[FileLimitsResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update file limits",
+    description="Update file limits configuration. Requires system.configure permission.",
+)
+async def update_file_limits(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    limits_data: FileLimitsUpdate,
+    request: Request,
+) -> StandardResponse[FileLimitsResponse]:
+    """Update file limits configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    service = StorageConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    updated_limits = service.update_file_limits(
+        tenant_id=current_user.tenant_id,
+        limits=limits_data.model_dump(exclude_unset=True),
+        user_id=current_user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    return StandardResponse(
+        data=FileLimitsResponse(**updated_limits),
+        message="File limits updated successfully",
+    )
+
+
+@router.get(
+    "/files/thumbnails",
+    response_model=StandardResponse[ThumbnailConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get thumbnail configuration",
+    description="Get thumbnail configuration. Requires system.configure permission.",
+)
+async def get_thumbnail_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[ThumbnailConfigResponse]:
+    """Get thumbnail configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+
+    service = StorageConfigService(db)
+    config = service.get_thumbnail_config(current_user.tenant_id)
+
+    return StandardResponse(
+        data=ThumbnailConfigResponse(**config),
+        message="Thumbnail configuration retrieved successfully",
+    )
+
+
+@router.put(
+    "/files/thumbnails",
+    response_model=StandardResponse[ThumbnailConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update thumbnail configuration",
+    description="Update thumbnail configuration. Requires system.configure permission.",
+)
+async def update_thumbnail_config(
+    current_user: Annotated[User, Depends(require_permission("system.configure"))],
+    db: Annotated[Session, Depends(get_db)],
+    config_data: ThumbnailConfigUpdate,
+    request: Request,
+) -> StandardResponse[ThumbnailConfigResponse]:
+    """Update thumbnail configuration."""
+    from app.core.files.storage_config_service import StorageConfigService
+    from app.core.logging import get_client_info
+
+    # Validate quality range manually to return proper error code
+    if config_data.quality is not None and (config_data.quality < 1 or config_data.quality > 100):
+        raise_bad_request(
+            "INVALID_QUALITY",
+            "Quality must be between 1 and 100"
+        )
+
+    service = StorageConfigService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    updated_config = service.update_thumbnail_config(
+        tenant_id=current_user.tenant_id,
+        config=config_data.model_dump(exclude_unset=True),
+        user_id=current_user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    return StandardResponse(
+        data=ThumbnailConfigResponse(**updated_config),
+        message="Thumbnail configuration updated successfully",
+    )
 
 
 @router.put(
@@ -2364,9 +2679,9 @@ async def test_smtp_connection(
         )
 
     # Test SMTP connection
-    from app.core.notifications.smtp_test import test_smtp_connection
+    from app.core.notifications.smtp_test import check_smtp_connection
 
-    test_result = test_smtp_connection(smtp_data)
+    test_result = check_smtp_connection(smtp_data)
 
     if not test_result.success:
         raise_bad_request(
@@ -2490,241 +2805,7 @@ async def test_webhook_connection(
             "WEBHOOK_CONNECTION_FAILED",
             f"Failed to connect to webhook: {str(e)}",
         )
-
-
-# Files module configuration endpoints (MUST come before /{module} and /{module}/{key} routes)
-# These endpoints are defined before the generic routes to ensure FastAPI matches them first
-@router.get(
-    "/files/storage",
-    response_model=StandardResponse[StorageConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get storage configuration",
-    description="Get current storage configuration (Local/S3/Hybrid). Requires system.configure permission.",
-)
-async def get_storage_config(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[StorageConfigResponse]:
-    """Get storage configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-
-    service = StorageConfigService(db)
-    config = service.get_storage_config(current_user.tenant_id)
-
-    return StandardResponse(
-        data=StorageConfigResponse(**config),
-        message="Storage configuration retrieved successfully",
-    )
-
-
-@router.put(
-    "/files/storage",
-    response_model=StandardResponse[StorageConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update storage configuration",
-    description="Update storage configuration. Requires system.configure permission.",
-)
-async def update_storage_config(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-    config_data: StorageConfigUpdate,
-    request: Request,
-) -> StandardResponse[StorageConfigResponse]:
-    """Update storage configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-    from app.core.logging import get_client_info
-
-    service = StorageConfigService(db)
-    client_info = get_client_info(request)
-
-    updated_config = service.update_storage_config(
-        tenant_id=current_user.tenant_id,
-        config=config_data.model_dump(),
-        user_id=current_user.id,
-        ip_address=client_info.get("ip_address"),
-        user_agent=client_info.get("user_agent"),
-    )
-
-    return StandardResponse(
-        data=StorageConfigResponse(**updated_config),
-        message="Storage configuration updated successfully",
-    )
-
-
-@router.post(
-    "/files/storage/test",
-    response_model=StandardResponse[S3ConnectionTestResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Test S3 connection",
-    description="Test S3 connection with provided credentials. Requires system.configure permission.",
-)
-async def test_s3_connection(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-    test_data: S3ConnectionTestRequest,
-) -> StandardResponse[S3ConnectionTestResponse]:
-    """Test S3 connection."""
-    from app.core.files.storage_config_service import StorageConfigService
-
-    service = StorageConfigService(db)
-    result = await service.test_s3_connection(
-        tenant_id=current_user.tenant_id,
-        config=test_data.model_dump(),
-    )
-
-    return StandardResponse(
-        data=S3ConnectionTestResponse(**result),
-        message="S3 connection test completed",
-    )
-
-
-@router.get(
-    "/files/stats",
-    response_model=StandardResponse[StorageStatsResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get storage statistics",
-    description="Get storage statistics (space used, file counts, distributions). Requires system.configure permission.",
-)
-async def get_storage_stats(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[StorageStatsResponse]:
-    """Get storage statistics."""
-    import logging
-
-    logger = logging.getLogger(__name__)
-    from app.core.files.storage_config_service import StorageConfigService
-
-    try:
-        service = StorageConfigService(db)
-        stats = service.get_storage_stats(current_user.tenant_id)
-
-        return StandardResponse(
-            data=StorageStatsResponse(**stats),
-            message="Storage statistics retrieved successfully",
-        )
-    except Exception as e:
-        logger.error(f"Error retrieving storage stats for tenant {current_user.tenant_id}: {e}", exc_info=True)
-        raise APIException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            code="STATS_RETRIEVAL_FAILED",
-            message=f"Failed to retrieve storage statistics: {str(e)}",
-        )
-
-
-@router.get(
-    "/files/limits",
-    response_model=StandardResponse[FileLimitsResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get file limits",
-    description="Get file limits configuration. Requires system.configure permission.",
-)
-async def get_file_limits(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[FileLimitsResponse]:
-    """Get file limits configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-
-    service = StorageConfigService(db)
-    limits = service.get_file_limits(current_user.tenant_id)
-
-    return StandardResponse(
-        data=FileLimitsResponse(**limits),
-        message="File limits retrieved successfully",
-    )
-
-
-@router.put(
-    "/files/limits",
-    response_model=StandardResponse[FileLimitsResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update file limits",
-    description="Update file limits configuration. Requires system.configure permission.",
-)
-async def update_file_limits(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-    limits_data: FileLimitsUpdate,
-    request: Request,
-) -> StandardResponse[FileLimitsResponse]:
-    """Update file limits configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-    from app.core.logging import get_client_info
-
-    service = StorageConfigService(db)
-    client_info = get_client_info(request)
-
-    updated_limits = service.update_file_limits(
-        tenant_id=current_user.tenant_id,
-        limits=limits_data.model_dump(exclude_unset=True),
-        user_id=current_user.id,
-        ip_address=client_info.get("ip_address"),
-        user_agent=client_info.get("user_agent"),
-    )
-
-    return StandardResponse(
-        data=FileLimitsResponse(**updated_limits),
-        message="File limits updated successfully",
-    )
-
-
-@router.get(
-    "/files/thumbnails",
-    response_model=StandardResponse[ThumbnailConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get thumbnail configuration",
-    description="Get thumbnail configuration. Requires system.configure permission.",
-)
-async def get_thumbnail_config(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[ThumbnailConfigResponse]:
-    """Get thumbnail configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-
-    service = StorageConfigService(db)
-    config = service.get_thumbnail_config(current_user.tenant_id)
-
-    return StandardResponse(
-        data=ThumbnailConfigResponse(**config),
-        message="Thumbnail configuration retrieved successfully",
-    )
-
-
-@router.put(
-    "/files/thumbnails",
-    response_model=StandardResponse[ThumbnailConfigResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Update thumbnail configuration",
-    description="Update thumbnail configuration. Requires system.configure permission.",
-)
-async def update_thumbnail_config(
-    current_user: Annotated[User, Depends(require_permission("system.configure"))],
-    db: Annotated[Session, Depends(get_db)],
-    config_data: ThumbnailConfigUpdate,
-    request: Request,
-) -> StandardResponse[ThumbnailConfigResponse]:
-    """Update thumbnail configuration."""
-    from app.core.files.storage_config_service import StorageConfigService
-    from app.core.logging import get_client_info
-
-    service = StorageConfigService(db)
-    client_info = get_client_info(request)
-
-    updated_config = service.update_thumbnail_config(
-        tenant_id=current_user.tenant_id,
-        config=config_data.model_dump(exclude_unset=True),
-        user_id=current_user.id,
-        ip_address=client_info.get("ip_address"),
-        user_agent=client_info.get("user_agent"),
-    )
-
-    return StandardResponse(
-        data=ThumbnailConfigResponse(**updated_config),
-        message="Thumbnail configuration updated successfully",
-    )
-
+        
 
 @router.get(
     "/{module}",
@@ -2958,7 +3039,11 @@ async def delete_config_value(
     )
 
     return StandardResponse(
-        data={"module": module, "key": key, "deleted": True},
-        message="Configuration value deleted successfully",
+        data={
+            "module": module,
+            "key": key,
+            "deleted": True,
+            "message": f"Configuration value '{module}.{key}' deleted successfully",
+        }
     )
 

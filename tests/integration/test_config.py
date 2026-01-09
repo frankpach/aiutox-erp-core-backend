@@ -13,7 +13,7 @@ class TestConfig:
     """Test suite for configuration endpoints."""
 
     def test_get_module_config_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting module config requires config.view permission."""
         # Arrange: User without config permission
@@ -21,7 +21,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -33,7 +33,7 @@ class TestConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_module_config_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get module config."""
         # Arrange: Assign config.viewer role
@@ -50,7 +50,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -63,7 +63,7 @@ class TestConfig:
         assert isinstance(data["data"]["config"], dict)
 
     def test_get_module_config_returns_standard_format(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that GET /api/v1/config/{module} returns StandardResponse format."""
         # Arrange: Assign config.viewer role
@@ -80,7 +80,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -96,7 +96,7 @@ class TestConfig:
         assert "module" in data["data"]
         assert "config" in data["data"]
 
-    def test_get_config_value(self, client, db_session, test_user, test_tenant):
+    def test_get_config_value(self, client_with_db, db_session, test_user, test_tenant):
         """Test getting a specific configuration value."""
         # Arrange: Assign config roles
         viewer_role = ModuleRole(
@@ -123,7 +123,7 @@ class TestConfig:
         key = "test_value"
 
         # Create config first
-        create_response = client.put(
+        create_response = client_with_db.put(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -131,7 +131,7 @@ class TestConfig:
         assert create_response.status_code == status.HTTP_200_OK
 
         # Act: Get config value
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -145,7 +145,7 @@ class TestConfig:
         assert data["data"]["value"] == 10.0
 
     def test_get_config_value_not_found(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test getting a non-existent configuration value."""
         # Arrange: Assign config.viewer role
@@ -162,7 +162,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get non-existent config
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products/nonexistent",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -173,7 +173,7 @@ class TestConfig:
         assert "error" in data
         assert data["error"]["code"] == "CONFIG_NOT_FOUND"
 
-    def test_set_config_value(self, client, db_session, test_user, test_tenant):
+    def test_set_config_value(self, client_with_db, db_session, test_user, test_tenant):
         """Test setting a configuration value."""
         # Arrange: Assign config.editor role
         module_role = ModuleRole(
@@ -193,7 +193,7 @@ class TestConfig:
         key = "set_value"
 
         # Act: Set config value
-        response = client.put(
+        response = client_with_db.put(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -206,7 +206,7 @@ class TestConfig:
         assert data["data"]["value"] == 10.0
 
     def test_set_config_value_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that setting config requires config.edit permission."""
         # Arrange: User without config.edit permission
@@ -214,7 +214,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to set config
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/products/min_price",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -226,7 +226,7 @@ class TestConfig:
         assert "error" in data
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
-    def test_set_module_config(self, client, db_session, test_user, test_tenant):
+    def test_set_module_config(self, client_with_db, db_session, test_user, test_tenant):
         """Test setting multiple configuration values."""
         # Arrange: Assign config.editor role
         module_role = ModuleRole(
@@ -245,7 +245,7 @@ class TestConfig:
         module = "integration_test_module"
         # Act: Set module config
         config_data = {"min_price": 10.0, "max_price": 100.0, "currency": "USD"}
-        response = client.post(
+        response = client_with_db.post(
             f"/api/v1/config/{module}",
             headers={"Authorization": f"Bearer {access_token}"},
             json=config_data,
@@ -258,7 +258,7 @@ class TestConfig:
         assert data["data"]["module"] == module
         assert data["data"]["config"] == config_data
 
-    def test_delete_config_value(self, client, db_session, test_user, test_tenant):
+    def test_delete_config_value(self, client_with_db, db_session, test_user, test_tenant):
         """Test deleting a configuration value."""
         # Arrange: Assign config roles
         viewer_role = ModuleRole(
@@ -292,7 +292,7 @@ class TestConfig:
         key = "delete_test"
 
         # Create config first
-        create_response = client.put(
+        create_response = client_with_db.put(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -300,7 +300,7 @@ class TestConfig:
         assert create_response.status_code == status.HTTP_200_OK
 
         # Act: Delete config
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -312,7 +312,7 @@ class TestConfig:
         assert "message" in data["data"]
 
         # Verify it's deleted
-        get_response = client.get(
+        get_response = client_with_db.get(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -320,7 +320,7 @@ class TestConfig:
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_delete_config_value_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that deleting config requires config.delete permission."""
         # Arrange: User with only config.edit (not delete)
@@ -337,7 +337,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to delete config
-        response = client.delete(
+        response = client_with_db.delete(
             "/api/v1/config/products/min_price",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -349,7 +349,7 @@ class TestConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_multi_tenant_isolation(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that configurations are isolated by tenant."""
         # Arrange: Assign config roles
@@ -377,7 +377,7 @@ class TestConfig:
         key = "isolation_test"
 
         # Create config for current tenant
-        create_response = client.put(
+        create_response = client_with_db.put(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": 10.0},
@@ -385,7 +385,7 @@ class TestConfig:
         assert create_response.status_code == status.HTTP_200_OK
 
         # Get config for current tenant (should find it)
-        get_response = client.get(
+        get_response = client_with_db.get(
             f"/api/v1/config/{module}/{key}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -396,14 +396,14 @@ class TestConfig:
         # Note: We can't easily test another tenant without creating another user
         # But the repository tests verify isolation at the data layer
 
-    def test_error_response_format(self, client, db_session, test_user, test_tenant):
+    def test_error_response_format(self, client_with_db, db_session, test_user, test_tenant):
         """Test that error responses follow API contract format."""
         # Arrange: User without permission
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get config without permission
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/products",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -422,7 +422,7 @@ class TestConfig:
         assert isinstance(data["error"]["message"], str)
 
     def test_get_general_settings_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting general settings requires config.view permission."""
         # Arrange: User without config permission
@@ -430,7 +430,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get general settings
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -442,7 +442,7 @@ class TestConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_get_general_settings_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.view can get general settings."""
         # Arrange: Assign config.viewer role
@@ -459,7 +459,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get general settings
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -487,7 +487,7 @@ class TestConfig:
         assert settings["language"] == "es"
 
     def test_update_general_settings_requires_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating general settings requires config.edit permission."""
         # Arrange: User without config.edit permission
@@ -495,7 +495,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to update general settings
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -514,7 +514,7 @@ class TestConfig:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_update_general_settings_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that user with config.edit can update general settings."""
         # Arrange: Assign config.editor role
@@ -538,7 +538,7 @@ class TestConfig:
             "currency": "USD",
             "language": "en",
         }
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
             json=new_settings,
@@ -560,7 +560,7 @@ class TestConfig:
         assert settings["language"] == new_settings["language"]
 
         # Verify persistence: Get settings again
-        get_response = client.get(
+        get_response = client_with_db.get(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -574,7 +574,7 @@ class TestConfig:
         assert persisted_settings["language"] == new_settings["language"]
 
     def test_update_general_settings_validation_error(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that invalid general settings are rejected."""
         # Arrange: Assign config.editor role
@@ -591,7 +591,7 @@ class TestConfig:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to update with invalid time_format
-        response = client.put(
+        response = client_with_db.put(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -610,7 +610,7 @@ class TestConfig:
         assert "detail" in data or ("error" in data and data.get("error", {}).get("code") == "VALIDATION_ERROR")
 
     def test_update_general_settings_partial_update(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating general settings updates all fields."""
         # Arrange: Assign config.editor role
@@ -634,7 +634,7 @@ class TestConfig:
             "currency": "GBP",
             "language": "en",
         }
-        response1 = client.put(
+        response1 = client_with_db.put(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
             json=first_update,
@@ -649,7 +649,7 @@ class TestConfig:
             "currency": "JPY",
             "language": "ja",
         }
-        response2 = client.put(
+        response2 = client_with_db.put(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
             json=second_update,
@@ -657,7 +657,7 @@ class TestConfig:
         assert response2.status_code == status.HTTP_200_OK
 
         # Assert: Verify final values
-        get_response = client.get(
+        get_response = client_with_db.get(
             "/api/v1/config/general",
             headers={"Authorization": f"Bearer {access_token}"},
         )

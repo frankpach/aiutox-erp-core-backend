@@ -4,6 +4,7 @@ from uuid import UUID
 
 from app.models.module_role import ModuleRole
 from app.models.user import User
+from app.models.user_role import UserRole
 from app.services.auth_service import AuthService
 from sqlalchemy.orm import Session
 
@@ -34,6 +35,38 @@ def create_user_with_permission(
         granted_by=user.id,
     )
     db_session.add(module_role)
+    db_session.commit()
+    db_session.refresh(user)
+
+    # Create token with updated permissions
+    auth_service = AuthService(db_session)
+    access_token = auth_service.create_access_token_for_user(user)
+    return {"Authorization": f"Bearer {access_token}"}
+
+
+def create_user_with_system_permission(
+    db_session: Session,
+    user: User,
+    role: str = "admin",
+) -> dict[str, str]:
+    """
+    Create a system role for a user and return updated auth headers.
+
+    Args:
+        db_session: Database session.
+        user: User object.
+        role: System role name (e.g., "admin", "owner", "manager").
+
+    Returns:
+        Dictionary with Authorization header containing updated token.
+    """
+    # Assign system role
+    user_role = UserRole(
+        user_id=user.id,
+        role=role,
+        granted_by=user.id,
+    )
+    db_session.add(user_role)
     db_session.commit()
     db_session.refresh(user)
 

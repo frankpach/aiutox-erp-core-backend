@@ -200,7 +200,7 @@ def test_get_audit_logs_multi_tenant_isolation(
 
 
 def test_get_audit_logs_endpoint_with_permission(
-    client: TestClient, db_session: Session, test_user: User
+    client_with_db: TestClient, db_session: Session, test_user: User
 ) -> None:
     """Test GET /api/v1/auth/audit-logs endpoint with proper permission."""
     from app.models.user_role import UserRole
@@ -218,7 +218,7 @@ def test_get_audit_logs_endpoint_with_permission(
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -234,7 +234,7 @@ def test_get_audit_logs_endpoint_with_permission(
 
 
 def test_get_audit_logs_endpoint_without_permission(
-    client: TestClient, db_session: Session, test_user: User
+    client_with_db: TestClient, db_session: Session, test_user: User
 ) -> None:
     """Test GET /api/v1/auth/audit-logs endpoint without permission."""
     from app.services.auth_service import AuthService
@@ -242,7 +242,7 @@ def test_get_audit_logs_endpoint_without_permission(
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -254,7 +254,7 @@ def test_get_audit_logs_endpoint_without_permission(
 
 
 def test_get_audit_logs_endpoint_with_filters(
-    client: TestClient, db_session: Session, test_user: User
+    client_with_db: TestClient, db_session: Session, test_user: User
 ) -> None:
     """Test GET /api/v1/auth/audit-logs endpoint with filters."""
     from app.models.user_role import UserRole
@@ -272,7 +272,7 @@ def test_get_audit_logs_endpoint_with_filters(
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
         params={
@@ -290,7 +290,7 @@ def test_get_audit_logs_endpoint_with_filters(
 
 
 def test_get_audit_logs_endpoint_with_advanced_filters(
-    client: TestClient, db_session: Session, test_user: User
+    client_with_db: TestClient, db_session: Session, test_user: User
 ) -> None:
     """Test GET /api/v1/auth/audit-logs endpoint with advanced filters (IP, user_agent, details_search)."""
     from app.models.user_role import UserRole
@@ -329,7 +329,7 @@ def test_get_audit_logs_endpoint_with_advanced_filters(
     access_token = auth_service.create_access_token_for_user(test_user)
 
     # Test IP address filter
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
         params={
@@ -344,7 +344,7 @@ def test_get_audit_logs_endpoint_with_advanced_filters(
     assert len(data["data"]) >= 2  # Should match both IPs
 
     # Test user agent filter
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
         params={
@@ -360,7 +360,7 @@ def test_get_audit_logs_endpoint_with_advanced_filters(
     assert any("Chrome" in (log.get("user_agent") or "") for log in data["data"])
 
     # Test details search filter
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/audit-logs",
         headers={"Authorization": f"Bearer {access_token}"},
         params={
@@ -376,7 +376,7 @@ def test_get_audit_logs_endpoint_with_advanced_filters(
 
 
 def test_audit_log_created_on_permission_grant(
-    client: TestClient,
+    client_with_db: TestClient,
     db_session: Session,
     test_user: User,
 ) -> None:
@@ -415,7 +415,7 @@ def test_audit_log_created_on_permission_grant(
     initial_count = repo.get_audit_logs(tenant_id=test_user.tenant_id)[1]
 
     # Grant permission
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/auth/modules/inventory/permissions",
         headers={"Authorization": f"Bearer {access_token}"},
         json={
@@ -441,7 +441,7 @@ def test_audit_log_created_on_permission_grant(
 
 
 def test_audit_log_created_on_role_assignment(
-    client: TestClient,
+    client_with_db: TestClient,
     db_session: Session,
     test_user: User,
 ) -> None:
@@ -479,7 +479,7 @@ def test_audit_log_created_on_role_assignment(
     initial_count = repo.get_audit_logs(tenant_id=test_user.tenant_id)[1]
 
     # Assign role
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/auth/roles/{test_user.id}",
         headers={"Authorization": f"Bearer {access_token}"},
         json={"role": "viewer"},
@@ -501,7 +501,7 @@ def test_audit_log_created_on_role_assignment(
 
 
 def test_audit_log_created_on_user_creation(
-    client: TestClient,
+    client_with_db: TestClient,
     db_session: Session,
     test_user: User,
     test_tenant,
@@ -540,7 +540,7 @@ def test_audit_log_created_on_user_creation(
     initial_count = repo.get_audit_logs(tenant_id=test_tenant.id)[1]
 
     # Create user
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {access_token}"},
         json={

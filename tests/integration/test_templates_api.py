@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_template(client, test_user, auth_headers, db_session):
+def test_create_template(client_with_db, test_user, auth_headers, db_session):
     """Test creating a template."""
     # Assign templates.manage permission
     module_role = ModuleRole(
@@ -25,7 +25,7 @@ def test_create_template(client, test_user, auth_headers, db_session):
         "content": "Hello {{ name }}!",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/templates",
         json=template_data,
         headers=auth_headers,
@@ -38,7 +38,7 @@ def test_create_template(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_render_template(client, test_user, auth_headers, db_session):
+def test_render_template(client_with_db, test_user, auth_headers, db_session):
     """Test rendering a template."""
     # Assign permissions
     module_role = ModuleRole(
@@ -57,7 +57,7 @@ def test_render_template(client, test_user, auth_headers, db_session):
         "template_format": "html",
         "content": "Hello {{ name }}, your order {{ order_id }} is ready!",
     }
-    template_response = client.post(
+    template_response = client_with_db.post(
         "/api/v1/templates",
         json=template_data,
         headers=auth_headers,
@@ -70,7 +70,7 @@ def test_render_template(client, test_user, auth_headers, db_session):
         "variables": {"name": "John", "order_id": "12345"},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/templates/{template_id}/render",
         json=render_data,
         headers=auth_headers,

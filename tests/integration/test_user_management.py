@@ -15,7 +15,7 @@ class TestUserManagement:
     """Test suite for user management functionality."""
 
     def test_list_users_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing users requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -23,7 +23,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to list users
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -35,7 +35,7 @@ class TestUserManagement:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_users_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can list users."""
         # Arrange: Assign admin role
@@ -51,7 +51,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List users
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -65,7 +65,7 @@ class TestUserManagement:
         assert data["meta"]["total"] >= 1  # At least test_user
 
     def test_create_user_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating user requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -73,7 +73,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to create user
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -87,7 +87,7 @@ class TestUserManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_user_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can create user."""
         # Arrange: Assign admin role
@@ -105,7 +105,7 @@ class TestUserManagement:
         new_email = f"new-{uuid4().hex[:8]}@example.com"
 
         # Act: Create user
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -123,7 +123,7 @@ class TestUserManagement:
         assert data["data"]["is_active"] is True
 
     def test_create_user_duplicate_email(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating user with duplicate email fails."""
         # Arrange: Assign admin role
@@ -139,7 +139,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to create user with existing email
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -156,7 +156,7 @@ class TestUserManagement:
         assert "USER_ALREADY_EXISTS" in data["error"]["code"]
 
     def test_get_user_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting user requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -164,7 +164,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get user
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -173,7 +173,7 @@ class TestUserManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_user_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can get user."""
         # Arrange: Assign admin role
@@ -189,7 +189,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get user
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -202,7 +202,7 @@ class TestUserManagement:
         assert data["data"]["email"] == test_user.email
 
     def test_get_user_not_found(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting non-existent user returns 404."""
         # Arrange: Assign admin role
@@ -220,7 +220,7 @@ class TestUserManagement:
         fake_id = uuid4()
 
         # Act: Get non-existent user
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -232,7 +232,7 @@ class TestUserManagement:
         assert data["error"]["code"] == "USER_NOT_FOUND"
 
     def test_update_user_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating user requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -240,7 +240,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to update user
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"full_name": "Updated Name"},
@@ -250,7 +250,7 @@ class TestUserManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_user_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can update user."""
         # Arrange: Assign admin role
@@ -266,7 +266,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Update user
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"full_name": "Updated Name"},
@@ -279,7 +279,7 @@ class TestUserManagement:
         assert data["data"]["full_name"] == "Updated Name"
 
     def test_update_user_deactivate_revokes_tokens(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating user is_active to False revokes all tokens."""
         from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -318,7 +318,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Update user to inactive
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/users/{target_user_id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"is_active": False},
@@ -339,7 +339,7 @@ class TestUserManagement:
         assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
 
     def test_delete_user_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that deleting user requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -347,7 +347,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to delete user
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/users/{test_user.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -356,7 +356,7 @@ class TestUserManagement:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_user_with_permission_soft_delete(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can soft delete user (sets is_active=False and revokes tokens)."""
         from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -395,7 +395,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Delete user (soft delete)
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/users/{target_user_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -417,7 +417,7 @@ class TestUserManagement:
         assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
 
     def test_list_users_pagination(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing users supports pagination."""
         # Arrange: Create multiple users
@@ -445,7 +445,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List users with pagination
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users?page=1&page_size=3",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -461,7 +461,7 @@ class TestUserManagement:
         assert data["meta"]["total"] >= 6  # test_user + 5 new users
 
     def test_user_management_multi_tenant_isolation(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that users are isolated per tenant."""
         from app.models.tenant import Tenant
@@ -497,7 +497,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get user from different tenant
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/users/{user2.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -509,7 +509,7 @@ class TestUserManagement:
         assert data["error"]["code"] == "AUTH_TENANT_MISMATCH"
 
     def test_list_users_with_search_filter(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test listing users with search filter."""
         # Arrange: Create users with different names
@@ -547,7 +547,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Search for "john"
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users?search=john",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -561,7 +561,7 @@ class TestUserManagement:
         assert any("john" in user["email"].lower() or "john" in (user.get("first_name") or "").lower() for user in users)
 
     def test_list_users_with_is_active_filter(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test listing users with is_active filter."""
         # Arrange: Create active and inactive users
@@ -597,7 +597,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Filter active users
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users?is_active=true",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -610,7 +610,7 @@ class TestUserManagement:
         assert all(user["is_active"] is True for user in users)
 
         # Act: Filter inactive users
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/users?is_active=false",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -623,7 +623,7 @@ class TestUserManagement:
         assert all(user["is_active"] is False for user in users)
 
     def test_bulk_action_activate(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test bulk activate action."""
         # Arrange: Create inactive users
@@ -659,7 +659,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Bulk activate
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users/bulk",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -683,7 +683,7 @@ class TestUserManagement:
         assert user2.is_active is True
 
     def test_bulk_action_deactivate(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test bulk deactivate action (soft delete with token revocation)."""
         from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -722,7 +722,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Bulk deactivate
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users/bulk",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -748,7 +748,7 @@ class TestUserManagement:
         assert refresh_token_repo.find_valid_token(user1_id, refresh_token2) is None
 
     def test_bulk_action_delete(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test bulk delete action (soft delete with token revocation)."""
         from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -787,7 +787,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Bulk delete
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users/bulk",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -814,7 +814,7 @@ class TestUserManagement:
         assert refresh_token_repo.find_valid_token(user1_id, refresh_token2) is None
 
     def test_bulk_action_tenant_isolation(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that bulk actions only affect users from the same tenant."""
         from app.models.tenant import Tenant
@@ -850,7 +850,7 @@ class TestUserManagement:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to bulk delete user from different tenant
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/users/bulk",
             headers={"Authorization": f"Bearer {access_token}"},
             json={

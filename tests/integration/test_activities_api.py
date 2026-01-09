@@ -8,13 +8,13 @@ from app.models.activity import ActivityType
 from tests.helpers import create_user_with_permission
 
 
-def test_create_activity(client: TestClient, test_user, db_session):
+def test_create_activity(client_with_db: TestClient, test_user, db_session):
     """Test creating an activity."""
     # Assign activities.manage permission
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
 
     entity_id = str(uuid4())
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -41,12 +41,12 @@ def test_create_activity(client: TestClient, test_user, db_session):
     assert "created_at" in data["data"]
 
 
-def test_create_activity_requires_permission(client: TestClient, test_user, db_session, auth_headers):
+def test_create_activity_requires_permission(client_with_db: TestClient, test_user, db_session, auth_headers):
     """Test that creating an activity requires activities.manage permission."""
     # Use auth_headers but without activities.manage permission
     headers = auth_headers
     entity_id = str(uuid4())
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -62,7 +62,7 @@ def test_create_activity_requires_permission(client: TestClient, test_user, db_s
     assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
 
-def test_list_activities(client: TestClient, test_user, db_session):
+def test_list_activities(client_with_db: TestClient, test_user, db_session):
     """Test listing activities."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -72,7 +72,7 @@ def test_list_activities(client: TestClient, test_user, db_session):
 
     # Create multiple activities
     for i in range(3):
-        client.post(
+        client_with_db.post(
             "/api/v1/activities",
             json={
                 "entity_type": "product",
@@ -84,7 +84,7 @@ def test_list_activities(client: TestClient, test_user, db_session):
         )
 
     # List all activities
-    response = client.get("/api/v1/activities?page=1&page_size=20", headers=view_headers)
+    response = client_with_db.get("/api/v1/activities?page=1&page_size=20", headers=view_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -94,7 +94,7 @@ def test_list_activities(client: TestClient, test_user, db_session):
     assert data["meta"]["page_size"] == 20
 
 
-def test_list_activities_with_filters(client: TestClient, test_user, db_session):
+def test_list_activities_with_filters(client_with_db: TestClient, test_user, db_session):
     """Test listing activities with filters."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -103,7 +103,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
     entity_id = uuid4()
 
     # Create activities with different types
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -114,7 +114,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
         headers=headers,
     )
 
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -126,7 +126,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
     )
 
     # Filter by entity
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/activities?entity_type=product&entity_id={entity_id}&page=1&page_size=20",
         headers=view_headers,
     )
@@ -137,7 +137,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
 
     # Filter by activity type - verify activities were created
     # First, get all activities for this entity to verify they exist
-    response_all = client.get(
+    response_all = client_with_db.get(
         f"/api/v1/activities?entity_type=product&entity_id={entity_id}&page=1&page_size=20",
         headers=view_headers,
     )
@@ -147,7 +147,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
     assert len(data_all["data"]) == 2, f"Expected 2 activities, got {len(data_all['data'])}"
 
     # Now filter by activity type
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/activities?entity_type=product&entity_id={entity_id}&activity_type={ActivityType.COMMENT.value}&page=1&page_size=20",
         headers=view_headers,
     )
@@ -163,7 +163,7 @@ def test_list_activities_with_filters(client: TestClient, test_user, db_session)
         assert activity["activity_type"] == ActivityType.COMMENT.value
 
 
-def test_list_activities_with_search(client: TestClient, test_user, db_session):
+def test_list_activities_with_search(client_with_db: TestClient, test_user, db_session):
     """Test listing activities with search."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -172,7 +172,7 @@ def test_list_activities_with_search(client: TestClient, test_user, db_session):
     entity_id = uuid4()
 
     # Create activities with searchable content
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -184,7 +184,7 @@ def test_list_activities_with_search(client: TestClient, test_user, db_session):
         headers=headers,
     )
 
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -197,7 +197,7 @@ def test_list_activities_with_search(client: TestClient, test_user, db_session):
     )
 
     # Search
-    response = client.get("/api/v1/activities?search=Review&page=1&page_size=20", headers=view_headers)
+    response = client_with_db.get("/api/v1/activities?search=Review&page=1&page_size=20", headers=view_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -205,7 +205,7 @@ def test_list_activities_with_search(client: TestClient, test_user, db_session):
     assert "Review" in data["data"][0]["title"] or "Review" in data["data"][0].get("description", "")
 
 
-def test_get_activity(client: TestClient, test_user, db_session):
+def test_get_activity(client_with_db: TestClient, test_user, db_session):
     """Test getting a specific activity."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -214,7 +214,7 @@ def test_get_activity(client: TestClient, test_user, db_session):
     entity_id = uuid4()
 
     # Create activity
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -228,7 +228,7 @@ def test_get_activity(client: TestClient, test_user, db_session):
     activity_id = create_response.json()["data"]["id"]
 
     # Get activity
-    response = client.get(f"/api/v1/activities/{activity_id}", headers=view_headers)
+    response = client_with_db.get(f"/api/v1/activities/{activity_id}", headers=view_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -236,18 +236,18 @@ def test_get_activity(client: TestClient, test_user, db_session):
     assert data["data"]["title"] == "Test Comment"
 
 
-def test_get_activity_not_found(client: TestClient, test_user, db_session):
+def test_get_activity_not_found(client_with_db: TestClient, test_user, db_session):
     """Test getting a non-existent activity."""
     view_headers = create_user_with_permission(db_session, test_user, "activities", "viewer")
     fake_id = uuid4()
-    response = client.get(f"/api/v1/activities/{fake_id}", headers=view_headers)
+    response = client_with_db.get(f"/api/v1/activities/{fake_id}", headers=view_headers)
 
     assert response.status_code == 404
     data = response.json()
     assert data["error"]["code"] == "ACTIVITY_NOT_FOUND"
 
 
-def test_update_activity(client: TestClient, test_user, db_session):
+def test_update_activity(client_with_db: TestClient, test_user, db_session):
     """Test updating an activity."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -255,7 +255,7 @@ def test_update_activity(client: TestClient, test_user, db_session):
     entity_id = uuid4()
 
     # Create activity
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -270,7 +270,7 @@ def test_update_activity(client: TestClient, test_user, db_session):
     activity_id = create_response.json()["data"]["id"]
 
     # Update activity
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/activities/{activity_id}",
         json={
             "title": "Updated Title",
@@ -288,11 +288,11 @@ def test_update_activity(client: TestClient, test_user, db_session):
     assert data["data"].get("metadata") == {"updated": True} or data["data"].get("activity_metadata") == {"updated": True}
 
 
-def test_update_activity_not_found(client: TestClient, test_user, db_session):
+def test_update_activity_not_found(client_with_db: TestClient, test_user, db_session):
     """Test updating a non-existent activity."""
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
     fake_id = uuid4()
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/activities/{fake_id}",
         json={"title": "Updated Title"},
         headers=headers,
@@ -303,7 +303,7 @@ def test_update_activity_not_found(client: TestClient, test_user, db_session):
     assert data["error"]["code"] == "ACTIVITY_NOT_FOUND"
 
 
-def test_delete_activity(client: TestClient, test_user, db_session):
+def test_delete_activity(client_with_db: TestClient, test_user, db_session):
     """Test deleting an activity."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -312,7 +312,7 @@ def test_delete_activity(client: TestClient, test_user, db_session):
     entity_id = uuid4()
 
     # Create activity
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -326,27 +326,27 @@ def test_delete_activity(client: TestClient, test_user, db_session):
     activity_id = create_response.json()["data"]["id"]
 
     # Delete activity
-    response = client.delete(f"/api/v1/activities/{activity_id}", headers=headers)
+    response = client_with_db.delete(f"/api/v1/activities/{activity_id}", headers=headers)
 
     assert response.status_code == 204
 
     # Verify it's gone
-    get_response = client.get(f"/api/v1/activities/{activity_id}", headers=view_headers)
+    get_response = client_with_db.get(f"/api/v1/activities/{activity_id}", headers=view_headers)
     assert get_response.status_code == 404
 
 
-def test_delete_activity_not_found(client: TestClient, test_user, db_session):
+def test_delete_activity_not_found(client_with_db: TestClient, test_user, db_session):
     """Test deleting a non-existent activity."""
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
     fake_id = uuid4()
-    response = client.delete(f"/api/v1/activities/{fake_id}", headers=headers)
+    response = client_with_db.delete(f"/api/v1/activities/{fake_id}", headers=headers)
 
     assert response.status_code == 404
     data = response.json()
     assert data["error"]["code"] == "ACTIVITY_NOT_FOUND"
 
 
-def test_get_entity_timeline(client: TestClient, test_user, db_session):
+def test_get_entity_timeline(client_with_db: TestClient, test_user, db_session):
     """Test getting timeline for an entity."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -356,7 +356,7 @@ def test_get_entity_timeline(client: TestClient, test_user, db_session):
 
     # Create multiple activities
     for i in range(3):
-        client.post(
+        client_with_db.post(
             "/api/v1/activities",
             json={
                 "entity_type": "product",
@@ -368,7 +368,7 @@ def test_get_entity_timeline(client: TestClient, test_user, db_session):
         )
 
     # Get timeline
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/activities/entity/product/{entity_id}?page=1&page_size=20",
         headers=view_headers,
     )
@@ -382,7 +382,7 @@ def test_get_entity_timeline(client: TestClient, test_user, db_session):
     assert data["data"][2]["title"] == "Comment 1"
 
 
-def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_session):
+def test_get_entity_timeline_with_filter(client_with_db: TestClient, test_user, db_session):
     """Test getting timeline with activity type filter."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "activities", "manager")
@@ -391,7 +391,7 @@ def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_sessi
     entity_id = uuid4()
 
     # Create activities with different types
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -402,7 +402,7 @@ def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_sessi
         headers=headers,
     )
 
-    client.post(
+    client_with_db.post(
         "/api/v1/activities",
         json={
             "entity_type": "product",
@@ -414,7 +414,7 @@ def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_sessi
     )
 
     # Get timeline filtered by type - verify activities were created first
-    response_all = client.get(
+    response_all = client_with_db.get(
         f"/api/v1/activities/entity/product/{entity_id}?page=1&page_size=20",
         headers=view_headers,
     )
@@ -424,7 +424,7 @@ def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_sessi
     assert len(data_all["data"]) == 2, f"Expected 2 activities, got {len(data_all['data'])}"
 
     # Get timeline filtered by type
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/activities/entity/product/{entity_id}?activity_type={ActivityType.COMMENT.value}&page=1&page_size=20",
         headers=view_headers,
     )
@@ -441,11 +441,11 @@ def test_get_entity_timeline_with_filter(client: TestClient, test_user, db_sessi
         assert activity["activity_type"] == ActivityType.COMMENT.value
 
 
-def test_list_activities_requires_permission(client: TestClient, test_user, db_session, auth_headers):
+def test_list_activities_requires_permission(client_with_db: TestClient, test_user, db_session, auth_headers):
     """Test that listing activities requires activities.view permission."""
     # Use auth_headers but without activities.view permission
     headers = auth_headers
-    response = client.get("/api/v1/activities", headers=headers)
+    response = client_with_db.get("/api/v1/activities", headers=headers)
 
     assert response.status_code == 403
     data = response.json()

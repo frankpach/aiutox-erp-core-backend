@@ -8,14 +8,14 @@ from fastapi import status
 from app.core.auth.rate_limit import _login_attempts
 
 
-def test_login_rate_limiting(client, test_user):
+def test_login_rate_limiting(client_with_db, test_user):
     """Test that rate limiting works (5 attempts per minute)."""
     # Clear rate limit state
     _login_attempts.clear()
 
     # Make 5 failed login attempts
     for i in range(5):
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/auth/login",
             json={
                 "email": test_user.email,
@@ -29,7 +29,7 @@ def test_login_rate_limiting(client, test_user):
         ]
 
     # 6th attempt should be rate limited (or earlier if limit was hit)
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -43,14 +43,14 @@ def test_login_rate_limiting(client, test_user):
     assert data["error"]["code"] == "AUTH_RATE_LIMIT_EXCEEDED"
 
 
-def test_login_success_after_rate_limit_reset(client, test_user):
+def test_login_success_after_rate_limit_reset(client_with_db, test_user):
     """Test that login works after rate limit window resets."""
     # Clear rate limit state
     _login_attempts.clear()
 
     # Make 5 failed attempts
     for i in range(5):
-        client.post(
+        client_with_db.post(
             "/api/v1/auth/login",
             json={
                 "email": test_user.email,
@@ -64,7 +64,7 @@ def test_login_success_after_rate_limit_reset(client, test_user):
     _login_attempts.clear()
 
     # Now login should work
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,
@@ -79,10 +79,10 @@ def test_login_success_after_rate_limit_reset(client, test_user):
     assert "access_token" in data["data"]
 
 
-def test_login_generic_error_message(client):
+def test_login_generic_error_message(client_with_db):
     """Test that login error message is generic and doesn't reveal user existence."""
     # Try with non-existent user
-    response1 = client.post(
+    response1 = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": "nonexistent@example.com",
@@ -91,7 +91,7 @@ def test_login_generic_error_message(client):
     )
 
     # Try with wrong password (assuming user might exist)
-    response2 = client.post(
+    response2 = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": "another@example.com",
@@ -112,16 +112,16 @@ def test_login_generic_error_message(client):
     assert data1["error"]["message"] == "Invalid credentials"
 
 
-def test_login_rate_limiting_per_ip(client, test_user):
+def test_login_rate_limiting_per_ip(client_with_db, test_user):
     """Test that rate limiting is per IP address."""
     # Clear rate limit state
     _login_attempts.clear()
 
-    # Simulate different IPs (in real scenario, this would be handled by request.client.host)
+    # Simulate different IPs (in real scenario, this would be handled by request.client_with_db.host)
     # For testing, we'll verify that rate limiting works per IP
     # Make 5 attempts
     for i in range(5):
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/auth/login",
             json={
                 "email": test_user.email,
@@ -135,7 +135,7 @@ def test_login_rate_limiting_per_ip(client, test_user):
         ]
 
     # 6th attempt should be rate limited (or earlier if limit was hit)
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/auth/login",
         json={
             "email": test_user.email,

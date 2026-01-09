@@ -11,18 +11,18 @@ from app.services.auth_service import AuthService
 
 
 class TestInventory:
-    def test_list_warehouses_requires_permission(self, client, db_session, test_user):
+    def test_list_warehouses_requires_permission(self, client_with_db, db_session, test_user):
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/inventory/warehouses",
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_list_warehouses_with_permission(self, client, db_session, test_user):
+    def test_list_warehouses_with_permission(self, client_with_db, db_session, test_user):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,
@@ -36,7 +36,7 @@ class TestInventory:
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/inventory/warehouses",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -45,11 +45,11 @@ class TestInventory:
         payload = response.json()
         assert "data" in payload
 
-    def test_create_warehouse_requires_permission(self, client, db_session, test_user):
+    def test_create_warehouse_requires_permission(self, client_with_db, db_session, test_user):
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/inventory/warehouses",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"name": "Main", "code": "MAIN"},
@@ -57,7 +57,7 @@ class TestInventory:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_create_stock_move_with_permission(self, client, db_session, test_user, test_tenant):
+    def test_create_stock_move_with_permission(self, client_with_db, db_session, test_user, test_tenant):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,
@@ -85,7 +85,7 @@ class TestInventory:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Create warehouse
-        wh_resp = client.post(
+        wh_resp = client_with_db.post(
             "/api/v1/inventory/warehouses",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"name": "Main", "code": "MAIN"},
@@ -94,7 +94,7 @@ class TestInventory:
         warehouse_id = wh_resp.json()["data"]["id"]
 
         # Create location
-        loc_resp = client.post(
+        loc_resp = client_with_db.post(
             f"/api/v1/inventory/warehouses/{warehouse_id}/locations",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"name": "Stock", "code": "STOCK"},
@@ -103,7 +103,7 @@ class TestInventory:
         location_id = loc_resp.json()["data"]["id"]
 
         # Create stock move (receipt into location)
-        move_resp = client.post(
+        move_resp = client_with_db.post(
             "/api/v1/inventory/stock-moves",
             headers={"Authorization": f"Bearer {access_token}"},
             json={

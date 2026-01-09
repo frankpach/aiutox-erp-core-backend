@@ -7,7 +7,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_session):
+def test_approval_flow_complete_workflow(client_with_db, test_user, auth_headers, db_session):
     """Test complete approval workflow: create flow -> add steps -> create request -> approve."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -25,7 +25,7 @@ def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_ses
         "flow_type": "sequential",
         "module": "orders",
     }
-    flow_response = client.post(
+    flow_response = client_with_db.post(
         "/api/v1/approvals/flows",
         json=flow_data,
         headers=auth_headers,
@@ -40,7 +40,7 @@ def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_ses
         "approver_type": "user",
         "approver_id": str(test_user.id),
     }
-    step_response = client.post(
+    step_response = client_with_db.post(
         f"/api/v1/approvals/flows/{flow_id}/steps",
         json=step_data,
         headers=auth_headers,
@@ -55,7 +55,7 @@ def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_ses
         "entity_type": "order",
         "entity_id": str(entity_id),
     }
-    request_response = client.post(
+    request_response = client_with_db.post(
         "/api/v1/approvals/requests",
         json=request_data,
         headers=auth_headers,
@@ -73,7 +73,7 @@ def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_ses
     db_session.add(approve_role)
     db_session.commit()
 
-    approve_response = client.post(
+    approve_response = client_with_db.post(
         f"/api/v1/approvals/requests/{request_id}/approve?comment=Approved",
         headers=auth_headers,
     )
@@ -83,7 +83,7 @@ def test_approval_flow_complete_workflow(client, test_user, auth_headers, db_ses
     assert approve_response.json()["data"]["status"] in ["pending", "approved"]
 
 
-def test_approval_delegation(client, test_user, auth_headers, db_session):
+def test_approval_delegation(client_with_db, test_user, auth_headers, db_session):
     """Test approval delegation."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -153,7 +153,7 @@ def test_approval_delegation(client, test_user, auth_headers, db_session):
     assert delegation.is_active == True
 
 
-def test_approval_publishes_events(client, test_user, auth_headers, db_session):
+def test_approval_publishes_events(client_with_db, test_user, auth_headers, db_session):
     """Test that approvals publish events."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -167,7 +167,7 @@ def test_approval_publishes_events(client, test_user, auth_headers, db_session):
 
     # Create flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
-    flow_response = client.post(
+    flow_response = client_with_db.post(
         "/api/v1/approvals/flows",
         json=flow_data,
         headers=auth_headers,
@@ -185,7 +185,7 @@ def test_approval_publishes_events(client, test_user, auth_headers, db_session):
     with patch("app.core.pubsub.publisher.EventPublisher.publish") as mock_publish:
         mock_publish.return_value = AsyncMock(return_value="test-message-id")
 
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/approvals/requests",
             json=request_data,
             headers=auth_headers,

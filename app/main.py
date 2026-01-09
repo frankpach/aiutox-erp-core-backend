@@ -168,9 +168,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
     async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        add_security_headers(response)
-        return response
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"SecurityHeadersMiddleware called for {request.url.path}")
+        
+        try:
+            response = await call_next(request)
+            logger.info(f"SecurityHeadersMiddleware: response received from {request.url.path}, status: {response.status_code}")
+            add_security_headers(response)
+            return response
+        except Exception as e:
+            logger.error(f"Error in SecurityHeadersMiddleware for {request.url.path}: {e}", exc_info=True)
+            raise
 
 
 # CORS configuration (must be added BEFORE SecurityHeadersMiddleware so CORS headers are added first)
@@ -205,37 +214,52 @@ class HeaderEncodingMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure all headers are properly UTF-8 encoded."""
     
     async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"HeaderEncodingMiddleware called for {request.url.path}")
+        
+        try:
+            response = await call_next(request)
+            logger.info(f"Response received from {request.url.path}, status: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Error in call_next for {request.url.path}: {e}", exc_info=True)
+            raise
         
         # Clean up any problematic headers
         headers_to_remove = []
         headers_to_update = {}
         
-        for key, value in response.headers.items():
-            try:
-                # Try to encode as UTF-8 to check for issues
-                if isinstance(value, str):
-                    value.encode('utf-8')
-                elif isinstance(value, bytes):
-                    value.decode('utf-8')
-                else:
-                    # Convert to string and check
-                    str(value).encode('utf-8')
-            except (UnicodeEncodeError, UnicodeDecodeError):
-                # This header has encoding issues, remove it or fix it
-                if key.lower() not in ['content-type', 'content-length']:  # Keep essential headers
-                    headers_to_remove.append(key)
-                else:
-                    # Try to fix essential headers
-                    try:
-                        if isinstance(value, bytes):
-                            fixed_value = value.decode('utf-8', errors='replace')
-                        else:
-                            fixed_value = str(value).encode('utf-8', errors='replace').decode('utf-8')
-                        headers_to_update[key] = fixed_value
-                    except:
+        try:
+            logger.info(f"Response headers type: {type(response.headers)}, value: {response.headers}")
+            for key, value in response.headers.items():
+                logger.info(f"Processing header: key={key}, value={value}, value_type={type(value)}")
+                try:
+                    # Try to encode as UTF-8 to check for issues
+                    if isinstance(value, str):
+                        value.encode('utf-8')
+                    elif isinstance(value, bytes):
+                        value.decode('utf-8')
+                    else:
+                        # Convert to string and check
+                        str(value).encode('utf-8')
+                except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                    logger.error(f"Encoding error for header {key}: {e}")
+                    # This header has encoding issues, remove it or fix it
+                    if key.lower() not in ['content-type', 'content-length']:  # Keep essential headers
                         headers_to_remove.append(key)
-        
+                    else:
+                        # Try to fix essential headers
+                        try:
+                            if isinstance(value, bytes):
+                                fixed_value = value.decode('utf-8', errors='replace')
+                            else:
+                                fixed_value = str(value).encode('utf-8', errors='replace').decode('utf-8')
+                            headers_to_update[key] = fixed_value
+                        except:
+                            headers_to_remove.append(key)
+        except Exception as e:
+            logger.error(f"Error in HeaderEncodingMiddleware: {e}", exc_info=True)
+
         # Remove problematic headers
         for key in headers_to_remove:
             response.headers.pop(key, None)
@@ -313,6 +337,37 @@ async def validation_exception_handler(
         except UnicodeEncodeError:
             safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
             response.headers[key] = safe_value
+    
+    # Check if this is a color validation error
+    for error in exc.errors():
+        msg = error.get("msg", "")
+        if "Invalid color format" in msg and "#RRGGBB" in msg:
+            # Extract field name from message
+            field_name = None
+            if "for '" in msg:
+                start = msg.find("for '") + 5
+                end = msg.find("':", start)
+                if end > start:
+                    field_name = msg[start:end]
+            
+            response_content = {
+                "error": {
+                    "code": "INVALID_COLOR_FORMAT",
+                    "message": msg,
+                    "details": {
+                        "key": field_name,
+                        "value": error.get("input", ""),
+                        "expected_format": "#RRGGBB",
+                    },
+                },
+                "data": None,
+            }
+            response = JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=response_content,
+            )
+            add_security_headers(response)
+            return response
     
     # Convert FastAPI validation errors to standard format
     details = {}

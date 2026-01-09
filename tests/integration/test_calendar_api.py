@@ -7,7 +7,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_calendar(client, test_user, auth_headers, db_session):
+def test_create_calendar(client_with_db, test_user, auth_headers, db_session):
     """Test creating a calendar."""
     # Assign calendar.manage permission
     module_role = ModuleRole(
@@ -26,7 +26,7 @@ def test_create_calendar(client, test_user, auth_headers, db_session):
         "is_public": False,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -38,7 +38,7 @@ def test_create_calendar(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_calendars(client, test_user, auth_headers, db_session):
+def test_list_calendars(client_with_db, test_user, auth_headers, db_session):
     """Test listing calendars."""
     # Assign calendar.view permission
     module_role = ModuleRole(
@@ -50,14 +50,14 @@ def test_list_calendars(client, test_user, auth_headers, db_session):
     db_session.add(module_role)
     db_session.commit()
 
-    response = client.get("/api/v1/calendar/calendars", headers=auth_headers)
+    response = client_with_db.get("/api/v1/calendar/calendars", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
 
 
-def test_create_event(client, test_user, auth_headers, db_session):
+def test_create_event(client_with_db, test_user, auth_headers, db_session):
     """Test creating a calendar event."""
     # Assign permissions
     module_role = ModuleRole(
@@ -71,7 +71,7 @@ def test_create_event(client, test_user, auth_headers, db_session):
 
     # First create a calendar
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
-    calendar_response = client.post(
+    calendar_response = client_with_db.post(
         "/api/v1/calendar/calendars",
         json=calendar_data,
         headers=auth_headers,
@@ -89,7 +89,7 @@ def test_create_event(client, test_user, auth_headers, db_session):
         "end_time": end_time,
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/calendar/events",
         json=event_data,
         headers=auth_headers,

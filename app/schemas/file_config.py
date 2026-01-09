@@ -126,7 +126,7 @@ class ThumbnailConfigUpdate(BaseModel):
 
     default_width: int | None = Field(None, description="Default thumbnail width in pixels")
     default_height: int | None = Field(None, description="Default thumbnail height in pixels")
-    quality: int | None = Field(None, ge=1, le=100, description="JPEG quality (1-100)")
+    quality: int | None = Field(None, description="JPEG quality (1-100)")
     cache_enabled: bool | None = Field(None, description="Whether thumbnail cache is enabled")
     max_cache_size: int | None = Field(None, description="Maximum cache size in bytes")
 

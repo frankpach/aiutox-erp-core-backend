@@ -8,7 +8,7 @@ from app.models.tag import Tag
 from tests.helpers import create_user_with_permission
 
 
-def test_add_tags_to_file(client, test_user, db_session):
+def test_add_tags_to_file(client_with_db, test_user, db_session):
     """Test adding tags to a file."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -30,7 +30,7 @@ def test_add_tags_to_file(client, test_user, db_session):
     # Upload a file
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
-    upload_response = client.post(
+    upload_response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
@@ -39,7 +39,7 @@ def test_add_tags_to_file(client, test_user, db_session):
     file_id = upload_response.json()["data"]["id"]
 
     # Add tags to file
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{file_id}/tags?tag_ids={tag1.id}&tag_ids={tag2.id}",
         headers=headers,
     )
@@ -57,7 +57,7 @@ def test_add_tags_to_file(client, test_user, db_session):
     assert str(tag2.id) in tag_ids
 
 
-def test_remove_tag_from_file(client, test_user, db_session):
+def test_remove_tag_from_file(client_with_db, test_user, db_session):
     """Test removing a tag from a file."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -74,7 +74,7 @@ def test_remove_tag_from_file(client, test_user, db_session):
     # Upload a file
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
-    upload_response = client.post(
+    upload_response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
@@ -83,14 +83,14 @@ def test_remove_tag_from_file(client, test_user, db_session):
     file_id = upload_response.json()["data"]["id"]
 
     # Add tag to file
-    add_response = client.post(
+    add_response = client_with_db.post(
         f"/api/v1/files/{file_id}/tags?tag_ids={tag.id}",
         headers=headers,
     )
     assert add_response.status_code == 200
 
     # Remove tag from file
-    response = client.delete(
+    response = client_with_db.delete(
         f"/api/v1/files/{file_id}/tags/{tag.id}",
         headers=headers,
     )
@@ -98,7 +98,7 @@ def test_remove_tag_from_file(client, test_user, db_session):
     assert response.status_code == 204
 
     # Verify tag is removed
-    get_response = client.get(f"/api/v1/files/{file_id}/tags", headers=headers)
+    get_response = client_with_db.get(f"/api/v1/files/{file_id}/tags", headers=headers)
     if get_response.status_code != 200:
         print(f"Response status: {get_response.status_code}")
         print(f"Response body: {get_response.text}")
@@ -107,7 +107,7 @@ def test_remove_tag_from_file(client, test_user, db_session):
     assert len(data["data"]) == 0
 
 
-def test_get_file_tags(client, test_user, db_session):
+def test_get_file_tags(client_with_db, test_user, db_session):
     """Test getting tags for a file."""
     # Assign files.manage and files.view permissions
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -129,7 +129,7 @@ def test_get_file_tags(client, test_user, db_session):
     # Upload a file
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
-    upload_response = client.post(
+    upload_response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
@@ -138,13 +138,13 @@ def test_get_file_tags(client, test_user, db_session):
     file_id = upload_response.json()["data"]["id"]
 
     # Add tags to file
-    client.post(
+    client_with_db.post(
         f"/api/v1/files/{file_id}/tags?tag_ids={tag1.id}&tag_ids={tag2.id}",
         headers=headers,
     )
 
     # Get tags
-    response = client.get(f"/api/v1/files/{file_id}/tags", headers=headers)
+    response = client_with_db.get(f"/api/v1/files/{file_id}/tags", headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -155,7 +155,7 @@ def test_get_file_tags(client, test_user, db_session):
     assert "Tag 2" in tag_names
 
 
-def test_list_files_filtered_by_tags(client, test_user, db_session):
+def test_list_files_filtered_by_tags(client_with_db, test_user, db_session):
     """Test listing files filtered by tags."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -179,48 +179,48 @@ def test_list_files_filtered_by_tags(client, test_user, db_session):
 
     # File 1 with tag1
     files1 = {"file": ("file1.pdf", file_content, "application/pdf")}
-    upload_response1 = client.post(
+    upload_response1 = client_with_db.post(
         "/api/v1/files/upload",
         files=files1,
         headers=headers,
     )
     assert upload_response1.status_code == 201
     file_id1 = upload_response1.json()["data"]["id"]
-    client.post(
+    client_with_db.post(
         f"/api/v1/files/{file_id1}/tags?tag_ids={tag1.id}",
         headers=headers,
     )
 
     # File 2 with tag2
     files2 = {"file": ("file2.pdf", file_content, "application/pdf")}
-    upload_response2 = client.post(
+    upload_response2 = client_with_db.post(
         "/api/v1/files/upload",
         files=files2,
         headers=headers,
     )
     assert upload_response2.status_code == 201
     file_id2 = upload_response2.json()["data"]["id"]
-    client.post(
+    client_with_db.post(
         f"/api/v1/files/{file_id2}/tags?tag_ids={tag2.id}",
         headers=headers,
     )
 
     # File 3 with both tags
     files3 = {"file": ("file3.pdf", file_content, "application/pdf")}
-    upload_response3 = client.post(
+    upload_response3 = client_with_db.post(
         "/api/v1/files/upload",
         files=files3,
         headers=headers,
     )
     assert upload_response3.status_code == 201
     file_id3 = upload_response3.json()["data"]["id"]
-    client.post(
+    client_with_db.post(
         f"/api/v1/files/{file_id3}/tags?tag_ids={tag1.id}&tag_ids={tag2.id}",
         headers=headers,
     )
 
     # List files with tag1
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/files?tags={tag1.id}",
         headers=headers,
     )
@@ -235,7 +235,7 @@ def test_list_files_filtered_by_tags(client, test_user, db_session):
     assert file_id2 not in file_ids
 
     # List files with both tags (must have ALL tags)
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/files?tags={tag1.id},{tag2.id}",
         headers=headers,
     )
@@ -247,7 +247,7 @@ def test_list_files_filtered_by_tags(client, test_user, db_session):
     assert file_id2 not in file_ids
 
 
-def test_add_tags_to_file_no_permission(client, test_user, db_session):
+def test_add_tags_to_file_no_permission(client_with_db, test_user, db_session):
     """Test adding tags to a file without permission."""
     # Assign files.view permission (not manage)
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
@@ -256,7 +256,7 @@ def test_add_tags_to_file_no_permission(client, test_user, db_session):
     from app.models.user import User
     from app.core.auth import hash_password
     other_user = User(
-        email="other@test.com",
+        email=f"other-tags-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
         tenant_id=test_user.tenant_id,
         is_active=True,
@@ -277,7 +277,7 @@ def test_add_tags_to_file_no_permission(client, test_user, db_session):
     other_manager_headers = create_user_with_permission(db_session, other_user, "files", "manager")
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
-    upload_response = client.post(
+    upload_response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=other_manager_headers,
@@ -286,7 +286,7 @@ def test_add_tags_to_file_no_permission(client, test_user, db_session):
     file_id = upload_response.json()["data"]["id"]
 
     # Try to add tag without manage permission (test_user is not the owner)
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/files/{file_id}/tags?tag_ids={tag.id}",
         headers=headers,
     )
@@ -294,7 +294,7 @@ def test_add_tags_to_file_no_permission(client, test_user, db_session):
     assert response.status_code == 403
 
 
-def test_file_response_includes_tags(client, test_user, db_session):
+def test_file_response_includes_tags(client_with_db, test_user, db_session):
     """Test that file response includes tags."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -311,7 +311,7 @@ def test_file_response_includes_tags(client, test_user, db_session):
     # Upload a file
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
-    upload_response = client.post(
+    upload_response = client_with_db.post(
         "/api/v1/files/upload",
         files=files,
         headers=headers,
@@ -320,13 +320,13 @@ def test_file_response_includes_tags(client, test_user, db_session):
     file_id = upload_response.json()["data"]["id"]
 
     # Add tag to file
-    client.post(
+    client_with_db.post(
         f"/api/v1/files/{file_id}/tags?tag_ids={tag.id}",
         headers=headers,
     )
 
     # Get file info
-    response = client.get(f"/api/v1/files/{file_id}", headers=headers)
+    response = client_with_db.get(f"/api/v1/files/{file_id}", headers=headers)
     assert response.status_code == 200
     data = response.json()["data"]
     assert "tags" in data

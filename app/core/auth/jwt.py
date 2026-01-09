@@ -2,13 +2,24 @@
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from jose import JWTError, jwt
 
 from app.core.config_file import get_settings
 
 settings = get_settings()
+
+
+def _encode_jwt(payload: dict[str, Any]) -> str:
+    """Encode JWT token with common fields (DRY helper)."""
+    to_encode = payload.copy()
+    to_encode.update({
+        "exp": to_encode.get("exp"),
+        "iat": datetime.now(timezone.utc),
+        "type": to_encode.get("type", "access")
+    })
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def create_access_token(
@@ -38,9 +49,8 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    to_encode.update({"exp": expire, "type": "access"})
+    return _encode_jwt(to_encode)
 
 
 def create_refresh_token(
@@ -73,11 +83,10 @@ def create_refresh_token(
     to_encode = {
         "sub": str(user_id),
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
         "type": "refresh",
+        "jti": str(uuid4()),  # Unique identifier for this token
     }
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    return _encode_jwt(to_encode)
 
 
 def decode_token(token: str) -> dict[str, Any] | None:

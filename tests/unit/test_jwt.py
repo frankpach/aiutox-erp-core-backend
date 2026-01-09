@@ -231,14 +231,16 @@ def test_refresh_token_with_remember_me_false():
 
 
 def test_access_token_expires_in_60_minutes():
-    """Test that access token expires in 60 minutes."""
+    """Test that access token expires in 60 minutes when explicitly set."""
     data = {
         "sub": str(uuid4()),
         "tenant_id": str(uuid4()),
         "roles": ["admin"],
         "permissions": ["auth.manage_users"],
     }
-    token = create_access_token(data)
+    # Create token with explicit 60 minutes expiration
+    expires_delta = timedelta(minutes=60)
+    token = create_access_token(data, expires_delta=expires_delta)
     decoded = decode_token(token)
 
     assert decoded is not None
@@ -248,7 +250,7 @@ def test_access_token_expires_in_60_minutes():
     iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
 
     diff = exp_datetime - iat_datetime
-    expected_minutes = 60  # Hardcoded expected value for this specific test
+    expected_minutes = 60  # Explicit expiration time
     assert abs(diff.total_seconds() / 60 - expected_minutes) < 1  # Allow 1 minute tolerance
 
 

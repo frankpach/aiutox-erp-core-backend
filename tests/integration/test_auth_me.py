@@ -10,12 +10,12 @@ from app.core.auth import create_access_token
 from app.services.auth_service import AuthService
 
 
-def test_get_me_authenticated(client, db_session, test_user):
+def test_get_me_authenticated(client_with_db, db_session, test_user):
     """Test that authenticated user can get their information."""
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -31,12 +31,12 @@ def test_get_me_authenticated(client, db_session, test_user):
     assert user_data["full_name"] == test_user.full_name
 
 
-def test_get_me_includes_roles_and_permissions(client, db_session, test_user_with_roles):
+def test_get_me_includes_roles_and_permissions(client_with_db, db_session, test_user_with_roles):
     """Test that /me response includes roles and permissions."""
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user_with_roles)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -67,7 +67,7 @@ def test_get_me_invalid_token(client):
     assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
-def test_get_me_expired_token(client, test_user):
+def test_get_me_expired_token(client_with_db, test_user):
     """Test that /me endpoint returns 401 for expired token."""
     # Create expired token
     token_data = {
@@ -81,7 +81,7 @@ def test_get_me_expired_token(client, test_user):
     # Wait to ensure expiration
     time.sleep(2)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {expired_token}"},
     )
@@ -92,7 +92,7 @@ def test_get_me_expired_token(client, test_user):
     assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
 
 
-def test_get_me_inactive_user(client, db_session, test_user_inactive):
+def test_get_me_inactive_user(client_with_db, db_session, test_user_inactive):
     """Test that inactive user cannot access /me endpoint."""
     # First, we need to create a token for inactive user
     # But get_current_user should reject inactive users
@@ -105,7 +105,7 @@ def test_get_me_inactive_user(client, db_session, test_user_inactive):
     access_token = create_access_token(token_data)
 
     # Try to access /me
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -134,13 +134,13 @@ def test_get_me_malformed_authorization_header(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_me_wrong_token_type(client, db_session, test_user):
+def test_get_me_wrong_token_type(client_with_db, db_session, test_user):
     """Test that /me endpoint returns 401 for refresh token (wrong type)."""
     from app.core.auth import create_refresh_token
 
     refresh_token = create_refresh_token(test_user.id)
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {refresh_token}"},
     )

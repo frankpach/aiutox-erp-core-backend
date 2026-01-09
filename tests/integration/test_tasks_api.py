@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_task(client, test_user, db_session):
+def test_create_task(client_with_db, test_user, db_session):
     """Test creating a task."""
     # Assign tasks.manage permission
     module_role = ModuleRole(
@@ -32,7 +32,7 @@ def test_create_task(client, test_user, db_session):
         "priority": "high",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=headers,
@@ -47,7 +47,7 @@ def test_create_task(client, test_user, db_session):
     assert "id" in data
 
 
-def test_list_tasks(client, test_user, db_session):
+def test_list_tasks(client_with_db, test_user, db_session):
     """Test listing tasks."""
     # Assign tasks.view permission
     module_role = ModuleRole(
@@ -66,7 +66,7 @@ def test_list_tasks(client, test_user, db_session):
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    response = client.get("/api/v1/tasks", headers=headers)
+    response = client_with_db.get("/api/v1/tasks", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -76,7 +76,7 @@ def test_list_tasks(client, test_user, db_session):
     assert "page" in response.json()["meta"]
 
 
-def test_get_task(client, test_user, db_session):
+def test_get_task(client_with_db, test_user, db_session):
     """Test getting a task."""
     # Assign permissions
     module_role = ModuleRole(
@@ -97,7 +97,7 @@ def test_get_task(client, test_user, db_session):
 
     # Create a task
     task_data = {"title": "Test Task", "description": "Test description"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=headers,
@@ -105,7 +105,7 @@ def test_get_task(client, test_user, db_session):
     task_id = create_response.json()["data"]["id"]
 
     # Get it
-    response = client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+    response = client_with_db.get(f"/api/v1/tasks/{task_id}", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -113,7 +113,7 @@ def test_get_task(client, test_user, db_session):
     assert data["title"] == "Test Task"
 
 
-def test_update_task(client, test_user, db_session):
+def test_update_task(client_with_db, test_user, db_session):
     """Test updating a task."""
     # Assign permissions
     module_role = ModuleRole(
@@ -134,7 +134,7 @@ def test_update_task(client, test_user, db_session):
 
     # Create a task
     task_data = {"title": "Original Title"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=headers,
@@ -143,7 +143,7 @@ def test_update_task(client, test_user, db_session):
 
     # Update it
     update_data = {"title": "Updated Title", "status": "in_progress"}
-    response = client.put(
+    response = client_with_db.put(
         f"/api/v1/tasks/{task_id}",
         json=update_data,
         headers=headers,
@@ -155,7 +155,7 @@ def test_update_task(client, test_user, db_session):
     assert data["status"] == "in_progress"
 
 
-def test_delete_task(client, test_user, auth_headers, db_session):
+def test_delete_task(client_with_db, test_user, auth_headers, db_session):
     """Test deleting a task."""
     # Assign permissions
     module_role = ModuleRole(
@@ -169,7 +169,7 @@ def test_delete_task(client, test_user, auth_headers, db_session):
 
     # Create a task
     task_data = {"title": "Test Task"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=auth_headers,
@@ -177,16 +177,16 @@ def test_delete_task(client, test_user, auth_headers, db_session):
     task_id = create_response.json()["data"]["id"]
 
     # Delete it
-    response = client.delete(f"/api/v1/tasks/{task_id}", headers=auth_headers)
+    response = client_with_db.delete(f"/api/v1/tasks/{task_id}", headers=auth_headers)
 
     assert response.status_code == 204
 
     # Verify it's deleted
-    get_response = client.get(f"/api/v1/tasks/{task_id}", headers=auth_headers)
+    get_response = client_with_db.get(f"/api/v1/tasks/{task_id}", headers=auth_headers)
     assert get_response.status_code == 404
 
 
-def test_add_checklist_item(client, test_user, db_session):
+def test_add_checklist_item(client_with_db, test_user, db_session):
     """Test adding a checklist item to a task."""
     # Assign permissions
     module_role = ModuleRole(
@@ -207,7 +207,7 @@ def test_add_checklist_item(client, test_user, db_session):
 
     # Create a task
     task_data = {"title": "Test Task"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=headers,
@@ -216,7 +216,7 @@ def test_add_checklist_item(client, test_user, db_session):
 
     # Add checklist item
     item_data = {"title": "Checklist Item 1", "order": 0}
-    response = client.post(
+    response = client_with_db.post(
         f"/api/v1/tasks/{task_id}/checklist",
         json=item_data,
         headers=headers,
@@ -228,7 +228,7 @@ def test_add_checklist_item(client, test_user, db_session):
     assert data["completed"] is False
 
 
-def test_list_checklist_items(client, test_user, db_session):
+def test_list_checklist_items(client_with_db, test_user, db_session):
     """Test listing checklist items for a task."""
     # Assign permissions (manager to create, viewer to view)
     module_role = ModuleRole(
@@ -249,7 +249,7 @@ def test_list_checklist_items(client, test_user, db_session):
 
     # Create a task and add items
     task_data = {"title": "Test Task"}
-    create_response = client.post(
+    create_response = client_with_db.post(
         "/api/v1/tasks",
         json=task_data,
         headers=headers,
@@ -257,19 +257,19 @@ def test_list_checklist_items(client, test_user, db_session):
     task_id = create_response.json()["data"]["id"]
 
     # Add items
-    client.post(
+    client_with_db.post(
         f"/api/v1/tasks/{task_id}/checklist",
         json={"title": "Item 1", "order": 0},
         headers=headers,
     )
-    client.post(
+    client_with_db.post(
         f"/api/v1/tasks/{task_id}/checklist",
         json={"title": "Item 2", "order": 1},
         headers=headers,
     )
 
     # List items
-    response = client.get(f"/api/v1/tasks/{task_id}/checklist", headers=headers)
+    response = client_with_db.get(f"/api/v1/tasks/{task_id}/checklist", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]

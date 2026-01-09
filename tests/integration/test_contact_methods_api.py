@@ -16,7 +16,7 @@ class TestContactMethodsAPI:
     """Test suite for contact methods API endpoints."""
 
     def test_list_contact_methods_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that listing contact methods requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -24,7 +24,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to list contact methods
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"entity_type": "user", "entity_id": str(test_user.id)},
@@ -37,7 +37,7 @@ class TestContactMethodsAPI:
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
     def test_list_contact_methods_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can list contact methods."""
         # Arrange: Assign admin role
@@ -64,7 +64,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List contact methods
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"entity_type": "user", "entity_id": str(test_user.id)},
@@ -79,7 +79,7 @@ class TestContactMethodsAPI:
         assert data["data"][0]["value"] == "test@example.com"
 
     def test_list_contact_methods_empty(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test listing contact methods when none exist."""
         # Arrange: Assign admin role
@@ -95,7 +95,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: List contact methods
-        response = client.get(
+        response = client_with_db.get(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"entity_type": "user", "entity_id": str(test_user.id)},
@@ -109,7 +109,7 @@ class TestContactMethodsAPI:
         assert len(data["data"]) == 0
 
     def test_create_contact_method_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that creating contact method requires auth.manage_users permission."""
         # Arrange: User without admin role
@@ -117,7 +117,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to create contact method
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -132,7 +132,7 @@ class TestContactMethodsAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_contact_method_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can create contact method."""
         # Arrange: Assign admin role
@@ -150,7 +150,7 @@ class TestContactMethodsAPI:
         test_email = f"test-{uuid4().hex[:8]}@example.com"
 
         # Act: Create contact method
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -173,7 +173,7 @@ class TestContactMethodsAPI:
         assert data["data"]["entity_id"] == str(test_user.id)
 
     def test_create_contact_method_phone(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test creating phone contact method."""
         # Arrange: Assign admin role
@@ -189,7 +189,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Create phone contact method
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -210,7 +210,7 @@ class TestContactMethodsAPI:
         assert data["data"]["is_primary"] is True
 
     def test_get_contact_method_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that getting contact method requires auth.manage_users permission."""
         # Arrange: Create contact method
@@ -228,7 +228,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to get contact method
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/contact-methods/{contact_method.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -237,7 +237,7 @@ class TestContactMethodsAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_contact_method_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can get contact method."""
         # Arrange: Create contact method
@@ -264,7 +264,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Get contact method
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/contact-methods/{contact_method.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -277,7 +277,7 @@ class TestContactMethodsAPI:
         assert data["data"]["value"] == "test@example.com"
 
     def test_get_contact_method_not_found(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test getting non-existent contact method."""
         # Arrange: Assign admin role
@@ -295,7 +295,7 @@ class TestContactMethodsAPI:
         fake_id = uuid4()
 
         # Act: Get non-existent contact method
-        response = client.get(
+        response = client_with_db.get(
             f"/api/v1/contact-methods/{fake_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -304,7 +304,7 @@ class TestContactMethodsAPI:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_update_contact_method_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that updating contact method requires auth.manage_users permission."""
         # Arrange: Create contact method
@@ -322,7 +322,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to update contact method
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/contact-methods/{contact_method.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={"value": "updated@example.com"},
@@ -332,7 +332,7 @@ class TestContactMethodsAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_contact_method_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can update contact method."""
         # Arrange: Create contact method
@@ -359,7 +359,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Update contact method
-        response = client.patch(
+        response = client_with_db.patch(
             f"/api/v1/contact-methods/{contact_method.id}",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
@@ -378,7 +378,7 @@ class TestContactMethodsAPI:
         assert data["data"]["is_primary"] is True
 
     def test_delete_contact_method_requires_auth_manage_users(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that deleting contact method requires auth.manage_users permission."""
         # Arrange: Create contact method
@@ -396,7 +396,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Try to delete contact method
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/contact-methods/{contact_method.id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -405,7 +405,7 @@ class TestContactMethodsAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_contact_method_with_permission(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test that admin can delete contact method."""
         # Arrange: Create contact method
@@ -432,7 +432,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Delete contact method
-        response = client.delete(
+        response = client_with_db.delete(
             f"/api/v1/contact-methods/{contact_method_id}",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -448,7 +448,7 @@ class TestContactMethodsAPI:
         assert deleted is None
 
     def test_create_contact_method_address(
-        self, client, db_session, test_user, test_tenant
+        self, client_with_db, db_session, test_user, test_tenant
     ):
         """Test creating address contact method with all address fields."""
         # Arrange: Assign admin role
@@ -464,7 +464,7 @@ class TestContactMethodsAPI:
         access_token = auth_service.create_access_token_for_user(test_user)
 
         # Act: Create address contact method
-        response = client.post(
+        response = client_with_db.post(
             "/api/v1/contact-methods",
             headers={"Authorization": f"Bearer {access_token}"},
             json={

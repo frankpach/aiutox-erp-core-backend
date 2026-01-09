@@ -4,7 +4,7 @@ import pytest
 from tests.helpers import create_user_with_permission
 
 
-def test_create_report(client, test_user, db_session):
+def test_create_report(client_with_db, test_user, db_session):
     """Test creating a report definition."""
     # Assign reporting.manage permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "manager")
@@ -18,7 +18,7 @@ def test_create_report(client, test_user, db_session):
         "config": {},
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/reporting/reports",
         json=report_data,
         headers=headers,
@@ -31,7 +31,7 @@ def test_create_report(client, test_user, db_session):
     assert "id" in data
 
 
-def test_list_reports(client, test_user, db_session):
+def test_list_reports(client_with_db, test_user, db_session):
     """Test listing reports."""
     # Assign reporting.view permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "viewer")
@@ -49,14 +49,14 @@ def test_list_reports(client, test_user, db_session):
         }
     )
 
-    response = client.get("/api/v1/reporting/reports", headers=headers)
+    response = client_with_db.get("/api/v1/reporting/reports", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) > 0
 
 
-def test_get_report(client, test_user, db_session):
+def test_get_report(client_with_db, test_user, db_session):
     """Test getting a specific report."""
     # Assign reporting.view permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "viewer")
@@ -74,7 +74,7 @@ def test_get_report(client, test_user, db_session):
         }
     )
 
-    response = client.get(
+    response = client_with_db.get(
         f"/api/v1/reporting/reports/{report.id}", headers=headers
     )
 
@@ -84,12 +84,12 @@ def test_get_report(client, test_user, db_session):
     assert data["name"] == "Test Report"
 
 
-def test_list_data_sources(client, test_user, db_session):
+def test_list_data_sources(client_with_db, test_user, db_session):
     """Test listing available data sources."""
     # Assign reporting.view permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "viewer")
 
-    response = client.get("/api/v1/reporting/data-sources", headers=headers)
+    response = client_with_db.get("/api/v1/reporting/data-sources", headers=headers)
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -97,12 +97,12 @@ def test_list_data_sources(client, test_user, db_session):
     assert any(ds["type"] == "products" for ds in data)
 
 
-def test_get_data_source_columns(client, test_user, db_session):
+def test_get_data_source_columns(client_with_db, test_user, db_session):
     """Test getting columns for a data source."""
     # Assign reporting.view permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "viewer")
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/reporting/data-sources/products/columns", headers=headers
     )
 
@@ -113,12 +113,12 @@ def test_get_data_source_columns(client, test_user, db_session):
     assert all("name" in col and "type" in col for col in data)
 
 
-def test_get_data_source_filters(client, test_user, db_session):
+def test_get_data_source_filters(client_with_db, test_user, db_session):
     """Test getting filters for a data source."""
     # Assign reporting.view permission
     headers = create_user_with_permission(db_session, test_user, "reporting", "viewer")
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/reporting/data-sources/products/filters", headers=headers
     )
 

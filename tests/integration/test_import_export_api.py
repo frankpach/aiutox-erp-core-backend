@@ -6,7 +6,7 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_create_import_job(client, test_user, auth_headers, db_session):
+def test_create_import_job(client_with_db, test_user, auth_headers, db_session):
     """Test creating an import job."""
     # Assign import_export.import permission
     module_role = ModuleRole(
@@ -23,7 +23,7 @@ def test_create_import_job(client, test_user, auth_headers, db_session):
         "file_name": "products.csv",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/import-export/import/jobs",
         json=job_data,
         headers=auth_headers,
@@ -36,7 +36,7 @@ def test_create_import_job(client, test_user, auth_headers, db_session):
     assert "id" in data
 
 
-def test_list_import_jobs(client, test_user, auth_headers, db_session):
+def test_list_import_jobs(client_with_db, test_user, auth_headers, db_session):
     """Test listing import jobs."""
     # Assign import_export.view permission
     module_role = ModuleRole(
@@ -48,7 +48,7 @@ def test_list_import_jobs(client, test_user, auth_headers, db_session):
     db_session.add(module_role)
     db_session.commit()
 
-    response = client.get(
+    response = client_with_db.get(
         "/api/v1/import-export/import/jobs",
         headers=auth_headers,
     )
@@ -58,7 +58,7 @@ def test_list_import_jobs(client, test_user, auth_headers, db_session):
     assert isinstance(data, list)
 
 
-def test_create_export_job(client, test_user, auth_headers, db_session):
+def test_create_export_job(client_with_db, test_user, auth_headers, db_session):
     """Test creating an export job."""
     # Assign import_export.export permission
     module_role = ModuleRole(
@@ -75,7 +75,7 @@ def test_create_export_job(client, test_user, auth_headers, db_session):
         "export_format": "csv",
     }
 
-    response = client.post(
+    response = client_with_db.post(
         "/api/v1/import-export/export/jobs",
         json=job_data,
         headers=auth_headers,
