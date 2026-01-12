@@ -69,7 +69,7 @@ def test_get_integrations(integration_service, test_tenant):
 
     # Filter by type
     webhook_integrations = integration_service.list_integrations(
-        test_tenant.id, type=IntegrationType.WEBHOOK
+        test_tenant.id, integration_type=IntegrationType.WEBHOOK
     )
     assert any(i["id"] == integration1["id"] for i in webhook_integrations)
     assert not any(i["id"] == integration2["id"] for i in webhook_integrations)

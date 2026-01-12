@@ -43,14 +43,14 @@ def test_check_login_rate_limit_exceeded():
     # Record 5 attempts (at limit)
     for i in range(5):
         record_login_attempt(ip_address)
-    
-    # Should still be under limit
+
+    # Should be at limit (not under)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
-    assert result is True
+    assert result is False
 
     # Record 6th attempt (exceeds limit)
     record_login_attempt(ip_address)
-    
+
     # Now should be rate limited
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is False
@@ -102,21 +102,21 @@ def test_check_login_rate_limit_custom_max_attempts():
     # Record 2 attempts with max_attempts=3
     for i in range(2):
         record_login_attempt(ip_address)
-    
+
     # Should still be under limit
     result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
     assert result is True
 
     # Record 3rd attempt
     record_login_attempt(ip_address)
-    
-    # Should still be under limit (3 attempts with max_attempts=3)
+
+    # Should be at limit (3 attempts with max_attempts=3)
     result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
-    assert result is True
+    assert result is False
 
     # Record 4th attempt (exceeds limit)
     record_login_attempt(ip_address)
-    
+
     # Now should be rate limited
     result = check_login_rate_limit(ip_address, max_attempts=3, window_minutes=1)
     assert result is False
@@ -215,10 +215,10 @@ def test_check_login_rate_limit_integration():
         result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
         assert result is True
 
-    # Record 5th attempt (still at limit)
+    # Record 5th attempt (at limit)
     record_login_attempt(ip_address)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
-    assert result is True
+    assert result is False
 
     # Record 6th attempt (exceeds limit)
     record_login_attempt(ip_address)

@@ -18,55 +18,17 @@ from dotenv import load_dotenv
 @pytest.fixture(scope="function")
 def simple_client():
     """Create a test client without database session fixture."""
-    
-    # Load environment variables
-    backend_dir = Path(__file__).parent.parent
-    env_files = [
-        backend_dir / ".env",
-        backend_dir.parent / ".env",
-    ]
-    
-    for env_file in env_files:
-        if env_file.exists():
-            load_dotenv(env_file)
-    
-    # Create direct database connection
+
+    # Import the test database URL from conftest
+    import sys
     import os
-    from app.core.config_file import get_settings
-    
-    settings = get_settings()
-    database_url = settings.database_url
-    
-    # Convert to test database URL
-    if "db:" in database_url or "@db:" in database_url:
-        test_db_url = database_url.replace("@db:5432", "@localhost:15432")
-        test_db_url = test_db_url.replace("db:5432", "localhost:15432")
-        test_db_url = test_db_url.replace("@db/", "@localhost:15432/")
-        test_db_url = test_db_url.replace("db/", "localhost:15432/")
-    elif settings.POSTGRES_HOST == "db" and settings.POSTGRES_PORT == 5432:
-        test_db_url = (
-            f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-            f"@localhost:15432/{settings.POSTGRES_DB}"
-        )
-    else:
-        if settings.POSTGRES_HOST == "db":
-            test_db_url = (
-                f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-                f"@localhost:15432/{settings.POSTGRES_DB}"
-            )
-        else:
-            test_db_url = database_url
-    
-    # Use test database name
-    test_db_name = os.getenv("TEST_POSTGRES_DB", "aiutox_erp_test")
-    if "/" in test_db_url:
-        base_url = test_db_url.rsplit("/", 1)[0]
-        database_url = f"{base_url}/{test_db_name}"
-    else:
-        database_url = test_db_url.replace("/aiutox_erp_dev", f"/{test_db_name}")
-        database_url = database_url.replace("/postgres", f"/{test_db_name}")
-    
-    # Create engine and session
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from conftest import TEST_DATABASE_URL
+
+    # Use the same database URL as conftest.py
+    database_url = TEST_DATABASE_URL
+
+    # Create engine and run migrations first
     engine = create_engine(
         database_url,
         pool_pre_ping=True,
@@ -75,10 +37,28 @@ def simple_client():
             "options": "-c timezone=utc"
         }
     )
-    
+
+    # Run migrations to ensure tables exist
+    from app.core.migrations.manager import MigrationManager
+
+    try:
+        manager = MigrationManager()
+        manager.engine = engine
+        manager.alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+        result = manager.apply_migrations()
+
+        if not result.success:
+            print(f"Migration failed: {result.errors}")
+            raise RuntimeError(f"Failed to setup database: {result.errors}")
+
+        print(f"Migrations applied successfully")
+    except Exception as e:
+        print(f"Error running migrations: {e}")
+        raise
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
-    
+
     # Create test data
     tenant = Tenant(
         name="Test Tenant",
@@ -87,10 +67,10 @@ def simple_client():
     db.add(tenant)
     db.commit()
     db.refresh(tenant)
-    
+
     password = "test_password_123"
     password_hash = hash_password(password)
-    
+
     user = User(
         email=f"test-{uuid4().hex[:8]}@example.com",
         password_hash=password_hash,
@@ -101,19 +81,19 @@ def simple_client():
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     # Store plain password for test
     user._plain_password = password
-    
+
     # Override get_db with our session
     def override_get_db():
         try:
             yield db
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     try:
         with TestClient(app) as client:
             yield client, user
@@ -129,15 +109,15 @@ def simple_client():
             db.close()
         except:
             pass
-        
+
         # Clear dependency override
         app.dependency_overrides.clear()
 
 
-def test_login_success_fixed(simple_client):
+def test_login_success_fixed(simple_client, setup_database):
     """Test login endpoint with fixed client that bypasses problematic fixture."""
     client, test_user = simple_client
-    
+
     response = client.post(
         "/api/v1/auth/login",
         json={

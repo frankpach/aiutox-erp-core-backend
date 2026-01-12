@@ -865,16 +865,30 @@ class TestBarcodes:
         assert create_response.status_code == status.HTTP_201_CREATED
         product_id = create_response.json()["data"]["id"]
 
-        # Create barcode
-        client_with_db.post(
+        # Create barcode with unique EAN13 barcode
+        import random
+        # Generate a unique 13-digit barcode (first 12 digits random, last digit checksum)
+        base_digits = ''.join([str(random.randint(0, 9)) for _ in range(12)])
+        checksum = (10 - sum(int(digit) * (1 if i % 2 == 0 else 3) for i, digit in enumerate(base_digits)) % 10) % 10
+        unique_barcode = base_digits + str(checksum)
+
+        barcode_response = client_with_db.post(
             f"/api/v1/products/{product_id}/barcodes",
             headers={"Authorization": f"Bearer {access_token}"},
             json={
                 "tenant_id": str(test_tenant.id),
-                "barcode": f"1234567890{uuid4().hex[:3]}",
+                "barcode": unique_barcode,
                 "barcode_type": "EAN13",
             },
         )
+        # Verify barcode creation succeeded
+        if barcode_response.status_code != status.HTTP_201_CREATED:
+            print(f"ERROR: Barcode creation failed with status {barcode_response.status_code}")
+            print(f"Response: {barcode_response.text}")
+            print(f"Product ID: {product_id}")
+            print(f"Tenant ID: {test_tenant.id}")
+        assert barcode_response.status_code == status.HTTP_201_CREATED
+        print(f"Barcode created: {barcode_response.json()}")
 
         # Act: List barcodes
         response = client_with_db.get(
