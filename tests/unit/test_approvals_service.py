@@ -101,11 +101,60 @@ def test_add_approval_step(approval_service, test_user, test_tenant):
     assert step.flow_id == flow.id
     assert step.step_order == 1
     assert step.approver_type == "user"
+    assert step.approver_id == test_user.id
+    assert step.name == "Step 1"
 
 
+def test_bulk_approve_requests(approval_service, test_user, test_tenant, mock_event_publisher):
+    """Test bulk approving multiple approval requests."""
+    # Create a flow with steps
+    flow = approval_service.create_approval_flow(
+        flow_data={
+            "name": "Test Flow",
+            "flow_type": "sequential",
+            "module": "orders",
+        },
+        tenant_id=test_tenant.id,
+        user_id=test_user.id,
+    )
 
+    step = approval_service.add_approval_step(
+        flow_id=flow.id,
+        tenant_id=test_tenant.id,
+        step_data={
+            "step_order": 1,
+            "name": "Step 1",
+            "approver_type": "user",
+            "approver_id": test_user.id,
+        },
+    )
 
+    # Create multiple requests
+    request_ids = []
+    for i in range(3):
+        entity_id = uuid4()
+        request = approval_service.create_approval_request(
+            request_data={
+                "flow_id": flow.id,
+                "title": f"Test Request {i}",
+                "entity_type": "order",
+                "entity_id": entity_id,
+            },
+            tenant_id=test_tenant.id,
+            user_id=test_user.id,
+        )
+        request_ids.append(request.id)
 
+    # Bulk approve
+    approved_requests = approval_service.bulk_approve_requests(
+        request_ids=request_ids,
+        tenant_id=test_tenant.id,
+        user_id=test_user.id,
+        comment="Bulk approval test",
+    )
 
+    assert len(approved_requests) == 3
+    for request in approved_requests:
+        assert request.status == "approved"
 
 

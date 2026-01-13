@@ -43,6 +43,7 @@ class ApprovalFlowResponse(ApprovalFlowBase):
     created_by: UUID | None
     created_at: datetime
     updated_at: datetime
+    steps: list["ApprovalStepResponse"] = Field(default_factory=list, description="Flow steps")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,6 +62,9 @@ class ApprovalStepBase(BaseModel):
     approver_rule: dict[str, Any] | None = Field(None, description="Dynamic approver rule")
     require_all: bool = Field(False, description="Require all approvers (for parallel)")
     min_approvals: int | None = Field(None, description="Minimum approvals required")
+    form_schema: dict[str, Any] | None = Field(None, description="JSON Schema for dynamic form")
+    print_config: dict[str, Any] | None = Field(None, description="Configuration for printing (label, template, position)")
+    rejection_required: bool = Field(False, description="Require explanation on rejection")
 
 
 class ApprovalStepCreate(ApprovalStepBase):
@@ -81,6 +85,9 @@ class ApprovalStepUpdate(BaseModel):
     approver_rule: dict[str, Any] | None = Field(None, description="Dynamic approver rule")
     require_all: bool | None = Field(None, description="Require all approvers")
     min_approvals: int | None = Field(None, description="Minimum approvals required")
+    form_schema: dict[str, Any] | None = Field(None, description="JSON Schema for dynamic form")
+    print_config: dict[str, Any] | None = Field(None, description="Configuration for printing (label, template, position)")
+    rejection_required: bool | None = Field(None, description="Require explanation on rejection")
 
 
 class ApprovalStepResponse(ApprovalStepBase):
@@ -137,6 +144,8 @@ class ApprovalActionBase(BaseModel):
     action_type: str = Field(..., description="Action type (approve, reject, delegate, comment)", max_length=20)
     step_order: int = Field(..., description="Step order")
     comment: str | None = Field(None, description="Optional comment")
+    rejection_reason: str | None = Field(None, description="Explanation of rejection (separate from comment)")
+    form_data: dict[str, Any] | None = Field(None, description="Data from dynamic form filled in this step")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 

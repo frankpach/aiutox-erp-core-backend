@@ -68,6 +68,12 @@ class ApprovalFlow(Base):
         nullable=True,
         index=True,
     )
+    updated_by = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Timestamps
     created_at = Column(
@@ -80,6 +86,11 @@ class ApprovalFlow(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
+    )
+    deleted_at = Column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+        index=True,
     )
 
     # Relationships
@@ -129,6 +140,11 @@ class ApprovalStep(Base):
     # Requirements
     require_all = Column(Boolean, default=False, nullable=False)  # Require all approvers (for parallel)
     min_approvals = Column(Integer, nullable=True)  # Minimum approvals required
+
+    # Form and print configuration
+    form_schema = Column(JSONB, nullable=True)  # JSON Schema for dynamic form
+    print_config = Column(JSONB, nullable=True)  # Configuration for printing (label, template, position)
+    rejection_required = Column(Boolean, default=False, nullable=False)  # Require explanation on rejection
 
     # Timestamps
     created_at = Column(
@@ -227,6 +243,8 @@ class ApprovalRequest(Base):
         Index("idx_approval_requests_entity", "entity_type", "entity_id"),
         Index("idx_approval_requests_status", "tenant_id", "status"),
         Index("idx_approval_requests_flow", "flow_id", "status"),
+        Index("idx_approval_requests_tenant_entity", "tenant_id", "entity_type", "entity_id"),
+        Index("idx_approval_requests_requested_by", "requested_by", "status"),
     )
 
     def __repr__(self) -> str:
@@ -258,6 +276,8 @@ class ApprovalAction(Base):
     action_type = Column(String(20), nullable=False)  # approve, reject, delegate, comment
     step_order = Column(Integer, nullable=False)  # Step where action was taken
     comment = Column(Text, nullable=True)
+    rejection_reason = Column(Text, nullable=True)  # Explanation of rejection (separate from comment)
+    form_data = Column(JSONB, nullable=True)  # Data from dynamic form filled in this step
 
     # Actor
     acted_by = Column(
@@ -266,6 +286,10 @@ class ApprovalAction(Base):
         nullable=True,
         index=True,
     )
+
+    # Audit fields for tracking
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(String(255), nullable=True)
 
     # Metadata
     request_metadata = Column("metadata", JSONB, nullable=True)

@@ -32,10 +32,14 @@ class ApprovalRepository:
     def get_approval_flow_by_id(
         self, flow_id: UUID, tenant_id: UUID
     ) -> ApprovalFlow | None:
-        """Get approval flow by ID and tenant."""
+        """Get approval flow by ID and tenant, excluding soft-deleted flows."""
         return (
             self.db.query(ApprovalFlow)
-            .filter(ApprovalFlow.id == flow_id, ApprovalFlow.tenant_id == tenant_id)
+            .filter(
+                ApprovalFlow.id == flow_id,
+                ApprovalFlow.tenant_id == tenant_id,
+                ApprovalFlow.deleted_at.is_(None),
+            )
             .first()
         )
 
@@ -47,8 +51,14 @@ class ApprovalRepository:
         skip: int = 0,
         limit: int = 100,
     ) -> list[ApprovalFlow]:
-        """Get approval flows with optional filters."""
-        query = self.db.query(ApprovalFlow).filter(ApprovalFlow.tenant_id == tenant_id)
+        """Get approval flows with optional filters, excluding soft-deleted flows."""
+        query = (
+            self.db.query(ApprovalFlow)
+            .filter(
+                ApprovalFlow.tenant_id == tenant_id,
+                ApprovalFlow.deleted_at.is_(None),
+            )
+        )
 
         if module:
             query = query.filter(ApprovalFlow.module == module)
@@ -103,6 +113,16 @@ class ApprovalRepository:
     def delete_approval_step(self, step: ApprovalStep) -> None:
         """Delete approval step."""
         self.db.delete(step)
+        self.db.commit()
+
+    def delete_all_approval_steps(
+        self, flow_id: UUID, tenant_id: UUID
+    ) -> None:
+        """Delete all approval steps for a given flow."""
+        self.db.query(ApprovalStep).filter(
+            ApprovalStep.flow_id == flow_id,
+            ApprovalStep.tenant_id == tenant_id
+        ).delete()
         self.db.commit()
 
     # Approval Request methods
