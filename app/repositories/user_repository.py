@@ -30,7 +30,21 @@ class UserRepository:
 
     def get_by_email(self, email: str) -> User | None:
         """Get user by email."""
-        return self.db.query(User).filter(User.email == email).first()
+        import logging
+        logger = logging.getLogger("app")
+        logger.debug(f"[DB] Starting query for email={email}")
+        logger.debug(f"[DB] DB session type: {type(self.db)}")
+        logger.debug(f"[DB] DB session is active: {self.db.is_active if hasattr(self.db, 'is_active') else 'N/A'}")
+
+        try:
+            query = self.db.query(User).filter(User.email == email)
+            logger.debug(f"[DB] Query created: {query}")
+            result = query.first()
+            logger.debug(f"[DB] Query executed, result={result is not None}")
+            return result
+        except Exception as e:
+            logger.error(f"[DB] Error in get_by_email: {e}", exc_info=True)
+            raise
 
     def get_by_email_and_tenant(
         self, email: str, tenant_id: UUID

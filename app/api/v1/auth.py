@@ -91,8 +91,13 @@ async def login(
     Raises:
         HTTPException: If credentials are invalid or rate limit exceeded.
     """
+    import logging
+    logger = logging.getLogger("app")
+    logger.debug(f"[LOGIN] Endpoint called for email={login_data.email}")
+
     # Rate limiting check (only counts failed attempts)
     client_ip = request.client.host if request.client else "unknown"
+    logger.debug(f"[LOGIN] Client IP: {client_ip}")
 
     # Check rate limit BEFORE authentication (only counts previous failed attempts)
     if not check_login_rate_limit(client_ip, max_attempts=5, window_minutes=1):
@@ -100,11 +105,14 @@ async def login(
         raise create_rate_limit_exception()
 
     # Authenticate user
+    logger.debug(f"[LOGIN] Step 0: Authenticating user")
     auth_service = AuthService(db)
     user = auth_service.authenticate_user(login_data.email, login_data.password)
+    logger.debug(f"[LOGIN] Step 0: Authentication completed, user={user is not None}")
 
     # Generic error message (does not reveal if user exists)
     if not user:
+        logger.debug(f"[LOGIN] Step 0.1: User not found or invalid credentials")
         # This is a FAILED attempt - record it for rate limiting
         record_login_attempt(client_ip)
         log_auth_failure(login_data.email, "invalid_credentials", client_ip)
@@ -113,26 +121,33 @@ async def login(
             message="Invalid credentials",
         )
 
+    logger.debug(f"[LOGIN] Step 0.2: User authenticated successfully, user_id={user.id}")
+
     # Successful login - DO NOT record attempt
     # Successful logins should not count towards rate limiting
 
     # Log successful login (auth_service already logs, but we add IP here)
     try:
+        logger.debug(f"[LOGIN] Step 0.3: Logging auth success")
         log_auth_success(str(user.id), login_data.email, str(user.tenant_id), client_ip)
+        logger.debug(f"[LOGIN] Step 0.3: Auth success logged")
     except Exception as e:
         import logging
         logger = logging.getLogger("app")
         logger.warning(f"Failed to log auth success for user {user.id}: {e}", exc_info=True)
         # Continue even if logging fails
 
+    logger.debug(f"[LOGIN] Step 0.4: About to create tokens")
+
     # Create tokens
     try:
         import logging
         # Use the configured app logger from app.core.logging
         logger = logging.getLogger("app")
-        logger.info(f"[LOGIN] Creating tokens for user {user.id}, email={login_data.email}")
+        logger.debug(f"[LOGIN] Creating tokens for user {user.id}, email={login_data.email}")
 
         logger.debug(f"[LOGIN] Step 1: Creating access token for user {user.id}")
+        logger.debug(f"[LOGIN] Step 1.1: Getting user roles for user {user.id}")
         access_token = auth_service.create_access_token_for_user(user)
         logger.debug(f"[LOGIN] Step 1: Access token created successfully")
 
@@ -140,7 +155,7 @@ async def login(
         refresh_token = auth_service.create_refresh_token_for_user(user, remember_me=login_data.remember_me)
         logger.debug(f"[LOGIN] Step 2: Refresh token created successfully")
 
-        logger.info(f"[LOGIN] Tokens created successfully for user {user.id}")
+        logger.debug(f"[LOGIN] Tokens created successfully for user {user.id}")
     except Exception as e:
         # Log the error for debugging
         import logging

@@ -17,6 +17,7 @@ from app.core.logging import (
     log_refresh_token_invalid,
     log_refresh_token_used,
 )
+from app.core.cache import cache_service
 from app.models.user import User
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
@@ -47,20 +48,33 @@ class AuthService:
         Returns:
             User object if authentication succeeds, None otherwise.
         """
+        import logging
+        logger = logging.getLogger("app")
+        logger.debug(f"[AUTH] Step 1: Getting user by email={email}")
+
         user = self.user_repository.get_by_email(email)
+        logger.debug(f"[AUTH] Step 1: User found={user is not None}")
 
         # Always perform password verification to prevent timing attacks
         # If user doesn't exist, verify against a dummy hash
         if user:
+            logger.debug(f"[AUTH] Step 2: User exists, checking if active")
             if not user.is_active:
+                logger.debug(f"[AUTH] Step 2: User is not active")
                 return None
+            logger.debug(f"[AUTH] Step 3: User is active, verifying password")
             if self.user_repository.verify_password(user, password):
+                logger.debug(f"[AUTH] Step 3: Password verified successfully")
                 return user
+            logger.debug(f"[AUTH] Step 3: Password verification failed")
         else:
+            logger.debug(f"[AUTH] Step 4: User does not exist, performing dummy verification")
             # Dummy verification to prevent timing attacks
             # This ensures similar response time whether user exists or not
             verify_password(password, hash_password("dummy"))
+            logger.debug(f"[AUTH] Step 4: Dummy verification completed")
 
+        logger.debug(f"[AUTH] Step 5: Returning None (authentication failed)")
         return None
 
     def get_user_permissions(self, user_id: UUID) -> list[str]:
@@ -76,11 +90,22 @@ class AuthService:
         Returns:
             List of permission strings.
         """
+        # Try cache first
+        cached_permissions = cache_service.get_user_permissions(user_id)
+        if cached_permissions is not None:
+            return cached_permissions
+
+        # Cache miss, query database
         from app.services.permission_service import PermissionService
 
         permission_service = PermissionService(self.db)
         permissions = permission_service.get_effective_permissions(user_id)
-        return list(permissions)
+        permission_list = list(permissions)
+
+        # Store in cache
+        cache_service.set_user_permissions(user_id, permission_list)
+
+        return permission_list
 
     def get_user_roles(self, user_id: UUID) -> list[str]:
         """
@@ -92,6 +117,12 @@ class AuthService:
         Returns:
             List of role strings (e.g., ["admin", "manager"]).
         """
+        # Try cache first
+        cached_roles = cache_service.get_user_roles(user_id)
+        if cached_roles is not None:
+            return cached_roles
+
+        # Cache miss, query database
         from app.models.user_role import UserRole
 
         roles = (
@@ -99,7 +130,12 @@ class AuthService:
             .filter(UserRole.user_id == user_id)
             .all()
         )
-        return [role.role for role in roles]
+        role_list = [role.role for role in roles]
+
+        # Store in cache
+        cache_service.set_user_roles(user_id, role_list)
+
+        return role_list
 
     def create_access_token_for_user(self, user: User) -> str:
         """

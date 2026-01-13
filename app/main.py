@@ -27,7 +27,7 @@ async_task_service: AsyncTaskService | None = None
 async def lifespan(app: FastAPI):
     """Manage application lifecycle events."""
     global async_task_service
-    
+
     # Startup
     try:
         db = SessionLocal()
@@ -36,9 +36,9 @@ async def lifespan(app: FastAPI):
         logger.info("Async task scheduler started")
     except Exception as e:
         logger.error(f"Failed to start async task scheduler: {e}", exc_info=True)
-    
+
     yield
-    
+
     # Shutdown
     if async_task_service:
         try:
@@ -72,7 +72,7 @@ def add_security_headers(response: Response) -> None:
                 value = str(value.encode('utf-8', errors='replace'), 'utf-8')
         elif not isinstance(value, str):
             value = str(value)
-        
+
         # Ensure the value can be encoded as UTF-8
         try:
             value.encode('utf-8')
@@ -81,7 +81,7 @@ def add_security_headers(response: Response) -> None:
             # Replace problematic characters
             safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
             response.headers[key] = safe_value
-    
+
     set_header_safely("X-Content-Type-Options", "nosniff")
     set_header_safely("X-Frame-Options", "DENY")
     set_header_safely("X-XSS-Protection", "1; mode=block")
@@ -122,14 +122,14 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
                     value = str(value.encode('utf-8', errors='replace'), 'utf-8')
             elif not isinstance(value, str):
                 value = str(value)
-            
+
             try:
                 value.encode('utf-8')
                 response.headers[key] = value
             except UnicodeEncodeError:
                 safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
                 response.headers[key] = safe_value
-        
+
         try:
             response = await call_next(request)
         except Exception as e:
@@ -170,11 +170,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"SecurityHeadersMiddleware called for {request.url.path}")
-        
+        logger.debug(f"SecurityHeadersMiddleware called for {request.url.path}")
+
         try:
             response = await call_next(request)
-            logger.info(f"SecurityHeadersMiddleware: response received from {request.url.path}, status: {response.status_code}")
+            logger.debug(f"SecurityHeadersMiddleware: response received from {request.url.path}, status: {response.status_code}")
             add_security_headers(response)
             return response
         except Exception as e:
@@ -209,30 +209,90 @@ app.add_middleware(CORSEnforcementMiddleware, allowed_origins=origins)
 # Add security headers middleware (after CORS)
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Add header encoding fix middleware (innermost to catch all headers)
-class HeaderEncodingMiddleware(BaseHTTPMiddleware):
-    """Middleware to ensure all headers are properly UTF-8 encoded."""
-    
+# Middleware to normalize request body encoding (must be FIRST middleware in execution order)
+# In FastAPI, middlewares are executed in reverse order of addition
+class RequestBodyEncodingMiddleware(BaseHTTPMiddleware):
+    """Middleware to normalize request body encoding before FastAPI processes it."""
+
     async def dispatch(self, request: Request, call_next):
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"HeaderEncodingMiddleware called for {request.url.path}")
-        
+
+        # Only process POST/PUT/PATCH requests with JSON content
+        if request.method in ["POST", "PUT", "PATCH"]:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                try:
+                    # Read the raw body as bytes
+                    body_bytes = await request.body()
+
+                    if body_bytes:
+                        # Try to decode as UTF-8 first
+                        try:
+                            body_str = body_bytes.decode("utf-8")
+                            logger.debug(f"Request body decoded as UTF-8 for {request.url.path}")
+                        except UnicodeDecodeError:
+                            # Fallback to Latin-1/Windows-1252 (common on Windows)
+                            try:
+                                body_str = body_bytes.decode("latin-1")
+                                logger.warning(
+                                    f"Request body had encoding issues, decoded as Latin-1 for {request.url.path}. "
+                                    f"Client should send UTF-8 encoded JSON."
+                                )
+                                # Re-encode as UTF-8 to ensure FastAPI processes it correctly
+                                body_bytes = body_str.encode("utf-8")
+                            except UnicodeDecodeError:
+                                # Last resort: decode with error replacement
+                                body_str = body_bytes.decode("utf-8", errors="replace")
+                                logger.error(
+                                    f"Request body has severe encoding issues for {request.url.path}, "
+                                    f"using error replacement"
+                                )
+                                body_bytes = body_str.encode("utf-8")
+
+                        # Replace the request body with the normalized UTF-8 version
+                        # We need to modify the request's receive function
+                        async def receive():
+                            return {
+                                "type": "http.request",
+                                "body": body_bytes,
+                                "more_body": False,
+                            }
+
+                        request._receive = receive
+
+                except Exception as e:
+                    logger.error(f"Error in RequestBodyEncodingMiddleware for {request.url.path}: {e}", exc_info=True)
+                    # Continue with original request if middleware fails
+
+        response = await call_next(request)
+        return response
+
+
+# Add header encoding fix middleware (innermost to catch all headers)
+class HeaderEncodingMiddleware(BaseHTTPMiddleware):
+    """Middleware to ensure all headers are properly UTF-8 encoded."""
+
+    async def dispatch(self, request: Request, call_next):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"HeaderEncodingMiddleware called for {request.url.path}")
+
         try:
             response = await call_next(request)
-            logger.info(f"Response received from {request.url.path}, status: {response.status_code}")
+            logger.debug(f"Response received from {request.url.path}, status: {response.status_code}")
         except Exception as e:
             logger.error(f"Error in call_next for {request.url.path}: {e}", exc_info=True)
             raise
-        
+
         # Clean up any problematic headers
         headers_to_remove = []
         headers_to_update = {}
-        
+
         try:
-            logger.info(f"Response headers type: {type(response.headers)}, value: {response.headers}")
+            logger.debug(f"Response headers type: {type(response.headers)}, value: {response.headers}")
             for key, value in response.headers.items():
-                logger.info(f"Processing header: key={key}, value={value}, value_type={type(value)}")
+                logger.debug(f"Processing header: key={key}, value={value}, value_type={type(value)}")
                 try:
                     # Try to encode as UTF-8 to check for issues
                     if isinstance(value, str):
@@ -263,14 +323,12 @@ class HeaderEncodingMiddleware(BaseHTTPMiddleware):
         # Remove problematic headers
         for key in headers_to_remove:
             response.headers.pop(key, None)
-        
+
         # Update fixed headers
         for key, value in headers_to_update.items():
             response.headers[key] = value
-        
-        return response
 
-app.add_middleware(HeaderEncodingMiddleware)
+        return response
 
 
 @app.exception_handler(APIException)
@@ -289,14 +347,14 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
                 value = str(value.encode('utf-8', errors='replace'), 'utf-8')
         elif not isinstance(value, str):
             value = str(value)
-        
+
         try:
             value.encode('utf-8')
             response.headers[key] = value
         except UnicodeEncodeError:
             safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
             response.headers[key] = safe_value
-    
+
     # exc.detail already contains {"error": {...}}, add data: null for API contract compliance
     response_content = exc.detail.copy()
     response_content["data"] = None
@@ -330,14 +388,14 @@ async def validation_exception_handler(
                 value = str(value.encode('utf-8', errors='replace'), 'utf-8')
         elif not isinstance(value, str):
             value = str(value)
-        
+
         try:
             value.encode('utf-8')
             response.headers[key] = value
         except UnicodeEncodeError:
             safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
             response.headers[key] = safe_value
-    
+
     # Check if this is a color validation error
     for error in exc.errors():
         msg = error.get("msg", "")
@@ -349,7 +407,7 @@ async def validation_exception_handler(
                 end = msg.find("':", start)
                 if end > start:
                     field_name = msg[start:end]
-            
+
             response_content = {
                 "error": {
                     "code": "INVALID_COLOR_FORMAT",
@@ -368,7 +426,7 @@ async def validation_exception_handler(
             )
             add_security_headers(response)
             return response
-    
+
     # Convert FastAPI validation errors to standard format
     details = {}
     for error in exc.errors():
@@ -468,6 +526,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")
+
+# Add encoding middlewares LAST (so they execute FIRST in the middleware chain)
+# In FastAPI, middlewares are executed in reverse order of addition
+app.add_middleware(RequestBodyEncodingMiddleware)  # Executes first (normalizes request body)
+app.add_middleware(HeaderEncodingMiddleware)      # Executes second (normalizes response headers)
 
 
 if __name__ == "__main__":
