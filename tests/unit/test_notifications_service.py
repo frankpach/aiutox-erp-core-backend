@@ -328,4 +328,3 @@ async def test_send_webhook_timeout(notification_service):
         with pytest.raises(Exception, match="timeout"):
             await notification_service._send_webhook("https://webhook.example.com/test", payload)
 
-

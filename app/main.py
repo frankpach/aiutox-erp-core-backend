@@ -1,9 +1,11 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
@@ -90,18 +92,32 @@ def add_security_headers(response: Response) -> None:
 
     # Content Security Policy
     # Note: frame-ancestors must be in CSP header, not meta tag
+    # Allow images from backend URL in debug mode only
+    debug_mode = settings.DEBUG
+    logger.info(f"[SecurityHeadersMiddleware] DEBUG mode: {debug_mode}, type: {type(debug_mode)}")
+
+    img_src = "img-src 'self' data: https:;"
+    logger.info(f"[SecurityHeadersMiddleware] img_src before if: {img_src}")
+
+    if debug_mode:
+        img_src = "img-src 'self' data: https: http://localhost:8000;"
+        logger.info("[SecurityHeadersMiddleware] CSP allows images from http://localhost:8000")
+
+    logger.info(f"[SecurityHeadersMiddleware] img_src after if: {img_src}")
+
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
+        f"{img_src} "
         "connect-src 'self' http://localhost:8000 https:; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "
         "worker-src 'self' blob:;"
     )
+    logger.info(f"[SecurityHeadersMiddleware] Final CSP: {csp}")
     set_header_safely("Content-Security-Policy", csp)
 
 
@@ -526,6 +542,17 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")
+
+# Mount static files for file storage
+# This allows serving uploaded files from /files/ path
+# STATUS: ✅ Configurado y funcionando (2026-01-13)
+# NOTA: Los archivos se sirven desde backend/storage/
+storage_path = os.getenv("STORAGE_BASE_PATH", "./storage")
+if os.path.exists(storage_path):
+    app.mount("/files", StaticFiles(directory=storage_path), name="files")
+    logger.info(f"Mounted static files from {storage_path} at /files")
+else:
+    logger.warning(f"Storage directory {storage_path} does not exist, static files not mounted")
 
 # Add encoding middlewares LAST (so they execute FIRST in the middleware chain)
 # In FastAPI, middlewares are executed in reverse order of addition

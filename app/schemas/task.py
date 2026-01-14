@@ -6,7 +6,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.task import TaskPriority, TaskStatus
+from app.models.task import (
+    TaskPriority,
+    TaskStatus,
+    TaskReminderType,
+    TaskRecurrenceFrequency,
+)
 
 
 class TaskBase(BaseModel):
@@ -16,10 +21,13 @@ class TaskBase(BaseModel):
     description: str | None = Field(None, description="Task description")
     status: str = Field(default=TaskStatus.TODO, description="Task status")
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority")
-    assigned_to_id: UUID | None = Field(None, description="Assigned user ID")
+    assigned_to_id: UUID | None = Field(None, description="Assigned user ID (legacy, use assignments)")
     due_date: datetime | None = Field(None, description="Due date")
-    related_entity_type: str | None = Field(None, description="Related entity type")
-    related_entity_id: UUID | None = Field(None, description="Related entity ID")
+    related_entity_type: str | None = Field(None, description="Related entity type (legacy)")
+    related_entity_id: UUID | None = Field(None, description="Related entity ID (legacy)")
+    source_module: str | None = Field(None, description="Source module (e.g., 'projects', 'workflows')")
+    source_id: UUID | None = Field(None, description="Source entity ID")
+    source_context: dict[str, Any] | None = Field(None, description="Additional context from source module")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 
@@ -54,8 +62,42 @@ class TaskResponse(TaskBase):
     created_at: datetime
     updated_at: datetime
     metadata: dict[str, Any] | None = Field(None, alias="task_metadata", description="Additional metadata")
+    checklist: list[TaskChecklistItemResponse] | None = Field(default=[], description="Task checklist items")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class TaskAssignmentBase(BaseModel):
+    """Base schema for task assignment."""
+
+    task_id: UUID = Field(..., description="Task ID")
+    assigned_to_id: UUID | None = Field(None, description="User ID to assign to")
+    assigned_to_group_id: UUID | None = Field(None, description="Group ID to assign to")
+    role: str | None = Field(None, description="Assignment role (e.g., 'owner', 'reviewer')")
+    notes: str | None = Field(None, description="Assignment notes")
+    created_by_id: UUID = Field(..., description="User ID who created the assignment")
+    updated_by_id: UUID | None = Field(None, description="User ID who last updated the assignment")
+
+
+class TaskAssignmentCreate(TaskAssignmentBase):
+    """Schema for creating a task assignment."""
+
+    pass
+
+
+class TaskAssignmentResponse(TaskAssignmentBase):
+    """Schema for task assignment response."""
+
+    id: UUID
+    tenant_id: UUID
+    assigned_by_id: UUID | None
+    assigned_at: datetime
+    created_by_id: UUID
+    updated_by_id: UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TaskChecklistItemBase(BaseModel):
@@ -183,6 +225,91 @@ class WorkflowExecutionResponse(WorkflowExecutionBase):
     error_message: str | None
     started_at: datetime
     completed_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskReminderBase(BaseModel):
+    """Base schema for task reminder."""
+
+    reminder_type: str = Field(default=TaskReminderType.IN_APP, description="Reminder type")
+    reminder_time: datetime = Field(..., description="When to send reminder")
+    message: str | None = Field(None, description="Reminder message")
+
+
+class TaskReminderCreate(TaskReminderBase):
+    """Schema for creating a task reminder."""
+
+    task_id: UUID = Field(..., description="Task ID")
+
+
+class TaskReminderUpdate(BaseModel):
+    """Schema for updating a task reminder."""
+
+    reminder_type: str | None = Field(None, description="Reminder type")
+    reminder_time: datetime | None = Field(None, description="When to send reminder")
+    message: str | None = Field(None, description="Reminder message")
+    sent: bool | None = Field(None, description="Whether reminder has been sent")
+
+
+class TaskReminderResponse(TaskReminderBase):
+    """Schema for task reminder response."""
+
+    id: UUID
+    task_id: UUID
+    tenant_id: UUID
+    sent: bool
+    sent_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskRecurrenceBase(BaseModel):
+    """Base schema for task recurrence."""
+
+    frequency: str = Field(default=TaskRecurrenceFrequency.WEEKLY, description="Recurrence frequency")
+    interval: int = Field(default=1, description="Interval (e.g., every 2 weeks)")
+    start_date: datetime = Field(..., description="Start date of recurrence")
+    end_date: datetime | None = Field(None, description="End date of recurrence")
+    max_occurrences: int | None = Field(None, description="Maximum number of occurrences")
+    days_of_week: list[int] | None = Field(None, description="Days of week for weekly recurrence (0=Monday)")
+    day_of_month: int | None = Field(None, description="Day of month for monthly recurrence (1-31)")
+    custom_config: dict[str, Any] | None = Field(None, description="Custom recurrence configuration")
+    active: bool = Field(default=True, description="Whether recurrence is active")
+
+
+class TaskRecurrenceCreate(TaskRecurrenceBase):
+    """Schema for creating a task recurrence."""
+
+    task_id: UUID = Field(..., description="Task ID")
+
+
+class TaskRecurrenceUpdate(BaseModel):
+    """Schema for updating a task recurrence."""
+
+    frequency: str | None = Field(None, description="Recurrence frequency")
+    interval: int | None = Field(None, description="Interval")
+    start_date: datetime | None = Field(None, description="Start date of recurrence")
+    end_date: datetime | None = Field(None, description="End date of recurrence")
+    max_occurrences: int | None = Field(None, description="Maximum number of occurrences")
+    current_occurrence: int | None = Field(None, description="Current occurrence count")
+    days_of_week: list[int] | None = Field(None, description="Days of week")
+    day_of_month: int | None = Field(None, description="Day of month")
+    custom_config: dict[str, Any] | None = Field(None, description="Custom configuration")
+    active: bool | None = Field(None, description="Whether recurrence is active")
+
+
+class TaskRecurrenceResponse(TaskRecurrenceBase):
+    """Schema for task recurrence response."""
+
+    id: UUID
+    task_id: UUID
+    tenant_id: UUID
+    current_occurrence: int
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

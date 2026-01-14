@@ -1,18 +1,18 @@
-"""Task service for task management."""
+"""Task service for managing tasks."""
 
-import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
 from uuid import UUID
+from typing import Optional
 
-from sqlalchemy.orm import Session
-
-from app.core.pubsub import EventPublisher, get_event_publisher
-from app.core.pubsub.models import EventMetadata
-from app.models.task import Task, TaskChecklistItem, TaskPriority, TaskStatus
+from app.models.task import Task, TaskStatus, TaskPriority
 from app.repositories.task_repository import TaskRepository
+from app.schemas.task import TaskCreate, TaskUpdate
+from app.core.events import EventPublisher
+from app.core.events.models import EventMetadata
+from app.core.tasks.state_machine import TaskStateMachine, TaskTransitionError
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TaskService:
@@ -45,6 +45,9 @@ class TaskService:
         due_date: datetime | None = None,
         related_entity_type: str | None = None,
         related_entity_id: UUID | None = None,
+        source_module: str | None = None,
+        source_id: UUID | None = None,
+        source_context: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> Task:
         """Create a new task.
@@ -77,6 +80,9 @@ class TaskService:
                 "due_date": due_date,
                 "related_entity_type": related_entity_type,
                 "related_entity_id": related_entity_id,
+                "source_module": source_module,
+                "source_id": source_id,
+                "source_context": source_context,
                 "metadata": metadata,
             }
         )
@@ -176,6 +182,24 @@ class TaskService:
         Returns:
             Updated Task object or None if not found
         """
+        # Get current task for state validation
+        current_task = self.repository.get_task_by_id(task_id, tenant_id)
+        if not current_task:
+            return None
+
+        # Validate state transition if status is being updated
+        if "status" in task_data:
+            try:
+                new_status = TaskStatus(task_data["status"])
+                TaskStateMachine.validate_transition(current_task.status, new_status)
+                logger.info(f"Valid state transition: {current_task.status.value} -> {new_status.value}")
+            except ValueError as e:
+                logger.error(f"Invalid status value: {task_data['status']}")
+                raise ValueError(f"Invalid status: {task_data['status']}")
+            except TaskTransitionError as e:
+                logger.error(f"Invalid state transition: {e}")
+                raise ValueError(str(e))
+
         task = self.repository.update_task(task_id, tenant_id, task_data)
         if task:
             # Publish event
@@ -191,12 +215,16 @@ class TaskService:
                 metadata=EventMetadata(
                     source="task_service",
                     version="1.0",
-                    additional_data={"changes": list(task_data.keys())},
+                    additional_data={
+                        "changes": list(task_data.keys()),
+                        "previous_status": current_task.status.value,
+                        "new_status": task.status.value,
+                    },
                 ),
             )
 
             # If status changed to DONE, set completed_at
-            if "status" in task_data and task_data["status"] == TaskStatus.DONE:
+            if "status" in task_data and task.status == TaskStatus.DONE:
                 task.completed_at = datetime.now(timezone.utc)
                 self.db.commit()
                 self.db.refresh(task)

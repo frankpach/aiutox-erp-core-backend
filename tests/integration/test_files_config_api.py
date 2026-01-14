@@ -256,3 +256,4 @@ def test_config_endpoints_require_permission(client_with_db, test_user, db_sessi
     assert response.status_code == 403
 
 
+

@@ -302,6 +302,133 @@ async def get_user(
 
 
 @router.patch(
+    "/me",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Update own profile",
+    description="Update authenticated user's own profile. Allows users to edit their own profile without auth.manage_users permission.",
+    responses={
+        200: {"description": "Profile updated successfully"},
+        400: {
+            "description": "Invalid request",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_REQUEST",
+                            "message": "Invalid request data",
+                            "details": None,
+                        }
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "AUTH_UNAUTHORIZED",
+                            "message": "Authentication required",
+                            "details": None,
+                        }
+                    }
+                }
+            },
+        },
+    },
+)
+async def update_own_profile(
+    user_data: UserUpdate,
+    request: Request,
+    current_user: Annotated[User, Depends(require_permission("auth.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """
+    Update authenticated user's own profile.
+
+    This endpoint allows users to edit their own profile without requiring auth.manage_users permission.
+    Forbidden fields (first_name, last_name, middle_name, full_name, email, is_active, two_factor_enabled)
+    are automatically removed from the request.
+
+    Requires: auth.view (basic authentication)
+
+    Args:
+        user_data: User update data (forbidden fields will be ignored).
+        current_user: Current authenticated user.
+        db: Database session.
+
+    Returns:
+        StandardResponse with updated user data.
+
+    Raises:
+        APIException: If validation fails.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"[update_own_profile] Received PATCH request for current user: {current_user.id}")
+    logger.debug(f"[update_own_profile] Update data: {user_data.model_dump(exclude_none=True)}")
+    logger.debug(f"[update_own_profile] Update data includes avatar_url: {'avatar_url' in user_data.model_dump(exclude_none=True)}")
+    if 'avatar_url' in user_data.model_dump(exclude_none=True):
+        logger.debug(f"[update_own_profile] avatar_url value: {user_data.model_dump(exclude_none=True).get('avatar_url')}")
+
+    # Forbidden fields that users cannot change in their own profile
+    forbidden_fields = [
+        "first_name",
+        "middle_name",
+        "last_name",
+        "full_name",
+        "email",
+        "is_active",
+        "two_factor_enabled",
+    ]
+
+    # Remove forbidden fields from the update data
+    update_dict = user_data.model_dump(exclude_none=True)
+    for field in forbidden_fields:
+        if field in update_dict:
+            logger.warning(f"[update_own_profile] Forbidden field '{field}' removed from request")
+            del update_dict[field]
+
+    logger.debug(f"[update_own_profile] Sanitized update data: {update_dict}")
+
+    # Create a new UserUpdate object with only allowed fields
+    from pydantic import ValidationError
+    try:
+        sanitized_user_data = UserUpdate(**update_dict)
+    except ValidationError as e:
+        logger.error(f"[update_own_profile] Validation error: {e}")
+        raise_bad_request(code="VALIDATION_ERROR", message=str(e))
+
+    user_service = UserService(db)
+    ip_address, user_agent = get_client_info(request)
+
+    try:
+        logger.info(f"[update_own_profile] Calling user_service.update_user for user_id={current_user.id}")
+        updated_user = user_service.update_user(
+            current_user.id,
+            sanitized_user_data,
+            updated_by=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        if not updated_user:
+            logger.error(f"[update_own_profile] user_service.update_user returned None for user_id={current_user.id}")
+            raise_not_found("User", str(current_user.id))
+        logger.info(f"[update_own_profile] Profile updated successfully: {current_user.id}")
+        logger.debug(f"[update_own_profile] Updated user data: {updated_user}")
+        return StandardResponse(data=updated_user)
+    except ValueError as e:
+        logger.error(f"[update_own_profile] ValueError during update: {str(e)}")
+        raise_bad_request(code="USER_ALREADY_EXISTS", message=str(e))
+    except Exception as e:
+        logger.error(f"[update_own_profile] Unexpected error during update: {str(e)}", exc_info=True)
+        raise
+
+
+@router.patch(
     "/{user_id}",
     response_model=StandardResponse[dict],
     status_code=status.HTTP_200_OK,

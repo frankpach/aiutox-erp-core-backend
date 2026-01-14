@@ -407,4 +407,3 @@ def test_stream_notifications_adaptive_interval_with_notifications(client_with_d
     # After finding notification, interval should reset to 5s
     assert sleep_calls[0] == 5, f"After finding notification, interval should reset to 5s, got {sleep_calls[0]}"
 
-

@@ -1,12 +1,16 @@
 """Task repository for data access operations."""
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.models.task import (
     Task,
+    TaskAssignment,
     TaskChecklistItem,
+    TaskRecurrence,
+    TaskReminder,
     Workflow,
     WorkflowExecution,
     WorkflowStep,
@@ -33,6 +37,17 @@ class TaskRepository:
         """Get task by ID and tenant."""
         return (
             self.db.query(Task)
+            .filter(Task.id == task_id, Task.tenant_id == tenant_id)
+            .first()
+        )
+
+    def get_task_by_id_with_checklist(self, task_id: UUID, tenant_id: UUID) -> Task | None:
+        """Get task by ID and tenant with checklist items loaded."""
+        from sqlalchemy.orm import joinedload
+
+        return (
+            self.db.query(Task)
+            .options(joinedload(Task.checklist_items))
             .filter(Task.id == task_id, Task.tenant_id == tenant_id)
             .first()
         )
@@ -148,6 +163,509 @@ class TaskRepository:
         self.db.commit()
         return True
 
+    # TaskAssignment operations
+    def create_assignment(self, assignment_data: dict, created_by_id: UUID | None = None) -> TaskAssignment:
+        """Create a new task assignment with audit fields."""
+        # Add audit fields
+        assignment_data_with_audit = {
+            **assignment_data,
+            "created_by_id": created_by_id or assignment_data.get("assigned_by_id"),
+            "updated_by_id": created_by_id or assignment_data.get("assigned_by_id"),
+        }
+
+        assignment = TaskAssignment(**assignment_data_with_audit)
+        self.db.add(assignment)
+        self.db.commit()
+        self.db.refresh(assignment)
+        return assignment
+
+    def get_assignments_by_task(self, task_id: UUID, tenant_id: UUID) -> list[TaskAssignment]:
+        """Get all assignments for a task."""
+        return (
+            self.db.query(TaskAssignment)
+            .filter(
+                TaskAssignment.task_id == task_id,
+                TaskAssignment.tenant_id == tenant_id,
+            )
+            .order_by(TaskAssignment.assigned_at)
+            .all()
+        )
+
+    def get_assignments_by_user(self, user_id: UUID, tenant_id: UUID) -> list[TaskAssignment]:
+        """Get all assignments for a user."""
+        return (
+            self.db.query(TaskAssignment)
+            .filter(
+                TaskAssignment.assigned_to_id == user_id,
+                TaskAssignment.tenant_id == tenant_id,
+            )
+            .order_by(TaskAssignment.assigned_at.desc())
+            .all()
+        )
+
+    def get_assignment_by_id(self, assignment_id: UUID, tenant_id: UUID) -> TaskAssignment | None:
+        """Get assignment by ID."""
+        return (
+            self.db.query(TaskAssignment)
+            .filter(
+                TaskAssignment.id == assignment_id,
+                TaskAssignment.tenant_id == tenant_id,
+            )
+            .first()
+        )
+
+    def delete_assignment(self, assignment_id: UUID, tenant_id: UUID) -> bool:
+        """Delete an assignment."""
+        assignment = self.get_assignment_by_id(assignment_id, tenant_id)
+        if not assignment:
+            return False
+        self.db.delete(assignment)
+        self.db.commit()
+        return True
+
+    def update_assignment(
+        self,
+        assignment_id: UUID,
+        tenant_id: UUID,
+        assignment_data: dict,
+        updated_by_id: UUID | None = None
+    ) -> TaskAssignment | None:
+        """Update an assignment with audit fields."""
+        assignment = self.get_assignment_by_id(assignment_id, tenant_id)
+        if not assignment:
+            return None
+
+        # Add audit fields
+        assignment_data_with_audit = {
+            **assignment_data,
+            "updated_by_id": updated_by_id,
+        }
+
+        for key, value in assignment_data_with_audit.items():
+            setattr(assignment, key, value)
+
+        self.db.commit()
+        self.db.refresh(assignment)
+        return assignment
+
+    def count_tasks(
+        self,
+        tenant_id: UUID,
+        status: str | None = None,
+        priority: str | None = None,
+        assigned_to_id: UUID | None = None,
+    ) -> int:
+        """Count tasks for a tenant with filters."""
+        query = self.db.query(Task).filter(Task.tenant_id == tenant_id)
+        if status:
+            query = query.filter(Task.status == status)
+        if priority:
+            query = query.filter(Task.priority == priority)
+        if assigned_to_id:
+            query = query.filter(Task.assigned_to_id == assigned_to_id)
+        return query.count()
+
+    def get_visible_tasks(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        status: str | None = None,
+        priority: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Task]:
+        """Get tasks visible to a user according to visibility rules - Optimized version with cache."""
+        from sqlalchemy import and_, or_
+        from sqlalchemy.orm import aliased
+
+        # Try to get from cache first
+        try:
+            import asyncio
+
+            from app.core.tasks.cache_service import task_cache_service
+
+            # Run async cache operation in sync context
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                cached_tasks = loop.run_until_complete(
+                    task_cache_service.get_visible_tasks(
+                        tenant_id, user_id, status, priority, skip, limit
+                    )
+                )
+                if cached_tasks:
+                    # Convert cached TaskResponse back to Task models
+                    return [self._task_response_to_model(task) for task in cached_tasks]
+            finally:
+                loop.close()
+        except Exception:
+            # Cache failed, continue with database query
+            pass
+
+        # Use LEFT JOIN instead of subqueries for better performance
+        task_assignment = aliased(TaskAssignment)
+
+        # Optimized query with LEFT JOIN and DISTINCT
+        query = (
+            self.db.query(Task)
+            .filter(Task.tenant_id == tenant_id)
+            .outerjoin(
+                task_assignment,
+                and_(
+                    task_assignment.task_id == Task.id,
+                    task_assignment.tenant_id == tenant_id,
+                    task_assignment.assigned_to_id == user_id,
+                )
+            )
+            .filter(
+                or_(
+                    Task.created_by_id == user_id,  # Created by user
+                    Task.assigned_to_id == user_id,  # Legacy direct assignment
+                    task_assignment.id.isnot(None),  # Modern assignment via LEFT JOIN
+                    # TODO: Add group assignments when groups module is available
+                )
+            )
+            .distinct()  # Remove duplicates from LEFT JOIN
+        )
+
+        # Apply filters
+        if status:
+            query = query.filter(Task.status == status)
+        if priority:
+            query = query.filter(Task.priority == priority)
+
+        # Execute query and cache results
+        tasks = (
+            query.order_by(Task.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+        # Cache the results for future requests
+        try:
+            from app.core.tasks.cache_service import task_cache_service
+            from app.schemas.task import TaskResponse
+
+            # Convert to TaskResponse for caching
+            task_responses = [TaskResponse.model_validate(task) for task in tasks]
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    task_cache_service.set_visible_tasks(
+                        tenant_id, user_id, task_responses, status, priority, skip, limit
+                    )
+                )
+            finally:
+                loop.close()
+        except Exception:
+            # Cache failed, but query succeeded
+            pass
+
+        return tasks
+
+    def _task_response_to_model(self, task_response) -> Task:
+        """Convert TaskResponse back to Task model for cache compatibility."""
+        # This is a simplified conversion - in production, you might want
+        # to use a more sophisticated mapping or avoid this conversion entirely
+        return Task(
+            id=task_response.id,
+            tenant_id=task_response.tenant_id,
+            title=task_response.title,
+            description=task_response.description,
+            status=task_response.status,
+            priority=task_response.priority,
+            assigned_to_id=task_response.assigned_to_id,
+            due_date=task_response.due_date,
+            created_by_id=task_response.created_by_id,
+            completed_at=task_response.completed_at,
+            created_at=task_response.created_at,
+            updated_at=task_response.updated_at,
+            # Add other fields as needed
+        )
+
+    def count_visible_tasks(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        status: str | None = None,
+        priority: str | None = None,
+    ) -> int:
+        """Count tasks visible to a user according to visibility rules - Optimized version."""
+        from sqlalchemy import and_, or_
+        from sqlalchemy.orm import aliased
+
+        # Use LEFT JOIN instead of subqueries for better performance (consistent with get_visible_tasks)
+        task_assignment = aliased(TaskAssignment)
+
+        # Optimized query with LEFT JOIN and DISTINCT
+        query = (
+            self.db.query(Task)
+            .filter(Task.tenant_id == tenant_id)
+            .outerjoin(
+                task_assignment,
+                and_(
+                    task_assignment.task_id == Task.id,
+                    task_assignment.tenant_id == tenant_id,
+                    task_assignment.assigned_to_id == user_id,
+                )
+            )
+            .filter(
+                or_(
+                    Task.created_by_id == user_id,  # Created by user
+                    Task.assigned_to_id == user_id,  # Legacy direct assignment
+                    task_assignment.id.isnot(None),  # Modern assignment via LEFT JOIN
+                    # TODO: Add group assignments when groups module is available
+                )
+            )
+            .distinct()  # Remove duplicates from LEFT JOIN
+        )
+
+        # Apply filters
+        if status:
+            query = query.filter(Task.status == status)
+        if priority:
+            query = query.filter(Task.priority == priority)
+
+        return query.count()
+
+    # Reminder operations
+    def create_reminder(
+        self,
+        task_id: UUID,
+        tenant_id: UUID,
+        reminder_type: str,
+        reminder_time,
+        message: str | None = None,
+    ) -> TaskReminder:
+        """Create a new task reminder."""
+        reminder = TaskReminder(
+            task_id=task_id,
+            tenant_id=tenant_id,
+            reminder_type=reminder_type,
+            reminder_time=reminder_time,
+            message=message,
+            sent=False,
+        )
+        self.db.add(reminder)
+        self.db.commit()
+        self.db.refresh(reminder)
+        return reminder
+
+    def get_reminders_by_task(self, task_id: UUID, tenant_id: UUID) -> list[TaskReminder]:
+        """Get all reminders for a task."""
+        return (
+            self.db.query(TaskReminder)
+            .filter(TaskReminder.task_id == task_id, TaskReminder.tenant_id == tenant_id)
+            .order_by(TaskReminder.reminder_time)
+            .all()
+        )
+
+    def get_reminder_by_id(self, reminder_id: UUID, tenant_id: UUID) -> TaskReminder | None:
+        """Get reminder by ID and tenant."""
+        return (
+            self.db.query(TaskReminder)
+            .filter(TaskReminder.id == reminder_id, TaskReminder.tenant_id == tenant_id)
+            .first()
+        )
+
+    def update_reminder(
+        self,
+        reminder_id: UUID,
+        tenant_id: UUID,
+        reminder_type: str | None = None,
+        reminder_time=None,
+        message: str | None = None,
+        sent: bool | None = None,
+    ) -> TaskReminder | None:
+        """Update a task reminder."""
+        reminder = self.get_reminder_by_id(reminder_id, tenant_id)
+        if not reminder:
+            return None
+        if reminder_type is not None:
+            reminder.reminder_type = reminder_type
+        if reminder_time is not None:
+            reminder.reminder_time = reminder_time
+        if message is not None:
+            reminder.message = message
+        if sent is not None:
+            reminder.sent = sent
+            if sent:
+                from datetime import UTC, datetime
+                reminder.sent_at = datetime.now(UTC)
+        self.db.commit()
+        self.db.refresh(reminder)
+        return reminder
+
+    def delete_reminder(self, reminder_id: UUID, tenant_id: UUID) -> bool:
+        """Delete a task reminder."""
+        reminder = self.get_reminder_by_id(reminder_id, tenant_id)
+        if not reminder:
+            return False
+        self.db.delete(reminder)
+        self.db.commit()
+        return True
+
+    def get_pending_reminders(
+        self,
+        tenant_id: UUID,
+        user_id: UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None
+    ) -> list[TaskReminder]:
+        """Get pending reminders for a tenant with optional user visibility and date filters."""
+        from datetime import UTC, datetime
+
+        from sqlalchemy import or_
+
+        query = self.db.query(TaskReminder).filter(
+            TaskReminder.tenant_id == tenant_id,
+            TaskReminder.sent.is_(False),
+        )
+
+        # Apply date filters
+        if start_date:
+            query = query.filter(TaskReminder.reminder_time >= start_date)
+        if end_date:
+            query = query.filter(TaskReminder.reminder_time <= end_date)
+        else:
+            # Default: only show future reminders
+            query = query.filter(TaskReminder.reminder_time >= datetime.now(UTC))
+
+        # Apply user visibility filter if provided
+        if user_id:
+            # Get visible task IDs for the user
+            visible_tasks_subq = (
+                self.db.query(Task.id)
+                .filter(Task.tenant_id == tenant_id)
+                .filter(
+                    or_(
+                        Task.created_by_id == user_id,
+                        Task.assigned_to_id == user_id,
+                    )
+                )
+                .subquery()
+            )
+            query = query.filter(TaskReminder.task_id.in_(visible_tasks_subq))
+
+        return query.order_by(TaskReminder.reminder_time).all()
+
+    # Recurrence operations
+    def create_recurrence(
+        self,
+        task_id: UUID,
+        tenant_id: UUID,
+        frequency: str,
+        interval: int = 1,
+        start_date=None,
+        end_date=None,
+        max_occurrences: int | None = None,
+        days_of_week: list[int] | None = None,
+        day_of_month: int | None = None,
+        custom_config: dict | None = None,
+        active: bool = True,
+    ) -> TaskRecurrence:
+        """Create a new task recurrence."""
+        recurrence = TaskRecurrence(
+            task_id=task_id,
+            tenant_id=tenant_id,
+            frequency=frequency,
+            interval=interval,
+            start_date=start_date,
+            end_date=end_date,
+            max_occurrences=max_occurrences,
+            current_occurrence=1,
+            days_of_week=days_of_week,
+            day_of_month=day_of_month,
+            custom_config=custom_config,
+            active=active,
+        )
+        self.db.add(recurrence)
+        self.db.commit()
+        self.db.refresh(recurrence)
+        return recurrence
+
+    def get_recurrence_by_task(self, task_id: UUID, tenant_id: UUID) -> TaskRecurrence | None:
+        """Get recurrence for a task."""
+        return (
+            self.db.query(TaskRecurrence)
+            .filter(TaskRecurrence.task_id == task_id, TaskRecurrence.tenant_id == tenant_id)
+            .first()
+        )
+
+    def get_recurrence_by_id(self, recurrence_id: UUID, tenant_id: UUID) -> TaskRecurrence | None:
+        """Get recurrence by ID and tenant."""
+        return (
+            self.db.query(TaskRecurrence)
+            .filter(TaskRecurrence.id == recurrence_id, TaskRecurrence.tenant_id == tenant_id)
+            .first()
+        )
+
+    def update_recurrence(
+        self,
+        recurrence_id: UUID,
+        tenant_id: UUID,
+        frequency: str | None = None,
+        interval: int | None = None,
+        start_date=None,
+        end_date=None,
+        max_occurrences: int | None = None,
+        current_occurrence: int | None = None,
+        days_of_week: list[int] | None = None,
+        day_of_month: int | None = None,
+        custom_config: dict | None = None,
+        active: bool | None = None,
+    ) -> TaskRecurrence | None:
+        """Update a task recurrence."""
+        recurrence = self.get_recurrence_by_id(recurrence_id, tenant_id)
+        if not recurrence:
+            return None
+        if frequency is not None:
+            recurrence.frequency = frequency
+        if interval is not None:
+            recurrence.interval = interval
+        if start_date is not None:
+            recurrence.start_date = start_date
+        if end_date is not None:
+            recurrence.end_date = end_date
+        if max_occurrences is not None:
+            recurrence.max_occurrences = max_occurrences
+        if current_occurrence is not None:
+            recurrence.current_occurrence = current_occurrence
+        if days_of_week is not None:
+            recurrence.days_of_week = days_of_week
+        if day_of_month is not None:
+            recurrence.day_of_month = day_of_month
+        if custom_config is not None:
+            recurrence.custom_config = custom_config
+        if active is not None:
+            recurrence.active = active
+        self.db.commit()
+        self.db.refresh(recurrence)
+        return recurrence
+
+    def delete_recurrence(self, recurrence_id: UUID, tenant_id: UUID) -> bool:
+        """Delete a task recurrence."""
+        recurrence = self.get_recurrence_by_id(recurrence_id, tenant_id)
+        if not recurrence:
+            return False
+        self.db.delete(recurrence)
+        self.db.commit()
+        return True
+
+    def get_active_recurrences(self, tenant_id: UUID) -> list[TaskRecurrence]:
+        """Get all active recurrences for a tenant."""
+        return (
+            self.db.query(TaskRecurrence)
+            .filter(
+                TaskRecurrence.tenant_id == tenant_id,
+                TaskRecurrence.active.is_(True),
+            )
+            .all()
+        )
+
 
 class WorkflowRepository:
     """Repository for workflow data access."""
@@ -179,7 +697,7 @@ class WorkflowRepository:
         """Get all workflows for a tenant."""
         query = self.db.query(Workflow).filter(Workflow.tenant_id == tenant_id)
         if enabled_only:
-            query = query.filter(Workflow.enabled == True)
+            query = query.filter(Workflow.enabled.is_(True))
         return query.order_by(Workflow.created_at.desc()).offset(skip).limit(limit).all()
 
     def update_workflow(

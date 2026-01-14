@@ -1,4 +1,5 @@
 from uuid import UUID
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -7,6 +8,8 @@ from app.core.logging import create_audit_log_entry, log_user_action
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
@@ -155,7 +158,9 @@ class UserService:
                     changes["tokens_revoked"] = tokens_revoked
 
         # Update user
+        logger.debug(f"[update_user] Calling repository.update with update_data: {update_data}")
         updated_user = self.repository.update(user, update_data)
+        logger.debug(f"[update_user] Repository.update returned user with avatar_url: {updated_user.avatar_url}")
 
         # Log user update (only if there are significant changes)
         if updated_by and changes:
@@ -186,10 +191,30 @@ class UserService:
         return {
             "id": updated_user.id,
             "email": updated_user.email,
+            "first_name": updated_user.first_name,
+            "last_name": updated_user.last_name,
+            "middle_name": updated_user.middle_name,
             "full_name": updated_user.full_name,
+            "date_of_birth": updated_user.date_of_birth,
+            "gender": updated_user.gender,
+            "nationality": updated_user.nationality,
+            "marital_status": updated_user.marital_status,
+            "job_title": updated_user.job_title,
+            "department": updated_user.department,
+            "employee_id": updated_user.employee_id,
+            "preferred_language": updated_user.preferred_language,
+            "timezone": updated_user.timezone,
+            "avatar_url": updated_user.avatar_url,
+            "bio": updated_user.bio,
+            "notes": updated_user.notes,
             "is_active": updated_user.is_active,
+            "two_factor_enabled": updated_user.two_factor_enabled,
+            "tenant_id": updated_user.tenant_id,
             "created_at": updated_user.created_at,
             "updated_at": updated_user.updated_at,
+            "last_login_at": updated_user.last_login_at,
+            "email_verified_at": updated_user.email_verified_at,
+            "phone_verified_at": updated_user.phone_verified_at,
         }
 
     def deactivate_user(
@@ -331,6 +356,8 @@ class UserService:
                 "id": user.id,
                 "email": user.email,
                 "full_name": user.full_name,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "is_active": user.is_active,
                 "created_at": user.created_at,
                 "updated_at": user.updated_at,
@@ -501,4 +528,3 @@ class UserService:
             "failed": failed_count,
             "failed_ids": failed_ids,
         }
-

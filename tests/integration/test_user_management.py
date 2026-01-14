@@ -869,4 +869,3 @@ class TestUserManagement:
 
         # Verify user still exists
         assert db_session.query(User).filter(User.id == user2.id).first() is not None
-

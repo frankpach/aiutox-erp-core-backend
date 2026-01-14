@@ -1170,4 +1170,3 @@ class FileService:
         return self._tag_service.get_entity_tags(
             entity_type="file", entity_id=file_id, tenant_id=tenant_id
         )
-
