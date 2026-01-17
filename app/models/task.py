@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     ForeignKey,
     Index,
@@ -13,7 +14,8 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
@@ -75,6 +77,9 @@ class Task(Base):
 
     # Dates
     due_date = Column(TIMESTAMP(timezone=True), nullable=True, index=True)
+    start_at = Column(TIMESTAMP(timezone=True), nullable=True, index=True)
+    end_at = Column(TIMESTAMP(timezone=True), nullable=True, index=True)
+    all_day = Column(Boolean, default=False, nullable=False)
     completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     # Multi-module integration (standard payload)
@@ -102,6 +107,8 @@ class Task(Base):
     # Metadata
     task_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
     tags = Column(JSONB, nullable=True)  # Array of tag names or IDs
+    tag_ids = Column(JSONB, nullable=True)  # Array of tag UUIDs for core tags
+    color_override = Column(String(7), nullable=True)  # Hex color override
 
     # Timestamps
     created_at = Column(
@@ -134,6 +141,8 @@ class Task(Base):
         Index("idx_tasks_tenant_priority", "tenant_id", "priority"),
         Index("idx_tasks_assigned", "tenant_id", "assigned_to_id"),
         Index("idx_tasks_due_date", "tenant_id", "due_date"),
+        Index("idx_tasks_tenant_start_at", "tenant_id", "start_at"),
+        Index("idx_tasks_tenant_end_at", "tenant_id", "end_at"),
         Index("idx_tasks_entity", "related_entity_type", "related_entity_id"),
         Index("idx_tasks_source", "source_module", "source_id"),
     )
@@ -218,7 +227,7 @@ class TaskAssignment(Base):
     )
     assigned_to_group_id = Column(
         PG_UUID(as_uuid=True),
-        ForeignKey("groups.id", ondelete="CASCADE"),
+        ForeignKey("teams.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
@@ -261,6 +270,25 @@ class TaskAssignment(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
+    )
+
+    # Relationships
+    task = relationship("Task", back_populates="assignments")
+
+    __table_args__ = (
+        Index("idx_task_assignments_task", "tenant_id", "task_id"),
+        Index("idx_task_assignments_user", "tenant_id", "assigned_to_id"),
+        Index("idx_task_assignments_group", "tenant_id", "assigned_to_group_id"),
+        # Constraint: Al menos uno debe estar presente
+        CheckConstraint(
+            "(assigned_to_id IS NOT NULL) OR (assigned_to_group_id IS NOT NULL)",
+            name="check_assignment_target"
+        ),
+        # Constraint: Solo uno puede estar presente
+        CheckConstraint(
+            "(assigned_to_id IS NULL) OR (assigned_to_group_id IS NULL)",
+            name="check_assignment_exclusive"
+        ),
     )
 
     def __repr__(self) -> str:
@@ -568,4 +596,3 @@ class TaskRecurrence(Base):
 
     def __repr__(self) -> str:
         return f"<TaskRecurrence(id={self.id}, task_id={self.task_id}, frequency={self.frequency})>"
-

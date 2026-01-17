@@ -1,16 +1,18 @@
 """Task schemas for API requests and responses."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.task import (
     TaskPriority,
-    TaskStatus,
-    TaskReminderType,
     TaskRecurrenceFrequency,
+    TaskReminderType,
+    TaskStatus,
 )
 
 
@@ -23,6 +25,11 @@ class TaskBase(BaseModel):
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority")
     assigned_to_id: UUID | None = Field(None, description="Assigned user ID (legacy, use assignments)")
     due_date: datetime | None = Field(None, description="Due date")
+    start_at: datetime | None = Field(None, description="Start datetime")
+    end_at: datetime | None = Field(None, description="End datetime")
+    all_day: bool = Field(default=False, description="All day task")
+    tag_ids: list[UUID] | None = Field(None, description="Core tag IDs")
+    color_override: str | None = Field(None, description="Manual color override (hex)")
     related_entity_type: str | None = Field(None, description="Related entity type (legacy)")
     related_entity_id: UUID | None = Field(None, description="Related entity ID (legacy)")
     source_module: str | None = Field(None, description="Source module (e.g., 'projects', 'workflows')")
@@ -46,6 +53,11 @@ class TaskUpdate(BaseModel):
     priority: str | None = Field(None, description="Task priority")
     assigned_to_id: UUID | None = Field(None, description="Assigned user ID")
     due_date: datetime | None = Field(None, description="Due date")
+    start_at: datetime | None = Field(None, description="Start datetime")
+    end_at: datetime | None = Field(None, description="End datetime")
+    all_day: bool | None = Field(None, description="All day task")
+    tag_ids: list[UUID] | None = Field(None, description="Core tag IDs")
+    color_override: str | None = Field(None, description="Manual color override (hex)")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 
@@ -67,6 +79,26 @@ class TaskResponse(TaskBase):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
+class TaskModuleSettings(BaseModel):
+    """Schema for Tasks module settings."""
+
+    calendar_enabled: bool = Field(default=True, description="Whether calendar is enabled")
+    board_enabled: bool = Field(default=True, description="Whether board view is enabled")
+    inbox_enabled: bool = Field(default=True, description="Whether inbox view is enabled")
+    list_enabled: bool = Field(default=True, description="Whether list view is enabled")
+    stats_enabled: bool = Field(default=True, description="Whether stats view is enabled")
+
+
+class TaskModuleSettingsUpdate(BaseModel):
+    """Schema for updating Tasks module settings."""
+
+    calendar_enabled: bool | None = Field(None, description="Whether calendar is enabled")
+    board_enabled: bool | None = Field(None, description="Whether board view is enabled")
+    inbox_enabled: bool | None = Field(None, description="Whether inbox view is enabled")
+    list_enabled: bool | None = Field(None, description="Whether list view is enabled")
+    stats_enabled: bool | None = Field(None, description="Whether stats view is enabled")
+
+
 class TaskAssignmentBase(BaseModel):
     """Base schema for task assignment."""
 
@@ -82,7 +114,14 @@ class TaskAssignmentBase(BaseModel):
 class TaskAssignmentCreate(TaskAssignmentBase):
     """Schema for creating a task assignment."""
 
-    pass
+    @model_validator(mode='after')
+    def validate_exclusive_assignment(self) -> TaskAssignmentCreate:
+        """Validar que solo se asigne a usuario O grupo, no ambos."""
+        if not self.assigned_to_id and not self.assigned_to_group_id:
+            raise ValueError("Debe asignar a un usuario o grupo")
+        if self.assigned_to_id and self.assigned_to_group_id:
+            raise ValueError("No puede asignar a usuario y grupo simultáneamente")
+        return self
 
 
 class TaskAssignmentResponse(TaskAssignmentBase):
@@ -312,10 +351,6 @@ class TaskRecurrenceResponse(TaskRecurrenceBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
 
 
 

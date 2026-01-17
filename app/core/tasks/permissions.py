@@ -13,6 +13,7 @@ class TaskPermission(str, Enum):
     # Basic permissions
     VIEW = "tasks.view"
     CREATE = "tasks.create"
+    MANAGE = "tasks.manage"
     UPDATE = "tasks.update"
     DELETE = "tasks.delete"
 
@@ -78,6 +79,7 @@ class TaskPermissionChecker:
             permissions.update([
                 TaskPermission.VIEW,
                 TaskPermission.CREATE,
+                TaskPermission.MANAGE,
                 TaskPermission.UPDATE,
                 TaskPermission.ASSIGN,
                 TaskPermission.ASSIGN_OTHERS,
@@ -97,6 +99,7 @@ class TaskPermissionChecker:
             permissions.update([
                 TaskPermission.VIEW,
                 TaskPermission.CREATE,
+                TaskPermission.MANAGE,
                 TaskPermission.UPDATE,
                 TaskPermission.ASSIGN_SELF,
                 TaskPermission.CHANGE_STATUS_SELF,

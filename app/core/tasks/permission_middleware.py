@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_db
+from app.core.db.deps import get_db
 from app.core.tasks.permissions import TaskPermission, TaskPermissionChecker
 from app.models.task import Task
 from app.models.user import User

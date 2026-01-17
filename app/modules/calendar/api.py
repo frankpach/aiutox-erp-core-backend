@@ -21,7 +21,6 @@ from app.schemas.calendar import (
     CalendarUpdate,
     EventAttendeeCreate,
     EventAttendeeResponse,
-    EventAttendeeUpdate,
     EventReminderCreate,
     EventReminderResponse,
 )

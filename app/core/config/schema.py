@@ -227,9 +227,62 @@ def register_general_settings_schemas() -> None:
     )
 
 
+def register_tasks_settings_schemas() -> None:
+    """Register schemas for Tasks module settings."""
+    config_schema.register_schema(
+        module="tasks",
+        key="calendar.enabled",
+        schema_def={
+            "type": "bool",
+            "default": True,
+            "required": False,
+            "description": "Enable Tasks calendar features",
+        },
+    )
+    config_schema.register_schema(
+        module="tasks",
+        key="board.enabled",
+        schema_def={
+            "type": "bool",
+            "default": True,
+            "required": False,
+            "description": "Enable Tasks board view",
+        },
+    )
+    config_schema.register_schema(
+        module="tasks",
+        key="inbox.enabled",
+        schema_def={
+            "type": "bool",
+            "default": True,
+            "required": False,
+            "description": "Enable Tasks inbox view",
+        },
+    )
+    config_schema.register_schema(
+        module="tasks",
+        key="list.enabled",
+        schema_def={
+            "type": "bool",
+            "default": True,
+            "required": False,
+            "description": "Enable Tasks list view",
+        },
+    )
+    config_schema.register_schema(
+        module="tasks",
+        key="stats.enabled",
+        schema_def={
+            "type": "bool",
+            "default": True,
+            "required": False,
+            "description": "Enable Tasks stats view",
+        },
+    )
+
+
 # Auto-register module schemas on import
 register_module_schemas()
 register_general_settings_schemas()
-
-
+register_tasks_settings_schemas()
 

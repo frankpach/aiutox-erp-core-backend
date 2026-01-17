@@ -30,6 +30,7 @@ from app.models.task import (
     WorkflowExecution,
     WorkflowStep,
 )
+from app.models.team import Team, TeamMember
 from app.models.search_index import SearchIndex
 from app.models.integration import (
     Integration,
@@ -79,6 +80,8 @@ __all__ = [
     "TagCategory",
     "Task",
     "TaskChecklistItem",
+    "Team",
+    "TeamMember",
     "Tenant",
     "User",
     "UserPreference",
@@ -87,4 +90,3 @@ __all__ = [
     "WorkflowExecution",
     "WorkflowStep",
 ]
-

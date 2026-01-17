@@ -8,12 +8,12 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
-from app.core.deps import get_db, get_task_service
+from app.core.db.deps import get_db
 from app.core.exceptions import APIException
 from app.core.tasks.service import TaskService
 from app.core.tasks.workflow_service import WorkflowService
 from app.models.user import User
-from app.schemas.common import StandardListResponse, StandardResponse
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.task import (
     TaskAssignmentCreate,
     TaskAssignmentResponse,
@@ -21,10 +21,11 @@ from app.schemas.task import (
     TaskChecklistItemResponse,
     TaskChecklistItemUpdate,
     TaskCreate,
-    TaskReminderCreate,
-    TaskReminderResponse,
+    TaskRecurrenceCreate,
     TaskRecurrenceResponse,
     TaskRecurrenceUpdate,
+    TaskReminderCreate,
+    TaskReminderResponse,
     TaskResponse,
     TaskUpdate,
 )
@@ -34,6 +35,11 @@ router = APIRouter()
 
 def get_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
     """Dependency to get TaskService."""
+    return TaskService(db)
+
+
+async def get_async_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
+    """Dependency to get TaskService for async operations."""
     return TaskService(db)
 
 
@@ -48,15 +54,15 @@ def get_workflow_service(db: Annotated[Session, Depends(get_db)]) -> WorkflowSer
     response_model=StandardResponse[TaskResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create task",
-    description="Create a new task. Requires tasks.create permission.",
+    description="Create a new task. Requires tasks.manage permission.",
 )
 async def create_task(
     task_data: TaskCreate,
-    current_user: Annotated[User, Depends(require_permission("tasks.create"))],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> StandardResponse[TaskResponse]:
     """Create a new task."""
-    task = service.create_task(
+    task = await service.create_task(
         title=task_data.title,
         tenant_id=current_user.tenant_id,
         created_by_id=current_user.id,
@@ -65,6 +71,11 @@ async def create_task(
         priority=task_data.priority,
         assigned_to_id=task_data.assigned_to_id,
         due_date=task_data.due_date,
+        start_at=task_data.start_at,
+        end_at=task_data.end_at,
+        all_day=task_data.all_day,
+        tag_ids=task_data.tag_ids,
+        color_override=task_data.color_override,
         related_entity_type=task_data.related_entity_type,
         related_entity_id=task_data.related_entity_id,
         source_module=task_data.source_module,
@@ -95,18 +106,21 @@ async def list_tasks(
     priority: str | None = Query(default=None, description="Filter by priority"),
     assigned_to_id: UUID | None = Query(default=None, description="Filter by assigned user"),
 ) -> StandardListResponse[TaskResponse]:
-    """List tasks."""
+    """List tasks with granular permission filtering."""
     skip = (page - 1) * page_size
     tasks = service.get_tasks(
         tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
         status=status,
         priority=priority,
         assigned_to_id=assigned_to_id,
         skip=skip,
         limit=page_size,
     )
-    total = service.repository.count_tasks(
+
+    total = service.count_tasks(
         tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
         status=status,
         priority=priority,
         assigned_to_id=assigned_to_id,
@@ -116,16 +130,16 @@ async def list_tasks(
 
     return StandardListResponse(
         data=[TaskResponse.model_validate(t) for t in tasks],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages,
-        },
-        message="Tasks retrieved successfully",
+        meta=PaginationMeta(
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        ),
     )
 
 
+# Special endpoints (must come BEFORE parametrized routes)
 @router.get(
     "/my-tasks",
     response_model=StandardListResponse[TaskResponse],
@@ -135,7 +149,7 @@ async def list_tasks(
 )
 async def list_my_tasks(
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
-    service: Annotated[TaskService, Depends(get_task_service)],
+    service: Annotated[TaskService, Depends(get_async_task_service)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
     status: str | None = Query(default=None, description="Filter by status"),
@@ -162,13 +176,12 @@ async def list_my_tasks(
 
     return StandardListResponse(
         data=[TaskResponse.model_validate(t) for t in tasks],
-        meta={
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages,
-        },
-        message="My tasks retrieved successfully",
+        meta=PaginationMeta(
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        ),
     )
 
 
@@ -446,7 +459,8 @@ async def create_reminder(
             "task_id": task_id,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
-            "remind_at": reminder_data.remind_at,
+            "reminder_type": reminder_data.reminder_type,
+            "reminder_time": reminder_data.reminder_time,
             "message": reminder_data.message,
         }
     )
@@ -494,6 +508,49 @@ async def list_reminders(
 
 
 # Recurrence endpoints
+@router.post(
+    "/{task_id}/recurrence",
+    response_model=StandardResponse[TaskRecurrenceResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create recurrence",
+    description="Create recurrence settings for a task. Requires tasks.manage permission.",
+)
+async def create_recurrence(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    recurrence_data: TaskRecurrenceCreate,
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    service: Annotated[TaskService, Depends(get_task_service)],
+) -> StandardResponse[TaskRecurrenceResponse]:
+    """Create recurrence settings for a task."""
+    # Verify task exists
+    task = service.get_task(task_id, current_user.tenant_id)
+    if not task:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TASK_NOT_FOUND",
+            message=f"Task with ID {task_id} not found",
+        )
+
+    recurrence = service.repository.create_recurrence(
+        {
+            "task_id": task_id,
+            "tenant_id": current_user.tenant_id,
+            "frequency": recurrence_data.frequency,
+            "interval": recurrence_data.interval,
+            "start_date": recurrence_data.start_date,
+            "end_date": recurrence_data.end_date,
+            "days_of_week": recurrence_data.days_of_week,
+            "days_of_month": recurrence_data.days_of_month,
+            "active": recurrence_data.active,
+        }
+    )
+
+    return StandardResponse(
+        data=TaskRecurrenceResponse.model_validate(recurrence),
+        message="Recurrence created successfully",
+    )
+
+
 @router.get(
     "/{task_id}/recurrence",
     response_model=StandardResponse[TaskRecurrenceResponse],
@@ -693,17 +750,19 @@ async def get_agenda(
     # Add tasks to agenda
     if "tasks" in source_list:
         for task in tasks:
-            if task.due_date:
+            task_date = task.start_at or task.due_date
+            if task_date:
                 # Apply date filters if provided
-                if start_date and task.due_date < start_date:
+                if start_date and task_date < start_date:
                     continue
-                if end_date and task.due_date > end_date:
+                if end_date and task_date > end_date:
                     continue
 
                 agenda_items.append({
                     "id": str(task.id),
                     "title": task.title,
-                    "date": task.due_date.isoformat(),
+                    "date": task_date.isoformat(),
+                    "end_date": task.end_at.isoformat() if task.end_at else None,
                     "type": "task",
                     "status": task.status,
                     "priority": task.priority,
@@ -755,8 +814,11 @@ async def get_agenda(
 )
 async def get_calendar_sources(
     current_user: Annotated[User, Depends(require_permission("tasks.agenda.view"))],
+    db: Annotated[Session, Depends(get_db)],
 ) -> StandardResponse[dict]:
     """Get available calendar sources and user preferences."""
+    from app.repositories.preference_repository import PreferenceRepository
+
     # Available sources (hardcoded for now, could be dynamic in future)
     available_sources = [
         {
@@ -785,12 +847,21 @@ async def get_calendar_sources(
         },
     ]
 
-    # TODO: Load user preferences from database when preferences system exists
-    user_preferences = {
-        "enabled_sources": ["tasks", "reminders"],
-        "default_view": "month",
-        "start_of_week": "monday",
-    }
+    # Load user preferences from database
+    preference_repo = PreferenceRepository(db)
+    calendar_prefs = preference_repo.get_user_preference(
+        current_user.id, current_user.tenant_id, "calendar", "sources"
+    )
+
+    # Default preferences if not set
+    if calendar_prefs:
+        user_preferences = calendar_prefs.value
+    else:
+        user_preferences = {
+            "enabled_sources": ["tasks", "reminders"],
+            "default_view": "month",
+            "start_of_week": "monday",
+        }
 
     return StandardResponse(
         data={
@@ -811,10 +882,20 @@ async def get_calendar_sources(
 async def update_calendar_sources(
     current_user: Annotated[User, Depends(require_permission("tasks.agenda.manage"))],
     preferences: dict,
+    db: Annotated[Session, Depends(get_db)],
 ) -> StandardResponse[dict]:
     """Update user calendar sources preferences."""
-    # TODO: Save preferences to database when preferences system exists
-    # For now, just return success
+    from app.repositories.preference_repository import PreferenceRepository
+
+    # Save preferences to database
+    preference_repo = PreferenceRepository(db)
+    preference_repo.create_or_update_user_preference(
+        current_user.id,
+        current_user.tenant_id,
+        "calendar",
+        "sources",
+        preferences,
+    )
 
     return StandardResponse(
         data=preferences,
@@ -909,6 +990,254 @@ def parse_ics_date(date_str: str) -> datetime | None:
         return None
 
 
+# ICS import endpoints
+@router.post(
+    "/import-ics",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Import events from ICS file",
+    description="Import calendar events from an ICS file and create tasks from them. Requires tasks.manage permission.",
+)
+async def import_ics(
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    service: Annotated[TaskService, Depends(get_task_service)],
+    ics_content: str = Query(..., description="ICS file content"),
+    create_tasks: bool = Query(default=True, description="Whether to create tasks from imported events"),
+) -> StandardListResponse[dict]:
+    """Import events from ICS file content."""
+    events = parse_ics_events(ics_content)
+    created_tasks = []
+
+    if create_tasks:
+        for event in events:
+            if event.get("dtstart"):
+                task = await service.create_task(
+                    title=event.get("summary", "Imported Event"),
+                    tenant_id=current_user.tenant_id,
+                    created_by_id=current_user.id,
+                    description=event.get("description"),
+                    due_date=event.get("dtstart"),
+                    source_module="ics_import",
+                    source_context=event,
+                )
+                created_tasks.append({
+                    "id": str(task.id),
+                    "title": task.title,
+                    "due_date": task.due_date.isoformat() if task.due_date else None,
+                })
+
+    return StandardListResponse(
+        data=created_tasks if create_tasks else events,
+        meta={
+            "total": len(created_tasks if create_tasks else events),
+            "page": 1,
+            "page_size": len(created_tasks if create_tasks else events),
+            "total_pages": 1,
+        },
+        message=f"Successfully imported {len(events)} events from ICS file",
+    )
+
+
+# Template endpoints
+@router.get(
+    "/templates",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="List task templates",
+    description="Get available task templates for QuickAdd.",
+)
+async def list_task_templates(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    category: str | None = Query(default=None, description="Filter by category"),
+    tags: str | None = Query(default=None, description="Filter by tags (comma-separated)"),
+    limit: int = Query(default=20, ge=1, le=100, description="Maximum number of templates"),
+) -> StandardListResponse[dict]:
+    """List task templates."""
+    from app.core.tasks.templates import get_task_template_service
+
+    template_service = get_task_template_service(current_user.db)
+
+    # Parse tags
+    tag_list = None
+    if tags:
+        tag_list = [tag.strip() for tag in tags.split(",")]
+
+    templates = template_service.get_templates(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        category=category,
+        tags=tag_list,
+        include_public=True
+    )
+
+    # Apply limit
+    templates = templates[:limit]
+
+    return StandardListResponse(
+        data=[template.to_dict() for template in templates],
+        meta=PaginationMeta(
+            total=len(templates),
+            page=1,
+            page_size=limit,
+            total_pages=1,
+        ),
+    )
+
+
+@router.get(
+    "/templates/categories",
+    response_model=StandardListResponse[str],
+    status_code=status.HTTP_200_OK,
+    summary="List template categories",
+    description="Get available template categories.",
+)
+async def list_template_categories(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+) -> StandardListResponse[str]:
+    """List template categories."""
+    from app.core.tasks.templates import get_task_template_service
+
+    template_service = get_task_template_service(current_user.db)
+    categories = template_service.get_template_categories(current_user.tenant_id)
+
+    return StandardListResponse(
+        data=categories,
+        meta=PaginationMeta(
+            total=len(categories),
+            page=1,
+            page_size=50,
+            total_pages=1,
+        ),
+    )
+
+
+@router.post(
+    "/templates/{template_id}/create-task",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create task from template",
+    description="Create a new task using a template. Requires tasks.manage permission.",
+)
+async def create_task_from_template(
+    template_id: str,
+    task_overrides: dict,
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    service: Annotated[TaskService, Depends(get_task_service)],
+) -> StandardResponse[dict]:
+    """Create task from template."""
+    from app.core.tasks.templates import get_task_template_service
+
+    template_service = get_task_template_service(current_user.db)
+
+    try:
+        # Get task data from template
+        task_data = template_service.create_task_from_template(
+            template_id=template_id,
+            tenant_id=current_user.tenant_id,
+            created_by_id=current_user.id,
+            overrides=task_overrides
+        )
+
+        # Create the task
+        task = await service.create_task(
+            title=task_data["title"],
+            tenant_id=current_user.tenant_id,
+            created_by_id=current_user.id,
+            description=task_data.get("description"),
+            priority=task_data.get("priority", "medium"),
+            assigned_to_id=task_data.get("assigned_to_id"),
+            due_date=task_data.get("due_date"),
+            tags=task_data.get("tags"),
+            estimated_duration=task_data.get("estimated_duration"),
+            category=task_data.get("category"),
+        )
+
+        # Add checklist items if they exist
+        if "checklist_items" in task_data:
+            for item_data in task_data["checklist_items"]:
+                service.add_checklist_item(
+                    task_id=task.id,
+                    tenant_id=current_user.tenant_id,
+                    title=item_data["title"],
+                    order=item_data.get("order", 0)
+                )
+
+        return StandardResponse.create(
+            data=task.to_dict(),
+            message="Task created from template successfully",
+        )
+
+    except ValueError as e:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            message=str(e),
+        )
+
+
+@router.post(
+    "/templates",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create task template",
+    description="Create a new task template.",
+)
+async def create_task_template(
+    template_data: dict,
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+) -> StandardResponse[dict]:
+    """Create task template."""
+    from app.core.tasks.templates import get_task_template_service
+
+    template_service = get_task_template_service(current_user.db)
+
+    template = template_service.create_template(
+        title=template_data["title"],
+        description=template_data["description"],
+        tenant_id=current_user.tenant_id,
+        created_by_id=current_user.id,
+        priority=template_data.get("priority", "medium"),
+        estimated_duration=template_data.get("estimated_duration", 30),
+        checklist_items=template_data.get("checklist_items"),
+        tags=template_data.get("tags"),
+        category=template_data.get("category"),
+        is_public=template_data.get("is_public", False),
+    )
+
+    return StandardResponse.create(
+        data=template.to_dict(),
+        message="Template created successfully",
+    )
+
+
+@router.get(
+    "/templates/popular",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get popular templates",
+    description="Get most used task templates.",
+)
+async def get_popular_templates(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    limit: int = Query(default=5, ge=1, le=20, description="Number of templates to return"),
+) -> StandardListResponse[dict]:
+    """Get popular templates."""
+    from app.core.tasks.templates import get_task_template_service
+
+    template_service = get_task_template_service(current_user.db)
+    templates = template_service.get_popular_templates(
+        tenant_id=current_user.tenant_id,
+        limit=limit
+    )
+
+    return StandardListResponse(
+        data=[template.to_dict() for template in templates],
+        meta=PaginationMeta(
+            total=len(templates),
+            page=1,
+            page_size=limit,
+            total_pages=1,
+        ),
+    )
 
 
 

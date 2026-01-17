@@ -1,15 +1,19 @@
-"""Task service for managing tasks."""
+"""Task service for business logic."""
 
 from datetime import datetime
 from uuid import UUID
-from typing import Optional
+from typing import Any, Optional
+
+from sqlalchemy.orm import Session
 
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.repositories.task_repository import TaskRepository
-from app.schemas.task import TaskCreate, TaskUpdate
-from app.core.events import EventPublisher
-from app.core.events.models import EventMetadata
+from app.core.pubsub import get_event_publisher
+from app.core.pubsub.models import EventMetadata
+from app.core.tasks.notification_service import get_task_notification_service
 from app.core.tasks.state_machine import TaskStateMachine, TaskTransitionError
+from app.core.tasks.audit_integration import get_task_audit_service
+from app.core.tasks.webhooks import get_task_webhook_service, TASK_WEBHOOK_EVENTS
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -21,19 +25,17 @@ class TaskService:
     def __init__(
         self,
         db: Session,
-        event_publisher: EventPublisher | None = None,
-    ):
-        """Initialize task service.
-
-        Args:
-            db: Database session
-            event_publisher: EventPublisher instance (created if not provided)
-        """
+        event_publisher: Optional[Any] = None,
+    ) -> None:
+        """Initialize task service."""
         self.db = db
         self.repository = TaskRepository(db)
         self.event_publisher = event_publisher or get_event_publisher()
+        self.notification_service = get_task_notification_service(db)
+        self.audit_service = get_task_audit_service(db)
+        self.webhook_service = get_task_webhook_service(db)
 
-    def create_task(
+    async def create_task(
         self,
         title: str,
         tenant_id: UUID,
@@ -43,6 +45,14 @@ class TaskService:
         priority: str = TaskPriority.MEDIUM,
         assigned_to_id: UUID | None = None,
         due_date: datetime | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+        all_day: bool = False,
+        tags: list[str] | None = None,
+        tag_ids: list[UUID] | None = None,
+        color_override: str | None = None,
+        estimated_duration: int | None = None,
+        category: str | None = None,
         related_entity_type: str | None = None,
         related_entity_id: UUID | None = None,
         source_module: str | None = None,
@@ -61,6 +71,12 @@ class TaskService:
             priority: Task priority (default: MEDIUM)
             assigned_to_id: User ID to assign task to (optional)
             due_date: Task due date (optional)
+            start_at: Task start datetime (optional)
+            end_at: Task end datetime (optional)
+            all_day: Whether task is all day
+            tags: Legacy tags list (optional)
+            tag_ids: Core tag IDs (optional)
+            color_override: Manual color override (optional)
             related_entity_type: Related entity type (optional)
             related_entity_id: Related entity ID (optional)
             metadata: Additional metadata (optional)
@@ -78,6 +94,12 @@ class TaskService:
                 "assigned_to_id": assigned_to_id,
                 "created_by_id": created_by_id,
                 "due_date": due_date,
+                "start_at": start_at,
+                "end_at": end_at,
+                "all_day": all_day,
+                "tags": tags,
+                "tag_ids": [str(tag_id) for tag_id in tag_ids] if tag_ids else None,
+                "color_override": color_override,
                 "related_entity_type": related_entity_type,
                 "related_entity_id": related_entity_id,
                 "source_module": source_module,
@@ -108,19 +130,32 @@ class TaskService:
         )
 
         logger.info(f"Task created: {task.id} ({title})")
+
+        # Webhooks disabled temporarily to avoid async issues
+        # TODO: Fix webhook async implementation
+        # await self._trigger_webhooks("task.created", {
+        #     "task_id": str(task.id),
+        #     "title": task.title,
+        #     "status": task.status,
+        #     "priority": task.priority,
+        #     "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+        #     "created_by_id": str(created_by_id),
+        #     "tenant_id": str(tenant_id),
+        # }, tenant_id)
+
         return task
 
     def get_task(self, task_id: UUID, tenant_id: UUID) -> Task | None:
-        """Get a task by ID.
+        """Get a task by ID with checklist items loaded.
 
         Args:
             task_id: Task ID
             tenant_id: Tenant ID
 
         Returns:
-            Task object or None if not found
+            Task object with checklist items or None if not found
         """
-        return self.repository.get_task_by_id(task_id, tenant_id)
+        return self.repository.get_task_by_id_with_checklist(task_id, tenant_id)
 
     def get_tasks(
         self,
@@ -187,12 +222,24 @@ class TaskService:
         if not current_task:
             return None
 
+        if "tag_ids" in task_data:
+            tag_ids = task_data.get("tag_ids")
+            task_data["tag_ids"] = [str(tag_id) for tag_id in tag_ids] if tag_ids else None
+
         # Validate state transition if status is being updated
+        def _coerce_status(value: TaskStatus | str) -> TaskStatus:
+            return value if isinstance(value, TaskStatus) else TaskStatus(value)
+
         if "status" in task_data:
             try:
                 new_status = TaskStatus(task_data["status"])
-                TaskStateMachine.validate_transition(current_task.status, new_status)
-                logger.info(f"Valid state transition: {current_task.status.value} -> {new_status.value}")
+                current_status = _coerce_status(current_task.status)
+                TaskStateMachine.validate_transition(current_status, new_status)
+                logger.info(
+                    "Valid state transition: %s -> %s",
+                    current_status.value,
+                    new_status.value,
+                )
             except ValueError as e:
                 logger.error(f"Invalid status value: {task_data['status']}")
                 raise ValueError(f"Invalid status: {task_data['status']}")
@@ -217,15 +264,15 @@ class TaskService:
                     version="1.0",
                     additional_data={
                         "changes": list(task_data.keys()),
-                        "previous_status": current_task.status.value,
-                        "new_status": task.status.value,
+                        "previous_status": _coerce_status(current_task.status).value,
+                        "new_status": _coerce_status(task.status).value,
                     },
                 ),
             )
 
             # If status changed to DONE, set completed_at
-            if "status" in task_data and task.status == TaskStatus.DONE:
-                task.completed_at = datetime.now(timezone.utc)
+            if "status" in task_data and _coerce_status(task.status) == TaskStatus.DONE:
+                task.completed_at = datetime.utcnow()
                 self.db.commit()
                 self.db.refresh(task)
 
@@ -266,7 +313,7 @@ class TaskService:
     # Checklist operations
     def add_checklist_item(
         self, task_id: UUID, tenant_id: UUID, title: str, order: int = 0
-    ) -> TaskChecklistItem:
+    ) -> dict:
         """Add a checklist item to a task.
 
         Args:
@@ -287,7 +334,7 @@ class TaskService:
             }
         )
 
-    def get_checklist_items(self, task_id: UUID, tenant_id: UUID) -> list[TaskChecklistItem]:
+    def get_checklist_items(self, task_id: UUID, tenant_id: UUID) -> list[dict]:
         """Get all checklist items for a task.
 
         Args:
@@ -301,7 +348,7 @@ class TaskService:
 
     def update_checklist_item(
         self, item_id: UUID, tenant_id: UUID, item_data: dict
-    ) -> TaskChecklistItem | None:
+    ) -> dict | None:
         """Update a checklist item.
 
         Args:
@@ -326,7 +373,12 @@ class TaskService:
         """
         return self.repository.delete_checklist_item(item_id, tenant_id)
 
-
+    async def _trigger_webhooks(self, event: str, data: dict, tenant_id: UUID) -> None:
+        """Trigger webhooks for a task event."""
+        try:
+            await self.webhook_service.trigger_webhooks(event, data, tenant_id)
+        except Exception as e:
+            logger.error(f"Failed to trigger webhooks for {event}: {e}")
 
 
 

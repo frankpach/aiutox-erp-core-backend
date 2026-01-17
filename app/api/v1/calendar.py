@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
+from app.core.calendar.resource_service import CalendarResourceService
 from app.core.calendar.service import CalendarService, ReminderService
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
@@ -18,6 +19,9 @@ from app.schemas.calendar import (
     CalendarEventCreate,
     CalendarEventResponse,
     CalendarEventUpdate,
+    CalendarResourceCreate,
+    CalendarResourceResponse,
+    CalendarResourceUpdate,
     CalendarResponse,
     CalendarUpdate,
     EventAttendeeCreate,
@@ -25,6 +29,8 @@ from app.schemas.calendar import (
     EventAttendeeUpdate,
     EventReminderCreate,
     EventReminderResponse,
+    EventResourceCreate,
+    EventResourceResponse,
 )
 from app.schemas.common import StandardListResponse, StandardResponse
 
@@ -43,6 +49,13 @@ def get_reminder_service(
 ) -> ReminderService:
     """Dependency to get ReminderService."""
     return ReminderService(db)
+
+
+def get_resource_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> CalendarResourceService:
+    """Dependency to get CalendarResourceService."""
+    return CalendarResourceService(db)
 
 
 # Calendar endpoints
@@ -381,6 +394,79 @@ async def delete_event(
         )
 
 
+# Event operations (DnD)
+@router.post(
+    "/events/{event_id}/move",
+    response_model=StandardResponse[CalendarEventResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Move event",
+    description="Move an event to a new start time. Requires calendar.events.manage permission.",
+)
+async def move_event(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    service: Annotated[CalendarService, Depends(get_calendar_service)],
+    start_time: datetime = Query(..., description="New start time"),
+    preserve_duration: bool = Query(True, description="Preserve event duration"),
+    scope: str = Query("single", description="Scope: single or series"),
+) -> StandardResponse[CalendarEventResponse]:
+    """Move an event to a new start time."""
+    event = service.move_event(
+        event_id=event_id,
+        tenant_id=current_user.tenant_id,
+        new_start_time=start_time,
+        preserve_duration=preserve_duration,
+        scope=scope,
+    )
+
+    if not event:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="EVENT_NOT_FOUND",
+            message=f"Event with ID {event_id} not found",
+        )
+
+    return StandardResponse(
+        data=CalendarEventResponse.model_validate(event),
+        message="Event moved successfully",
+    )
+
+
+@router.post(
+    "/events/{event_id}/resize",
+    response_model=StandardResponse[CalendarEventResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Resize event",
+    description="Resize an event by changing its end time. Requires calendar.events.manage permission.",
+)
+async def resize_event(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    service: Annotated[CalendarService, Depends(get_calendar_service)],
+    end_time: datetime = Query(..., description="New end time"),
+    scope: str = Query("single", description="Scope: single or series"),
+) -> StandardResponse[CalendarEventResponse]:
+    """Resize an event by changing its end time."""
+    event = service.resize_event(
+        event_id=event_id,
+        tenant_id=current_user.tenant_id,
+        new_end_time=end_time,
+        scope=scope,
+    )
+
+    if not event:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="EVENT_NOT_FOUND",
+            message=f"Event with ID {event_id} not found",
+        )
+
+    return StandardResponse(
+        data=CalendarEventResponse.model_validate(event),
+        message="Event resized successfully",
+    )
+
+
 # Attendee endpoints
 @router.post(
     "/events/{event_id}/attendees",
@@ -469,6 +555,243 @@ async def add_reminder(
         data=EventReminderResponse.model_validate(reminder),
         message="Reminder added successfully",
     )
+
+
+# Resource endpoints
+@router.post(
+    "/resources",
+    response_model=StandardResponse[CalendarResourceResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create resource",
+    description="Create a new calendar resource. Requires calendar.manage permission.",
+)
+async def create_resource(
+    resource_data: CalendarResourceCreate,
+    current_user: Annotated[User, Depends(require_permission("calendar.manage"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> StandardResponse[CalendarResourceResponse]:
+    """Create a new calendar resource."""
+    resource = service.create_resource(
+        resource_data=resource_data.model_dump(exclude_none=True),
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardResponse(
+        data=CalendarResourceResponse.model_validate(resource),
+        message="Resource created successfully",
+    )
+
+
+@router.get(
+    "/resources",
+    response_model=StandardListResponse[CalendarResourceResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List resources",
+    description="List calendar resources. Requires calendar.view permission.",
+)
+async def list_resources(
+    current_user: Annotated[User, Depends(require_permission("calendar.view"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+    calendar_id: UUID | None = Query(None, description="Filter by calendar ID"),
+    resource_type: str | None = Query(None, description="Filter by resource type"),
+    is_active: bool | None = Query(None, description="Filter by active status"),
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
+) -> StandardListResponse[CalendarResourceResponse]:
+    """List calendar resources."""
+    skip = (page - 1) * page_size
+
+    resources = service.get_resources(
+        tenant_id=current_user.tenant_id,
+        calendar_id=calendar_id,
+        resource_type=resource_type,
+        is_active=is_active,
+        skip=skip,
+        limit=page_size,
+    )
+
+    total = service.count_resources(
+        tenant_id=current_user.tenant_id,
+        calendar_id=calendar_id,
+        resource_type=resource_type,
+        is_active=is_active,
+    )
+
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return StandardListResponse(
+        data=[CalendarResourceResponse.model_validate(r) for r in resources],
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
+    )
+
+
+@router.get(
+    "/resources/{resource_id}",
+    response_model=StandardResponse[CalendarResourceResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get resource",
+    description="Get a specific resource by ID. Requires calendar.view permission.",
+)
+async def get_resource(
+    resource_id: Annotated[UUID, Path(..., description="Resource ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.view"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> StandardResponse[CalendarResourceResponse]:
+    """Get a specific resource."""
+    resource = service.get_resource(resource_id, current_user.tenant_id)
+    if not resource:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="RESOURCE_NOT_FOUND",
+            message=f"Resource with ID {resource_id} not found",
+        )
+
+    return StandardResponse(
+        data=CalendarResourceResponse.model_validate(resource),
+        message="Resource retrieved successfully",
+    )
+
+
+@router.patch(
+    "/resources/{resource_id}",
+    response_model=StandardResponse[CalendarResourceResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update resource",
+    description="Update a calendar resource. Requires calendar.manage permission.",
+)
+async def update_resource(
+    resource_id: Annotated[UUID, Path(..., description="Resource ID")],
+    resource_data: CalendarResourceUpdate,
+    current_user: Annotated[User, Depends(require_permission("calendar.manage"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> StandardResponse[CalendarResourceResponse]:
+    """Update a calendar resource."""
+    resource = service.update_resource(
+        resource_id=resource_id,
+        tenant_id=current_user.tenant_id,
+        resource_data=resource_data.model_dump(exclude_none=True),
+    )
+
+    if not resource:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="RESOURCE_NOT_FOUND",
+            message=f"Resource with ID {resource_id} not found",
+        )
+
+    return StandardResponse(
+        data=CalendarResourceResponse.model_validate(resource),
+        message="Resource updated successfully",
+    )
+
+
+@router.delete(
+    "/resources/{resource_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete resource",
+    description="Delete a calendar resource. Requires calendar.manage permission.",
+)
+async def delete_resource(
+    resource_id: Annotated[UUID, Path(..., description="Resource ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.manage"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> None:
+    """Delete a calendar resource."""
+    success = service.delete_resource(resource_id, current_user.tenant_id)
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="RESOURCE_NOT_FOUND",
+            message=f"Resource with ID {resource_id} not found",
+        )
+
+
+# Event-Resource endpoints
+@router.post(
+    "/events/{event_id}/resources",
+    response_model=StandardResponse[EventResourceResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Assign resource to event",
+    description="Assign a resource to an event. Requires calendar.events.manage permission.",
+)
+async def assign_resource_to_event(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    resource_data: EventResourceCreate,
+    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> StandardResponse[EventResourceResponse]:
+    """Assign a resource to an event."""
+    event_resource = service.assign_resource_to_event(
+        event_id=event_id,
+        resource_id=resource_data.resource_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardResponse(
+        data=EventResourceResponse.model_validate(event_resource),
+        message="Resource assigned to event successfully",
+    )
+
+
+@router.get(
+    "/events/{event_id}/resources",
+    response_model=StandardListResponse[EventResourceResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List event resources",
+    description="List resources assigned to an event. Requires calendar.events.view permission.",
+)
+async def list_event_resources(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.view"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> StandardListResponse[EventResourceResponse]:
+    """List resources assigned to an event."""
+    event_resources = service.get_event_resources(
+        event_id=event_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardListResponse(
+        data=[EventResourceResponse.model_validate(er) for er in event_resources],
+        meta={
+            "total": len(event_resources),
+            "page": 1,
+            "page_size": len(event_resources),
+            "total_pages": 1,
+        },
+    )
+
+
+@router.delete(
+    "/events/{event_id}/resources/{resource_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove resource from event",
+    description="Remove a resource from an event. Requires calendar.events.manage permission.",
+)
+async def remove_resource_from_event(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    resource_id: Annotated[UUID, Path(..., description="Resource ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    service: Annotated[CalendarResourceService, Depends(get_resource_service)],
+) -> None:
+    """Remove a resource from an event."""
+    success = service.remove_resource_from_event(
+        event_id=event_id,
+        resource_id=resource_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="RESOURCE_ASSIGNMENT_NOT_FOUND",
+            message="Resource assignment not found",
+        )
 
 
 

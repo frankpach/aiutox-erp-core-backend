@@ -3,6 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.task import (
@@ -69,6 +70,71 @@ class TaskRepository:
             query = query.filter(Task.priority == priority)
         if assigned_to_id:
             query = query.filter(Task.assigned_to_id == assigned_to_id)
+        return query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+
+    def get_tasks_with_group_visibility(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        user_group_ids: list[UUID],
+        status: str | None = None,
+        priority: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Task]:
+        """
+        Get tasks visible to a user considering group assignments.
+
+        A task is visible if:
+        - User created it
+        - User is directly assigned to it
+        - User belongs to a group assigned to it
+
+        Args:
+            tenant_id: Tenant ID
+            user_id: User ID
+            user_group_ids: List of group IDs the user belongs to
+            status: Optional status filter
+            priority: Optional priority filter
+            skip: Pagination offset
+            limit: Pagination limit
+
+        Returns:
+            List of visible tasks
+        """
+        query = self.db.query(Task).filter(Task.tenant_id == tenant_id)
+
+        # Condiciones de visibilidad
+        visibility_conditions = [
+            Task.created_by_id == user_id,  # Creadas por el usuario
+            Task.assigned_to_id == user_id,  # Asignadas directamente
+            Task.id.in_(  # Asignadas al usuario via TaskAssignment
+                self.db.query(TaskAssignment.task_id).filter(
+                    TaskAssignment.tenant_id == tenant_id,
+                    TaskAssignment.assigned_to_id == user_id
+                )
+            ),
+        ]
+
+        # Si el usuario pertenece a grupos, incluir tareas asignadas a esos grupos
+        if user_group_ids:
+            visibility_conditions.append(
+                Task.id.in_(
+                    self.db.query(TaskAssignment.task_id).filter(
+                        TaskAssignment.tenant_id == tenant_id,
+                        TaskAssignment.assigned_to_group_id.in_(user_group_ids)
+                    )
+                )
+            )
+
+        query = query.filter(or_(*visibility_conditions))
+
+        # Aplicar filtros adicionales
+        if status:
+            query = query.filter(Task.status == status)
+        if priority:
+            query = query.filter(Task.priority == priority)
+
         return query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
 
     def get_tasks_by_entity(
@@ -278,29 +344,8 @@ class TaskRepository:
         from sqlalchemy import and_, or_
         from sqlalchemy.orm import aliased
 
-        # Try to get from cache first
-        try:
-            import asyncio
-
-            from app.core.tasks.cache_service import task_cache_service
-
-            # Run async cache operation in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                cached_tasks = loop.run_until_complete(
-                    task_cache_service.get_visible_tasks(
-                        tenant_id, user_id, status, priority, skip, limit
-                    )
-                )
-                if cached_tasks:
-                    # Convert cached TaskResponse back to Task models
-                    return [self._task_response_to_model(task) for task in cached_tasks]
-            finally:
-                loop.close()
-        except Exception:
-            # Cache failed, continue with database query
-            pass
+        # Cache disabled temporarily to avoid asyncio issues
+        # TODO: Fix async cache implementation
 
         # Use LEFT JOIN instead of subqueries for better performance
         task_assignment = aliased(TaskAssignment)
@@ -342,27 +387,28 @@ class TaskRepository:
             .all()
         )
 
-        # Cache the results for future requests
-        try:
-            from app.core.tasks.cache_service import task_cache_service
-            from app.schemas.task import TaskResponse
-
-            # Convert to TaskResponse for caching
-            task_responses = [TaskResponse.model_validate(task) for task in tasks]
-
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(
-                    task_cache_service.set_visible_tasks(
-                        tenant_id, user_id, task_responses, status, priority, skip, limit
-                    )
-                )
-            finally:
-                loop.close()
-        except Exception:
-            # Cache failed, but query succeeded
-            pass
+        # Cache disabled temporarily to avoid asyncio issues
+        # TODO: Fix async cache implementation
+        # try:
+        #     from app.core.tasks.cache_service import task_cache_service
+        #     from app.schemas.task import TaskResponse
+        #
+        #     # Convert to TaskResponse for caching
+        #     task_responses = [TaskResponse.model_validate(task) for task in tasks]
+        #
+        #     loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(loop)
+        #     try:
+        #         loop.run_until_complete(
+        #             task_cache_service.set_visible_tasks(
+        #                 tenant_id, user_id, task_responses, status, priority, skip, limit
+        #             )
+        #         )
+        #     finally:
+        #         loop.close()
+        # except Exception:
+        #     # Cache failed, but query succeeded
+        #     pass
 
         return tasks
 

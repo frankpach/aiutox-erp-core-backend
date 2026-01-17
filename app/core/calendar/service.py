@@ -260,6 +260,98 @@ class CalendarService:
 
         return updated_event
 
+    def move_event(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+        new_start_time: datetime,
+        preserve_duration: bool = True,
+        scope: str = "single",
+    ) -> CalendarEvent | None:
+        """Move an event to a new start time.
+
+        Args:
+            event_id: Event ID
+            tenant_id: Tenant ID
+            new_start_time: New start time
+            preserve_duration: Whether to preserve event duration
+            scope: 'single' or 'series' (for recurring events)
+
+        Returns:
+            Updated CalendarEvent or None if not found
+        """
+        event = self.repository.get_event_by_id(event_id, tenant_id)
+        if not event:
+            return None
+
+        # Calculate new end time
+        if preserve_duration:
+            duration = event.end_time - event.start_time
+            new_end_time = new_start_time + duration
+        else:
+            new_end_time = new_start_time
+
+        # Update event
+        event_data = {
+            "start_time": new_start_time,
+            "end_time": new_end_time,
+        }
+
+        updated_event = self.update_event(event_id, tenant_id, event_data)
+
+        # If event has source (e.g., task), sync back
+        if updated_event and updated_event.source_type == "task":
+            self._sync_event_to_source(updated_event)
+
+        return updated_event
+
+    def resize_event(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+        new_end_time: datetime,
+        scope: str = "single",
+    ) -> CalendarEvent | None:
+        """Resize an event by changing its end time.
+
+        Args:
+            event_id: Event ID
+            tenant_id: Tenant ID
+            new_end_time: New end time
+            scope: 'single' or 'series' (for recurring events)
+
+        Returns:
+            Updated CalendarEvent or None if not found
+        """
+        event = self.repository.get_event_by_id(event_id, tenant_id)
+        if not event:
+            return None
+
+        # Update event
+        event_data = {
+            "end_time": new_end_time,
+        }
+
+        updated_event = self.update_event(event_id, tenant_id, event_data)
+
+        # If event has source (e.g., task), sync back
+        if updated_event and updated_event.source_type == "task":
+            self._sync_event_to_source(updated_event)
+
+        return updated_event
+
+    def _sync_event_to_source(self, event: CalendarEvent) -> None:
+        """Sync event changes back to source entity.
+
+        Args:
+            event: CalendarEvent instance
+        """
+        if event.source_type == "task" and event.source_id:
+            from app.core.calendar.sync_service import CalendarSyncService
+
+            sync_service = CalendarSyncService(self.db)
+            sync_service.sync_event_to_task(event)
+
     def cancel_event(self, event_id: UUID, tenant_id: UUID) -> CalendarEvent | None:
         """Cancel an event."""
         event = self.repository.get_event_by_id(event_id, tenant_id)

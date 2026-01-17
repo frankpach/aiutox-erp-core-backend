@@ -202,6 +202,11 @@ def log_permission_change(
     security_logger.info(message)
 
 
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger instance for the given name."""
+    return logging.getLogger(name)
+
+
 def create_audit_log_entry(
     db: Any,
     user_id: UUID | None,
@@ -307,6 +312,11 @@ def log_user_action(
         message += f", ip={ip_address}"
 
     security_logger.info(message)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger instance for the given name."""
+    return logging.getLogger(name)
 
 
 
