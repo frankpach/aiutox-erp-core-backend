@@ -12,7 +12,7 @@ from app.models.task import (
     TaskPriority,
     TaskRecurrenceFrequency,
     TaskReminderType,
-    TaskStatus,
+    TaskStatusEnum,
 )
 
 
@@ -21,7 +21,7 @@ class TaskBase(BaseModel):
 
     title: str = Field(..., description="Task title", max_length=255)
     description: str | None = Field(None, description="Task description")
-    status: str = Field(default=TaskStatus.TODO, description="Task status")
+    status: str = Field(default=TaskStatusEnum.TODO, description="Task status")
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority")
     assigned_to_id: UUID | None = Field(None, description="Assigned user ID (legacy, use assignments)")
     due_date: datetime | None = Field(None, description="Due date")

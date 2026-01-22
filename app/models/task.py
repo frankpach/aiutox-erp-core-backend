@@ -19,9 +19,12 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
+# Import TaskStatus and TaskTemplate models to ensure they're available for relationships
+from app.models.task_status import TaskStatus  # noqa: F401
+from app.models.task_template import TaskTemplate  # noqa: F401
 
 
-class TaskStatus(str, Enum):
+class TaskStatusEnum(str, Enum):
     """Task status enumeration."""
 
     TODO = "todo"
@@ -58,7 +61,7 @@ class Task(Base):
     # Task information
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    status = Column(String(20), nullable=False, default=TaskStatus.TODO, index=True)
+    status = Column(String(20), nullable=False, default=TaskStatusEnum.TODO, index=True)
     priority = Column(String(20), nullable=False, default=TaskPriority.MEDIUM, index=True)
 
     # Assignment (legacy field for backward compatibility, use TaskAssignment for multiple)
@@ -104,6 +107,21 @@ class Task(Base):
         nullable=True,
     )
 
+    # Board view and templates (Fase 1)
+    status_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("task_statuses.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    board_order = Column(Integer, nullable=True)
+    template_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("task_templates.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Metadata
     task_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
     tags = Column(JSONB, nullable=True)  # Array of tag names or IDs
@@ -135,6 +153,8 @@ class Task(Base):
     parent_task = relationship("Task", back_populates="subtasks", remote_side=[id])
     assignments = relationship("TaskAssignment", back_populates="task", cascade="all, delete-orphan")
     checklist_items = relationship("TaskChecklistItem", back_populates="task", cascade="all, delete-orphan")
+    status_obj = relationship("TaskStatus", back_populates="tasks", foreign_keys=[status_id])
+    template = relationship("TaskTemplate", back_populates="tasks")
 
     __table_args__ = (
         Index("idx_tasks_tenant_status", "tenant_id", "status"),

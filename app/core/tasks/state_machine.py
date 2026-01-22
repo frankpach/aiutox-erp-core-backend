@@ -3,7 +3,7 @@
 from typing import Dict, List, Set
 from enum import Enum
 
-from app.models.task import TaskStatus
+from app.models.task import TaskStatusEnum
 
 
 class TaskTransitionError(Exception):
@@ -21,69 +21,69 @@ class TaskStateMachine:
     """State machine for managing task status transitions."""
 
     # Define valid transitions
-    VALID_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
-        TaskStatus.TODO: {
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.BLOCKED,
-            TaskStatus.ON_HOLD,
-            TaskStatus.CANCELLED,
+    VALID_TRANSITIONS: Dict[TaskStatusEnum, Set[TaskStatusEnum]] = {
+        TaskStatusEnum.TODO: {
+            TaskStatusEnum.IN_PROGRESS,
+            TaskStatusEnum.BLOCKED,
+            TaskStatusEnum.ON_HOLD,
+            TaskStatusEnum.CANCELLED,
         },
-        TaskStatus.IN_PROGRESS: {
-            TaskStatus.DONE,
-            TaskStatus.BLOCKED,
-            TaskStatus.ON_HOLD,
-            TaskStatus.REVIEW,
-            TaskStatus.CANCELLED,
+        TaskStatusEnum.IN_PROGRESS: {
+            TaskStatusEnum.DONE,
+            TaskStatusEnum.BLOCKED,
+            TaskStatusEnum.ON_HOLD,
+            TaskStatusEnum.REVIEW,
+            TaskStatusEnum.CANCELLED,
         },
-        TaskStatus.ON_HOLD: {
-            TaskStatus.TODO,
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.CANCELLED,
+        TaskStatusEnum.ON_HOLD: {
+            TaskStatusEnum.TODO,
+            TaskStatusEnum.IN_PROGRESS,
+            TaskStatusEnum.CANCELLED,
         },
-        TaskStatus.BLOCKED: {
-            TaskStatus.TODO,
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.CANCELLED,
+        TaskStatusEnum.BLOCKED: {
+            TaskStatusEnum.TODO,
+            TaskStatusEnum.IN_PROGRESS,
+            TaskStatusEnum.CANCELLED,
         },
-        TaskStatus.REVIEW: {
-            TaskStatus.DONE,
-            TaskStatus.BLOCKED,
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.CANCELLED,
+        TaskStatusEnum.REVIEW: {
+            TaskStatusEnum.DONE,
+            TaskStatusEnum.BLOCKED,
+            TaskStatusEnum.IN_PROGRESS,
+            TaskStatusEnum.CANCELLED,
         },
-        TaskStatus.DONE: {
-            TaskStatus.TODO,  # Allow reopening tasks
-            TaskStatus.IN_PROGRESS,  # Allow reopening for rework
+        TaskStatusEnum.DONE: {
+            TaskStatusEnum.TODO,  # Allow reopening tasks
+            TaskStatusEnum.IN_PROGRESS,  # Allow reopening for rework
         },
-        TaskStatus.CANCELLED: {
-            TaskStatus.TODO,  # Allow reactivating cancelled tasks
-            TaskStatus.IN_PROGRESS,
+        TaskStatusEnum.CANCELLED: {
+            TaskStatusEnum.TODO,  # Allow reactivating cancelled tasks
+            TaskStatusEnum.IN_PROGRESS,
         },
     }
 
     # Define business rules for specific transitions
     TRANSITION_RULES = {
         # Rules that require specific conditions
-        (TaskStatus.TODO, TaskStatus.DONE): {
+        (TaskStatusEnum.TODO, TaskStatusEnum.DONE): {
             "error": "Cannot mark task as done directly. Must be in progress first.",
             "allowed": False,
         },
-        (TaskStatus.TODO, TaskStatus.REVIEW): {
+        (TaskStatusEnum.TODO, TaskStatusEnum.REVIEW): {
             "error": "Cannot send task to review directly. Must be in progress first.",
             "allowed": False,
         },
-        (TaskStatus.DONE, TaskStatus.CANCELLED): {
+        (TaskStatusEnum.DONE, TaskStatusEnum.CANCELLED): {
             "error": "Cannot cancel a completed task. Reopen it first.",
             "allowed": False,
         },
-        (TaskStatus.CANCELLED, TaskStatus.DONE): {
+        (TaskStatusEnum.CANCELLED, TaskStatusEnum.DONE): {
             "error": "Cannot mark cancelled task as done directly. Reactivate it first.",
             "allowed": False,
         },
     }
 
     @classmethod
-    def validate_transition(cls, from_state: TaskStatus, to_state: TaskStatus) -> bool:
+    def validate_transition(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> bool:
         """
         Validate if a state transition is allowed.
 
@@ -124,7 +124,7 @@ class TaskStateMachine:
         return True
 
     @classmethod
-    def get_allowed_transitions(cls, from_state: TaskStatus) -> List[TaskStatus]:
+    def get_allowed_transitions(cls, from_state: TaskStatusEnum) -> List[TaskStatusEnum]:
         """
         Get all allowed transitions from a given state.
 
@@ -137,7 +137,7 @@ class TaskStateMachine:
         return list(cls.VALID_TRANSITIONS.get(from_state, set()))
 
     @classmethod
-    def get_transition_path(cls, from_state: TaskStatus, to_state: TaskStatus) -> List[TaskStatus]:
+    def get_transition_path(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> List[TaskStatusEnum]:
         """
         Get the shortest path from one state to another.
 
@@ -173,7 +173,7 @@ class TaskStateMachine:
         return []  # No path found
 
     @classmethod
-    def can_reach_state(cls, from_state: TaskStatus, to_state: TaskStatus) -> bool:
+    def can_reach_state(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> bool:
         """
         Check if a state can be reached from another state (directly or indirectly).
 
@@ -187,7 +187,7 @@ class TaskStateMachine:
         return len(cls.get_transition_path(from_state, to_state)) > 0
 
     @classmethod
-    def get_state_metadata(cls, state: TaskStatus) -> Dict[str, any]:
+    def get_state_metadata(cls, state: TaskStatusEnum) -> Dict[str, any]:
         """
         Get metadata about a state (color, icon, description, etc.).
 
@@ -198,43 +198,43 @@ class TaskStateMachine:
             Dictionary with state metadata
         """
         metadata = {
-            TaskStatus.TODO: {
+            TaskStatusEnum.TODO: {
                 "color": "gray",
                 "icon": "circle",
                 "description": "Task not started",
                 "category": "pending",
             },
-            TaskStatus.IN_PROGRESS: {
+            TaskStatusEnum.IN_PROGRESS: {
                 "color": "blue",
                 "icon": "play-circle",
                 "description": "Task in progress",
                 "category": "active",
             },
-            TaskStatus.ON_HOLD: {
+            TaskStatusEnum.ON_HOLD: {
                 "color": "yellow",
                 "icon": "pause-circle",
                 "description": "Task paused",
                 "category": "pending",
             },
-            TaskStatus.BLOCKED: {
+            TaskStatusEnum.BLOCKED: {
                 "color": "red",
                 "icon": "stop-circle",
                 "description": "Task blocked",
                 "category": "blocked",
             },
-            TaskStatus.REVIEW: {
+            TaskStatusEnum.REVIEW: {
                 "color": "purple",
                 "icon": "eye",
                 "description": "Task under review",
                 "category": "active",
             },
-            TaskStatus.DONE: {
+            TaskStatusEnum.DONE: {
                 "color": "green",
                 "icon": "check-circle",
                 "description": "Task completed",
                 "category": "completed",
             },
-            TaskStatus.CANCELLED: {
+            TaskStatusEnum.CANCELLED: {
                 "color": "gray",
                 "icon": "x-circle",
                 "description": "Task cancelled",
@@ -250,7 +250,7 @@ class TaskStateMachine:
         })
 
     @classmethod
-    def get_states_by_category(cls, category: str) -> List[TaskStatus]:
+    def get_states_by_category(cls, category: str) -> List[TaskStatusEnum]:
         """
         Get all states in a specific category.
 
@@ -261,6 +261,6 @@ class TaskStateMachine:
             List of states in the category
         """
         return [
-            state for state in TaskStatus
+            state for state in TaskStatusEnum
             if cls.get_state_metadata(state)["category"] == category
         ]

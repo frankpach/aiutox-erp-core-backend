@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.task import Task, TaskStatus, TaskPriority
+from app.models.task import Task, TaskStatusEnum, TaskPriority
 from app.repositories.task_repository import TaskRepository
 from app.core.pubsub import get_event_publisher
 from app.core.pubsub.models import EventMetadata
@@ -41,7 +41,7 @@ class TaskService:
         tenant_id: UUID,
         created_by_id: UUID,
         description: str | None = None,
-        status: str = TaskStatus.TODO,
+        status: str = TaskStatusEnum.TODO,
         priority: str = TaskPriority.MEDIUM,
         assigned_to_id: UUID | None = None,
         due_date: datetime | None = None,
@@ -227,12 +227,12 @@ class TaskService:
             task_data["tag_ids"] = [str(tag_id) for tag_id in tag_ids] if tag_ids else None
 
         # Validate state transition if status is being updated
-        def _coerce_status(value: TaskStatus | str) -> TaskStatus:
-            return value if isinstance(value, TaskStatus) else TaskStatus(value)
+        def _coerce_status(value: TaskStatusEnum | str) -> TaskStatusEnum:
+            return value if isinstance(value, TaskStatusEnum) else TaskStatusEnum(value)
 
         if "status" in task_data:
             try:
-                new_status = TaskStatus(task_data["status"])
+                new_status = TaskStatusEnum(task_data["status"])
                 current_status = _coerce_status(current_task.status)
                 TaskStateMachine.validate_transition(current_status, new_status)
                 logger.info(
@@ -271,7 +271,7 @@ class TaskService:
             )
 
             # If status changed to DONE, set completed_at
-            if "status" in task_data and _coerce_status(task.status) == TaskStatus.DONE:
+            if "status" in task_data and _coerce_status(task.status) == TaskStatusEnum.DONE:
                 task.completed_at = datetime.utcnow()
                 self.db.commit()
                 self.db.refresh(task)

@@ -79,6 +79,7 @@ class User(Base):
         "DelegatedPermission", back_populates="user", foreign_keys="DelegatedPermission.user_id", cascade="all, delete-orphan"
     )
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    created_templates = relationship("TaskTemplate", back_populates="creator", cascade="all, delete-orphan")
     # Note: contact_methods relationship will be handled via ContactMethodRepository
     # due to polymorphic nature (entity_type + entity_id)
 

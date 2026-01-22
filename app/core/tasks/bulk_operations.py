@@ -6,7 +6,7 @@ from uuid import UUID
 from app.core.logging import get_logger
 from app.core.tasks.cache_invalidation import task_cache_invalidation_service
 from app.core.tasks.notification_service import task_notification_service
-from app.models.task import TaskPriority, TaskStatus
+from app.models.task import TaskPriority, TaskStatusEnum
 from app.repositories.task_repository import TaskRepository
 
 logger = get_logger(__name__)
@@ -61,7 +61,7 @@ class BulkTaskService:
         try:
             # Validate status
             try:
-                TaskStatus(new_status)
+                TaskStatusEnum(new_status)
             except ValueError:
                 raise ValueError(f"Invalid status: {new_status}")
 

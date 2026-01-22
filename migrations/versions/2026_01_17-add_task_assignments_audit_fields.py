@@ -19,38 +19,60 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "task_assignments",
-        sa.Column("created_by_id", postgresql.UUID(as_uuid=True), nullable=True),
-    )
-    op.add_column(
-        "task_assignments",
-        sa.Column("updated_by_id", postgresql.UUID(as_uuid=True), nullable=True),
-    )
+    # Add columns only if they don't exist
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [column["name"] for column in inspector.get_columns("task_assignments")]
 
-    op.create_index(
-        "ix_task_assignments_created_by_id",
-        "task_assignments",
-        ["created_by_id"],
-        unique=False,
-    )
+    if "created_by_id" not in columns:
+        op.add_column(
+            "task_assignments",
+            sa.Column("created_by_id", postgresql.UUID(as_uuid=True), nullable=True),
+        )
 
-    op.create_foreign_key(
-        "fk_task_assignments_created_by_id",
-        "task_assignments",
-        "users",
-        ["created_by_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_task_assignments_updated_by_id",
-        "task_assignments",
-        "users",
-        ["updated_by_id"],
-        ["id"],
-        ondelete="SET NULL",
-    )
+    if "updated_by_id" not in columns:
+        op.add_column(
+            "task_assignments",
+            sa.Column("updated_by_id", postgresql.UUID(as_uuid=True), nullable=True),
+        )
+
+    # Create index only if it doesn't exist
+    if "ix_task_assignments_created_by_id" not in inspector.get_indexes("task_assignments"):
+        op.create_index(
+            "ix_task_assignments_created_by_id",
+            "task_assignments",
+            ["created_by_id"],
+            unique=False,
+        )
+
+    # Create foreign key only if it doesn't exist
+    if "fk_task_assignments_created_by_id" not in [fk["name"] for fk in inspector.get_foreign_keys("task_assignments")]:
+        op.create_foreign_key(
+            "fk_task_assignments_created_by_id",
+            "task_assignments",
+            "users",
+            ["created_by_id"],
+            ["id"],
+            ondelete="CASCADE",
+        )
+
+    if "ix_task_assignments_updated_by_id" not in inspector.get_indexes("task_assignments"):
+        op.create_index(
+            "ix_task_assignments_updated_by_id",
+            "task_assignments",
+            ["updated_by_id"],
+            unique=False,
+        )
+
+    if "fk_task_assignments_updated_by_id" not in [fk["name"] for fk in inspector.get_foreign_keys("task_assignments")]:
+        op.create_foreign_key(
+            "fk_task_assignments_updated_by_id",
+            "task_assignments",
+            "users",
+            ["updated_by_id"],
+            ["id"],
+            ondelete="SET NULL",
+        )
 
     op.execute(
         """

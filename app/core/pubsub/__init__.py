@@ -1,16 +1,18 @@
-"""Pub-Sub module for event bus based on Redis Streams."""
+"""Pub-Sub module for event bus based on Redis Streams and Redis Pub/Sub."""
 
+from app.core.pubsub import payloads, topics
 from app.core.pubsub.client import RedisStreamsClient
 from app.core.pubsub.consumer import EventConsumer
 from app.core.pubsub.errors import (
     ConsumeError,
     GroupNotFoundError,
-    PubSubError,
     PublishError,
+    PubSubError,
     StreamNotFoundError,
 )
 from app.core.pubsub.models import Event, EventMetadata
 from app.core.pubsub.publisher import EventPublisher
+from app.core.pubsub.redis_event_bus import RedisEventBus, get_redis_event_bus
 
 __all__ = [
     "RedisStreamsClient",
@@ -24,6 +26,10 @@ __all__ = [
     "PublishError",
     "ConsumeError",
     "get_event_publisher",
+    "RedisEventBus",
+    "get_redis_event_bus",
+    "topics",
+    "payloads",
 ]
 
 
