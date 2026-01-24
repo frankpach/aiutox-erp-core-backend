@@ -13,7 +13,9 @@ from app.core.pubsub.models import EventMetadata
 from app.core.tasks.notification_service import get_task_notification_service
 from app.core.tasks.state_machine import TaskStateMachine, TaskTransitionError
 from app.core.tasks.audit_integration import get_task_audit_service
-from app.core.tasks.webhooks import get_task_webhook_service, TASK_WEBHOOK_EVENTS
+from app.core.tasks.webhooks import get_task_webhook_service
+from app.core.tasks.templates import get_task_template_service
+from app.core.cache.task_cache import get_task_cache
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +27,7 @@ class TaskService:
     def __init__(
         self,
         db: Session,
-        event_publisher: Optional[Any] = None,
+        event_publisher: Any | None = None,
     ) -> None:
         """Initialize task service."""
         self.db = db
@@ -34,6 +36,8 @@ class TaskService:
         self.notification_service = get_task_notification_service(db)
         self.audit_service = get_task_audit_service(db)
         self.webhook_service = get_task_webhook_service(db)
+        self.template_service = get_task_template_service(db)
+        self.cache = get_task_cache()
 
     async def create_task(
         self,
@@ -129,19 +133,51 @@ class TaskService:
             ),
         )
 
+        # Publish task.assigned event if task is assigned
+        if assigned_to_id:
+            safe_publish_event(
+                event_publisher=self.event_publisher,
+                event_type="task.assigned",
+                entity_type="task",
+                entity_id=task.id,
+                tenant_id=tenant_id,
+                user_id=assigned_to_id,
+                metadata=EventMetadata(
+                    source="task_service",
+                    version="1.0",
+                    additional_data={
+                        "task_id": str(task.id),
+                        "task_title": title,
+                        "assigned_to_id": str(assigned_to_id),
+                        "assigned_by_id": str(created_by_id),
+                        "due_date": due_date.isoformat() if due_date else None,
+                    },
+                ),
+            )
+
         logger.info(f"Task created: {task.id} ({title})")
 
-        # Webhooks disabled temporarily to avoid async issues
-        # TODO: Fix webhook async implementation
-        # await self._trigger_webhooks("task.created", {
-        #     "task_id": str(task.id),
-        #     "title": task.title,
-        #     "status": task.status,
-        #     "priority": task.priority,
-        #     "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
-        #     "created_by_id": str(created_by_id),
-        #     "tenant_id": str(tenant_id),
-        # }, tenant_id)
+        # Auto-sync to calendar if enabled and task has dates
+        if self._should_sync_to_calendar(task, tenant_id):
+            try:
+                from app.core.tasks.task_event_sync_service import TaskEventSyncService
+                sync_service = TaskEventSyncService(self.db)
+                await sync_service.sync_task_to_event(task)
+                logger.info(f"Task {task.id} synced to calendar")
+            except Exception as e:
+                logger.error(f"Failed to sync task {task.id} to calendar: {e}")
+                # Continue without failing task creation
+
+        # Trigger webhooks for task.created event
+        await self._trigger_webhooks("task.created", {
+            "task_id": str(task.id),
+            "title": task.title,
+            "status": task.status,
+            "priority": task.priority,
+            "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+            "created_by_id": str(created_by_id),
+            "tenant_id": str(tenant_id),
+        }, tenant_id)
 
         return task
 
@@ -156,6 +192,39 @@ class TaskService:
             Task object with checklist items or None if not found
         """
         return self.repository.get_task_by_id_with_checklist(task_id, tenant_id)
+
+    def _should_sync_to_calendar(self, task: Task, tenant_id: UUID) -> bool:
+        """Check if task should be synced to calendar.
+
+        Args:
+            task: Task to check
+            tenant_id: Tenant ID
+
+        Returns:
+            True if task should be synced
+        """
+        # Only sync if task has dates
+        if not (task.start_at or task.due_date or task.end_at):
+            return False
+
+        # Check if user has auto-sync enabled
+        try:
+            from app.models.user_calendar_preferences import UserCalendarPreferences
+
+            if task.assigned_to_id:
+                prefs = self.db.query(UserCalendarPreferences).filter(
+                    UserCalendarPreferences.user_id == task.assigned_to_id,
+                    UserCalendarPreferences.tenant_id == tenant_id,
+                    UserCalendarPreferences.auto_sync_tasks == True
+                ).first()
+
+                return prefs is not None
+        except Exception as e:
+            logger.warning(f"Failed to check calendar sync preferences: {e}")
+            # Default to not syncing if we can't check preferences
+            return False
+
+        return False
 
     def get_tasks(
         self,
@@ -203,7 +272,7 @@ class TaskService:
         """
         return self.repository.get_tasks_by_entity(entity_type, entity_id, tenant_id)
 
-    def update_task(
+    async def update_task(
         self, task_id: UUID, tenant_id: UUID, task_data: dict, user_id: UUID
     ) -> Task | None:
         """Update a task.
@@ -270,15 +339,75 @@ class TaskService:
                 ),
             )
 
+            # Publish task.assigned event if assigned_to_id changed
+            if "assigned_to_id" in task_data and task_data["assigned_to_id"] != current_task.assigned_to_id:
+                if task_data["assigned_to_id"]:
+                    safe_publish_event(
+                        event_publisher=self.event_publisher,
+                        event_type="task.assigned",
+                        entity_type="task",
+                        entity_id=task.id,
+                        tenant_id=tenant_id,
+                        user_id=task_data["assigned_to_id"],
+                        metadata=EventMetadata(
+                            source="task_service",
+                            version="1.0",
+                            additional_data={
+                                "task_id": str(task.id),
+                                "task_title": task.title,
+                                "assigned_to_id": str(task_data["assigned_to_id"]),
+                                "assigned_by_id": str(user_id),
+                                "due_date": task.due_date.isoformat() if task.due_date else None,
+                                "previous_assigned_to_id": str(current_task.assigned_to_id) if current_task.assigned_to_id else None,
+                            },
+                        ),
+                    )
+
+            # Publish task.status_changed event if status changed
+            if "status" in task_data:
+                current_status = _coerce_status(current_task.status)
+                new_status = _coerce_status(task.status)
+                if current_status != new_status:
+                    safe_publish_event(
+                        event_publisher=self.event_publisher,
+                        event_type="task.status_changed",
+                        entity_type="task",
+                        entity_id=task.id,
+                        tenant_id=tenant_id,
+                        user_id=user_id,
+                        metadata=EventMetadata(
+                            source="task_service",
+                            version="1.0",
+                            additional_data={
+                                "task_id": str(task.id),
+                                "task_title": task.title,
+                                "old_status": current_status.value,
+                                "new_status": new_status.value,
+                                "changed_by_id": str(user_id),
+                            },
+                        ),
+                    )
+
             # If status changed to DONE, set completed_at
             if "status" in task_data and _coerce_status(task.status) == TaskStatusEnum.DONE:
                 task.completed_at = datetime.utcnow()
                 self.db.commit()
                 self.db.refresh(task)
 
+            # Trigger webhooks for task.updated event
+            await self._trigger_webhooks("task.updated", {
+                "task_id": str(task.id),
+                "title": task.title,
+                "status": task.status,
+                "priority": task.priority,
+                "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+                "changes": list(task_data.keys()),
+                "tenant_id": str(tenant_id),
+            }, tenant_id)
+
         return task
 
-    def delete_task(self, task_id: UUID, tenant_id: UUID, user_id: UUID) -> bool:
+    async def delete_task(self, task_id: UUID, tenant_id: UUID, user_id: UUID) -> bool:
         """Delete a task.
 
         Args:
@@ -307,6 +436,13 @@ class TaskService:
                     additional_data={},
                 ),
             )
+
+            # Trigger webhooks for task.deleted event
+            await self._trigger_webhooks("task.deleted", {
+                "task_id": str(task_id),
+                "deleted_by_id": str(user_id),
+                "tenant_id": str(tenant_id),
+            }, tenant_id)
 
         return deleted
 
@@ -373,12 +509,68 @@ class TaskService:
         """
         return self.repository.delete_checklist_item(item_id, tenant_id)
 
+    async def create_task_from_template(
+        self,
+        template_id: str,
+        tenant_id: UUID,
+        created_by_id: UUID,
+        overrides: dict | None = None,
+    ) -> Task:
+        """Create a task from a template.
+
+        Args:
+            template_id: Template ID
+            tenant_id: Tenant ID
+            created_by_id: User ID creating the task
+            overrides: Optional overrides for template data
+
+        Returns:
+            Created Task object
+        """
+        # Get task data from template
+        task_data = self.template_service.create_task_from_template(
+            template_id=template_id,
+            tenant_id=tenant_id,
+            created_by_id=created_by_id,
+            overrides=overrides,
+        )
+
+        # Extract checklist items if present
+        checklist_items = task_data.pop("checklist_items", None)
+
+        # Create the task
+        task = await self.create_task(
+            title=task_data.get("title"),
+            tenant_id=UUID(task_data.get("tenant_id")),
+            created_by_id=UUID(task_data.get("created_by_id")),
+            description=task_data.get("description"),
+            priority=task_data.get("priority", "medium"),
+            estimated_duration=task_data.get("estimated_duration"),
+            tags=task_data.get("tags"),
+            category=task_data.get("category"),
+            assigned_to_id=UUID(task_data["assigned_to_id"]) if task_data.get("assigned_to_id") else None,
+            due_date=task_data.get("due_date"),
+        )
+
+        # Add checklist items if present
+        if checklist_items:
+            for idx, item in enumerate(checklist_items):
+                self.add_checklist_item(
+                    task_id=task.id,
+                    tenant_id=tenant_id,
+                    title=item["title"],
+                    order=idx,
+                )
+
+        logger.info(f"Task created from template {template_id}: {task.id}")
+        return task
+
     async def _trigger_webhooks(self, event: str, data: dict, tenant_id: UUID) -> None:
         """Trigger webhooks for a task event."""
         try:
             await self.webhook_service.trigger_webhooks(event, data, tenant_id)
-        except Exception as e:
-            logger.error(f"Failed to trigger webhooks for {event}: {e}")
+        except Exception:
+            logger.error(f"Failed to trigger webhooks for {event}")
 
 
 

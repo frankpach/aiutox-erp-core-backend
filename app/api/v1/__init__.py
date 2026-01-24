@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     activities,
+    activity_icons,
     approvals,
     auth,
     automation,
@@ -19,17 +20,19 @@ from app.api.v1 import (
     pubsub,
     reporting,
     search,
+    sse,
     tags,
+    task_dependencies,
     templates,
     users,
     views,
     workflows,
 )
+from app.modules.calendar.api import router as calendar_router
+from app.modules.crm.api import router as crm_router
+from app.modules.inventory.api import router as inventory_router
 from app.modules.products.api import router as products_router
 from app.modules.tasks.api import router as tasks_router
-from app.modules.calendar.api import router as calendar_router
-from app.modules.inventory.api import router as inventory_router
-from app.modules.crm.api import router as crm_router
 
 api_router = APIRouter()
 
@@ -46,6 +49,7 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(folders.router, prefix="/folders", tags=["folders"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
+api_router.include_router(activity_icons.router, tags=["activity-icons"])
 api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
@@ -60,3 +64,5 @@ api_router.include_router(approvals.router, prefix="/approvals", tags=["approval
 api_router.include_router(templates.router, prefix="/templates", tags=["templates"])
 api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
 api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])
+api_router.include_router(sse.router, tags=["sse"])
+api_router.include_router(task_dependencies.router, tags=["task-dependencies"])

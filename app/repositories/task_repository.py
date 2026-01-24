@@ -712,6 +712,67 @@ class TaskRepository:
             .all()
         )
 
+    def get_tasks_optimized(
+        self,
+        tenant_id: UUID,
+        filters: dict | None = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> tuple[list[Task], int]:
+        """Obtiene tareas con queries optimizados usando índices y eager loading."""
+        from sqlalchemy import func
+        from sqlalchemy.orm import joinedload, selectinload
+
+        # Query base con joins optimizados
+        query = (
+            self.db.query(Task)
+            .filter(Task.tenant_id == tenant_id)
+            .options(
+                # Eager loading solo de relaciones necesarias
+                joinedload(Task.status_obj),
+                selectinload(Task.checklist_items),
+                joinedload(Task.assigned_to).load_only("id", "full_name", "email"),
+            )
+        )
+
+        # Aplicar filtros con índices
+        if filters:
+            if "status" in filters and filters["status"]:
+                query = query.filter(Task.status == filters["status"])
+
+            if "assigned_to_id" in filters and filters["assigned_to_id"]:
+                query = query.filter(Task.assigned_to_id == filters["assigned_to_id"])
+
+            if "priority" in filters and filters["priority"]:
+                query = query.filter(Task.priority == filters["priority"])
+
+            if "search" in filters and filters["search"]:
+                search_term = filters["search"]
+                # Usar índices para búsqueda
+                query = query.filter(
+                    or_(
+                        Task.title.ilike(f"%{search_term}%"),
+                        Task.description.ilike(f"%{search_term}%")
+                    )
+                )
+
+            if "template_id" in filters and filters["template_id"]:
+                query = query.filter(Task.template_id == filters["template_id"])
+
+            if "has_due_date" in filters and filters["has_due_date"]:
+                query = query.filter(Task.due_date.isnot(None))
+
+        # Contar con query optimizado
+        from sqlalchemy import select
+        count_query = select(func.count()).select_from(query.statement.alias())
+        total = self.db.execute(count_query).scalar()
+
+        # Paginación eficiente
+        offset = (page - 1) * page_size
+        tasks = query.order_by(Task.created_at.desc()).offset(offset).limit(page_size).all()
+
+        return tasks, total
+
 
 class WorkflowRepository:
     """Repository for workflow data access."""

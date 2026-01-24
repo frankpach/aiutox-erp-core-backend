@@ -296,6 +296,109 @@ class TaskNotificationService:
                 }
             )
 
+    async def notify_task_unassigned(self, task: Task, unassigned_user: User, unassigned_by: User) -> None:
+        """Send notification when a task is unassigned from someone."""
+        await self._send_notification(
+            user_id=unassigned_user.id,
+            tenant_id=task.tenant_id,
+            title="Tarea Desasignada",
+            message=f"Se te ha desasignado la tarea: {task.title}",
+            type="task_unassigned",
+            data={
+                "task_id": str(task.id),
+                "task_title": task.title,
+                "unassigned_by": unassigned_by.full_name or unassigned_by.email,
+            }
+        )
+
+        # Notify task creator if they're not the one who unassigned
+        if task.created_by_id != unassigned_by.id:
+            await self._send_notification(
+                user_id=task.created_by_id,
+                tenant_id=task.tenant_id,
+                title="Tarea Desasignada",
+                message=f"La tarea '{task.title}' ha sido desasignada de {unassigned_user.full_name or unassigned_user.email}",
+                type="task_unassigned",
+                data={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "unassigned_user": unassigned_user.full_name or unassigned_user.email,
+                    "unassigned_by": unassigned_by.full_name or unassigned_by.email,
+                }
+            )
+
+    async def notify_comment_added(self, task: Task, comment_text: str, commented_by: User) -> None:
+        """Send notification when a comment is added to a task."""
+        # Notify task creator if they're not the one who commented
+        if task.created_by_id != commented_by.id:
+            await self._send_notification(
+                user_id=task.created_by_id,
+                tenant_id=task.tenant_id,
+                title="Nuevo Comentario en Tarea",
+                message=f"{commented_by.full_name or commented_by.email} comentó en '{task.title}': {comment_text[:100]}",
+                type="task_comment_added",
+                data={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "comment_text": comment_text,
+                    "commented_by": commented_by.full_name or commented_by.email,
+                }
+            )
+
+        # Notify assigned user if different from creator and commenter
+        if (task.assigned_to_id and
+            task.assigned_to_id != commented_by.id and
+            task.assigned_to_id != task.created_by_id):
+            await self._send_notification(
+                user_id=task.assigned_to_id,
+                tenant_id=task.tenant_id,
+                title="Nuevo Comentario en Tarea",
+                message=f"{commented_by.full_name or commented_by.email} comentó en '{task.title}': {comment_text[:100]}",
+                type="task_comment_added",
+                data={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "comment_text": comment_text,
+                    "commented_by": commented_by.full_name or commented_by.email,
+                }
+            )
+
+    async def notify_file_attached(self, task: Task, filename: str, attached_by: User) -> None:
+        """Send notification when a file is attached to a task."""
+        # Notify task creator if they're not the one who attached
+        if task.created_by_id != attached_by.id:
+            await self._send_notification(
+                user_id=task.created_by_id,
+                tenant_id=task.tenant_id,
+                title="Archivo Adjuntado a Tarea",
+                message=f"{attached_by.full_name or attached_by.email} adjuntó '{filename}' a la tarea '{task.title}'",
+                type="task_file_attached",
+                data={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "filename": filename,
+                    "attached_by": attached_by.full_name or attached_by.email,
+                }
+            )
+
+        # Notify assigned user if different from creator and attacher
+        if (task.assigned_to_id and
+            task.assigned_to_id != attached_by.id and
+            task.assigned_to_id != task.created_by_id):
+            await self._send_notification(
+                user_id=task.assigned_to_id,
+                tenant_id=task.tenant_id,
+                title="Archivo Adjuntado a Tarea",
+                message=f"{attached_by.full_name or attached_by.email} adjuntó '{filename}' a la tarea '{task.title}'",
+                type="task_file_attached",
+                data={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "filename": filename,
+                    "attached_by": attached_by.full_name or attached_by.email,
+                }
+            )
+
     async def notify_checklist_updated(self, task: Task, updated_by: User, item_text: str, completed: bool) -> None:
         """Send notification when checklist item is updated."""
         action = "completado" if completed else "marcado como pendiente"
@@ -389,6 +492,33 @@ class TaskNotificationService:
             print(f"Manager notification for tenant {tenant_id}: {title}")
         except Exception as e:
             print(f"Failed to notify managers: {e}")
+
+    async def notify_tasks_due_soon(self, tasks: list[Task], window: str) -> None:
+        """Send notifications for multiple tasks due soon.
+
+        Args:
+            tasks: List of tasks due soon
+            window: Time window (24h, 1h, 15min)
+        """
+        for task in tasks:
+            try:
+                await self.notify_task_due_soon(task)
+                logger.info(f"Sent due_soon notification for task {task.id} ({window})")
+            except Exception as e:
+                logger.error(f"Failed to send due_soon notification for task {task.id}: {e}")
+
+    async def notify_tasks_overdue(self, tasks: list[Task]) -> None:
+        """Send notifications for multiple overdue tasks.
+
+        Args:
+            tasks: List of overdue tasks
+        """
+        for task in tasks:
+            try:
+                await self.notify_task_overdue(task)
+                logger.info(f"Sent overdue notification for task {task.id}")
+            except Exception as e:
+                logger.error(f"Failed to send overdue notification for task {task.id}: {e}")
 
     async def check_and_send_due_notifications(self, tenant_id: UUID) -> None:
         """Check for tasks due soon and send notifications."""

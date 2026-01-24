@@ -21,8 +21,9 @@ from app.core.db.session import SessionLocal
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-# Global variable for async task service
+# Global variables for async services
 async_task_service: AsyncTaskService | None = None
+task_scheduler = None
 
 
 @asynccontextmanager
@@ -39,9 +40,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to start async task scheduler: {e}", exc_info=True)
 
+    # Start TaskScheduler for task reminders and notifications
+    try:
+        from app.core.tasks.scheduler import get_task_scheduler
+        task_scheduler = await get_task_scheduler()
+        logger.info("TaskScheduler started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start TaskScheduler: {e}", exc_info=True)
+
     yield
 
     # Shutdown
+    # Stop TaskScheduler
+    if task_scheduler:
+        try:
+            from app.core.tasks.scheduler import stop_task_scheduler
+            await stop_task_scheduler()
+            logger.info("TaskScheduler stopped successfully")
+        except Exception as e:
+            logger.error(f"Error stopping TaskScheduler: {e}", exc_info=True)
+
     if async_task_service:
         try:
             await async_task_service.stop_scheduler()

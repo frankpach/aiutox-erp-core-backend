@@ -10,7 +10,12 @@ from app.core.auth.dependencies import require_permission
 from app.core.config.service import ConfigService
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
+from app.core.tasks.comment_service import get_task_comment_service
+from app.core.tasks.file_service import get_task_file_service
 from app.core.tasks.service import TaskService
+from app.core.tasks.status_service import get_task_status_service
+from app.core.tasks.tag_service import get_task_tag_service
+from app.core.tasks.task_event_sync_service import get_task_event_sync_service
 from app.models.user import User
 from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.task import (
@@ -24,6 +29,11 @@ from app.schemas.task import (
     TaskModuleSettingsUpdate,
     TaskResponse,
     TaskUpdate,
+)
+from app.schemas.task_status import (
+    TaskStatusCreate,
+    TaskStatusResponse,
+    TaskStatusUpdate,
 )
 
 router = APIRouter()
@@ -536,3 +546,776 @@ async def remove_assignment(
             code="ASSIGNMENT_NOT_FOUND",
             message=f"Assignment with ID {assignment_id} not found",
         )
+
+
+# Calendar Sync Endpoints (Sprint 1 - Fase 2)
+
+
+@router.post(
+    "/{task_id}/sync-calendar",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Sync task to calendar",
+    description="Sync a task to calendar. Requires tasks.manage permission.",
+)
+async def sync_task_to_calendar(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+    calendar_provider: str = Query(default="internal", description="Calendar provider"),
+    calendar_id: str | None = Query(default=None, description="Calendar ID"),
+) -> StandardResponse[dict]:
+    """Sync task to calendar."""
+    sync_service = get_task_event_sync_service(db)
+
+    try:
+        result = await sync_service.sync_task_to_calendar(
+            task_id=task_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            calendar_provider=calendar_provider,
+            calendar_id=calendar_id,
+        )
+
+        return StandardResponse(
+            data=result,
+            message="Task synced to calendar successfully",
+        )
+    except ValueError as e:
+        raise APIException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="SYNC_ERROR",
+            message=str(e),
+        )
+
+
+@router.delete(
+    "/{task_id}/sync-calendar",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Unsync task from calendar",
+    description="Remove calendar sync for a task. Requires tasks.manage permission.",
+)
+async def unsync_task_from_calendar(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Unsync task from calendar."""
+    sync_service = get_task_event_sync_service(db)
+
+    success = await sync_service.unsync_task_from_calendar(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+    )
+
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TASK_NOT_FOUND",
+            message=f"Task with ID {task_id} not found",
+        )
+
+
+@router.get(
+    "/{task_id}/sync-status",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get calendar sync status",
+    description="Get calendar sync status for a task. Requires tasks.view permission.",
+)
+async def get_calendar_sync_status(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """Get calendar sync status."""
+    sync_service = get_task_event_sync_service(db)
+
+    status_data = sync_service.get_sync_status(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardResponse(
+        data=status_data,
+        message="Sync status retrieved successfully",
+    )
+
+
+@router.post(
+    "/sync-batch",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Sync multiple tasks to calendar",
+    description="Sync multiple tasks to calendar in batch. Requires tasks.manage permission.",
+)
+async def sync_batch_tasks(
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+    task_ids: list[UUID] = Query(..., description="List of task IDs"),
+    calendar_provider: str = Query(default="internal", description="Calendar provider"),
+    calendar_id: str | None = Query(default=None, description="Calendar ID"),
+) -> StandardResponse[dict]:
+    """Sync multiple tasks to calendar."""
+    sync_service = get_task_event_sync_service(db)
+
+    result = await sync_service.sync_batch_tasks(
+        task_ids=task_ids,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        calendar_provider=calendar_provider,
+        calendar_id=calendar_id,
+    )
+
+    return StandardResponse(
+        data=result,
+        message=f"Batch sync completed: {len(result['synced'])} synced, "
+                f"{len(result['skipped'])} skipped, {len(result['failed'])} failed",
+    )
+
+
+# Task Status Endpoints (Sprint 2 - Fase 2)
+
+
+@router.get(
+    "/status-definitions",
+    response_model=StandardListResponse[TaskStatusResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List task status definitions",
+    description="List all task status definitions for the tenant. Requires tasks.view permission.",
+)
+async def list_status_definitions(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardListResponse[TaskStatusResponse]:
+    """List task status definitions."""
+    status_service = get_task_status_service(db)
+    statuses = status_service.get_statuses(current_user.tenant_id)
+
+    return StandardListResponse(
+        data=[TaskStatusResponse.model_validate(s) for s in statuses],
+        meta={
+            "total": len(statuses),
+            "page": 1,
+            "page_size": len(statuses) if len(statuses) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Status definitions retrieved successfully",
+    )
+
+
+@router.post(
+    "/status-definitions",
+    response_model=StandardResponse[TaskStatusResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create task status definition",
+    description="Create a new task status definition. Requires tasks.manage permission.",
+)
+async def create_status_definition(
+    status_data: TaskStatusCreate,
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[TaskStatusResponse]:
+    """Create task status definition."""
+    status_service = get_task_status_service(db)
+
+    new_status = status_service.create_status(
+        tenant_id=current_user.tenant_id,
+        name=status_data.name,
+        status_type=status_data.type,
+        color=status_data.color,
+        order=status_data.order,
+    )
+
+    return StandardResponse(
+        data=TaskStatusResponse.model_validate(new_status),
+        message="Status definition created successfully",
+    )
+
+
+@router.put(
+    "/status-definitions/{status_id}",
+    response_model=StandardResponse[TaskStatusResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Update task status definition",
+    description="Update a task status definition. Cannot update system statuses. Requires tasks.manage permission.",
+)
+async def update_status_definition(
+    status_id: Annotated[UUID, Path(..., description="Status ID")],
+    status_data: TaskStatusUpdate,
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[TaskStatusResponse]:
+    """Update task status definition."""
+    status_service = get_task_status_service(db)
+
+    update_dict = status_data.model_dump(exclude_unset=True)
+    updated_status = status_service.update_status(
+        status_id=status_id,
+        tenant_id=current_user.tenant_id,
+        update_data=update_dict,
+    )
+
+    if not updated_status:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="STATUS_NOT_FOUND_OR_SYSTEM",
+            message=f"Status with ID {status_id} not found or is a system status",
+        )
+
+    return StandardResponse(
+        data=TaskStatusResponse.model_validate(updated_status),
+        message="Status definition updated successfully",
+    )
+
+
+@router.delete(
+    "/status-definitions/{status_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete task status definition",
+    description="Delete a task status definition. Cannot delete system statuses or statuses in use. Requires tasks.manage permission.",
+)
+async def delete_status_definition(
+    status_id: Annotated[UUID, Path(..., description="Status ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Delete task status definition."""
+    status_service = get_task_status_service(db)
+
+    deleted = status_service.delete_status(
+        status_id=status_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    if not deleted:
+        raise APIException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="STATUS_DELETE_ERROR",
+            message="Cannot delete status: it may be a system status or in use by tasks",
+        )
+
+
+@router.post(
+    "/status-definitions/reorder",
+    response_model=StandardListResponse[TaskStatusResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Reorder task status definitions",
+    description="Reorder task status definitions. Requires tasks.manage permission.",
+)
+async def reorder_status_definitions(
+    status_orders: dict[str, int],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardListResponse[TaskStatusResponse]:
+    """Reorder task status definitions."""
+    status_service = get_task_status_service(db)
+
+    # Convertir string keys a UUID
+    status_orders_uuid = {UUID(k): v for k, v in status_orders.items()}
+
+    statuses = status_service.reorder_statuses(
+        tenant_id=current_user.tenant_id,
+        status_orders=status_orders_uuid,
+    )
+
+    return StandardListResponse(
+        data=[TaskStatusResponse.model_validate(s) for s in statuses],
+        meta={
+            "total": len(statuses),
+            "page": 1,
+            "page_size": len(statuses) if len(statuses) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Status definitions reordered successfully",
+    )
+
+
+# Task Files Endpoints (Sprint 3 - Fase 2)
+
+
+@router.post(
+    "/{task_id}/files",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Attach file to task",
+    description="Attach a file to a task. Requires tasks.manage permission.",
+)
+async def attach_file_to_task(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+    file_id: UUID = Query(..., description="File ID from files module"),
+    file_name: str = Query(..., description="File name"),
+    file_size: int = Query(..., description="File size in bytes"),
+    file_type: str = Query(..., description="File MIME type"),
+    file_url: str = Query(..., description="File URL"),
+) -> StandardResponse[dict]:
+    """Attach file to task."""
+    file_service = get_task_file_service(db)
+
+    try:
+        attachment = file_service.attach_file(
+            task_id=task_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            file_id=file_id,
+            file_name=file_name,
+            file_size=file_size,
+            file_type=file_type,
+            file_url=file_url,
+        )
+
+        return StandardResponse(
+            data=attachment,
+            message="File attached to task successfully",
+        )
+    except ValueError as e:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TASK_NOT_FOUND",
+            message=str(e),
+        )
+
+
+@router.delete(
+    "/{task_id}/files/{file_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Detach file from task",
+    description="Remove a file attachment from a task. Requires tasks.manage permission.",
+)
+async def detach_file_from_task(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    file_id: Annotated[UUID, Path(..., description="File ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Detach file from task."""
+    file_service = get_task_file_service(db)
+
+    success = file_service.detach_file(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        file_id=file_id,
+    )
+
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="FILE_NOT_FOUND",
+            message=f"File {file_id} not found in task {task_id}",
+        )
+
+
+@router.get(
+    "/{task_id}/files",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="List task files",
+    description="List all files attached to a task. Requires tasks.view permission.",
+)
+async def list_task_files(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardListResponse[dict]:
+    """List task files."""
+    file_service = get_task_file_service(db)
+
+    files = file_service.list_files(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardListResponse(
+        data=files,
+        meta={
+            "total": len(files),
+            "page": 1,
+            "page_size": len(files) if len(files) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Task files retrieved successfully",
+    )
+
+
+# Task Comments Endpoints (Sprint 4 - Fase 2)
+
+
+@router.post(
+    "/{task_id}/comments",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="Add comment to task",
+    description="Add a comment to a task. Supports @mentions. Requires tasks.view permission.",
+)
+async def add_comment_to_task(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    content: str = Query(..., description="Comment content"),
+    mentions: list[UUID] | None = Query(None, description="List of mentioned user IDs"),
+) -> StandardResponse[dict]:
+    """Add comment to task."""
+    comment_service = get_task_comment_service(db)
+
+    try:
+        comment = comment_service.add_comment(
+            task_id=task_id,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            content=content,
+            mentions=mentions,
+        )
+
+        return StandardResponse(
+            data=comment,
+            message="Comment added successfully",
+        )
+    except ValueError as e:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TASK_NOT_FOUND",
+            message=str(e),
+        )
+
+
+@router.put(
+    "/{task_id}/comments/{comment_id}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Update comment",
+    description="Update a comment. Only the author can update. Requires tasks.view permission.",
+)
+async def update_task_comment(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    comment_id: Annotated[str, Path(..., description="Comment ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    content: str = Query(..., description="New comment content"),
+) -> StandardResponse[dict]:
+    """Update task comment."""
+    comment_service = get_task_comment_service(db)
+
+    comment = comment_service.update_comment(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        comment_id=comment_id,
+        content=content,
+    )
+
+    if not comment:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="COMMENT_NOT_FOUND",
+            message=f"Comment {comment_id} not found or you don't have permission to update it",
+        )
+
+    return StandardResponse(
+        data=comment,
+        message="Comment updated successfully",
+    )
+
+
+@router.delete(
+    "/{task_id}/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete comment",
+    description="Delete a comment. Only the author can delete. Requires tasks.view permission.",
+)
+async def delete_task_comment(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    comment_id: Annotated[str, Path(..., description="Comment ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Delete task comment."""
+    comment_service = get_task_comment_service(db)
+
+    success = comment_service.delete_comment(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        comment_id=comment_id,
+    )
+
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="COMMENT_NOT_FOUND",
+            message=f"Comment {comment_id} not found or you don't have permission to delete it",
+        )
+
+
+@router.get(
+    "/{task_id}/comments",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="List task comments",
+    description="List all comments for a task. Requires tasks.view permission.",
+)
+async def list_task_comments(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardListResponse[dict]:
+    """List task comments."""
+    comment_service = get_task_comment_service(db)
+
+    comments = comment_service.list_comments(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    return StandardListResponse(
+        data=comments,
+        meta={
+            "total": len(comments),
+            "page": 1,
+            "page_size": len(comments) if len(comments) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Task comments retrieved successfully",
+    )
+
+
+# Task Tags & Search Endpoints (Sprint 5 - Fase 2)
+
+
+@router.get(
+    "/search",
+    response_model=StandardListResponse[TaskResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Advanced task search",
+    description="Search tasks with full-text and filters. Requires tasks.view permission.",
+)
+async def search_tasks(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    q: str = Query("", description="Search query"),
+    tag_ids: list[UUID] | None = Query(None, description="Filter by tag IDs"),
+    status_filter: str | None = Query(None, alias="status", description="Filter by status"),
+    priority: str | None = Query(None, description="Filter by priority"),
+    limit: int = Query(50, description="Result limit"),
+) -> StandardListResponse[TaskResponse]:
+    """Advanced task search."""
+    tag_service = get_task_tag_service(db)
+
+    tasks = tag_service.search_tasks(
+        tenant_id=current_user.tenant_id,
+        query=q,
+        tag_ids=tag_ids,
+        status=status_filter,
+        priority=priority,
+        limit=limit,
+    )
+
+    return StandardListResponse(
+        data=[TaskResponse.model_validate(task) for task in tasks],
+        meta={
+            "total": len(tasks),
+            "page": 1,
+            "page_size": len(tasks) if len(tasks) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Search completed successfully",
+    )
+
+
+@router.get(
+    "/tags/popular",
+    response_model=StandardListResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get popular tags",
+    description="Get most used tags. Requires tasks.view permission.",
+)
+async def get_popular_tags(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(20, description="Result limit"),
+) -> StandardListResponse[dict]:
+    """Get popular tags."""
+    tag_service = get_task_tag_service(db)
+
+    tags = tag_service.get_popular_tags(
+        tenant_id=current_user.tenant_id,
+        limit=limit,
+    )
+
+    return StandardListResponse(
+        data=tags,
+        meta={
+            "total": len(tags),
+            "page": 1,
+            "page_size": len(tags) if len(tags) > 0 else 20,
+            "total_pages": 1,
+        },
+        message="Popular tags retrieved successfully",
+    )
+
+
+@router.get(
+    "/tags/suggest",
+    response_model=StandardResponse[list[str]],
+    status_code=status.HTTP_200_OK,
+    summary="Suggest tags",
+    description="Get tag suggestions based on search query. Requires tasks.view permission.",
+)
+async def suggest_tags(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+    q: str = Query(..., description="Search query"),
+    limit: int = Query(10, description="Result limit"),
+) -> StandardResponse[list[str]]:
+    """Suggest tags."""
+    tag_service = get_task_tag_service(db)
+
+    suggestions = tag_service.suggest_tags(
+        tenant_id=current_user.tenant_id,
+        query=q,
+        limit=limit,
+    )
+
+    return StandardResponse(
+        data=suggestions,
+        message="Tag suggestions retrieved successfully",
+    )
+
+
+# Analytics & Preferences Endpoints (Sprint 5 - Fase 2)
+
+
+@router.get(
+    "/analytics/adoption",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get feature adoption metrics",
+    description="Get adoption metrics for task features. Requires tasks.manage permission.",
+)
+async def get_adoption_metrics(
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """Get feature adoption metrics."""
+    from app.analytics.task_adoption import get_task_adoption_analytics
+
+    analytics = get_task_adoption_analytics(db)
+    metrics = analytics.get_feature_adoption(current_user.tenant_id)
+
+    return StandardResponse(
+        data=metrics,
+        message="Adoption metrics retrieved successfully",
+    )
+
+
+@router.get(
+    "/analytics/trends",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get adoption trends",
+    description="Get adoption trends over time. Requires tasks.manage permission.",
+)
+async def get_adoption_trends(
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+    days: int = Query(30, description="Days to analyze"),
+) -> StandardResponse[dict]:
+    """Get adoption trends."""
+    from app.analytics.task_adoption import get_task_adoption_analytics
+
+    analytics = get_task_adoption_analytics(db)
+    trends = analytics.get_adoption_trends(current_user.tenant_id, days)
+
+    return StandardResponse(
+        data=trends,
+        message="Adoption trends retrieved successfully",
+    )
+
+
+@router.get(
+    "/preferences/calendar",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get user calendar preferences",
+    description="Get current user's calendar preferences. Requires tasks.view permission.",
+)
+async def get_calendar_preferences(
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """Get user calendar preferences."""
+    from app.models.user_calendar_preferences import UserCalendarPreferences
+
+    prefs = (
+        db.query(UserCalendarPreferences)
+        .filter(UserCalendarPreferences.user_id == current_user.id)
+        .first()
+    )
+
+    if not prefs:
+        # Crear preferencias por defecto
+        prefs = UserCalendarPreferences(user_id=current_user.id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+
+    return StandardResponse(
+        data={
+            "id": str(prefs.id),
+            "user_id": str(prefs.user_id),
+            "auto_sync_enabled": prefs.auto_sync_enabled,
+            "default_calendar_provider": prefs.default_calendar_provider,
+            "timezone": prefs.timezone,
+            "time_format": prefs.time_format,
+        },
+        message="Calendar preferences retrieved successfully",
+    )
+
+
+@router.put(
+    "/preferences/calendar",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Update user calendar preferences",
+    description="Update current user's calendar preferences. Requires tasks.view permission.",
+)
+async def update_calendar_preferences(
+    preferences: dict,
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """Update user calendar preferences."""
+    from app.models.user_calendar_preferences import UserCalendarPreferences
+
+    prefs = (
+        db.query(UserCalendarPreferences)
+        .filter(UserCalendarPreferences.user_id == current_user.id)
+        .first()
+    )
+
+    if not prefs:
+        prefs = UserCalendarPreferences(user_id=current_user.id)
+        db.add(prefs)
+
+    # Actualizar campos
+    for key, value in preferences.items():
+        if hasattr(prefs, key):
+            setattr(prefs, key, value)
+
+    db.commit()
+    db.refresh(prefs)
+
+    return StandardResponse(
+        data={
+            "id": str(prefs.id),
+            "user_id": str(prefs.user_id),
+            "auto_sync_enabled": prefs.auto_sync_enabled,
+            "default_calendar_provider": prefs.default_calendar_provider,
+            "timezone": prefs.timezone,
+            "time_format": prefs.time_format,
+        },
+        message="Calendar preferences updated successfully",
+    )

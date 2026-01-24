@@ -1,6 +1,6 @@
 """Task templates system for QuickAdd functionality."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.core.logging import get_logger
@@ -40,7 +40,7 @@ class TaskTemplate:
         self.tenant_id = tenant_id
         self.is_public = is_public
         self.usage_count = usage_count
-        self.created_at = created_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(UTC)
 
     def to_task_data(self, **overrides) -> dict:
         """Convert template to task creation data."""

@@ -95,6 +95,7 @@ markers = [
     "redis: mark test as requiring Redis",
     "integration: mark test as integration test",
     "db: mark test as database test (may be excluded from parallel execution)",
+    "performance: mark test as performance test",
 ]
 
 [dependency-groups]

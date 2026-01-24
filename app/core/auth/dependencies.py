@@ -9,7 +9,7 @@ from app.core.exceptions import raise_forbidden, raise_unauthorized
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.core.auth import decode_token
+from app.core.auth.jwt import decode_token
 from app.core.db.deps import get_db
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -171,7 +171,7 @@ def require_permission(permission: str):
         logger = logging.getLogger(__name__)
         logger.info(f"require_permission called for permission: {permission}")
         logger.info(f"user_permissions type: {type(user_permissions)}, value: {user_permissions}")
-        
+
         from app.core.auth.permissions import has_permission
 
         if not has_permission(user_permissions, permission):
@@ -181,7 +181,7 @@ def require_permission(permission: str):
                 message="Insufficient permissions",
                 details={"required_permission": permission},
             )
-        
+
         logger.info(f"Permission granted: {permission}")
         return current_user
 
