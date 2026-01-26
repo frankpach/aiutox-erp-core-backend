@@ -1,6 +1,5 @@
 """Structured logging configuration for security and application events."""
 
-import json
 import logging
 import sys
 from typing import Any
@@ -12,19 +11,19 @@ settings = get_settings()
 
 # Create logger for security events
 security_logger = logging.getLogger("app.security")
-security_logger.setLevel(logging.INFO)
+security_logger.setLevel(logging.WARNING)
 
 # Create logger for application events
 app_logger = logging.getLogger("app")
-# Use DEBUG level in development to see all logs
-log_level = logging.DEBUG if settings.DEBUG else logging.INFO
+# Use WARNING level to show only warnings and errors
+log_level = logging.WARNING  # Changed from DEBUG to WARNING
 app_logger.setLevel(log_level)
 # Ensure logs propagate to root logger (for uvicorn to see them)
 app_logger.propagate = True
 
 # Create console handler with structured format
 console_handler = logging.StreamHandler(sys.stdout)
-# Use DEBUG level in development to see all logs
+# Use WARNING level to show only warnings and errors
 console_handler.setLevel(log_level)
 
 # Create formatter
@@ -42,7 +41,7 @@ if not app_logger.handlers:
 
 # Also configure root logger to ensure logs are visible
 root_logger = logging.getLogger()
-root_logger.setLevel(log_level)
+root_logger.setLevel(log_level)  # Changed from DEBUG to WARNING
 if not root_logger.handlers:
     root_logger.addHandler(console_handler)
 
@@ -312,11 +311,6 @@ def log_user_action(
         message += f", ip={ip_address}"
 
     security_logger.info(message)
-
-
-def get_logger(name: str) -> logging.Logger:
-    """Get a logger instance for the given name."""
-    return logging.getLogger(name)
 
 
 

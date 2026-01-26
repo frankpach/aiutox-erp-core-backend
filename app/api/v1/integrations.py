@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException, raise_not_found
+from app.core.integrations.autodiscovery import get_available_events
 from app.core.integrations.service import IntegrationService
-from app.core.logging import get_client_info
 from app.models.integration import IntegrationStatus, IntegrationType
 from app.models.user import User
 from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
@@ -18,7 +18,6 @@ from app.schemas.integration import (
     IntegrationActivateRequest,
     IntegrationCreate,
     IntegrationCredentialsResponse,
-    IntegrationLogResponse,
     IntegrationResponse,
     IntegrationTestResponse,
     IntegrationUpdate,
@@ -196,6 +195,42 @@ async def list_webhooks(
 
 
 @router.get(
+    "/webhooks/events",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get available webhook events",
+    description="Get all available webhook events from active modules. Requires integrations.view permission.",
+    responses={
+        200: {"description": "Webhook events retrieved successfully"},
+        403: {"description": "Insufficient permissions"},
+    },
+)
+async def get_webhook_events(
+    current_user: Annotated[User, Depends(require_permission("integrations.view"))],
+) -> StandardResponse[dict]:
+    """
+    Get all available webhook events from active modules.
+
+    This endpoint uses autodiscovery to find all webhook events
+    registered by active modules in the system.
+
+    Requires: integrations.view
+
+    Args:
+        current_user: Current authenticated user.
+
+    Returns:
+        StandardResponse with modules and their events.
+    """
+    events = get_available_events()
+
+    return StandardResponse(
+        data={"modules": events},
+        message="Webhook events retrieved successfully",
+    )
+
+
+@router.get(
     "/{integration_id}",
     response_model=StandardResponse[IntegrationResponse],
     status_code=status.HTTP_200_OK,
@@ -260,7 +295,7 @@ async def get_integration(
             data=IntegrationResponse.model_validate(integration),
             message="Integration retrieved successfully",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -418,7 +453,7 @@ async def update_integration(
             data=IntegrationResponse.model_validate(integration),
             message="Integration updated successfully",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -496,7 +531,7 @@ async def activate_integration(
             data=IntegrationResponse.model_validate(integration),
             message="Integration activated successfully",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -571,7 +606,7 @@ async def deactivate_integration(
             data=IntegrationResponse.model_validate(integration),
             message="Integration deactivated successfully",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -642,7 +677,7 @@ async def delete_integration(
             user_id=current_user.id,
         )
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -711,7 +746,7 @@ async def test_integration(
             data=IntegrationTestResponse.model_validate(test_result),
             message="Integration test completed",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 
@@ -784,7 +819,7 @@ async def get_integration_credentials(
             data=IntegrationCredentialsResponse(credentials=credentials),
             message="Credentials retrieved successfully",
         )
-    except ValueError as e:
+    except ValueError:
         raise_not_found("Integration", str(integration_id))
 
 

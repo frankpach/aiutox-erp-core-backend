@@ -1,12 +1,13 @@
 """Tests de integración para TaskNotificationService."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import pytest
+
 from app.core.tasks.notification_service import TaskNotificationService
-from app.models.task import Task, TaskStatusEnum, TaskPriority
+from app.models.task import Task, TaskPriority, TaskStatusEnum
 from app.models.user import User
 
 

@@ -52,7 +52,7 @@ def upgrade() -> None:
 
     # Índice para tareas con fechas de inicio
     op.execute("""
-        CREATE INDEX idx_tasks_tenant_start_at
+        CREATE INDEX IF NOT EXISTS idx_tasks_tenant_start_at
         ON tasks (tenant_id, start_at)
         WHERE start_at IS NOT NULL
     """)
@@ -72,4 +72,4 @@ def downgrade() -> None:
     op.drop_index('idx_tasks_tenant_assigned_due', table_name='tasks')
     op.drop_index('idx_tasks_tenant_template', table_name='tasks')
     op.drop_index('idx_tasks_tenant_priority_status', table_name='tasks')
-    op.drop_index('idx_tasks_tenant_start_at', table_name='tasks')
+    op.execute("DROP INDEX IF EXISTS idx_tasks_tenant_start_at")

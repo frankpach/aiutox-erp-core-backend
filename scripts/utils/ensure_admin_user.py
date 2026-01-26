@@ -5,9 +5,9 @@ This script can work in two modes:
 - Development: Ensures all development users exist (owner, admin, supervisor, user)
 
 Usage:
-    python ensure_admin_user.py              # Auto-detect environment
-    python ensure_admin_user.py --dev        # Force development mode
-    python ensure_admin_user.py --prod       # Force production mode
+    python scripts/utils/ensure_admin_user.py              # Auto-detect environment
+    python scripts/utils/ensure_admin_user.py --dev        # Force development mode
+    python scripts/utils/ensure_admin_user.py --prod       # Force production mode
 """
 import sys
 from sqlalchemy.orm import Session
@@ -286,7 +286,6 @@ if __name__ == "__main__":
 
     success = ensure_admin_user(force_dev=args.dev, force_prod=args.prod)
     sys.exit(0 if success else 1)
-
 
 
 

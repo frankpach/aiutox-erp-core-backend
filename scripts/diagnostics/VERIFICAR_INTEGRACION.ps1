@@ -65,7 +65,7 @@ if (Test-Port -Port 15432 -ServiceName "PostgreSQL") {
 
     # Intentar conexión desde Python
     Push-Location backend
-    $dbTest = python test_app_db_connection.py 2>&1
+    $dbTest = python scripts/diagnostics/test_app_db_connection.py 2>&1
     Pop-Location
 
     if ($LASTEXITCODE -eq 0) {

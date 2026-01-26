@@ -1,15 +1,21 @@
 """Tasks router for task management."""
 
+# Standard library imports
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
+# Third-party imports
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
+# Local imports
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
+
+# Comment service imports removed - comments endpoints are in app/modules/tasks/api.py
 from app.core.tasks.service import TaskService
 from app.core.tasks.workflow_service import WorkflowService
 from app.models.user import User
@@ -29,6 +35,9 @@ from app.schemas.task import (
     TaskResponse,
     TaskUpdate,
 )
+
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter()
 
@@ -356,31 +365,24 @@ async def list_assignments(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> StandardListResponse[TaskAssignmentResponse]:
     """List assignments for a task."""
-    import logging
-    logger = logging.getLogger(__name__)
-
-    logger.info(f"[list_assignments] Fetching assignments for task_id={task_id}, tenant_id={current_user.tenant_id}")
-
-    # Verify task exists - catch any exception if task not found
     try:
-        logger.info("[list_assignments] Calling service.get_task...")
-        task = service.get_task(task_id, current_user.tenant_id)
-        logger.info(f"[list_assignments] service.get_task returned: {task}")
-        if not task:
-            logger.warning("[list_assignments] Task not found, returning empty list")
-            return StandardListResponse(
-                data=[],
-                meta={
-                    "total": 0,
-                    "page": 1,
-                    "page_size": 20,
-                    "total_pages": 1,
-                },
-                message="Task not found or no assignments",
-            )
+        # Obtener asignaciones directamente sin verificar tarea primero
+        # Esto evita el timeout causado por get_task
+        assignments = service.repository.get_assignments_by_task(task_id, current_user.tenant_id)
+
+        return StandardListResponse(
+            data=[TaskAssignmentResponse.model_validate(a) for a in assignments],
+            meta={
+                "total": len(assignments),
+                "page": 1,
+                "page_size": max(1, len(assignments)) if len(assignments) > 0 else 20,
+                "total_pages": 1,
+            },
+            message="Asignaciones obtenidas exitosamente",
+        )
     except Exception as e:
-        logger.error(f"[list_assignments] Exception in service.get_task: {e}", exc_info=True)
-        # Return empty list if task not found or any error occurs
+        logger.error(f"Error fetching assignments: {e}", exc_info=True)
+        # Retornar lista vacía en caso de error
         return StandardListResponse(
             data=[],
             meta={
@@ -389,23 +391,8 @@ async def list_assignments(
                 "page_size": 20,
                 "total_pages": 1,
             },
-            message="Task not found or no assignments",
+            message="Error al obtener asignaciones",
         )
-
-    logger.info("[list_assignments] Fetching assignments from repository...")
-    assignments = service.repository.get_assignments_by_task(task_id, current_user.tenant_id)
-    logger.info(f"[list_assignments] Found {len(assignments)} assignments")
-
-    return StandardListResponse(
-        data=[TaskAssignmentResponse.model_validate(a) for a in assignments],
-        meta={
-            "total": len(assignments),
-            "page": 1,
-            "page_size": max(1, len(assignments)) if len(assignments) > 0 else 20,
-            "total_pages": 1,
-        },
-        message="Assignments retrieved successfully",
-    )
 
 
 @router.delete(
@@ -681,20 +668,43 @@ async def update_task(
     task_data: TaskUpdate,
 ) -> StandardResponse[TaskResponse]:
     """Update a task."""
-    update_dict = task_data.model_dump(exclude_unset=True)
-    task = service.update_task(task_id, current_user.tenant_id, update_dict, current_user.id)
+    try:
+        update_dict = task_data.model_dump(exclude_unset=True)
+        logger.info(f"Updating task {task_id} with data: {update_dict}")
+        task = service.update_task(task_id, current_user.tenant_id, update_dict, current_user.id)
+        logger.info(f"Task updated successfully: {task.id if task else 'None'}")
 
-    if not task:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="TASK_NOT_FOUND",
-            message=f"Task with ID {task_id} not found",
+        if not task:
+            raise APIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="TASK_NOT_FOUND",
+                message=f"Task with ID {task_id} not found",
+            )
+
+        return StandardResponse(
+            data=TaskResponse.model_validate(task),
+            message="Task updated successfully",
         )
-
-    return StandardResponse(
-        data=TaskResponse.model_validate(task),
-        message="Task updated successfully",
-    )
+    except ValueError as e:
+        # Handle validation errors (like invalid state transitions)
+        logger.error(f"ValueError caught in update_task: {e}")
+        logger.error(f"ValueError type: {type(e).__name__}")
+        raise APIException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="INVALID_TASK_DATA",
+            message=str(e),
+        )
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"Unexpected error in update_task: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.exception("Full traceback:")
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="INTERNAL_SERVER_ERROR",
+            message="An internal server error occurred",
+            details={"error": str(e)},
+        )
 
 
 @router.delete(
@@ -709,7 +719,7 @@ async def delete_task(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
     """Delete a task."""
-    deleted = service.delete_task(task_id, current_user.tenant_id, current_user.id)
+    deleted = await service.delete_task(task_id, current_user.tenant_id, current_user.id)
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1038,6 +1048,128 @@ async def import_ics(
     )
 
 
+# Test endpoint to check if FastAPI responds
+@router.get("/test-comments-debug")
+async def test_comments_debug():
+    """Test endpoint to debug FastAPI hanging issue."""
+    logger.info("[TEST_DEBUG] Endpoint reached!")
+    return {"message": "FastAPI is working!", "timestamp": str(datetime.now())}
+
+# Minimal POST endpoint to test validation
+@router.post("/test-post-minimal")
+async def test_post_minimal():
+    """Minimal POST endpoint without any parameters."""
+    print("!!! TEST POST MINIMAL REACHED !!!")
+    return {"message": "POST works!"}
+
+# Also allow GET for testing
+@router.get("/test-post-minimal")
+async def test_post_minimal_get():
+    """GET version for testing."""
+    print("!!! TEST POST MINIMAL GET REACHED !!!")
+    return {"message": "GET works!"}
+
+# NOTA: Los endpoints de comments están en app/modules/tasks/api.py
+# Este archivo (app/api/v1/tasks.py) NO está registrado en el router principal
+# Solo app/modules/tasks/api.py está registrado en app/api/v1/__init__.py
+
+
+# TEMPORALMENTE COMENTADO - CAUSA QUE EL BACKEND SE CUELGUE
+# @router.post(
+#     "/{task_id}/comments",
+#     response_model=StandardResponse[dict],
+#     status_code=status.HTTP_201_CREATED,
+#     summary="Create task comment",
+#     description="Create a new comment for a specific task. Requires tasks.manage permission.",
+# )
+# async def create_task_comment(
+#     request: Request,
+#     task_id: Annotated[UUID, Path(..., description="Task ID")],
+#     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+#     comment_service: Annotated[TaskCommentService, Depends(get_task_comment_service)],
+# ) -> StandardResponse[dict]:
+#     """Create a new comment for a specific task."""
+#     print("=" * 80)
+#     print("!!! CREATE_COMMENT ENDPOINT REACHED !!!")
+#     print("=" * 80)
+#     logger.info("[CREATE_COMMENT] 1. FUNCTION STARTED")
+#     logger.info(f"[CREATE_COMMENT] 2. Task ID: {task_id}")
+#     logger.info(f"[CREATE_COMMENT] 3. User ID: {current_user.id}")
+
+#     # Leer body raw
+#     logger.info("[CREATE_COMMENT] 4. READING RAW BODY")
+#     try:
+#         body_bytes = await request.body()
+#         logger.info(f"[CREATE_COMMENT] 5. RAW BODY BYTES: {body_bytes}")
+#         body_str = body_bytes.decode('utf-8')
+#         logger.info(f"[CREATE_COMMENT] 6. RAW BODY STRING: {body_str}")
+#         body_json = await request.json()
+#         logger.info(f"[CREATE_COMMENT] 7. PARSED JSON: {body_json}")
+#     except Exception as e:
+#         logger.error(f"[CREATE_COMMENT] ERROR READING BODY: {e}")
+#         raise APIException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             code="INVALID_BODY",
+#             message="No se pudo leer el cuerpo de la petición",
+#         )
+
+#     # Validar y crear comentario manualmente
+#     if not isinstance(body_json, dict):
+#         logger.error(f"[CREATE_COMMENT] Body is not dict: {type(body_json)}")
+#         raise APIException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             code="INVALID_BODY_TYPE",
+#             message="El cuerpo debe ser un objeto JSON",
+#         )
+
+#     content = body_json.get("content", "").strip()
+#     mentions = body_json.get("mentions", [])
+
+#     if not content:
+#         logger.error(f"[CREATE_COMMENT] Empty content: {content}")
+#         raise APIException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             code="VALIDATION_ERROR",
+#             message="El contenido no puede estar vacío",
+#         )
+
+#     logger.info(f"[CREATE_COMMENT] 8. Processing comment: content='{content[:50]}...', mentions={mentions}")
+
+#     try:
+#         logger.info("[CREATE_COMMENT] 9. ABOUT TO CALL SERVICE")
+#         # Crear comentario usando el servicio
+#         result = comment_service.add_comment(
+#             task_id=task_id,
+#             tenant_id=current_user.tenant_id,
+#             user_id=current_user.id,
+#             content=content,
+#             mentions=mentions,
+#         )
+#         logger.info("[CREATE_COMMENT] 10. SERVICE CALL COMPLETED")
+
+#         logger.info(f"[CREATE_COMMENT] 11. Comment created successfully: {result['id']}")
+
+#         logger.info("[CREATE_COMMENT] 12. CREATING RESPONSE")
+#         response = StandardResponse(
+#             data=result,
+#             message="Comentario creado exitosamente",
+#             meta={"comment_id": result["id"]},
+#         )
+#         logger.info("[CREATE_COMMENT] 13. RETURNING RESPONSE")
+#         return response
+
+#     except Exception as e:
+#         logger.error(f"[CREATE_COMMENT] 14. ERROR: {e}", exc_info=True)
+#         raise APIException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             code="COMMENT_CREATION_ERROR",
+#             message="Error al crear el comentario",
+#         )
+
+
+# Endpoints de comments eliminados - están en app/modules/tasks/api.py
+
+
 # Template endpoints
 @router.get(
     "/templates",
@@ -1238,6 +1370,5 @@ async def get_popular_templates(
             total_pages=1,
         ),
     )
-
 
 

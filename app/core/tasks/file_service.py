@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.logging import get_logger
 from app.core.pubsub import get_event_publisher
@@ -57,17 +58,36 @@ class TaskFileService:
         """
         from app.models.task import Task
 
+        print("[SERVICE] attach_file called with:", flush=True)
+        print(f"  task_id: {task_id}", flush=True)
+        print(f"  tenant_id: {tenant_id}", flush=True)
+        print(f"  user_id: {user_id}", flush=True)
+        print(f"  file_id: {file_id}", flush=True)
+        print(f"  file_name: {file_name}", flush=True)
+
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
+        print(f"[SERVICE] Task found: {task is not None}", flush=True)
+
         if not task:
             raise ValueError(f"Task {task_id} not found")
 
         # Obtener metadata actual
-        metadata = task.task_metadata or {}
+        metadata = dict(task.task_metadata or {})
         attached_files = metadata.get("attached_files", [])
+        if not isinstance(attached_files, list):
+            logger.warning(
+                "Invalid attached_files type on task %s: %s",
+                task_id,
+                type(attached_files).__name__,
+            )
+            attached_files = []
+
+        print(f"[SERVICE] Current metadata: {metadata}", flush=True)
+        print(f"[SERVICE] Current attached_files count: {len(attached_files)}", flush=True)
 
         # Agregar nuevo archivo
         file_attachment = {
@@ -83,10 +103,21 @@ class TaskFileService:
         attached_files.append(file_attachment)
         metadata["attached_files"] = attached_files
 
+        print("[SERVICE] After adding file:", flush=True)
+        print(f"  New attached_files count: {len(attached_files)}", flush=True)
+        print(f"  New metadata: {metadata}", flush=True)
+
         # Actualizar tarea
         task.task_metadata = metadata
+        flag_modified(task, "task_metadata")
+        print(f"[SERVICE] Setting task.task_metadata to: {metadata}", flush=True)
+
         self.db.commit()
+        print("[SERVICE] Database committed", flush=True)
+
         self.db.refresh(task)
+        print("[SERVICE] Task refreshed", flush=True)
+        print(f"[SERVICE] Task.task_metadata after refresh: {task.task_metadata}", flush=True)
 
         # Publicar evento
         from app.core.pubsub.event_helpers import safe_publish_event
@@ -133,31 +164,78 @@ class TaskFileService:
         Returns:
             True si se desadjuntó correctamente
         """
+        from app.models.file import File
         from app.models.task import Task
+
+        print("\n[SERVICE] detach_file called with:", flush=True)
+        print(f"  task_id: {task_id}", flush=True)
+        print(f"  tenant_id: {tenant_id}", flush=True)
+        print(f"  user_id: {user_id}", flush=True)
+        print(f"  file_id: {file_id}", flush=True)
 
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
+        print(f"[SERVICE] Task found: {task is not None}", flush=True)
+
         if not task:
             return False
 
         # Obtener metadata actual
-        metadata = task.task_metadata or {}
+        metadata = dict(task.task_metadata or {})
         attached_files = metadata.get("attached_files", [])
+        if not isinstance(attached_files, list):
+            logger.warning(
+                "Invalid attached_files type on task %s: %s",
+                task_id,
+                type(attached_files).__name__,
+            )
+            attached_files = []
+
+        print(f"[SERVICE] Current attached_files count: {len(attached_files)}", flush=True)
+        if attached_files:
+            print(f"[SERVICE] First file: {attached_files[0]}", flush=True)
 
         # Filtrar archivo a eliminar
         file_id_str = str(file_id)
-        new_files = [f for f in attached_files if f.get("file_id") != file_id_str]
+        new_files = []
+        for item in attached_files:
+            if isinstance(item, dict):
+                item_file_id = item.get("file_id")
+                if item_file_id is not None and str(item_file_id) == file_id_str:
+                    continue
+            new_files.append(item)
+
+        print(f"[SERVICE] After filtering, new_files count: {len(new_files)}", flush=True)
 
         if len(new_files) == len(attached_files):
             # No se encontró el archivo
+            print("[SERVICE] File not found in attached_files", flush=True)
             return False
+
+        file_record = self.db.query(File).filter(
+            File.id == file_id,
+            File.tenant_id == tenant_id,
+        ).first()
+
+        if not file_record:
+            print("[SERVICE] File record not found for soft delete", flush=True)
+        elif file_record.deleted_at is None:
+            file_record.is_current = False
+            file_record.deleted_at = datetime.now(UTC)
+            print("[SERVICE] File soft delete applied", flush=True)
+        else:
+            print("[SERVICE] File already soft deleted", flush=True)
 
         metadata["attached_files"] = new_files
         task.task_metadata = metadata
+        flag_modified(task, "task_metadata")
+
+        print("[SERVICE] Committing to database...", flush=True)
         self.db.commit()
+        print("[SERVICE] Database committed successfully", flush=True)
 
         # Publicar evento
         from app.core.pubsub.event_helpers import safe_publish_event
@@ -199,16 +277,58 @@ class TaskFileService:
         """
         from app.models.task import Task
 
+        print("\n[SERVICE] list_files called with:", flush=True)
+        print(f"  task_id: {task_id}", flush=True)
+        print(f"  tenant_id: {tenant_id}", flush=True)
+
+        # Consulta SQL directa para depurar
+        from sqlalchemy import text
+
+        # Primero, verificar si hay tareas con archivos
+        all_tasks = self.db.execute(text("""
+            SELECT id, title, metadata
+            FROM tasks
+            WHERE tenant_id = :tenant_id
+            AND metadata IS NOT NULL
+            AND metadata->>'attached_files' IS NOT NULL
+            LIMIT 5
+        """), {"tenant_id": str(tenant_id)}).fetchall()
+
+        print(f"[SERVICE] Tasks with files in tenant: {len(all_tasks)}", flush=True)
+        for t in all_tasks:
+            print(f"  Task {t[0]}: {t[1]} has metadata: {t[2]}", flush=True)
+
+        sql_result = self.db.execute(text("""
+            SELECT id, title, metadata
+            FROM tasks
+            WHERE id = :task_id AND tenant_id = :tenant_id
+        """), {"task_id": str(task_id), "tenant_id": str(tenant_id)}).fetchone()
+
+        print(f"[SERVICE] SQL result for specific task: {sql_result}", flush=True)
+        if sql_result:
+            print(f"[SERVICE] SQL metadata: {sql_result[2]}", flush=True)
+
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
+        print(f"[SERVICE] Task found: {task is not None}", flush=True)
+        if task:
+            print(f"[SERVICE] Task.task_metadata: {task.task_metadata}", flush=True)
+
         if not task:
+            print("[SERVICE] Task not found, returning empty list", flush=True)
             return []
 
         metadata = task.task_metadata or {}
-        return metadata.get("attached_files", [])
+        attached_files = metadata.get("attached_files", [])
+
+        print(f"[SERVICE] metadata: {metadata}", flush=True)
+        print(f"[SERVICE] attached_files: {attached_files}", flush=True)
+        print(f"[SERVICE] returning {len(attached_files)} files", flush=True)
+
+        return attached_files
 
 
 def get_task_file_service(db: Session) -> TaskFileService:

@@ -1,9 +1,10 @@
 """Tasks router for task management."""
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Body, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
@@ -36,7 +37,39 @@ from app.schemas.task_status import (
     TaskStatusUpdate,
 )
 
+logger = logging.getLogger(__name__)
+
+print("[TASKS API] Módulo tasks.api importado! (v2 - sin duplicados)")
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+# Endpoint de prueba para verificar orden
+@router.get("/test-order")
+async def test_order():
+    logger.error("*** [TEST ORDER] Endpoint de prueba llamado ***")
+    return {"message": "Test order working"}
+
+# Endpoint para verificar si las rutas con parámetros funcionan
+@router.get("/{task_id}/test-param")
+async def test_task_param(task_id: str):
+    print(f"\n!!! TEST PARAM LLAMADO CON task_id: {task_id} !!!\n", flush=True)
+    return {"message": f"Test param working with {task_id}"}
+
+# Endpoint específico para el task_id que estamos usando
+@router.get("/53518d30-1816-428c-9295-9f69ca522d0a/test-specific")
+async def test_specific_task():
+    print("\n!!! TEST SPECIFIC TASK LLAMADO !!!\n", flush=True)
+    return {"message": "Test specific task working"}
+
+# Endpoint de comments SIN permisos para probar
+@router.get("/{task_id}/comments-no-auth")
+async def test_comments_no_auth(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    db: Annotated[Session, Depends(get_db)],
+):
+    print(f"\n!!! [NO AUTH] Comments endpoint llamado con task_id={task_id} !!!\n", flush=True)
+    return {"message": f"Comments sin auth funcionando para {task_id}"}
 
 TASK_SETTINGS_KEYS = {
     "calendar_enabled": "calendar.enabled",
@@ -252,31 +285,6 @@ async def update_task_settings(
     )
 
 
-@router.get(
-    "/{task_id}",
-    response_model=StandardResponse[TaskResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get task",
-    description="Get a specific task by ID. Requires tasks.view permission.",
-)
-async def get_task(
-    task_id: Annotated[UUID, Path(..., description="Task ID")],
-    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
-    service: Annotated[TaskService, Depends(get_task_service)],
-) -> StandardResponse[TaskResponse]:
-    """Get a specific task."""
-    task = service.get_task(task_id, current_user.tenant_id)
-    if not task:
-        raise APIException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            code="TASK_NOT_FOUND",
-            message=f"Task with ID {task_id} not found",
-        )
-
-    return StandardResponse(
-        data=TaskResponse.model_validate(task),
-        message="Task retrieved successfully",
-    )
 
 
 @router.put(
@@ -321,7 +329,7 @@ async def delete_task(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
     """Delete a task."""
-    deleted = service.delete_task(task_id, current_user.tenant_id, current_user.id)
+    deleted = await service.delete_task(task_id, current_user.tenant_id, current_user.id)
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -834,13 +842,16 @@ async def reorder_status_definitions(
 
 # Task Files Endpoints (Sprint 3 - Fase 2)
 
+# DEBUG: Verificar si los endpoints se registran
+print("\n=== REGISTERING TASKS ENDPOINTS ===", flush=True)
+print("=== POST /{task_id}/files endpoint ===", flush=True)
 
 @router.post(
     "/{task_id}/files",
     response_model=StandardResponse[dict],
     status_code=status.HTTP_201_CREATED,
     summary="Attach file to task",
-    description="Attach a file to a task. Requires tasks.manage permission.",
+    description="Attach an existing file to a task. Requires tasks.manage permission.",
 )
 async def attach_file_to_task(
     task_id: Annotated[UUID, Path(..., description="Task ID")],
@@ -853,6 +864,27 @@ async def attach_file_to_task(
     file_url: str = Query(..., description="File URL"),
 ) -> StandardResponse[dict]:
     """Attach file to task."""
+    print("\n" + "="*50, flush=True)
+    print("!!! ATTACH FILE ENDPOINT CALLED !!!", flush=True)
+    print("="*50 + "\n", flush=True)
+    print(f"Task ID: {task_id}", flush=True)
+    print(f"User: {current_user.id}", flush=True)
+    print(f"Tenant: {current_user.tenant_id}", flush=True)
+    print(f"File ID: {file_id}", flush=True)
+    print(f"File name: {file_name}", flush=True)
+    print(f"File size: {file_size}", flush=True)
+    print(f"File type: {file_type}", flush=True)
+    print(f"File URL: {file_url}", flush=True)
+
+    # Verificar si los parámetros son válidos
+    if not file_id or not file_name or not file_size or not file_type or not file_url:
+        print("!!! MISSING PARAMETERS !!!", flush=True)
+        print(f"file_id is None: {file_id is None}", flush=True)
+        print(f"file_name is None: {file_name is None}", flush=True)
+        print(f"file_size is None: {file_size is None}", flush=True)
+        print(f"file_type is None: {file_type is None}", flush=True)
+        print(f"file_url is None: {file_url is None}", flush=True)
+
     file_service = get_task_file_service(db)
 
     try:
@@ -867,16 +899,25 @@ async def attach_file_to_task(
             file_url=file_url,
         )
 
+        print("!!! ATTACH FILE SUCCESS !!!", flush=True)
+        print(f"Attachment: {attachment}", flush=True)
+
         return StandardResponse(
             data=attachment,
             message="File attached to task successfully",
         )
     except ValueError as e:
+        print(f"!!! ATTACH FILE ERROR: {e} !!!", flush=True)
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
             code="TASK_NOT_FOUND",
             message=str(e),
         )
+
+
+# DEBUG: Verificar si este endpoint se registra
+print("\n=== REGISTERING DELETE /{task_id}/files/{file_id} ENDPOINT ===\n", flush=True)
+logger.warning("=== REGISTERING DELETE FILES ENDPOINT ===")
 
 
 @router.delete(
@@ -892,6 +933,17 @@ async def detach_file_from_task(
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """Detach file from task."""
+    # Usar print para asegurar que se vea en la consola
+    print("\n!!! DELETE FILES ENDPOINT CALLED !!!\n", flush=True)
+    print(f"Task ID: {task_id}", flush=True)
+    print(f"File ID: {file_id}", flush=True)
+    print(f"User: {current_user.id}", flush=True)
+
+    logger.warning("=== DETACH FILE REQUEST ===")
+    logger.warning(f"Task ID: {task_id}")
+    logger.warning(f"File ID: {file_id}")
+    logger.warning(f"User: {current_user.id}")
+
     file_service = get_task_file_service(db)
 
     success = file_service.detach_file(
@@ -901,12 +953,17 @@ async def detach_file_from_task(
         file_id=file_id,
     )
 
+    print(f"Detach success: {success}", flush=True)
+    logger.warning(f"Detach success: {success}")
+
     if not success:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
             code="FILE_NOT_FOUND",
             message=f"File {file_id} not found in task {task_id}",
         )
+
+    print("!!! DETACH FILE COMPLETED SUCCESSFULLY !!!\n", flush=True)
 
 
 @router.get(
@@ -922,12 +979,20 @@ async def list_task_files(
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardListResponse[dict]:
     """List task files."""
+    print("\n!!! LIST FILES ENDPOINT CALLED !!!", flush=True)
+    print(f"Task ID: {task_id}", flush=True)
+    print(f"User: {current_user.id}", flush=True)
+    print(f"Tenant: {current_user.tenant_id}", flush=True)
+
     file_service = get_task_file_service(db)
 
     files = file_service.list_files(
         task_id=task_id,
         tenant_id=current_user.tenant_id,
     )
+
+    print(f"!!! LIST FILES RETURNING {len(files)} FILES !!!", flush=True)
+    print(f"Files: {files}", flush=True)
 
     return StandardListResponse(
         data=files,
@@ -955,11 +1020,24 @@ async def add_comment_to_task(
     task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     db: Annotated[Session, Depends(get_db)],
-    content: str = Query(..., description="Comment content"),
-    mentions: list[UUID] | None = Query(None, description="List of mentioned user IDs"),
+    comment_data: dict = Body(..., description="Comment data with content and mentions"),
 ) -> StandardResponse[dict]:
     """Add comment to task."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"[POST COMMENT] Endpoint llamado con task_id={task_id}")
     comment_service = get_task_comment_service(db)
+
+    # Extraer content y mentions del body
+    content = comment_data.get("content", "").strip()
+    mentions = comment_data.get("mentions", [])
+
+    if not content:
+        raise APIException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="VALIDATION_ERROR",
+            message="Content field is required",
+        )
 
     try:
         comment = comment_service.add_comment(
@@ -994,10 +1072,18 @@ async def update_task_comment(
     comment_id: Annotated[str, Path(..., description="Comment ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     db: Annotated[Session, Depends(get_db)],
-    content: str = Query(..., description="New comment content"),
+    comment_data: dict = Body(..., description="Comment update data"),
 ) -> StandardResponse[dict]:
     """Update task comment."""
     comment_service = get_task_comment_service(db)
+
+    content = comment_data.get("content")
+    if not content:
+        raise APIException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="VALIDATION_ERROR",
+            message="Content field is required",
+        )
 
     comment = comment_service.update_comment(
         task_id=task_id,
@@ -1063,23 +1149,56 @@ async def list_task_comments(
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardListResponse[dict]:
     """List task comments."""
-    comment_service = get_task_comment_service(db)
+    # Logging extremo para diagnosticar
+    print("\n" + "="*100, flush=True)
+    print("[GET COMMENTS ENDPOINT] LLAMADO", flush=True)
+    print(f"task_id: {task_id} (type: {type(task_id)})", flush=True)
+    print(f"user_id: {current_user.id}", flush=True)
+    print(f"tenant_id: {current_user.tenant_id}", flush=True)
+    print(f"db session: {db}", flush=True)
+    print("="*100 + "\n", flush=True)
 
-    comments = comment_service.list_comments(
-        task_id=task_id,
-        tenant_id=current_user.tenant_id,
-    )
+    logger.info(f"[GET COMMENTS] Endpoint llamado - task_id={task_id}, user_id={current_user.id}, tenant_id={current_user.tenant_id}")
 
-    return StandardListResponse(
-        data=comments,
-        meta={
-            "total": len(comments),
-            "page": 1,
-            "page_size": len(comments) if len(comments) > 0 else 20,
-            "total_pages": 1,
-        },
-        message="Task comments retrieved successfully",
-    )
+    try:
+        print("[GET COMMENTS] Obteniendo servicio...", flush=True)
+        comment_service = get_task_comment_service(db)
+        print(f"[GET COMMENTS] Servicio obtenido: {comment_service}", flush=True)
+
+        print(f"[GET COMMENTS] Llamando list_comments con task_id={task_id}, tenant_id={current_user.tenant_id}", flush=True)
+        comments = comment_service.list_comments(
+            task_id=task_id,
+            tenant_id=current_user.tenant_id,
+        )
+
+        print(f"[GET COMMENTS] Servicio retornó {len(comments)} comentarios", flush=True)
+        print(f"[GET COMMENTS] Comentarios: {comments}", flush=True)
+
+        logger.info(f"[GET COMMENTS] Retornando {len(comments)} comentarios")
+
+        result = StandardListResponse(
+            data=comments,
+            meta={
+                "total": len(comments),
+                "page": 1,
+                "page_size": len(comments) if len(comments) > 0 else 20,
+                "total_pages": 1,
+            },
+            message="Task comments retrieved successfully",
+        )
+
+        print(f"[GET COMMENTS] Response creado: {result.model_dump()}", flush=True)
+        print("="*100 + "\n", flush=True)
+
+        return result
+    except Exception as e:
+        print(f"[GET COMMENTS] ERROR: {e}", flush=True)
+        logger.error(f"[GET COMMENTS] Error: {e}", exc_info=True)
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="COMMENT_LIST_ERROR",
+            message="Error al obtener comentarios",
+        )
 
 
 # Task Tags & Search Endpoints (Sprint 5 - Fase 2)
@@ -1318,4 +1437,31 @@ async def update_calendar_preferences(
             "time_format": prefs.time_format,
         },
         message="Calendar preferences updated successfully",
+    )
+
+
+@router.get(
+    "/{task_id}",
+    response_model=StandardResponse[TaskResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get task",
+    description="Get a specific task by ID. Requires tasks.view permission.",
+)
+async def get_task(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
+    service: Annotated[TaskService, Depends(get_task_service)],
+) -> StandardResponse[TaskResponse]:
+    """Get a specific task."""
+    task = service.get_task(task_id, current_user.tenant_id)
+    if not task:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TASK_NOT_FOUND",
+            message=f"Task with ID {task_id} not found",
+        )
+
+    return StandardResponse(
+        data=TaskResponse.model_validate(task),
+        message="Task retrieved successfully",
     )

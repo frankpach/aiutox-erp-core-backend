@@ -59,7 +59,7 @@
     "name": "Módulo de Automatización",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
     "description": "Infraestructura base: Motor de reglas y workflows basado en eventos. Permite definir y ejecutar reglas de negocio sin modificar código. Orquesta procesos entre módulos.",
     "depends_on": ["auth", "users", "pubsub"]
   },
@@ -107,7 +107,7 @@
     "name": "Sistema de Tareas y Workflows",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
     "description": "Infraestructura base: Tareas asignables, estados, prioridades, checklists, workflows configurables (BPMN-ready), aprobaciones.",
     "depends_on": ["auth", "users", "notifications"]
   },
@@ -116,7 +116,7 @@
     "name": "Sistema de Etiquetas/Tags",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
     "description": "Infraestructura base: Sistema de tags polimórfico, categorías de tags, filtrado y búsqueda por tags, tags automáticos.",
     "depends_on": ["auth", "users"]
   },
@@ -125,7 +125,7 @@
     "name": "Sistema de Búsqueda Global",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
     "description": "Infraestructura base: Búsqueda unificada en todas las entidades, índices de búsqueda, resultados categorizados, búsqueda inteligente.",
     "depends_on": ["auth", "users"]
   },
@@ -134,7 +134,7 @@
     "name": "Sistema de Integraciones y Webhooks",
     "type": "core",
     "category": "infrastructure",
-    "enabled": false,
+    "enabled": true,
     "description": "Infraestructura base: API Gateway, webhooks configurables por evento, gestión de credenciales, logs de integraciones, reintentos automáticos.",
     "depends_on": ["auth", "users", "notifications"]
   },

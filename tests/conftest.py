@@ -16,6 +16,7 @@ from app.main import app
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.user_role import UserRole
+from tests.helpers import create_task, create_user_with_permission
 
 # Load environment variables from .env files
 # Priority: .env (current dir) > ../.env (parent dir) > system env vars
@@ -190,6 +191,23 @@ def create_test_engine(database_url: str = None):
 engine = create_test_engine()
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Ensure internal modules that instantiate their own SessionLocal (e.g., TaskScheduler)
+# reuse the testing session/engine instead of the default application engine.
+try:
+    import app.core.db.session as app_db_session
+
+    app_db_session.engine = engine
+    app_db_session.SessionLocal = TestingSessionLocal
+except Exception as e:
+    print(f"[TEST CONFIG] Warning: could not override app SessionLocal: {e}")
+
+try:
+    import app.core.tasks.scheduler as task_scheduler
+
+    task_scheduler.SessionLocal = TestingSessionLocal
+except Exception as e:
+    print(f"[TEST CONFIG] Warning: could not override TaskScheduler SessionLocal: {e}")
+
 
 @pytest.fixture(scope="session")
 def setup_database():
@@ -253,10 +271,21 @@ def db_session(setup_database):
     
     # Create a simple session without transactions to avoid encoding issues
     db = TestingSessionLocal()
-    
+    # Ensure any leftover transaction from previous usage is cleared
+    try:
+        db.rollback()
+    except Exception:
+        pass
+
     try:
         yield db
     finally:
+        # Clear any active transaction before cleanup
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
         # Clean up data manually instead of using transactions
         try:
             # Clean up any test data that might have been created
@@ -267,12 +296,12 @@ def db_session(setup_database):
             print(f"[DB CLEANUP] Warning during cleanup: {e}")
             try:
                 db.rollback()
-            except:
+            except Exception:
                 pass
         finally:
             try:
                 db.close()
-            except:
+            except Exception:
                 pass
 
 
@@ -350,6 +379,81 @@ def test_user(db_session, test_tenant):
 
 
 @pytest.fixture(scope="function")
+def other_tenant(db_session):
+    """Create a secondary tenant for isolation tests."""
+    tenant = Tenant(
+        name="Other Tenant",
+        slug=f"other-tenant-{uuid4().hex[:8]}",
+    )
+    db_session.add(tenant)
+    db_session.flush()
+    db_session.refresh(tenant)
+    return tenant
+
+
+@pytest.fixture(scope="function")
+def other_user(db_session, other_tenant):
+    """Create a user in a different tenant."""
+    password = "test_password_123"
+    password_hash = hash_password(password)
+
+    user = User(
+        email=f"other-{uuid4().hex[:8]}@example.com",
+        password_hash=password_hash,
+        full_name="Other User",
+        tenant_id=other_tenant.id,
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.flush()
+    db_session.refresh(user)
+
+    user._plain_password = password  # type: ignore
+    return user
+
+
+@pytest.fixture(scope="function")
+def task_factory(db_session, test_tenant, test_user):
+    """Factory for creating tasks tied to the default tenant/user."""
+    def _factory(**overrides):
+        return create_task(
+            db_session=db_session,
+            tenant_id=test_tenant.id,
+            created_by_id=test_user.id,
+            **overrides,
+        )
+
+    return _factory
+
+
+@pytest.fixture(scope="function")
+def module_role_headers(db_session, test_user):
+    """Factory for module-role auth headers."""
+    def _factory(module: str, role_name: str = "manager", user: User | None = None):
+        target_user = user or test_user
+        return create_user_with_permission(
+            db_session=db_session,
+            user=target_user,
+            module=module,
+            role_name=role_name,
+        )
+
+    return _factory
+
+
+@pytest.fixture(scope="function")
+def tasks_manager_headers(db_session, test_user):
+    """Auth headers for tasks manager role."""
+    return create_user_with_permission(db_session, test_user, "tasks", "manager")
+
+
+@pytest.fixture(scope="function")
+def tasks_viewer_headers(db_session, test_user):
+    """Auth headers for tasks viewer role."""
+    return create_user_with_permission(db_session, test_user, "tasks", "viewer")
+
+
+@pytest.fixture(scope="function")
 def test_user_inactive(db_session, test_tenant):
     """Create an inactive test user."""
     password = "test_password_123"
@@ -419,6 +523,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "redis: mark test as requiring Redis")
     config.addinivalue_line("markers", "integration: mark test as integration test")
     config.addinivalue_line("markers", "db: mark test as database test")
+    config.addinivalue_line("markers", "security: mark test as security-related")
 
     # Configure worker-specific database if using pytest-xdist
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")

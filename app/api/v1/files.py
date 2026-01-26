@@ -56,6 +56,13 @@ async def upload_file(
     """Upload a new file."""
     import json
 
+    print("\n!!! UPLOAD FILE ENDPOINT CALLED !!!", flush=True)
+    print(f"User: {current_user.id}", flush=True)
+    print(f"Tenant: {current_user.tenant_id}", flush=True)
+    print(f"Filename: {file.filename}", flush=True)
+    print(f"Entity type: {entity_type}", flush=True)
+    print(f"Entity ID: {entity_id}", flush=True)
+
     # Validate tenant_id
     if not current_user.tenant_id:
         raise APIException(
@@ -65,7 +72,9 @@ async def upload_file(
         )
 
     # Read file content
+    print("!!! Reading file content !!!", flush=True)
     content = await file.read()
+    print(f"!!! File content size: {len(content)} bytes !!!", flush=True)
 
     # Parse permissions if provided
     permissions_data = None

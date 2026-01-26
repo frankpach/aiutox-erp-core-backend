@@ -5,6 +5,7 @@ description = "AiutoX ERP Backend - FastAPI"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "apscheduler>=3.10.4",
     "alembic>=1.17.2",
     "fastapi>=0.124.4",
     "passlib[bcrypt]>=1.7.4",
@@ -12,7 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pydantic-settings>=2.12.0",
     "pydantic[email]>=2.12.5",
-    "python-jose[cryptography]>=3.5.0",
+    "PyJWT>=2.10.0",
     "python-multipart>=0.0.20",
     "redis>=7.1.0",
     "slowapi>=0.1.9",
@@ -96,6 +97,7 @@ markers = [
     "integration: mark test as integration test",
     "db: mark test as database test (may be excluded from parallel execution)",
     "performance: mark test as performance test",
+    "security: mark test as security-related (auth, RBAC, tenant isolation)",
 ]
 
 [dependency-groups]
@@ -105,4 +107,3 @@ dev = [
 
 [project.scripts]
 aiutox = "scripts.cli.aiutox:main"
-

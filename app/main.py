@@ -1,6 +1,7 @@
-import os
 import logging
+import os
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,14 +10,16 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
-from app.core.config_file import get_settings
-from app.core.exceptions import APIException
+
 # Import logging module to initialize loggers
 from app.core import logging as app_logging  # noqa: F401
+from app.core.async_tasks import AsyncTaskService
+from app.core.config_file import get_settings
+from app.core.db.session import SessionLocal
+from app.core.exceptions import APIException
+
 # Import async tasks to register them
 from app.core.files import tasks as files_tasks  # noqa: F401
-from app.core.async_tasks import AsyncTaskService
-from app.core.db.session import SessionLocal
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -47,6 +50,14 @@ async def lifespan(app: FastAPI):
         logger.info("TaskScheduler started successfully")
     except Exception as e:
         logger.error(f"Failed to start TaskScheduler: {e}", exc_info=True)
+
+    # Discover and register webhook events from active modules
+    try:
+        from app.core.integrations.autodiscovery import discover_and_register_events
+        discover_and_register_events()
+        logger.info("Webhook events autodiscovery completed")
+    except Exception as e:
+        logger.error(f"Failed to discover webhook events: {e}", exc_info=True)
 
     yield
 
@@ -204,6 +215,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         import logging
         logger = logging.getLogger(__name__)
+
+        # Log para todas las solicitudes DELETE y POST
+        if request.method == "DELETE":
+            logger.warning("=== DELETE REQUEST RECEIVED ===")
+            logger.warning(f"URL: {request.url}")
+            logger.warning(f"Path: {request.url.path}")
+            logger.warning(f"Method: {request.method}")
+            logger.warning(f"Headers: {dict(request.headers)}")
+        elif request.method == "POST":
+            logger.warning("=== POST REQUEST RECEIVED ===")
+            logger.warning(f"URL: {request.url}")
+            logger.warning(f"Path: {request.url.path}")
+            logger.warning(f"Method: {request.method}")
+            # Logear si es una solicitud de archivos
+            if "/files" in request.url.path:
+                logger.warning("!!! THIS IS A FILES POST REQUEST !!!")
+                logger.warning(f"Query params: {request.url.query}")
+
         logger.debug(f"SecurityHeadersMiddleware called for {request.url.path}")
 
         try:
@@ -219,15 +248,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # CORS configuration (must be added BEFORE SecurityHeadersMiddleware so CORS headers are added first)
 if settings.CORS_ORIGINS:
     origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
-    # Always include common localhost variants for development
-    if "http://127.0.0.1:3000" not in origins:
-        origins.append("http://127.0.0.1:3000")
-    if "http://localhost:3000" not in origins:
-        origins.append("http://localhost:3000")
-    if "http://localhost:5173" not in origins:
-        origins.append("http://localhost:57576")
 else:
-    origins = ["http://localhost:57576", "http://localhost:3000", "http://127.0.0.1:3000"]
+    origins = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -349,7 +371,7 @@ class HeaderEncodingMiddleware(BaseHTTPMiddleware):
                             else:
                                 fixed_value = str(value).encode('utf-8', errors='replace').decode('utf-8')
                             headers_to_update[key] = fixed_value
-                        except:
+                        except Exception:
                             headers_to_remove.append(key)
         except Exception as e:
             logger.error(f"Error in HeaderEncodingMiddleware: {e}", exc_info=True)
@@ -413,6 +435,28 @@ async def validation_exception_handler(
 
     Converts FastAPI's default validation error format to the standard API contract format.
     """
+    # Logging para depurar - FORZADO CON PRINT
+    print("=" * 80)
+    print("!!! VALIDATION ERROR DETECTED !!!")
+    print(f"[VALIDATION_ERROR] URL: {request.url}")
+    print(f"[VALIDATION_ERROR] Method: {request.method}")
+    print(f"[VALIDATION_ERROR] Headers: {dict(request.headers)}")
+    body_bytes = await request.body()
+    print(f"[VALIDATION_ERROR] Body bytes: {body_bytes}")
+    try:
+        body_str = body_bytes.decode('utf-8')
+        print(f"[VALIDATION_ERROR] Body string: {body_str}")
+    except Exception as e:
+        print(f"[VALIDATION_ERROR] Body: (could not decode) - {e}")
+    print(f"[VALIDATION_ERROR] Errors: {exc.errors()}")
+    print("=" * 80)
+
+    # También mantener logger
+    logger.error(f"[VALIDATION_ERROR] URL: {request.url}")
+    logger.error(f"[VALIDATION_ERROR] Method: {request.method}")
+    logger.error(f"[VALIDATION_ERROR] Headers: {dict(request.headers)}")
+    logger.error(f"[VALIDATION_ERROR] Body: {body_bytes}")
+    logger.error(f"[VALIDATION_ERROR] Errors: {exc.errors()}")
     def set_header_safely(response, key: str, value: str) -> None:
         """Set header with proper UTF-8 encoding."""
         if isinstance(value, bytes):
@@ -484,7 +528,7 @@ async def validation_exception_handler(
     }
 
     response = JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content=response_content,
     )
     # Ensure CORS headers are added even for errors
@@ -515,7 +559,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     try:
         with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
             f.write(json.dumps({"location": "main.py:160", "message": "Global exception handler called", "data": {"exception_type": type(exc).__name__, "exception_msg": str(exc), "path": str(request.url.path), "origin": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "A"}) + "\n")
-    except: pass
+    except Exception:
+        pass
     # #endregion agent log
 
     logger.exception(f"Unhandled exception: {exc}")
@@ -538,7 +583,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     try:
         with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
             f.write(json.dumps({"location": "main.py:178", "message": "Before adding CORS headers", "data": {"origins_defined": "origins" in globals(), "origins_value": globals().get("origins", "NOT_FOUND"), "origin_header": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "B"}) + "\n")
-    except: pass
+    except Exception:
+        pass
     # #endregion agent log
 
     # Ensure CORS headers are added even for errors
@@ -551,7 +597,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     try:
         with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
             f.write(json.dumps({"location": "main.py:183", "message": "After adding CORS headers", "data": {"cors_origin": response.headers.get("Access-Control-Allow-Origin"), "cors_credentials": response.headers.get("Access-Control-Allow-Credentials"), "all_headers": dict(response.headers)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}) + "\n")
-    except: pass
+    except Exception:
+        pass
     # #endregion agent log
 
     add_security_headers(response)

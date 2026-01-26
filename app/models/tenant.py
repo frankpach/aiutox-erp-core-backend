@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
@@ -18,6 +18,7 @@ class Tenant(Base):
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), nullable=False)
     slug = Column(String(100), unique=True, nullable=False, index=True)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     created_at = Column(
         TIMESTAMP(timezone=True),
         default=lambda: datetime.now(timezone.utc),

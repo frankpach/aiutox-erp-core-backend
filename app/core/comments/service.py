@@ -13,7 +13,7 @@ from app.core.files.service import FileService
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
-from app.models.comment import Comment, CommentMention
+from app.models.comment import Comment
 from app.repositories.comment_repository import CommentRepository
 
 logger = logging.getLogger(__name__)
@@ -177,7 +177,7 @@ class CommentService:
                 entity_type=comment.entity_type,
                 entity_id=comment.entity_id,
                 activity_type="comment",
-                title=f"Comment added",
+                title="Comment added",
                 tenant_id=tenant_id,
                 user_id=user_id,
                 description=comment.content[:200],  # First 200 chars

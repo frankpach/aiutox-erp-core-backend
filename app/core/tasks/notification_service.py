@@ -1,11 +1,11 @@
 """Task notification service integrated with existing notification system."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from app.core.logging import get_logger
 from app.models.task import Task
 from app.models.user import User
-from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -199,7 +199,7 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "completed_by": completed_by.full_name or completed_by.email,
-                    "completed_at": datetime.utcnow().isoformat(),
+                    "completed_at": datetime.now(UTC).isoformat(),
                 }
             )
 
@@ -223,7 +223,7 @@ class TaskNotificationService:
             return
 
         # Check if due within 24 hours
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         if task.due_date <= now + timedelta(hours=24) and task.due_date > now:
             hours_until_due = int((task.due_date - now).total_seconds() / 3600)
 
@@ -261,7 +261,7 @@ class TaskNotificationService:
 
     async def notify_task_overdue(self, task: Task) -> None:
         """Send notification when a task is overdue."""
-        if not task.due_date or task.due_date > datetime.utcnow():
+        if not task.due_date or task.due_date > datetime.now(UTC):
             return
 
         # Notify assigned user
@@ -276,7 +276,7 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat(),
-                    "days_overdue": (datetime.utcnow() - task.due_date).days,
+                    "days_overdue": (datetime.now(UTC) - task.due_date).days,
                 }
             )
 
@@ -292,7 +292,7 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat(),
-                    "days_overdue": (datetime.utcnow() - task.due_date).days,
+                    "days_overdue": (datetime.now(UTC) - task.due_date).days,
                 }
             )
 
@@ -455,7 +455,7 @@ class TaskNotificationService:
                     "data": data,
                     "channels": ["in_app", "email"],
                     "priority": "normal",
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": datetime.now(UTC).isoformat()
                 }
 
                 # Log the notification (simulating the real service)

@@ -171,6 +171,9 @@ class Task(Base):
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
 
 
+TaskStatus = TaskStatusEnum
+
+
 class TaskChecklistItem(Base):
     """Task checklist item model."""
 

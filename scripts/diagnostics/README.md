@@ -40,3 +40,5 @@ uv run python scripts/diagnostics/test_db_connection_simple.py
 
 Para verificaciones más completas de la base de datos, ver `temp/README.md` que contiene scripts más detallados.
 
+Otros scripts de diagnóstico y pruebas manuales (`check_*`, `diagnose_*`, `test_*.py`) viven en este directorio, y sus salidas se guardan en `scripts/diagnostics/output/`.
+

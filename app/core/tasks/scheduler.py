@@ -113,6 +113,10 @@ class TaskScheduler:
             logger.info(f"Checked {len(time_windows)} time windows for due soon tasks")
         except Exception as e:
             logger.error(f"Error checking due soon tasks: {e}", exc_info=True)
+            try:
+                db.rollback()
+            except Exception:
+                pass
         finally:
             db.close()
 
@@ -141,6 +145,10 @@ class TaskScheduler:
             logger.info(f"Checked {len(overdue_tasks)} overdue tasks")
         except Exception as e:
             logger.error(f"Error checking overdue tasks: {e}", exc_info=True)
+            try:
+                db.rollback()
+            except Exception:
+                pass
         finally:
             db.close()
 

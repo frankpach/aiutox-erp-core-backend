@@ -88,17 +88,17 @@ uv run aiutox db:seed --class=DevelopmentUsersSeeder
 
 ### Usando el Script de Verificación
 
-El script `ensure_admin_user.py` también puede crear/verificar usuarios:
+El script `scripts/utils/ensure_admin_user.py` también puede crear/verificar usuarios:
 
 ```bash
 # Auto-detecta el entorno
-python ensure_admin_user.py
+python scripts/utils/ensure_admin_user.py
 
 # Forzar modo desarrollo (crea todos los usuarios)
-python ensure_admin_user.py --dev
+python scripts/utils/ensure_admin_user.py --dev
 
 # Forzar modo producción (solo owner)
-python ensure_admin_user.py --prod
+python scripts/utils/ensure_admin_user.py --prod
 ```
 
 ## Usuarios de Desarrollo

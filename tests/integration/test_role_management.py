@@ -261,7 +261,7 @@ class TestRoleManagement:
         )
 
         # Assert: Should fail
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_remove_role_requires_auth_manage_roles(
         self, client_with_db, db_session, test_user, test_tenant

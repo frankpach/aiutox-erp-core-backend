@@ -158,26 +158,61 @@ class TestTasksPerformance:
         test_tenant
     ):
         """Test que verificar tareas próximas a vencer toma menos de 200ms."""
-        service = TaskService(db_session)
+        # Guardar los IDs antes de cualquier operación que pueda fallar
+        tenant_id = test_tenant.id
+        user_id = test_user.id
+
+        # Crear tareas directamente con el repositorio para evitar problemas con el servicio
+        repository = TaskRepository(db_session)
 
         # Crear 20 tareas con diferentes fechas de vencimiento
         now = datetime.now(UTC)
+        created_tasks = []
+
         for i in range(20):
-            await service.create_task(
-                title=f"Tarea {i}",
-                tenant_id=test_tenant.id,
-                created_by_id=test_user.id,
-                due_date=now + timedelta(minutes=30 + i),
-                assigned_to_id=test_user.id
-            )
+            task_data = {
+                "tenant_id": tenant_id,
+                "title": f"Tarea {i}",
+                "description": None,
+                "status": "todo",
+                "priority": "medium",
+                "assigned_to_id": user_id,
+                "created_by_id": user_id,
+                "due_date": now + timedelta(minutes=30 + i),
+                "start_at": None,
+                "end_at": None,
+                "all_day": False,
+                "tags": None,
+                "tag_ids": None,
+                "color_override": None,
+                "related_entity_type": None,
+                "related_entity_id": None,
+                "source_module": None,
+                "source_id": None,
+                "source_context": None,
+                "metadata": None,
+            }
+
+            try:
+                task = repository.create_task(task_data)
+                created_tasks.append(task)
+            except Exception as e:
+                db_session.rollback()
+                raise e
+
+        # Verificar que las tareas se crearon
+        assert len(created_tasks) == 20, f"Se esperaban 20 tareas, se crearon {len(created_tasks)}"
 
         scheduler = TaskScheduler()
 
-        start_time = time.time()
+        # Mockear SessionLocal para que devuelva nuestra sesión de prueba
+        from unittest.mock import patch
+        with patch('app.core.tasks.scheduler.SessionLocal') as mock_session_local:
+            mock_session_local.return_value = db_session
 
-        await scheduler.check_due_soon_tasks()
-
-        elapsed_time = (time.time() - start_time) * 1000  # ms
+            start_time = time.time()
+            await scheduler.check_due_soon_tasks()
+            elapsed_time = (time.time() - start_time) * 1000  # ms
 
         assert elapsed_time < 200, f"Check due soon tomó {elapsed_time:.2f}ms (objetivo: <200ms)"
 
@@ -313,7 +348,7 @@ class TestTasksMemoryUsage:
                 created_by_id=test_user.id
             )
 
-            service.delete_task(task.id, test_tenant.id, test_user.id)
+            await service.delete_task(task.id, test_tenant.id, test_user.id)
 
         # Forzar garbage collection nuevamente
         gc.collect()

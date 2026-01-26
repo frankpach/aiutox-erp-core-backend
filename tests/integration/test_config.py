@@ -604,7 +604,7 @@ class TestConfig:
         )
 
         # Assert: Should return validation error
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         data = response.json()
         # FastAPI validation errors can be in "detail" or custom error format
         assert "detail" in data or ("error" in data and data.get("error", {}).get("code") == "VALIDATION_ERROR")

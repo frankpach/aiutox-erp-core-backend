@@ -3,14 +3,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, status
-
-from app.core.exceptions import raise_forbidden, raise_unauthorized
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.auth.jwt import decode_token
 from app.core.db.deps import get_db
+from app.core.exceptions import raise_forbidden, raise_unauthorized
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 

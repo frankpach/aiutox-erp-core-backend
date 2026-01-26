@@ -10,7 +10,7 @@ if (Test-Path "venv\Scripts\Activate.ps1") {
 }
 
 # Ejecutar script Python
-python ensure_admin_user.py
+python scripts/utils/ensure_admin_user.py
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[SUCCESS] Verificación completada exitosamente!" -ForegroundColor Green

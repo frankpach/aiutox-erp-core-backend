@@ -1,11 +1,14 @@
 """Tests de integración para TaskScheduler."""
 
-import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+
+from app.core.auth import hash_password
 from app.core.tasks.scheduler import TaskScheduler, get_task_scheduler
-from app.models.task import Task, TaskStatusEnum, TaskPriority
+from app.models.task import TaskPriority, TaskStatusEnum
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.repositories.task_repository import TaskRepository
 
@@ -41,7 +44,7 @@ class TestTaskScheduler:
             "priority": TaskPriority.HIGH,
             "assigned_to_id": test_user.id,
             "created_by_id": test_user.id,
-            "due_date": datetime.utcnow() + timedelta(hours=12),
+            "due_date": datetime.now(timezone.utc) + timedelta(hours=12),
         })
 
         scheduler = TaskScheduler()
@@ -65,7 +68,7 @@ class TestTaskScheduler:
             "priority": TaskPriority.URGENT,
             "assigned_to_id": test_user.id,
             "created_by_id": test_user.id,
-            "due_date": datetime.utcnow() - timedelta(days=2),
+            "due_date": datetime.now(timezone.utc) - timedelta(days=2),
         })
 
         scheduler = TaskScheduler()
@@ -74,7 +77,7 @@ class TestTaskScheduler:
         await scheduler.check_overdue_tasks()
 
         # Verificar que se procesó
-        assert task.due_date < datetime.utcnow()
+        assert task.due_date < datetime.now(timezone.utc)
 
     async def test_scheduler_handles_no_tasks(self, db_session):
         """Verifica que el scheduler maneja correctamente cuando no hay tareas."""
@@ -102,12 +105,11 @@ class TestTaskScheduler:
 @pytest.fixture
 def test_tenant(db_session):
     """Crea un tenant de prueba."""
-    from app.models.tenant import Tenant
 
     tenant = Tenant(
         id=uuid4(),
         name="Test Tenant",
-        slug="test-tenant",
+        slug=f"test-tenant-{uuid4().hex[:8]}",
         is_active=True
     )
     db_session.add(tenant)
@@ -123,6 +125,7 @@ def test_user(db_session, test_tenant):
         tenant_id=test_tenant.id,
         email="test@example.com",
         full_name="Test User",
+        password_hash=hash_password("test_password_123"),
         is_active=True
     )
     db_session.add(user)
