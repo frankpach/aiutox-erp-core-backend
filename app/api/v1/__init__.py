@@ -12,6 +12,7 @@ from app.api.v1 import (
     config,
     contact_methods,
     files,
+    flow_runs,
     folders,
     import_export,
     integrations,
@@ -22,7 +23,6 @@ from app.api.v1 import (
     search,
     sse,
     tags,
-    task_dependencies,
     templates,
     users,
     views,
@@ -47,6 +47,7 @@ api_router.include_router(preferences.router, prefix="/preferences", tags=["pref
 api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(files.router, prefix="/files", tags=["files"])
+api_router.include_router(flow_runs.router, prefix="/flow-runs", tags=["flow-runs"])
 api_router.include_router(folders.router, prefix="/folders", tags=["folders"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
 api_router.include_router(activity_icons.router, tags=["activity-icons"])
@@ -65,4 +66,3 @@ api_router.include_router(templates.router, prefix="/templates", tags=["template
 api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
 api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])
 api_router.include_router(sse.router, tags=["sse"])
-api_router.include_router(task_dependencies.router, tags=["task-dependencies"])

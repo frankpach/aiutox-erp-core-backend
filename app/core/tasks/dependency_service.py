@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.task_dependency import TaskDependency
+from app.models.task import Task
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +29,23 @@ class TaskDependencyService:
         # Validar que no sea la misma tarea
         if task_id == depends_on_id:
             raise ValueError("Una tarea no puede depender de sí misma")
+
+        # Validar que ambas tareas existan y pertenezcan al mismo tenant
+        task = self.db.query(Task).filter(
+            Task.id == task_id,
+            Task.tenant_id == tenant_id
+        ).first()
+
+        depends_on_task = self.db.query(Task).filter(
+            Task.id == depends_on_id,
+            Task.tenant_id == tenant_id
+        ).first()
+
+        if not task:
+            raise ValueError(f"Tarea {task_id} no encontrada o no pertenece al tenant")
+
+        if not depends_on_task:
+            raise ValueError(f"Tarea de dependencia {depends_on_id} no encontrada o no pertenece al tenant")
 
         # Validar dependencias circulares
         if self._would_create_cycle(task_id, depends_on_id):

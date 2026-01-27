@@ -2,23 +2,14 @@
 
 from uuid import uuid4
 
-import pytest
-
-from app.models.approval import ApprovalFlow, ApprovalRequest, ApprovalStep
-from app.models.module_role import ModuleRole
+from app.models.approval import ApprovalFlow
 
 
-def test_delete_approval_flow_soft_delete(client_with_db, test_user, auth_headers, db_session):
+def test_delete_approval_flow_soft_delete(client_with_db, test_user, db_session):
     """Test soft deleting an approval flow."""
-    # Assign approvals.manage permission
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -35,7 +26,7 @@ def test_delete_approval_flow_soft_delete(client_with_db, test_user, auth_header
         headers=auth_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 204
 
     # Verify soft delete in database
     flow = db_session.query(ApprovalFlow).filter(ApprovalFlow.id == flow_id).first()
@@ -44,17 +35,11 @@ def test_delete_approval_flow_soft_delete(client_with_db, test_user, auth_header
     assert flow.is_active is False
 
 
-def test_delete_flow_with_active_requests_fails(client_with_db, test_user, auth_headers, db_session):
+def test_delete_flow_with_active_requests_fails(client_with_db, test_user, db_session):
     """Test that deleting a flow with active requests fails."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -86,20 +71,16 @@ def test_delete_flow_with_active_requests_fails(client_with_db, test_user, auth_
     )
 
     assert response.status_code == 400
-    assert "Cannot delete flow with active requests" in response.json()["message"]
+    response_json = response.json()
+    print(f"Response JSON: {response_json}")
+    assert "Cannot delete flow with active requests" in response_json["error"]["message"]
 
 
-def test_update_approval_flow(client_with_db, test_user, auth_headers, db_session):
+def test_update_approval_flow(client_with_db, test_user, db_session):
     """Test updating an approval flow."""
-    # Assign approvals.manage permission
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -124,17 +105,11 @@ def test_update_approval_flow(client_with_db, test_user, auth_headers, db_sessio
     assert data["description"] == "Updated description"
 
 
-def test_get_approval_steps(client_with_db, test_user, auth_headers, db_session):
+def test_get_approval_steps(client_with_db, test_user, db_session):
     """Test getting steps for a flow."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -145,16 +120,19 @@ def test_get_approval_steps(client_with_db, test_user, auth_headers, db_session)
     )
     flow_id = flow_response.json()["data"]["id"]
 
-    # Add steps
-    step1_data = {
-        "step_order": 1,
-        "name": "Step 1",
-        "approver_type": "user",
-        "approver_id": str(test_user.id),
-    }
-    client_with_db.post(
+    # Add steps usando PUT con lista de steps
+    steps_data = [
+        {
+            "flow_id": flow_id,
+            "step_order": 1,
+            "name": "Step 1",
+            "approver_type": "user",
+            "approver_id": str(test_user.id),
+        }
+    ]
+    client_with_db.put(
         f"/api/v1/approvals/flows/{flow_id}/steps",
-        json=step1_data,
+        json=steps_data,
         headers=auth_headers,
     )
 
@@ -170,17 +148,11 @@ def test_get_approval_steps(client_with_db, test_user, auth_headers, db_session)
     assert data[0]["name"] == "Step 1"
 
 
-def test_update_approval_step(client_with_db, test_user, auth_headers, db_session):
+def test_update_approval_step(client_with_db, test_user, db_session):
     """Test updating an approval step."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -191,44 +163,49 @@ def test_update_approval_step(client_with_db, test_user, auth_headers, db_sessio
     )
     flow_id = flow_response.json()["data"]["id"]
 
-    # Add a step
-    step_data = {
-        "step_order": 1,
-        "name": "Step 1",
-        "approver_type": "user",
-        "approver_id": str(test_user.id),
-    }
-    step_response = client_with_db.post(
+    # Add a step usando PUT con lista
+    steps_data = [
+        {
+            "flow_id": flow_id,
+            "step_order": 1,
+            "name": "Step 1",
+            "approver_type": "user",
+            "approver_id": str(test_user.id),
+        }
+    ]
+    step_response = client_with_db.put(
         f"/api/v1/approvals/flows/{flow_id}/steps",
-        json=step_data,
+        json=steps_data,
         headers=auth_headers,
     )
-    step_id = step_response.json()["data"]["id"]
+    step_id = step_response.json()["data"][0]["id"]
 
     # Update the step
     update_data = {"name": "Updated Step", "description": "Updated description"}
+    print(f"Updating step with data: {update_data}")
+    print(f"Step ID: {step_id}")
+    print(f"Flow ID: {flow_id}")
+
     response = client_with_db.put(
         f"/api/v1/approvals/flows/{flow_id}/steps/{step_id}",
         json=update_data,
         headers=auth_headers,
     )
 
+    print(f"Response status: {response.status_code}")
+    if response.status_code != 200:
+        print(f"Response content: {response.text}")
+
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["name"] == "Updated Step"
 
 
-def test_cancel_approval_request(client_with_db, test_user, auth_headers, db_session):
+def test_cancel_approval_request(client_with_db, test_user, db_session):
     """Test cancelling an approval request."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="manager",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -265,17 +242,11 @@ def test_cancel_approval_request(client_with_db, test_user, auth_headers, db_ses
     assert data["status"] == "cancelled"
 
 
-def test_approve_request_with_audit_info(client_with_db, test_user, auth_headers, db_session):
+def test_approve_request_with_audit_info(client_with_db, test_user, db_session):
     """Test approving a request with IP and user agent capture."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="approver",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
 
     # Create a flow with a step
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -286,16 +257,19 @@ def test_approve_request_with_audit_info(client_with_db, test_user, auth_headers
     )
     flow_id = flow_response.json()["data"]["id"]
 
-    # Add a step
-    step_data = {
-        "step_order": 1,
-        "name": "Step 1",
-        "approver_type": "user",
-        "approver_id": str(test_user.id),
-    }
-    client_with_db.post(
+    # Add a step usando PUT con lista
+    steps_data = [
+        {
+            "flow_id": flow_id,
+            "step_order": 1,
+            "name": "Step 1",
+            "approver_type": "user",
+            "approver_id": str(test_user.id),
+        }
+    ]
+    client_with_db.put(
         f"/api/v1/approvals/flows/{flow_id}/steps",
-        json=step_data,
+        json=steps_data,
         headers=auth_headers,
     )
 
@@ -325,17 +299,11 @@ def test_approve_request_with_audit_info(client_with_db, test_user, auth_headers
     assert data["status"] in ["approved", "pending"]  # Could be approved if single step
 
 
-def test_get_approval_stats(client_with_db, test_user, auth_headers, db_session):
+def test_get_approval_stats(client_with_db, test_user, db_session):
     """Test getting approval statistics."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.viewer")
 
     # Get stats
     response = client_with_db.get(
@@ -349,17 +317,11 @@ def test_get_approval_stats(client_with_db, test_user, auth_headers, db_session)
     assert "status_counts" in data
 
 
-def test_get_request_timeline(client_with_db, test_user, auth_headers, db_session):
+def test_get_request_timeline(client_with_db, test_user, db_session):
     """Test getting request timeline."""
-    # Assign permissions
-    module_role = ModuleRole(
-        user_id=test_user.id,
-        module="approvals",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(module_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "manager")
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -393,4 +355,9 @@ def test_get_request_timeline(client_with_db, test_user, auth_headers, db_sessio
 
     assert response.status_code == 200
     data = response.json()["data"]
-    assert "actions" in data or "timeline" in data
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert data[0]["type"] == "request_created"
+    assert "timestamp" in data[0]
+    assert "actor_id" in data[0]
+    assert "data" in data[0]

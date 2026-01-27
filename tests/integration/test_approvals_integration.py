@@ -116,6 +116,18 @@ def test_approval_delegation(client_with_db, test_user, auth_headers, db_session
         user_id=test_user.id,
     )
 
+    # Add step with test_user as approver
+    step = approval_service.add_approval_step(
+        flow_id=flow.id,
+        tenant_id=test_user.tenant_id,
+        step_data={
+            "step_order": 1,
+            "name": "Step 1",
+            "approver_type": "user",
+            "approver_id": test_user.id,
+        },
+    )
+
     entity_id = uuid4()
     request = approval_service.create_approval_request(
         request_data={

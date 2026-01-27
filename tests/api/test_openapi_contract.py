@@ -20,5 +20,5 @@ def test_openapi_is_generated(client):
 
     # Business (a few key routes)
     assert "/api/v1/products" in paths
-    assert "/api/v1/tasks" in paths
+    assert "/api/v1/tasks/" in paths
     assert "/api/v1/calendar/calendars" in paths

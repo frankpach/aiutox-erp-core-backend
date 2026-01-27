@@ -30,7 +30,7 @@ def get_flow_runs_service(
 
 # Flow Run endpoints
 @router.post(
-    "/flow-runs",
+    "",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Create flow run",
@@ -47,7 +47,7 @@ async def create_flow_run(
         entity_type=flow_run_data.entity_type,
         entity_id=flow_run_data.entity_id,
         tenant_id=current_user.tenant_id,
-        metadata=flow_run_data.metadata,
+        run_metadata=flow_run_data.run_metadata,
     )
 
     return StandardResponse(
@@ -56,7 +56,7 @@ async def create_flow_run(
 
 
 @router.get(
-    "/flow-runs",
+    "",
     response_model=StandardListResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="List flow runs",
@@ -97,34 +97,26 @@ async def list_flow_runs(
 
 
 @router.get(
-    "/flow-runs/{run_id}",
-    response_model=StandardResponse[FlowRunResponse],
+    "/stats",
+    response_model=StandardResponse[FlowRunStatsResponse],
     status_code=status.HTTP_200_OK,
-    summary="Get flow run",
-    description="Get flow run by ID. Requires flow_runs.view permission.",
+    summary="Get flow runs statistics",
+    description="Get flow runs statistics. Requires flow_runs.view permission.",
 )
-async def get_flow_run(
-    run_id: UUID,
+async def get_flow_runs_stats(
     current_user: Annotated[User, Depends(require_permission("flow_runs.view"))],
     service: Annotated[FlowRunService, Depends(get_flow_runs_service)],
-) -> StandardResponse[FlowRunResponse]:
-    """Get flow run by ID."""
-    flow_run = service.get_flow_run_by_id(run_id, current_user.tenant_id)
-    if not flow_run:
-        from fastapi import HTTPException
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Flow run not found",
-        )
+) -> StandardResponse[FlowRunStatsResponse]:
+    """Get flow runs statistics."""
+    stats = service.get_flow_runs_stats(current_user.tenant_id)
 
     return StandardResponse(
-        data=FlowRunResponse.model_validate(flow_run),
+        data=FlowRunStatsResponse(**stats),
     )
 
 
 @router.get(
-    "/flow-runs/by-entity",
+    "/by-entity",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Get flow run by entity",
@@ -155,8 +147,35 @@ async def get_flow_run_by_entity(
     )
 
 
+@router.get(
+    "/{run_id}",
+    response_model=StandardResponse[FlowRunResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get flow run",
+    description="Get flow run by ID. Requires flow_runs.view permission.",
+)
+async def get_flow_run(
+    run_id: UUID,
+    current_user: Annotated[User, Depends(require_permission("flow_runs.view"))],
+    service: Annotated[FlowRunService, Depends(get_flow_runs_service)],
+) -> StandardResponse[FlowRunResponse]:
+    """Get flow run by ID."""
+    flow_run = service.get_flow_run_by_id(run_id, current_user.tenant_id)
+    if not flow_run:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Flow run not found",
+        )
+
+    return StandardResponse(
+        data=FlowRunResponse.model_validate(flow_run),
+    )
+
+
 @router.put(
-    "/flow-runs/{run_id}",
+    "/{run_id}",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Update flow run",
@@ -188,7 +207,7 @@ async def update_flow_run(
 
 
 @router.post(
-    "/flow-runs/{run_id}/start",
+    "/{run_id}/start",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Start flow run",
@@ -215,7 +234,7 @@ async def start_flow_run(
 
 
 @router.post(
-    "/flow-runs/{run_id}/complete",
+    "/{run_id}/complete",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Complete flow run",
@@ -247,7 +266,7 @@ async def complete_flow_run(
 
 
 @router.post(
-    "/flow-runs/{run_id}/fail",
+    "/{run_id}/fail",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Fail flow run",
@@ -281,7 +300,7 @@ async def fail_flow_run(
 
 
 @router.post(
-    "/flow-runs/{run_id}/cancel",
+    "/{run_id}/cancel",
     response_model=StandardResponse[FlowRunResponse],
     status_code=status.HTTP_200_OK,
     summary="Cancel flow run",
@@ -308,7 +327,7 @@ async def cancel_flow_run(
 
 
 @router.delete(
-    "/flow-runs/{run_id}",
+    "/{run_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete flow run",
     description="Delete a flow run. Requires flow_runs.manage permission.",
@@ -327,22 +346,3 @@ async def delete_flow_run(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Flow run not found",
         )
-
-
-@router.get(
-    "/flow-runs/stats",
-    response_model=StandardResponse[FlowRunStatsResponse],
-    status_code=status.HTTP_200_OK,
-    summary="Get flow runs statistics",
-    description="Get flow runs statistics. Requires flow_runs.view permission.",
-)
-async def get_flow_runs_stats(
-    current_user: Annotated[User, Depends(require_permission("flow_runs.view"))],
-    service: Annotated[FlowRunService, Depends(get_flow_runs_service)],
-) -> StandardResponse[FlowRunStatsResponse]:
-    """Get flow runs statistics."""
-    stats = service.get_flow_runs_stats(current_user.tenant_id)
-
-    return StandardResponse(
-        data=FlowRunStatsResponse(**stats),
-    )

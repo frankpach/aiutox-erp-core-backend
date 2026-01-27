@@ -4,14 +4,12 @@ from uuid import uuid4
 
 import pytest
 from dotenv import load_dotenv
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.auth import create_access_token, hash_password
 from app.core.config_file import get_settings
 from app.core.db.deps import get_db
-from app.core.db.session import Base
 from app.main import app
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -122,7 +120,7 @@ def mask_password_in_url(url: str) -> str:
             return f"{protocol_user}{user}:***@{parts[1]}"
     return url
 
-print(f"\n[TEST CONFIG] Test Database Configuration:")
+print("\n[TEST CONFIG] Test Database Configuration:")
 print(f"   Source: .env files loaded from: {[str(f) for f in env_files if f.exists()]}")
 print(f"   URL (masked): {mask_password_in_url(TEST_DATABASE_URL)}")
 print(f"   Base URL (masked): {mask_password_in_url(test_db_url)}")
@@ -220,9 +218,8 @@ def setup_database():
     4. Runs once per session for performance
     """
     from app.core.migrations.manager import MigrationManager
-    from alembic import config as alembic_config
 
-    print(f"\n[TEST SETUP] Setting up database with migrations...")
+    print("\n[TEST SETUP] Setting up database with migrations...")
     print(f"   Database: {TEST_DB_NAME}")
     print(f"   URL (masked): {mask_password_in_url(TEST_DATABASE_URL)}")
 
@@ -268,7 +265,7 @@ def setup_database():
 @pytest.fixture(scope="function")
 def db_session(setup_database):
     """Create a database session for each test (simplified version to avoid encoding issues)."""
-    
+
     # Create a simple session without transactions to avoid encoding issues
     db = TestingSessionLocal()
     # Ensure any leftover transaction from previous usage is cleared
@@ -290,7 +287,9 @@ def db_session(setup_database):
         try:
             # Clean up any test data that might have been created
             db.query(User).filter(User.email.like("test-%@example.com")).delete()
+            db.query(User).filter(User.email == "test@example.com").delete()
             db.query(Tenant).filter(Tenant.slug.like("test-tenant-%")).delete()
+            db.query(Tenant).filter(Tenant.slug == "test-tenant").delete()
             db.commit()
         except Exception as e:
             print(f"[DB CLEANUP] Warning during cleanup: {e}")
@@ -307,9 +306,10 @@ def db_session(setup_database):
 
 def _create_test_client_with_unicode_handling():
     """Create TestClient with UnicodeDecodeError handling (DRY helper)."""
-    from fastapi.testclient import TestClient
     import warnings
-    
+
+    from fastapi.testclient import TestClient
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UnicodeDecodeError)
         return TestClient(app)
@@ -492,9 +492,6 @@ def test_user_with_roles(db_session, test_tenant, test_user):
 @pytest.fixture(scope="function")
 def auth_headers(test_user):
     """Create authentication headers with valid token."""
-    from app.services.auth_service import AuthService
-    from app.core.db.deps import get_db
-
     # Create token data
     token_data = {
         "sub": str(test_user.id),
@@ -607,7 +604,7 @@ def redis_available():
                 await asyncio.wait_for(redis_conn.ping(), timeout=1.0)
                 await client.close()
                 return True
-            except (asyncio.TimeoutError, Exception):
+            except (TimeoutError, Exception):
                 try:
                     await client.close()
                 except Exception:

@@ -146,12 +146,20 @@ def test_bulk_approve_requests(approval_service, test_user, test_tenant, mock_ev
         request_ids.append(request.id)
 
     # Bulk approve
+    print(f"Attempting to bulk approve {len(request_ids)} requests")
+    print(f"Request IDs: {request_ids}")
+    print(f"User ID: {test_user.id}")
+    print(f"Tenant ID: {test_tenant.id}")
+
     approved_requests = approval_service.bulk_approve_requests(
         request_ids=request_ids,
         tenant_id=test_tenant.id,
         user_id=test_user.id,
         comment="Bulk approval test",
     )
+
+    print(f"Approved requests count: {len(approved_requests)}")
+    print(f"Approved requests: {approved_requests}")
 
     assert len(approved_requests) == 3
     for request in approved_requests:

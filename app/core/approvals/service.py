@@ -523,12 +523,13 @@ class ApprovalService:
         # Create flow run if service is available
         if self.flow_runs_service:
             try:
+                logger.info(f"Attempting to create flow run for request {request.id} with tenant_id {tenant_id}")
                 flow_run = self.flow_runs_service.create_flow_run(
                     flow_id=request.flow_id,
                     entity_type=request.entity_type,
                     entity_id=request.entity_id,
                     tenant_id=tenant_id,
-                    metadata={
+                    run_metadata={
                         "approval_request_id": str(request.id),
                         "title": request.title,
                         "requested_by": str(user_id),
@@ -537,6 +538,8 @@ class ApprovalService:
                 logger.info(f"Created flow run {flow_run.id} for approval request {request.id}")
             except Exception as e:
                 logger.error(f"Failed to create flow run for approval request {request.id}: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Send notifications to approvers
         self._notify_approvers(request, tenant_id)
@@ -720,7 +723,7 @@ class ApprovalService:
                         self.flow_runs_service.complete_flow_run(
                             run_id=flow_run.id,
                             tenant_id=tenant_id,
-                            metadata={
+                            run_metadata={
                                 "approval_request_id": str(request_id),
                                 "approved_by": str(user_id),
                                 "comment": comment,
@@ -810,7 +813,7 @@ class ApprovalService:
                             run_id=flow_run.id,
                             tenant_id=tenant_id,
                             error_message="Approval request rejected",
-                            metadata={
+                            run_metadata={
                                 "approval_request_id": str(request_id),
                                 "rejected_by": str(user_id),
                                 "comment": comment,
@@ -1404,7 +1407,13 @@ class ApprovalService:
                     errors.append(f"Request {request_id} not found")
                     continue
 
-                if not self.flow_engine.can_approve(request, user_id):
+                # Get the flow for this request
+                flow = self.repository.get_approval_flow_by_id(request.flow_id, tenant_id)
+                if not flow:
+                    errors.append(f"Flow {request.flow_id} not found for request {request_id}")
+                    continue
+
+                if not self.flow_engine.can_approve(request, user_id, flow):
                     errors.append(f"User cannot approve request {request_id}")
                     continue
 
@@ -1461,6 +1470,7 @@ class ApprovalService:
         if errors:
             logger.warning(f"Bulk approve completed with errors: {errors}")
 
+        logger.info(f"Bulk approve results: {len(results)} approved, {len(errors)} errors")
         return results
 
     def bulk_reject_requests(

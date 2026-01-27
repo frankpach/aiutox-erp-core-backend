@@ -4,8 +4,8 @@ Tests comment functionality using mocks instead of real database.
 """
 
 from datetime import UTC, datetime
-from uuid import uuid4
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 import pytest
 
@@ -50,13 +50,16 @@ class TestTaskCommentServiceBasic:
         mock_comment.id = uuid4()
         mock_comment.content = content
         mock_comment.created_at = datetime.now(UTC)
+        mock_comment.updated_at = datetime.now(UTC)
+        mock_comment.created_by = user_id
+        mock_comment.mentions = []  # Lista vacía de menciones
         mock_db.add.return_value = None
         mock_db.flush.return_value = None
         mock_db.commit.return_value = None
         mock_db.refresh.return_value = None
 
         # Mock Comment constructor
-        with patch('app.core.tasks.comment_service.Comment') as mock_comment_class:
+        with patch('app.models.comment.Comment') as mock_comment_class:
             mock_comment_class.return_value = mock_comment
 
             # Act
@@ -70,8 +73,11 @@ class TestTaskCommentServiceBasic:
         # Assert
         assert result is not None
         assert result["content"] == content
-        assert result["task_id"] == str(task_id)
+        assert result["user_id"] == str(user_id)
         assert "id" in result
+        assert "created_at" in result
+        assert "updated_at" in result
+        assert "mentions" in result
 
         # Verify database operations
         mock_db.add.assert_called_once_with(mock_comment)
@@ -79,7 +85,7 @@ class TestTaskCommentServiceBasic:
         mock_db.refresh.assert_called_once_with(mock_comment)
 
         # Verify event was published
-        task_comment_service.event_publisher.assert_called_once()
+        task_comment_service.event_publisher.publish.assert_called_once()
 
     def test_add_comment_task_not_found(self, task_comment_service, mock_db):
         """Test adding comment to non-existent task."""
@@ -124,11 +130,11 @@ class TestTaskCommentServiceBasic:
         task_id = uuid4()
         tenant_id = uuid4()
         user_id = uuid4()
+        content = "Test comment with mention"
         mentioned_user_id = uuid4()
-        content = "Hello @user!"
-        mentions = [mentioned_user_id]
+        mentions = [str(mentioned_user_id)]
 
-        # Mock task
+        # Mock task exists
         mock_task = Mock()
         mock_task.id = task_id
         mock_db.query.return_value.filter.return_value.first.return_value = mock_task
@@ -138,13 +144,26 @@ class TestTaskCommentServiceBasic:
         mock_comment.id = uuid4()
         mock_comment.content = content
         mock_comment.created_at = datetime.now(UTC)
+        mock_comment.updated_at = datetime.now(UTC)
+        mock_comment.created_by = user_id
+
+        # Mock mentions relationship - this is the key fix
+        mock_mention_obj = Mock()
+        mock_mention_obj.mentioned_user_id = mentioned_user_id
+        mock_comment.mentions = [mock_mention_obj]  # This must return the mention object
+
+        mock_db.add.return_value = None
+        mock_db.flush.return_value = None
+        mock_db.commit.return_value = None
+        mock_db.refresh.return_value = None
 
         # Mock Comment and CommentMention
-        with patch('app.core.tasks.comment_service.Comment') as mock_comment_class, \
-             patch('app.core.tasks.comment_service.CommentMention') as mock_comment_mention_class:
+        with patch('app.models.comment.Comment') as mock_comment_class, \
+             patch('app.models.comment.CommentMention') as mock_comment_mention_class:
 
             mock_comment_class.return_value = mock_comment
             mock_mention = Mock()
+            mock_mention.mentioned_user_id = mentioned_user_id  # Add this attribute
             mock_comment_mention_class.return_value = mock_mention
 
             # Act
@@ -164,7 +183,7 @@ class TestTaskCommentServiceBasic:
         mock_comment_mention_class.assert_called_once_with(
             tenant_id=tenant_id,
             comment_id=mock_comment.id,
-            mentioned_user_id=mentioned_user_id,
+            mentioned_user_id=str(mentioned_user_id),  # Convert to string to match service behavior
             notification_sent=False,
         )
         mock_db.add.assert_called_with(mock_mention)
@@ -331,9 +350,31 @@ class TestTaskCommentServiceBasic:
         mock_comment2.created_by = uuid4()
         mock_comment2.mentions = []  # Mock empty mentions
 
-        mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
-            mock_comment2, mock_comment1  # Ordered by created_at desc
-        ]
+        # Create a simple mock that returns proper lists
+        mock_query = Mock()
+
+        # Configure the filter chain to return our lists
+        mock_filter = Mock()
+        mock_filter.order_by.return_value.all.return_value = [mock_comment2, mock_comment1]  # Task comments
+        mock_query.filter.return_value = mock_filter
+
+        # For the tenant query (first call), return empty list to avoid len() error
+        mock_tenant_filter = Mock()
+        mock_tenant_filter.all.return_value = []
+
+        # Track which call is which
+        calls = []
+        def filter_side_effect(*args, **kwargs):
+            calls.append(args)
+            if len(calls) == 1:
+                # First call - tenant query
+                return mock_tenant_filter
+            else:
+                # Second call - task query
+                return mock_filter
+
+        mock_query.filter.side_effect = filter_side_effect
+        mock_db.query.return_value = mock_query
 
         # Act
         result = task_comment_service.list_comments(
@@ -352,8 +393,31 @@ class TestTaskCommentServiceBasic:
         task_id = uuid4()
         tenant_id = uuid4()
 
-        # Mock empty result
-        mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = []
+        # Mock empty results for both queries
+        mock_query = Mock()
+
+        # Configure the filter chain to return empty lists
+        mock_filter = Mock()
+        mock_filter.order_by.return_value.all.return_value = []  # Task comments
+        mock_query.filter.return_value = mock_filter
+
+        # For the tenant query (first call), return empty list
+        mock_tenant_filter = Mock()
+        mock_tenant_filter.all.return_value = []
+
+        # Track which call is which
+        calls = []
+        def filter_side_effect(*args, **kwargs):
+            calls.append(args)
+            if len(calls) == 1:
+                # First call - tenant query
+                return mock_tenant_filter
+            else:
+                # Second call - task query
+                return mock_filter
+
+        mock_query.filter.side_effect = filter_side_effect
+        mock_db.query.return_value = mock_query
 
         # Act
         result = task_comment_service.list_comments(

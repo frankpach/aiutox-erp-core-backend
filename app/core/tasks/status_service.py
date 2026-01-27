@@ -206,13 +206,13 @@ class TaskStatusService:
             Lista de estados creados
         """
         default_statuses = [
-            {"name": "Por Hacer", "type": "open", "color": "#9E9E9E", "order": 0},
-            {"name": "En Progreso", "type": "in_progress", "color": "#2196F3", "order": 1},
-            {"name": "En Espera", "type": "in_progress", "color": "#FF9800", "order": 2},
-            {"name": "Bloqueado", "type": "in_progress", "color": "#F44336", "order": 3},
-            {"name": "En Revisión", "type": "in_progress", "color": "#9C27B0", "order": 4},
-            {"name": "Completado", "type": "closed", "color": "#4CAF50", "order": 5},
-            {"name": "Cancelado", "type": "closed", "color": "#607D8B", "order": 6},
+            {"name": "todo", "type": "open", "color": "#9E9E9E", "order": 0},
+            {"name": "in_progress", "type": "in_progress", "color": "#2196F3", "order": 1},
+            {"name": "on_hold", "type": "in_progress", "color": "#FF9800", "order": 2},
+            {"name": "blocked", "type": "in_progress", "color": "#F44336", "order": 3},
+            {"name": "review", "type": "in_progress", "color": "#9C27B0", "order": 4},
+            {"name": "done", "type": "closed", "color": "#4CAF50", "order": 5},
+            {"name": "cancelled", "type": "closed", "color": "#607D8B", "order": 6},
         ]
 
         statuses = []

@@ -6,7 +6,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Body, Depends, Request, UploadFile, File, status
+from fastapi import APIRouter, Body, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
@@ -20,8 +20,6 @@ from app.core.module_registry import get_module_registry
 from app.models.user import User
 from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.config import (
-    ConfigCreate,
-    ConfigResponse,
     ConfigUpdate,
     GeneralSettingsRequest,
     GeneralSettingsResponse,
@@ -32,29 +30,29 @@ from app.schemas.config import (
     ThemePresetResponse,
     ThemePresetUpdate,
 )
-from app.schemas.file_config import (
-    StorageConfigResponse,
-    StorageConfigUpdate,
-    StorageStatsResponse,
-    FileLimitsResponse,
-    FileLimitsUpdate,
-    ThumbnailConfigResponse,
-    ThumbnailConfigUpdate,
-    S3ConnectionTestRequest,
-    S3ConnectionTestResponse,
-)
 from app.schemas.config_version import (
     CacheStatsResponse,
     ConfigRollbackRequest,
     ConfigVersionListResponse,
     ConfigVersionResponse,
 )
+from app.schemas.file_config import (
+    FileLimitsResponse,
+    FileLimitsUpdate,
+    S3ConnectionTestRequest,
+    S3ConnectionTestResponse,
+    StorageConfigResponse,
+    StorageConfigUpdate,
+    StorageStatsResponse,
+    ThumbnailConfigResponse,
+    ThumbnailConfigUpdate,
+)
 from app.schemas.notification import (
     NotificationChannelsResponse,
-    SMTPConfigRequest,
-    SMTPConfigResponse,
     SMSConfigRequest,
     SMSConfigResponse,
+    SMTPConfigRequest,
+    SMTPConfigResponse,
     WebhookConfigRequest,
     WebhookConfigResponse,
 )
@@ -162,7 +160,8 @@ async def list_modules(
         try:
             with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                 log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Registry not initialized, returning empty list", "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "R"}) + "\n")
-        except: pass
+        except Exception:
+            pass
 
         return StandardListResponse(
             data=[],
@@ -178,11 +177,12 @@ async def list_modules(
         try:
             with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                 log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error getting registry", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}) + "\n")
-        except: pass
+        except Exception:
+            pass
         raise
 
     try:
-        config_service = ConfigService(db)
+        # ConfigService no se utiliza en esta función, se elimina la variable no utilizada
         modules_list = []
 
         for module_id, module_instance in registry.get_all_modules().items():
@@ -215,7 +215,8 @@ async def list_modules(
                 try:
                     with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                         log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error processing module", "data": {"module_id": module_id, "error": str(module_error), "error_type": type(module_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "M"}) + "\n")
-                except: pass
+                except Exception:
+                    pass
                 continue
 
         # Create response with proper error handling
@@ -230,7 +231,8 @@ async def list_modules(
             try:
                 with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                     log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Creating PaginationMeta", "data": {"total": len(modules_list), "page": 1, "page_size": len(modules_list) if modules_list else 1, "total_pages": 1}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "PM"}) + "\n")
-            except: pass
+            except Exception:
+                pass
 
             # Validate response before returning
             try:
@@ -246,13 +248,15 @@ async def list_modules(
                     try:
                         with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                             log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Serialization error", "data": {"error": str(serialization_error), "error_type": type(serialization_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "SE"}) + "\n")
-                    except: pass
+                    except Exception:
+                        pass
                     raise
 
                 try:
                     with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                         log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Response created successfully", "data": {"modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "S"}) + "\n")
-                except: pass
+                except Exception:
+                    pass
 
                 return response
             except Exception as response_creation_error:
@@ -260,21 +264,24 @@ async def list_modules(
                 try:
                     with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                         log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_creation_error), "error_type": type(response_creation_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
-                except: pass
+                except Exception:
+                    pass
                 raise
         except Exception as response_error:
             # Log error creating response
             try:
                 with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                     log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_error), "error_type": type(response_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
-            except: pass
+            except Exception:
+                pass
             raise
     except Exception as e:
         # Log error creating response
         try:
             with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
                 log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating response", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
-        except: pass
+        except Exception:
+            pass
         raise
 
 
@@ -1929,111 +1936,6 @@ async def set_config_value(
     return StandardResponse(data=config_data)
 
 
-@router.put(
-    "/app_theme/{key}",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Update theme property",
-    description="Update a specific theme property. Validates color format if applicable. Requires config.edit or config.edit_theme permission.",
-    responses={
-        200: {"description": "Theme property updated successfully"},
-        400: {
-            "description": "Invalid color format or validation failed",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "INVALID_COLOR_FORMAT",
-                            "message": "Invalid color format for 'primary_color': must be #RRGGBB (got: red)",
-                            "details": {
-                                "key": "primary_color",
-                                "value": "red",
-                                "expected_format": "#RRGGBB",
-                            },
-                        }
-                    }
-                }
-            },
-        },
-        403: {
-            "description": "Insufficient permissions",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": {
-                            "code": "AUTH_INSUFFICIENT_PERMISSIONS",
-                            "message": "Insufficient permissions",
-                            "details": {"required_permission": "config.edit_theme"},
-                        }
-                    }
-                }
-            },
-        },
-    },
-)
-async def update_theme_property(
-    key: str,
-    config_update: ConfigUpdate,
-    request: Request,
-    current_user: Annotated[User, Depends(require_permission("config.edit"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> StandardResponse[dict]:
-    """
-    Update a specific theme property.
-
-    Validates color format if the property is a color field.
-
-    Requires: config.edit or config.edit_theme
-
-    Args:
-        key: Theme property key (e.g., 'primary_color', 'logo_primary').
-        config_update: Configuration update data.
-        current_user: Current authenticated user (must have config.edit or config.edit_theme).
-        db: Database session.
-
-    Returns:
-        StandardResponse with updated property.
-
-    Raises:
-        InvalidColorFormatException: If color format is invalid.
-        APIException: If user lacks permission or validation fails.
-    """
-    # Validate color format if it's a color key
-    color_keys = [
-        "primary_color", "secondary_color", "accent_color",
-        "background_color", "surface_color",
-        "error_color", "warning_color", "success_color", "info_color",
-        "text_primary", "text_secondary", "text_disabled",
-        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
-    ]
-
-    if key in color_keys:
-        try:
-            validate_color(key, config_update.value)
-        except InvalidColorFormatException:
-            # Re-raise to ensure FastAPI handles it correctly
-            raise
-
-    config_service = ConfigService(db)
-    ip_address, user_agent = get_client_info(request)
-
-    try:
-        config_data = config_service.set(
-            tenant_id=current_user.tenant_id,
-            module="app_theme",
-            key=key,
-            value=config_update.value,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except ValueError as e:
-        raise_bad_request("INVALID_THEME_VALUE", str(e))
-
-    return StandardResponse(data=config_data)
-
-
-# Version management endpoints
 @router.get(
     "/{module}/{key}/versions",
     response_model=StandardResponse[ConfigVersionListResponse],
@@ -2805,7 +2707,7 @@ async def test_webhook_connection(
             "WEBHOOK_CONNECTION_FAILED",
             f"Failed to connect to webhook: {str(e)}",
         )
-        
+
 
 @router.get(
     "/{module}",

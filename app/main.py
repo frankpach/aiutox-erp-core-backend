@@ -7,18 +7,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
-
-# Import logging module to initialize loggers
 from app.core import logging as app_logging  # noqa: F401
 from app.core.async_tasks import AsyncTaskService
+from app.core.auth.rate_limit import limiter
 from app.core.config_file import get_settings
 from app.core.db.session import SessionLocal
 from app.core.exceptions import APIException
-
-# Import async tasks to register them
 from app.core.files import tasks as files_tasks  # noqa: F401
 
 settings = get_settings()
@@ -89,6 +88,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Configure rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 def add_security_headers(response: Response) -> None:
     """Add security headers to a response."""
@@ -119,6 +122,11 @@ def add_security_headers(response: Response) -> None:
     set_header_safely("Referrer-Policy", "strict-origin-when-cross-origin")
     set_header_safely("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
+    # HTTP Strict Transport Security (HSTS)
+    # Only add HSTS in production (when not in DEBUG mode)
+    if not settings.DEBUG:
+        set_header_safely("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
     # Content Security Policy
     # Note: frame-ancestors must be in CSP header, not meta tag
     # Allow images from backend URL in debug mode only
@@ -136,8 +144,8 @@ def add_security_headers(response: Response) -> None:
 
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         f"{img_src} "
         "connect-src 'self' http://localhost:8000 https:; "

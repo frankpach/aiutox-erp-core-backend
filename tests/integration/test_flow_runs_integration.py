@@ -1,6 +1,5 @@
 """Integration tests for Flow Runs module interactions with Approvals module."""
 
-import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole
@@ -16,6 +15,15 @@ def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_
         granted_by=test_user.id,
     )
     db_session.add(approval_role)
+
+    # Also assign flow_runs permissions
+    flow_runs_role = ModuleRole(
+        user_id=test_user.id,
+        module="flow_runs",
+        role_name="internal.manager",
+        granted_by=test_user.id,
+    )
+    db_session.add(flow_runs_role)
     db_session.commit()
 
     # Create flow
@@ -54,6 +62,7 @@ def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_
         "entity_type": "order",
         "entity_id": str(entity_id),
     }
+    print(f"Creating approval request with data: {request_data}")
     request_response = client_with_db.post(
         "/api/v1/approvals/requests",
         json=request_data,
@@ -61,18 +70,32 @@ def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_
     )
     assert request_response.status_code == 201
     request_id = request_response.json()["data"]["id"]
+    print(f"Created approval request: {request_id}")
 
     # Verify flow run was created
+    print(f"Checking if flow run was created for entity_id: {entity_id}")
+
+    # Check directly in database
+    from app.models.flow_run import FlowRun
+    flow_run_db = db_session.query(FlowRun).filter(
+        FlowRun.entity_type == "order",
+        FlowRun.entity_id == entity_id
+    ).first()
+
+    print(f"Flow run found in DB: {flow_run_db.id if flow_run_db else None}")
+
     flow_run_response = client_with_db.get(
         f"/api/v1/flow-runs/by-entity?entity_type=order&entity_id={entity_id}",
         headers=auth_headers,
     )
+    print(f"Flow run response status: {flow_run_response.status_code}")
+    print(f"Flow run response: {flow_run_response.json()}")
     assert flow_run_response.status_code == 200
     flow_run = flow_run_response.json()["data"]
     assert flow_run["status"] == "pending"
     assert flow_run["entity_type"] == "order"
     assert flow_run["entity_id"] == str(entity_id)
-    assert flow_run["metadata"]["approval_request_id"] == str(request_id)
+    assert flow_run["run_metadata"]["approval_request_id"] == str(request_id)
 
 
 def test_flow_run_completed_on_approval(client_with_db, test_user, auth_headers, db_session):
@@ -90,8 +113,15 @@ def test_flow_run_completed_on_approval(client_with_db, test_user, auth_headers,
         role_name="approver",
         granted_by=test_user.id,
     )
+    flow_runs_role = ModuleRole(
+        user_id=test_user.id,
+        module="flow_runs",
+        role_name="internal.manager",
+        granted_by=test_user.id,
+    )
     db_session.add(approval_role)
     db_session.add(approver_role)
+    db_session.add(flow_runs_role)
     db_session.commit()
 
     # Create flow
@@ -162,7 +192,7 @@ def test_flow_run_completed_on_approval(client_with_db, test_user, auth_headers,
     flow_run = flow_run_response.json()["data"]
     assert flow_run["status"] == "completed"
     assert flow_run["completed_at"] is not None
-    assert flow_run["metadata"]["approved_by"] == str(test_user.id)
+    assert flow_run["run_metadata"]["approved_by"] == str(test_user.id)
 
 
 def test_flow_run_failed_on_rejection(client_with_db, test_user, auth_headers, db_session):
@@ -180,8 +210,15 @@ def test_flow_run_failed_on_rejection(client_with_db, test_user, auth_headers, d
         role_name="approver",
         granted_by=test_user.id,
     )
+    flow_runs_role = ModuleRole(
+        user_id=test_user.id,
+        module="flow_runs",
+        role_name="internal.manager",
+        granted_by=test_user.id,
+    )
     db_session.add(approval_role)
     db_session.add(approver_role)
+    db_session.add(flow_runs_role)
     db_session.commit()
 
     # Create flow
@@ -253,20 +290,14 @@ def test_flow_run_failed_on_rejection(client_with_db, test_user, auth_headers, d
     assert flow_run["status"] == "failed"
     assert flow_run["completed_at"] is not None
     assert flow_run["error_message"] == "Approval request rejected"
-    assert flow_run["metadata"]["rejected_by"] == str(test_user.id)
+    assert flow_run["run_metadata"]["rejected_by"] == str(test_user.id)
 
 
-def test_flow_runs_stats(client_with_db, test_user, auth_headers, db_session):
+def test_flow_runs_stats(client_with_db, test_user, db_session):
     """Test flow runs statistics endpoint."""
-    # Assign permissions
-    stats_role = ModuleRole(
-        user_id=test_user.id,
-        module="flow_runs",
-        role_name="viewer",
-        granted_by=test_user.id,
-    )
-    db_session.add(stats_role)
-    db_session.commit()
+    # Use create_user_with_permission to get proper auth headers with permissions
+    from tests.helpers import create_user_with_permission
+    auth_headers = create_user_with_permission(db_session, test_user, "flow_runs", "internal.viewer")
 
     # Get stats
     stats_response = client_with_db.get(

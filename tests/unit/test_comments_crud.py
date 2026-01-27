@@ -10,19 +10,21 @@ import hashlib
 import pytest
 from uuid import uuid4
 
-from app.core.db.session import SessionLocal
+from app.core.db.session import Base
+from tests.conftest import TestingSessionLocal
 from app.core.tasks.comment_service import TaskCommentService
 from app.models.comment import Comment, CommentMention
 from app.models.user import User
 from app.models.task import Task
+from app.models.tenant import Tenant
 from app.modules.products.models.product import Product
 from unittest.mock import Mock
 
 
 @pytest.fixture
-def db():
+def db(setup_database):
     """Database session fixture."""
-    db = SessionLocal()
+    db = TestingSessionLocal()
     try:
         yield db
     finally:
@@ -42,13 +44,27 @@ def task_comment_service(db, mock_event_publisher):
 
 
 @pytest.fixture
-def sample_user(db):
+def sample_tenant(db):
+    """Create sample tenant."""
+    tenant = Tenant(
+        id=uuid4(),
+        name="Test Tenant",
+        slug=f"test-tenant-comments-{uuid4().hex[:8]}",
+        is_active=True,
+    )
+    db.add(tenant)
+    db.commit()
+    return tenant
+
+
+@pytest.fixture
+def sample_user(db, sample_tenant):
     """Create sample user."""
     password_hash = hashlib.sha256(b"test123").hexdigest()
     user = User(
         id=uuid4(),
-        tenant_id=uuid4(),
-        email="test@example.com",
+        tenant_id=sample_tenant.id,
+        email=f"test-{uuid4().hex[:8]}@example.com",
         full_name="Test User",
         password_hash=password_hash,
         is_active=True,
@@ -81,8 +97,7 @@ def sample_product(db, sample_user):
         tenant_id=sample_user.tenant_id,
         name="Sample Product",
         description="Test product description",
-        sku="TEST-001",
-        created_by_id=sample_user.id,
+        sku=f"TEST-{uuid4().hex[:6]}",
     )
     db.add(product)
     db.commit()
@@ -130,7 +145,7 @@ class TestTaskComments:
         mentioned_user = User(
             id=uuid4(),
             tenant_id=sample_user.tenant_id,
-            email="mentioned@example.com",
+            email=f"mentioned-{uuid4().hex[:8]}@example.com",
             full_name="Mentioned User",
             password_hash=password_hash,
             is_active=True,
@@ -203,9 +218,9 @@ class TestTaskComments:
         other_user = User(
             id=uuid4(),
             tenant_id=sample_user.tenant_id,
-            email="other@example.com",
+            email=f"other-{uuid4().hex[:8]}@example.com",
             full_name="Other User",
-            password_hash=hashlib.sha256("test123".encode()).hexdigest(),
+            password_hash=hashlib.sha256(b"test123").hexdigest(),
             is_active=True,
         )
         db.add(other_user)
@@ -267,9 +282,9 @@ class TestTaskComments:
         other_user = User(
             id=uuid4(),
             tenant_id=sample_user.tenant_id,
-            email="other@example.com",
+            email=f"other-{uuid4().hex[:8]}@example.com",
             full_name="Other User",
-            password_hash=hashlib.sha256("test123".encode()).hexdigest(),
+            password_hash=hashlib.sha256(b"test123").hexdigest(),
             is_active=True,
         )
         db.add(other_user)
@@ -417,14 +432,14 @@ class TestCrossEntityComments:
         task_comments = db.query(Comment).filter(
             Comment.entity_type == "task",
             Comment.tenant_id == sample_task.tenant_id,
-            not Comment.is_deleted
+            Comment.is_deleted == False
         ).all()
 
         # Query product comments
         product_comments = db.query(Comment).filter(
             Comment.entity_type == "product",
             Comment.tenant_id == sample_product.tenant_id,
-            not Comment.is_deleted
+            Comment.is_deleted == False
         ).all()
 
         # Assert
@@ -501,11 +516,13 @@ class TestCommentEvents:
         )
 
         # Assert
-        mock_event_publisher.assert_called()
-        call_args = mock_event_publisher.call_args
-        assert call_args[1]["event_type"] == "task.comment_added"
-        assert call_args[1]["entity_type"] == "task"
-        assert call_args[1]["entity_id"] == sample_task.id
+        mock_event_publisher.publish.assert_called_once()
+        call_args = mock_event_publisher.publish.call_args
+        assert call_args.kwargs["event_type"] == "task.comment_added"
+        assert call_args.kwargs["entity_type"] == "task"
+        assert call_args.kwargs["entity_id"] == sample_task.id
+        assert call_args.kwargs["tenant_id"] == sample_task.tenant_id
+        assert call_args.kwargs["user_id"] == sample_user.id
 
     def test_comment_updated_event(self, task_comment_service, sample_task, sample_user, mock_event_publisher):
         """Test that comment_updated event is published."""
@@ -530,9 +547,13 @@ class TestCommentEvents:
         )
 
         # Assert
-        mock_event_publisher.assert_called()
-        call_args = mock_event_publisher.call_args
-        assert call_args[1]["event_type"] == "task.comment_updated"
+        mock_event_publisher.publish.assert_called_once()
+        call_args = mock_event_publisher.publish.call_args
+        assert call_args.kwargs["event_type"] == "task.comment_updated"
+        assert call_args.kwargs["entity_type"] == "task"
+        assert call_args.kwargs["entity_id"] == sample_task.id
+        assert call_args.kwargs["tenant_id"] == sample_task.tenant_id
+        assert call_args.kwargs["user_id"] == sample_user.id
 
     def test_comment_deleted_event(self, task_comment_service, sample_task, sample_user, mock_event_publisher):
         """Test that comment_deleted event is published."""
@@ -556,9 +577,13 @@ class TestCommentEvents:
         )
 
         # Assert
-        mock_event_publisher.assert_called()
-        call_args = mock_event_publisher.call_args
-        assert call_args[1]["event_type"] == "task.comment_deleted"
+        mock_event_publisher.publish.assert_called_once()
+        call_args = mock_event_publisher.publish.call_args
+        assert call_args.kwargs["event_type"] == "task.comment_deleted"
+        assert call_args.kwargs["entity_type"] == "task"
+        assert call_args.kwargs["entity_id"] == sample_task.id
+        assert call_args.kwargs["tenant_id"] == sample_task.tenant_id
+        assert call_args.kwargs["user_id"] == sample_user.id
 
 
 if __name__ == "__main__":

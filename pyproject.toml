@@ -13,7 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pydantic-settings>=2.12.0",
     "pydantic[email]>=2.12.5",
-    "PyJWT>=2.10.0",
+    "pyjwt>=2.10.0",
     "python-multipart>=0.0.20",
     "redis>=7.1.0",
     "slowapi>=0.1.9",
@@ -79,6 +79,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+cache_dir = "temp_pytest_cache"
 # Default: parallel execution with minimum 4 workers
 # -n auto: Auto-detect CPU cores, pero usa mínimo 8 workers para agilizar
 # -n 8: Usar exactamente 8 workers

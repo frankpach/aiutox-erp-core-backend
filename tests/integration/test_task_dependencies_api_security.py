@@ -50,7 +50,7 @@ def test_dependencies_add_and_remove_requires_edit_permission(
 
     create_response = client_with_db.post(
         f"/api/v1/tasks/{task.id}/dependencies",
-        params={"depends_on_id": str(depends_on.id)},
+        json={"depends_on_id": str(depends_on.id), "dependency_type": "finish_to_start"},
         headers=tasks_viewer_headers,
     )
     assert create_response.status_code == 403
@@ -75,18 +75,18 @@ def test_dependencies_create_cycle_returns_bad_request(
 
     create_response = client_with_db.post(
         f"/api/v1/tasks/{task_a.id}/dependencies",
-        params={"depends_on_id": str(task_b.id)},
+        json={"depends_on_id": str(task_b.id), "dependency_type": "finish_to_start"},
         headers=tasks_manager_headers,
     )
     assert create_response.status_code == 201
 
     cycle_response = client_with_db.post(
         f"/api/v1/tasks/{task_b.id}/dependencies",
-        params={"depends_on_id": str(task_a.id)},
+        json={"depends_on_id": str(task_a.id), "dependency_type": "finish_to_start"},
         headers=tasks_manager_headers,
     )
     assert cycle_response.status_code == 400
-    assert "ciclo" in cycle_response.json()["detail"].lower()
+    assert "ciclo" in cycle_response.json()["error"]["message"].lower()
 
 
 @pytest.mark.integration

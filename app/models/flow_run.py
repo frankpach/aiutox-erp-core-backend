@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy import Column, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
@@ -50,7 +51,7 @@ class FlowRun(Base):
     started_at = Column(TIMESTAMP(timezone=True), nullable=True)
     completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
-    metadata = Column(JSONB, nullable=True)
+    run_metadata = Column(JSONB, nullable=True)
     created_at = Column(
         TIMESTAMP(timezone=True),
         default=lambda: datetime.now(UTC),

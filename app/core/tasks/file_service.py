@@ -7,14 +7,33 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from fastapi import status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
+from app.core.exceptions import APIException
 from app.core.logging import get_logger
 from app.core.pubsub import get_event_publisher
 from app.core.pubsub.models import EventMetadata
 
 logger = get_logger(__name__)
+
+# Constantes de validación
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+ALLOWED_FILE_TYPES = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "text/plain",
+    "text/csv",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+]
 
 
 class TaskFileService:
@@ -29,6 +48,50 @@ class TaskFileService:
         """
         self.db = db
         self.event_publisher = event_publisher or get_event_publisher()
+
+    def _validate_file_params(
+        self,
+        file_url: str,
+        file_size: int,
+        file_type: str,
+    ) -> None:
+        """Validar parámetros de archivo.
+
+        Args:
+            file_url: URL del archivo
+            file_size: Tamaño del archivo en bytes
+            file_type: Tipo MIME del archivo
+
+        Raises:
+            APIException: Si algún parámetro es inválido
+        """
+        from app.core.security.url_validator import validate_file_url
+
+        # SSRF protection
+        validate_file_url(file_url)
+
+        # Size validation
+        if file_size <= 0:
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="INVALID_FILE_SIZE",
+                message="File size must be greater than 0",
+            )
+
+        if file_size > MAX_FILE_SIZE:
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="FILE_TOO_LARGE",
+                message=f"File size exceeds maximum allowed size of {MAX_FILE_SIZE} bytes",
+            )
+
+        # Type validation
+        if file_type not in ALLOWED_FILE_TYPES:
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="INVALID_FILE_TYPE",
+                message=f"File type {file_type} is not allowed. Allowed types: {', '.join(ALLOWED_FILE_TYPES)}",
+            )
 
     def attach_file(
         self,
@@ -58,19 +121,20 @@ class TaskFileService:
         """
         from app.models.task import Task
 
-        print("[SERVICE] attach_file called with:", flush=True)
-        print(f"  task_id: {task_id}", flush=True)
-        print(f"  tenant_id: {tenant_id}", flush=True)
-        print(f"  user_id: {user_id}", flush=True)
-        print(f"  file_id: {file_id}", flush=True)
-        print(f"  file_name: {file_name}", flush=True)
+        logger.debug(
+            "Attaching file to task: task_id=%s, tenant_id=%s, user_id=%s, file_id=%s, file_name=%s",
+            task_id, tenant_id, user_id, file_id, file_name
+        )
+
+        # Validar parámetros ANTES de cualquier operación
+        self._validate_file_params(file_url, file_size, file_type)
 
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
-        print(f"[SERVICE] Task found: {task is not None}", flush=True)
+        logger.debug("Task found: %s", task is not None)
 
         if not task:
             raise ValueError(f"Task {task_id} not found")
@@ -86,8 +150,7 @@ class TaskFileService:
             )
             attached_files = []
 
-        print(f"[SERVICE] Current metadata: {metadata}", flush=True)
-        print(f"[SERVICE] Current attached_files count: {len(attached_files)}", flush=True)
+        logger.debug("Current attached_files count: %d", len(attached_files))
 
         # Agregar nuevo archivo
         file_attachment = {
@@ -103,21 +166,14 @@ class TaskFileService:
         attached_files.append(file_attachment)
         metadata["attached_files"] = attached_files
 
-        print("[SERVICE] After adding file:", flush=True)
-        print(f"  New attached_files count: {len(attached_files)}", flush=True)
-        print(f"  New metadata: {metadata}", flush=True)
+        logger.debug("New attached_files count: %d", len(attached_files))
 
         # Actualizar tarea
         task.task_metadata = metadata
         flag_modified(task, "task_metadata")
-        print(f"[SERVICE] Setting task.task_metadata to: {metadata}", flush=True)
 
         self.db.commit()
-        print("[SERVICE] Database committed", flush=True)
-
         self.db.refresh(task)
-        print("[SERVICE] Task refreshed", flush=True)
-        print(f"[SERVICE] Task.task_metadata after refresh: {task.task_metadata}", flush=True)
 
         # Publicar evento
         from app.core.pubsub.event_helpers import safe_publish_event
@@ -167,18 +223,17 @@ class TaskFileService:
         from app.models.file import File
         from app.models.task import Task
 
-        print("\n[SERVICE] detach_file called with:", flush=True)
-        print(f"  task_id: {task_id}", flush=True)
-        print(f"  tenant_id: {tenant_id}", flush=True)
-        print(f"  user_id: {user_id}", flush=True)
-        print(f"  file_id: {file_id}", flush=True)
+        logger.debug(
+            "Detaching file from task: task_id=%s, tenant_id=%s, user_id=%s, file_id=%s",
+            task_id, tenant_id, user_id, file_id
+        )
 
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
-        print(f"[SERVICE] Task found: {task is not None}", flush=True)
+        logger.debug("Task found: %s", task is not None)
 
         if not task:
             return False
@@ -194,9 +249,7 @@ class TaskFileService:
             )
             attached_files = []
 
-        print(f"[SERVICE] Current attached_files count: {len(attached_files)}", flush=True)
-        if attached_files:
-            print(f"[SERVICE] First file: {attached_files[0]}", flush=True)
+        logger.debug("Current attached_files count: %d", len(attached_files))
 
         # Filtrar archivo a eliminar
         file_id_str = str(file_id)
@@ -208,11 +261,11 @@ class TaskFileService:
                     continue
             new_files.append(item)
 
-        print(f"[SERVICE] After filtering, new_files count: {len(new_files)}", flush=True)
+        logger.debug("After filtering, new_files count: %d", len(new_files))
 
         if len(new_files) == len(attached_files):
             # No se encontró el archivo
-            print("[SERVICE] File not found in attached_files", flush=True)
+            logger.debug("File not found in attached_files")
             return False
 
         file_record = self.db.query(File).filter(
@@ -221,21 +274,19 @@ class TaskFileService:
         ).first()
 
         if not file_record:
-            print("[SERVICE] File record not found for soft delete", flush=True)
+            logger.debug("File record not found for soft delete")
         elif file_record.deleted_at is None:
             file_record.is_current = False
             file_record.deleted_at = datetime.now(UTC)
-            print("[SERVICE] File soft delete applied", flush=True)
+            logger.debug("File soft delete applied")
         else:
-            print("[SERVICE] File already soft deleted", flush=True)
+            logger.debug("File already soft deleted")
 
         metadata["attached_files"] = new_files
         task.task_metadata = metadata
         flag_modified(task, "task_metadata")
 
-        print("[SERVICE] Committing to database...", flush=True)
         self.db.commit()
-        print("[SERVICE] Database committed successfully", flush=True)
 
         # Publicar evento
         from app.core.pubsub.event_helpers import safe_publish_event
@@ -277,56 +328,21 @@ class TaskFileService:
         """
         from app.models.task import Task
 
-        print("\n[SERVICE] list_files called with:", flush=True)
-        print(f"  task_id: {task_id}", flush=True)
-        print(f"  tenant_id: {tenant_id}", flush=True)
-
-        # Consulta SQL directa para depurar
-        from sqlalchemy import text
-
-        # Primero, verificar si hay tareas con archivos
-        all_tasks = self.db.execute(text("""
-            SELECT id, title, metadata
-            FROM tasks
-            WHERE tenant_id = :tenant_id
-            AND metadata IS NOT NULL
-            AND metadata->>'attached_files' IS NOT NULL
-            LIMIT 5
-        """), {"tenant_id": str(tenant_id)}).fetchall()
-
-        print(f"[SERVICE] Tasks with files in tenant: {len(all_tasks)}", flush=True)
-        for t in all_tasks:
-            print(f"  Task {t[0]}: {t[1]} has metadata: {t[2]}", flush=True)
-
-        sql_result = self.db.execute(text("""
-            SELECT id, title, metadata
-            FROM tasks
-            WHERE id = :task_id AND tenant_id = :tenant_id
-        """), {"task_id": str(task_id), "tenant_id": str(tenant_id)}).fetchone()
-
-        print(f"[SERVICE] SQL result for specific task: {sql_result}", flush=True)
-        if sql_result:
-            print(f"[SERVICE] SQL metadata: {sql_result[2]}", flush=True)
+        logger.debug("Listing files for task: task_id=%s, tenant_id=%s", task_id, tenant_id)
 
         task = self.db.query(Task).filter(
             Task.id == task_id,
             Task.tenant_id == tenant_id
         ).first()
 
-        print(f"[SERVICE] Task found: {task is not None}", flush=True)
-        if task:
-            print(f"[SERVICE] Task.task_metadata: {task.task_metadata}", flush=True)
-
         if not task:
-            print("[SERVICE] Task not found, returning empty list", flush=True)
+            logger.debug("Task not found, returning empty list")
             return []
 
         metadata = task.task_metadata or {}
         attached_files = metadata.get("attached_files", [])
 
-        print(f"[SERVICE] metadata: {metadata}", flush=True)
-        print(f"[SERVICE] attached_files: {attached_files}", flush=True)
-        print(f"[SERVICE] returning {len(attached_files)} files", flush=True)
+        logger.debug("Returning %d files for task %s", len(attached_files), task_id)
 
         return attached_files
 

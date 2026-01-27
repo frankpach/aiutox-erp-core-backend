@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.auth.password import verify_password
 from app.models.user import User
@@ -26,7 +26,9 @@ class UserRepository:
 
     def get_by_id(self, user_id: UUID) -> User | None:
         """Get user by ID."""
-        return self.db.query(User).filter(User.id == user_id).first()
+        return self.db.query(User).options(
+            joinedload(User.tenant)
+        ).filter(User.id == user_id).first()
 
     def get_by_email(self, email: str) -> User | None:
         """Get user by email."""

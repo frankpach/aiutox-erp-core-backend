@@ -11,6 +11,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.user_role import UserRole
+from app.models.user_calendar_preferences import UserCalendarPreferences
 # Products models are now loaded dynamically via ModuleRegistry
 # Do not import them here to avoid circular imports
 from app.models.system_config import SystemConfig
@@ -84,6 +85,7 @@ __all__ = [
     "TeamMember",
     "Tenant",
     "User",
+    "UserCalendarPreferences",
     "UserPreference",
     "UserRole",
     "Workflow",

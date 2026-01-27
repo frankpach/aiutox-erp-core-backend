@@ -1,8 +1,7 @@
 """Flow Run service for managing workflow executions."""
 
-from uuid import UUID
-from datetime import datetime, UTC
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -24,7 +23,7 @@ class FlowRunService:
         entity_type: str,
         entity_id: UUID,
         tenant_id: UUID,
-        metadata: dict[str, Any] | None = None,
+        run_metadata: dict[str, Any] | None = None,
     ) -> FlowRun:
         """Create a new flow run."""
         flow_run_data = {
@@ -33,7 +32,7 @@ class FlowRunService:
             "entity_id": entity_id,
             "tenant_id": tenant_id,
             "status": FlowRunStatus.PENDING.value,
-            "metadata": metadata or {},
+            "run_metadata": run_metadata or {},
         }
         return self.repository.create_flow_run(flow_run_data)
 
@@ -73,10 +72,10 @@ class FlowRunService:
         )
 
     def complete_flow_run(
-        self, run_id: UUID, tenant_id: UUID, metadata: dict[str, Any] | None = None
+        self, run_id: UUID, tenant_id: UUID, run_metadata: dict[str, Any] | None = None
     ) -> FlowRun | None:
         """Complete a flow run."""
-        update_data = {"metadata": metadata}
+        update_data = {"run_metadata": run_metadata}
         flow_run = self.repository.update_flow_run(
             run_id, tenant_id, update_data
         )
@@ -91,12 +90,12 @@ class FlowRunService:
         run_id: UUID,
         tenant_id: UUID,
         error_message: str | None = None,
-        metadata: dict[str, Any] | None = None,
+        run_metadata: dict[str, Any] | None = None,
     ) -> FlowRun | None:
         """Fail a flow run."""
         update_data = {
             "error_message": error_message,
-            "metadata": metadata,
+            "run_metadata": run_metadata,
         }
         flow_run = self.repository.update_flow_run(
             run_id, tenant_id, update_data

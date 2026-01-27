@@ -324,6 +324,15 @@ MODULE_ROLES: dict[str, dict[str, set[str]]] = {
             "pubsub.manage_users",
         },
     },
+    "flow_runs": {
+        "internal.viewer": {"flow_runs.view"},
+        "internal.editor": {"flow_runs.view", "flow_runs.manage"},
+        "internal.manager": {
+            "flow_runs.view",
+            "flow_runs.manage",
+            "flow_runs.manage_users",
+        },
+    },
     # Más módulos se agregarán según se implementen
     # Ejemplo futuro:
     # "orders": {

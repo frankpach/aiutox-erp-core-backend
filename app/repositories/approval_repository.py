@@ -91,6 +91,16 @@ class ApprovalRepository:
         self.db.refresh(step)
         return step
 
+    def get_approval_step_by_id(
+        self, step_id: UUID, tenant_id: UUID
+    ) -> ApprovalStep | None:
+        """Get approval step by ID."""
+        return (
+            self.db.query(ApprovalStep)
+            .filter(ApprovalStep.id == step_id, ApprovalStep.tenant_id == tenant_id)
+            .first()
+        )
+
     def get_approval_steps_by_flow(
         self, flow_id: UUID, tenant_id: UUID
     ) -> list[ApprovalStep]:

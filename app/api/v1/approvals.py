@@ -12,12 +12,9 @@ from app.core.auth.dependencies import require_permission
 from app.core.auth.rate_limit import limiter
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
-from app.core.tasks.service import TaskService
 from app.models.user import User
 from app.schemas.approval import (
-    ApprovalActionCreate,
     ApprovalActionResponse,
-    ApprovalDelegationCreate,
     ApprovalDelegationResponse,
     ApprovalFlowCreate,
     ApprovalFlowResponse,
@@ -37,7 +34,9 @@ def get_approval_service(
     db: Annotated[Session, Depends(get_db)],
 ) -> ApprovalService:
     """Dependency to get ApprovalService."""
-    return ApprovalService(db)
+    from app.core.flow_runs.service import FlowRunService
+    flow_runs_service = FlowRunService(db)
+    return ApprovalService(db, flow_runs_service=flow_runs_service)
 
 
 # Approval Flow endpoints

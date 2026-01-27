@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Test PubSub endpoint directly."""
+
+import requests
+from app.core.db.deps import get_db
+from app.core.auth import hash_password
+from app.models.user import User
+from app.models.tenant import Tenant
+from tests.helpers import create_user_with_permission
+from uuid import uuid4
+
+def main():
+    """Test directo del endpoint PubSub."""
+    db = next(get_db())
+    try:
+        # Crear tenant
+        tenant = Tenant(
+            name=f'Test Tenant {uuid4().hex[:8]}',
+            slug=f'test-tenant-{uuid4().hex[:8]}',
+            is_active=True,
+        )
+        db.add(tenant)
+        db.flush()
+        
+        # Crear usuario
+        user = User(
+            email=f'test-{uuid4().hex[:8]}@example.com',
+            password_hash=hash_password('testpassword'),
+            tenant_id=tenant.id,
+            is_active=True,
+        )
+        db.add(user)
+        db.flush()
+        
+        # Crear headers con permisos pubsub
+        headers = create_user_with_permission(db, user, 'pubsub', 'internal.viewer')
+        
+        # Probar endpoint directamente
+        base_url = "http://localhost:8000"
+        endpoint = "/api/v1/pubsub/stats"
+        
+        print(f"Testing endpoint: {base_url}{endpoint}")
+        print(f"Headers: {headers}")
+        
+        response = requests.get(
+            f"{base_url}{endpoint}",
+            headers=headers
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.text}")
+        
+    except Exception as e:
+        print(f'Error: {e}')
+        import traceback
+        traceback.print_exc()
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    main()
