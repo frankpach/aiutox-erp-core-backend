@@ -33,6 +33,7 @@ from app.modules.crm.api import router as crm_router
 from app.modules.inventory.api import router as inventory_router
 from app.modules.products.api import router as products_router
 from app.modules.tasks.api import router as tasks_router
+from app.features.tasks.statuses import router as task_statuses_router
 
 api_router = APIRouter()
 
@@ -52,6 +53,7 @@ api_router.include_router(folders.router, prefix="/folders", tags=["folders"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
 api_router.include_router(activity_icons.router, tags=["activity-icons"])
 api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
+api_router.include_router(task_statuses_router, prefix="/task-statuses", tags=["task-statuses"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
