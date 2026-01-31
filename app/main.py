@@ -11,7 +11,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.v1 import api_router
+from app.api.v1.lazy_router import get_api_router
 from app.core import logging as app_logging  # noqa: F401
 from app.core.async_tasks import AsyncTaskService
 from app.core.auth.rate_limit import limiter
@@ -614,7 +614,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 
 # Include API routers
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(get_api_router(), prefix="/api/v1")
 
 # Mount static files for file storage
 # This allows serving uploaded files from /files/ path
