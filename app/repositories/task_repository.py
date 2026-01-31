@@ -1,6 +1,9 @@
 """Task repository for data access operations."""
 
+import json
+import logging
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -16,6 +19,8 @@ from app.models.task import (
     WorkflowExecution,
     WorkflowStep,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TaskRepository:
@@ -412,24 +417,111 @@ class TaskRepository:
 
         return tasks
 
-    def _task_response_to_model(self, task_response) -> Task:
-        """Convert TaskResponse back to Task model for cache compatibility."""
-        # This is a simplified conversion - in production, you might want
-        # to use a more sophisticated mapping or avoid this conversion entirely
+    def get_visible_tasks_cached(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        status: str | None = None,
+        priority: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Task]:
+        """Get visible tasks with caching support - Safe wrapper around get_visible_tasks."""
+        import os
+
+        # Feature flag para activar/desactivar cache
+        enable_cache = os.getenv("ENABLE_TASKS_CACHE", "false").lower() == "true"
+
+        if not enable_cache:
+            # Cache desactivado, usar método original
+            return self.get_visible_tasks(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                status=status,
+                priority=priority,
+                skip=skip,
+                limit=limit,
+            )
+
+        # Generar cache key único
+        cache_key = f"visible_tasks:{tenant_id}:{user_id}:{status or 'all'}:{priority or 'all'}:{skip}:{limit}"
+
+        try:
+            # Intentar obtener desde Redis cache
+            from app.core.cache.redis_client import get_redis_client
+            redis_client = get_redis_client()
+
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                # Deserializar y convertir a Task objects
+                cached_tasks = json.loads(cached_data)
+                tasks = [self._dict_to_task(task_dict) for task_dict in cached_tasks]
+                logger.debug(f"Cache hit for {cache_key}: {len(tasks)} tasks")
+                return tasks
+
+        except Exception as e:
+            # Error al leer cache, continuar con query normal
+            logger.warning(f"Cache read failed for {cache_key}: {e}")
+
+        # Ejecutar query normal
+        start_time = datetime.now()
+        tasks = self.get_visible_tasks(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            status=status,
+            priority=priority,
+            skip=skip,
+            limit=limit,
+        )
+        query_time = (datetime.now() - start_time).total_seconds()
+
+        # Guardar en cache si la query tomó más de 100ms
+        if query_time > 0.1:
+            try:
+                # Serializar tasks para cache
+                tasks_data = [self._task_to_dict(task) for task in tasks]
+                redis_client.setex(cache_key, 300, json.dumps(tasks_data))  # 5 min TTL
+                logger.debug(f"Cached {cache_key}: {len(tasks)} tasks (query took {query_time:.2f}s)")
+            except Exception as e:
+                # Error al guardar cache, no es crítico
+                logger.warning(f"Cache write failed for {cache_key}: {e}")
+
+        return tasks
+
+    def _task_to_dict(self, task: Task) -> dict:
+        """Convert Task model to dict for caching."""
+        return {
+            "id": str(task.id),
+            "tenant_id": str(task.tenant_id),
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "created_by_id": str(task.created_by_id),
+            "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+            "created_at": task.created_at.isoformat(),
+            "updated_at": task.updated_at.isoformat(),
+        }
+
+    def _dict_to_task(self, data: dict) -> Task:
+        """Convert dict back to Task model."""
+        from datetime import datetime
+
         return Task(
-            id=task_response.id,
-            tenant_id=task_response.tenant_id,
-            title=task_response.title,
-            description=task_response.description,
-            status=task_response.status,
-            priority=task_response.priority,
-            assigned_to_id=task_response.assigned_to_id,
-            due_date=task_response.due_date,
-            created_by_id=task_response.created_by_id,
-            completed_at=task_response.completed_at,
-            created_at=task_response.created_at,
-            updated_at=task_response.updated_at,
-            # Add other fields as needed
+            id=UUID(data["id"]),
+            tenant_id=UUID(data["tenant_id"]),
+            title=data["title"],
+            description=data["description"],
+            status=data["status"],
+            priority=data["priority"],
+            assigned_to_id=UUID(data["assigned_to_id"]) if data["assigned_to_id"] else None,
+            due_date=datetime.fromisoformat(data["due_date"]) if data["due_date"] else None,
+            created_by_id=UUID(data["created_by_id"]),
+            completed_at=datetime.fromisoformat(data["completed_at"]) if data["completed_at"] else None,
+            created_at=datetime.fromisoformat(data["created_at"]),
+            updated_at=datetime.fromisoformat(data["updated_at"]),
         )
 
     def count_visible_tasks(
