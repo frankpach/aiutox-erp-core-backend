@@ -8,6 +8,7 @@ from app.api.v1 import (
     approvals,
     auth,
     automation,
+    calendar,
     comments,
     config,
     contact_methods,
@@ -28,12 +29,11 @@ from app.api.v1 import (
     views,
     workflows,
 )
-from app.modules.calendar.api import router as calendar_router
+from app.features.tasks.statuses import router as task_statuses_router
 from app.modules.crm.api import router as crm_router
 from app.modules.inventory.api import router as inventory_router
 from app.modules.products.api import router as products_router
 from app.modules.tasks.api import router as tasks_router
-from app.features.tasks.statuses import router as task_statuses_router
 
 api_router = APIRouter()
 
@@ -58,7 +58,7 @@ api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
-api_router.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
 api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
 api_router.include_router(crm_router, prefix="/crm", tags=["crm"])
 api_router.include_router(import_export.router, prefix="/import-export", tags=["import-export"])

@@ -19,7 +19,6 @@ htmlcov/
 dmypy.json
 storage/*
 
-
 # Environment
 .env
 .env.local
@@ -56,6 +55,5 @@ temp/
 *.swp
 
 # Diagnostic and utility scripts (keep organized but optional)
-# scripts/diagnostics/
-# scripts/utils/
+scripts/*
 

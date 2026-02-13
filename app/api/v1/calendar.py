@@ -557,6 +557,79 @@ async def add_reminder(
     )
 
 
+@router.get(
+    "/events/{event_id}/reminders",
+    response_model=StandardListResponse[EventReminderResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List event reminders",
+    description="List all reminders for an event. Requires calendar.events.view permission.",
+)
+async def list_event_reminders(
+    event_id: Annotated[UUID, Path(..., description="Event ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.view"))],
+    service: Annotated[CalendarService, Depends(get_calendar_service)],
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
+) -> StandardListResponse[EventReminderResponse]:
+    """List all reminders for an event."""
+    skip = (page - 1) * page_size
+
+    reminders = service.get_event_reminders(
+        event_id=event_id,
+        tenant_id=current_user.tenant_id,
+        skip=skip,
+        limit=page_size,
+    )
+
+    total = service.count_event_reminders(
+        event_id=event_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return StandardListResponse(
+        data=[EventReminderResponse.model_validate(r) for r in reminders],
+        meta={
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        },
+    )
+
+
+@router.delete(
+    "/reminders/{reminder_id}",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Delete reminder",
+    description="Delete a reminder. Requires calendar.events.manage permission.",
+)
+async def delete_reminder(
+    reminder_id: Annotated[UUID, Path(..., description="Reminder ID")],
+    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    service: Annotated[CalendarService, Depends(get_calendar_service)],
+) -> StandardResponse[dict]:
+    """Delete a reminder."""
+    success = service.delete_reminder(
+        reminder_id=reminder_id,
+        tenant_id=current_user.tenant_id,
+    )
+
+    if not success:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="REMINDER_NOT_FOUND",
+            message=f"Reminder with ID {reminder_id} not found",
+        )
+
+    return StandardResponse(
+        data={"deleted": True},
+        message="Reminder deleted successfully",
+    )
+
+
 # Resource endpoints
 @router.post(
     "/resources",

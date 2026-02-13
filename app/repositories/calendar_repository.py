@@ -352,6 +352,46 @@ class CalendarRepository:
         self.db.delete(reminder)
         self.db.commit()
 
+    def get_event_reminders(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[EventReminder]:
+        """Get reminders for an event."""
+        return (
+            self.db.query(EventReminder)
+            .filter(EventReminder.event_id == event_id)
+            .filter(EventReminder.tenant_id == tenant_id)
+            .order_by(EventReminder.minutes_before)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def count_event_reminders(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+    ) -> int:
+        """Count reminders for an event."""
+        return (
+            self.db.query(EventReminder)
+            .filter(EventReminder.event_id == event_id)
+            .filter(EventReminder.tenant_id == tenant_id)
+            .count()
+        )
+
+    def get_reminder_by_id(self, reminder_id: UUID, tenant_id: UUID) -> EventReminder | None:
+        """Get reminder by ID."""
+        return (
+            self.db.query(EventReminder)
+            .filter(EventReminder.id == reminder_id)
+            .filter(EventReminder.tenant_id == tenant_id)
+            .first()
+        )
+
 
 
 

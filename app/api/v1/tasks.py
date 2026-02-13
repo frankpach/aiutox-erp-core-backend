@@ -1540,3 +1540,33 @@ async def get_popular_templates(
     )
 
 
+
+ 
+ @ r o u t e r . p o s t ( 
+         " / { t a s k _ i d } / s y n c - t o - c a l e n d a r " , 
+         r e s p o n s e _ m o d e l = S t a n d a r d R e s p o n s e [ d i c t ] , 
+         s t a t u s _ c o d e = s t a t u s . H T T P _ 2 0 0 _ O K , 
+         s u m m a r y = " S y n c   t a s k   t o   c a l e n d a r " , 
+         d e s c r i p t i o n = " S y n c h r o n i z e   a   t a s k   w i t h   c a l e n d a r   a s   a n   e v e n t .   R e q u i r e s   t a s k s . m a n a g e   p e r m i s s i o n . " , 
+ ) 
+ a s y n c   d e f   s y n c _ t a s k _ t o _ c a l e n d a r ( 
+         t a s k _ i d :   A n n o t a t e d [ U U I D ,   P a t h ( . . . ,   d e s c r i p t i o n = " T a s k   I D " ) ] , 
+         c u r r e n t _ u s e r :   A n n o t a t e d [ U s e r ,   D e p e n d s ( r e q u i r e _ p e r m i s s i o n ( " t a s k s . m a n a g e " ) ) ] , 
+         d b :   A n n o t a t e d [ S e s s i o n ,   D e p e n d s ( g e t _ d b ) ] , 
+ )   - >   S t a n d a r d R e s p o n s e [ d i c t ] : 
+         " " " S i n c r o n i z a r   t a r e a   c o n   c a l e n d a r i o   a u t o m á t i c a m e n t e . " " " 
+         f r o m   a p p . c o r e . t a s k s . t a s k _ e v e n t _ s y n c _ s e r v i c e   i m p o r t   T a s k E v e n t S y n c S e r v i c e 
+         
+         s y n c _ s e r v i c e   =   T a s k E v e n t S y n c S e r v i c e ( d b ) 
+         r e s u l t   =   a w a i t   s y n c _ s e r v i c e . s y n c _ t a s k _ t o _ c a l e n d a r ( 
+                 t a s k _ i d = t a s k _ i d , 
+                 t e n a n t _ i d = c u r r e n t _ u s e r . t e n a n t _ i d , 
+                 u s e r _ i d = c u r r e n t _ u s e r . i d 
+         ) 
+         
+         r e t u r n   S t a n d a r d R e s p o n s e ( 
+                 d a t a = r e s u l t , 
+                 m e s s a g e = " T a s k   s y n c h r o n i z e d   t o   c a l e n d a r   s u c c e s s f u l l y " 
+         ) 
+  
+ 

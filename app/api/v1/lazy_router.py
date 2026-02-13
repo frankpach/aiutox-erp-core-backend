@@ -3,6 +3,7 @@ API Router con lazy loading para evitar timeouts en imports.
 """
 
 from typing import TYPE_CHECKING
+
 from fastapi import APIRouter
 
 if TYPE_CHECKING:
@@ -15,12 +16,12 @@ _api_router = None
 def get_api_router() -> APIRouter:
     """Obtiene el API router con lazy loading."""
     global _api_router
-    
+
     if _api_router is not None:
         return _api_router
-    
+
     print("🔄 Creando API router (lazy loading)...")
-    
+
     # Importar todos los módulos necesarios
     from app.api.v1 import (
         activities,
@@ -28,6 +29,7 @@ def get_api_router() -> APIRouter:
         approvals,
         auth,
         automation,
+        calendar,
         comments,
         config,
         contact_methods,
@@ -48,16 +50,15 @@ def get_api_router() -> APIRouter:
         views,
         workflows,
     )
-    from app.modules.calendar.api import router as calendar_router
+    from app.features.tasks.statuses import router as task_statuses_router
     from app.modules.crm.api import router as crm_router
     from app.modules.inventory.api import router as inventory_router
     from app.modules.products.api import router as products_router
     from app.modules.tasks.api import router as tasks_router
-    from app.features.tasks.statuses import router as task_statuses_router
-    
+
     # Crear el router
     _api_router = APIRouter()
-    
+
     # Incluir todos los routers
     _api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
     _api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -79,7 +80,7 @@ def get_api_router() -> APIRouter:
     _api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
     _api_router.include_router(search.router, prefix="/search", tags=["search"])
     _api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
-    _api_router.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
+    _api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
     _api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
     _api_router.include_router(crm_router, prefix="/crm", tags=["crm"])
     _api_router.include_router(import_export.router, prefix="/import-export", tags=["import-export"])
@@ -89,7 +90,7 @@ def get_api_router() -> APIRouter:
     _api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
     _api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])
     _api_router.include_router(sse.router, tags=["sse"])
-    
+
     print("✅ API router creado exitosamente")
     return _api_router
 

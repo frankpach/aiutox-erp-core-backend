@@ -206,7 +206,9 @@
     "enabled": true,
     "path": "backend/app/modules/products/api.py",
     "description": "Módulo empresarial: Productos, categorías, variantes, precios. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (product.created, product.updated, etc.). Estructura modular completa en app/modules/products/.",
-    "depends_on": ["auth", "users", "pubsub"]
+    "depends_on": ["auth", "users", "pubsub"],
+    "publishes": ["product.created", "product.updated", "product.deleted"],
+    "consumes": []
   },
   {
     "key": "inventory",
@@ -215,7 +217,9 @@
     "category": "operations",
     "enabled": false,
     "description": "Módulo empresarial: Stock, ubicaciones, ajustes, movimientos. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (inventory.stock_low, inventory.movement.created, etc.).",
-    "depends_on": ["auth", "users", "products", "pubsub"]
+    "depends_on": ["auth", "users", "products", "pubsub"],
+    "publishes": ["inventory.stock_low", "inventory.movement.created"],
+    "consumes": ["product.created", "product.updated", "product.deleted"]
   },
   {
     "key": "crm",
@@ -224,6 +228,8 @@
     "category": "sales",
     "enabled": false,
     "description": "Módulo empresarial: Contactos, historial, segmentación, campañas. Usa infraestructura base (Reporting, Config, Notificaciones). Publica eventos al bus (customer.created, customer.contact.logged, etc.).",
-    "depends_on": ["auth", "users", "pubsub"]
+    "depends_on": ["auth", "users", "pubsub"],
+    "publishes": ["customer.created", "customer.contact.logged"],
+    "consumes": []
   }
 ]

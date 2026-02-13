@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # Calendar schemas
@@ -195,7 +195,34 @@ class EventReminderBase(BaseModel):
 class EventReminderCreate(EventReminderBase):
     """Schema for creating an event reminder."""
 
-    pass
+    @field_validator('reminder_type')
+    @classmethod
+    def validate_reminder_type(cls, v):
+        """Validate reminder type."""
+        valid_types = ['email', 'in_app', 'push']
+        if v not in valid_types:
+            raise ValueError(f'Reminder type must be one of: {", ".join(valid_types)}')
+        return v
+
+    @field_validator('minutes_before')
+    @classmethod
+    def validate_minutes_before(cls, v):
+        """Validate minutes before event."""
+        if v < 0:
+            raise ValueError('Minutes before must be non-negative')
+        if v > 525600:  # Maximum 1 year in minutes
+            raise ValueError('Minutes before cannot exceed 525600 (1 year)')
+        return v
+
+    @model_validator(mode='before')
+    @classmethod
+    def validate_reminder_logic(cls, data):
+        """Validate reminder logic constraints."""
+        if isinstance(data, dict):
+            # Additional business logic validations can be added here
+            # For example, limit number of reminders per event type
+            pass
+        return data
 
 
 class EventReminderResponse(EventReminderBase):

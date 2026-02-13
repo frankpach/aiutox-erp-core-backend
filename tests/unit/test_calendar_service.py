@@ -133,3 +133,92 @@ def test_cancel_event(calendar_service, test_user, test_tenant):
     assert cancelled_event is not None
     assert cancelled_event.status == "cancelled"
 
+
+def _create_test_event(calendar_service, test_user, test_tenant, **overrides):
+    """Helper to create a calendar + event for testing."""
+    calendar = calendar_service.create_calendar(
+        calendar_data={"name": "Test Calendar", "calendar_type": "user"},
+        tenant_id=test_tenant.id,
+        owner_id=test_user.id,
+    )
+    start_time = overrides.pop("start_time", datetime.now(UTC) + timedelta(days=1))
+    end_time = overrides.pop("end_time", start_time + timedelta(hours=1))
+
+    event = calendar_service.create_event(
+        event_data={
+            "calendar_id": calendar.id,
+            "title": "Test Event",
+            "start_time": start_time,
+            "end_time": end_time,
+            **overrides,
+        },
+        tenant_id=test_tenant.id,
+        organizer_id=test_user.id,
+    )
+    return event
+
+
+def test_resize_event_rejects_end_before_start(calendar_service, test_user, test_tenant):
+    """Test that resize_event raises APIException when new_end_time <= start_time."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.resize_event(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            new_end_time=event.start_time - timedelta(hours=1),
+        )
+
+    assert exc_info.value.code == "INVALID_EVENT_DURATION"
+    assert "end_time must be after start_time" in exc_info.value.message
+
+
+def test_resize_event_rejects_short_duration(calendar_service, test_user, test_tenant):
+    """Test that resize_event raises APIException when duration < 15 minutes."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.resize_event(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            new_end_time=event.start_time + timedelta(minutes=10),
+        )
+
+    assert exc_info.value.code == "INVALID_EVENT_DURATION"
+    assert "15 minutes" in exc_info.value.message
+
+
+def test_update_event_rejects_invalid_time_range(calendar_service, test_user, test_tenant):
+    """Test that update_event raises APIException when end_time <= start_time."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.update_event(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            event_data={"end_time": event.start_time - timedelta(hours=1)},
+        )
+
+    assert exc_info.value.code == "INVALID_EVENT_DURATION"
+
+
+def test_resize_event_accepts_valid_end_time(calendar_service, test_user, test_tenant):
+    """Test that resize_event succeeds with a valid new_end_time."""
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    new_end = event.start_time + timedelta(hours=2)
+    updated = calendar_service.resize_event(
+        event_id=event.id,
+        tenant_id=test_tenant.id,
+        new_end_time=new_end,
+    )
+
+    assert updated is not None
+    assert updated.end_time == new_end
+

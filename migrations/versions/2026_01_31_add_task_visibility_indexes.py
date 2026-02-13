@@ -1,6 +1,6 @@
 """add task visibility indexes
 
-Revision ID: 2026_01_31_add_task_visibility_indexes
+Revision ID: 20260131_task_visibility_idx
 Revises: 2026_03_05_optimize_task_indexes
 Create Date: 2026-01-31 15:00:00.000000
 
@@ -10,7 +10,7 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "2026_01_31_add_task_visibility_indexes"
+revision = "20260131_task_visibility_idx"
 down_revision = "2026_03_05_optimize_task_indexes"
 branch_labels = None
 depends_on = None

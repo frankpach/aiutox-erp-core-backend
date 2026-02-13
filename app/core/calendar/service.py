@@ -19,7 +19,10 @@ from app.models.calendar import (
     RecurrenceType,
     ReminderType,
 )
+from app.core.exceptions import APIException
 from app.repositories.calendar_repository import CalendarRepository
+
+MIN_EVENT_DURATION = timedelta(minutes=15)
 
 logger = logging.getLogger(__name__)
 
@@ -234,10 +237,24 @@ class CalendarService:
     def update_event(
         self, event_id: UUID, tenant_id: UUID, event_data: dict
     ) -> CalendarEvent | None:
-        """Update event."""
+        """Update event.
+
+        Raises:
+            APIException: If resulting end_time <= start_time
+        """
         event = self.repository.get_event_by_id(event_id, tenant_id)
         if not event:
             return None
+
+        # Validate time range if start_time or end_time is being updated
+        new_start = event_data.get("start_time", event.start_time)
+        new_end = event_data.get("end_time", event.end_time)
+        if new_end <= new_start:
+            raise APIException(
+                status_code=400,
+                code="INVALID_EVENT_DURATION",
+                message="end_time must be after start_time",
+            )
 
         updated_event = self.repository.update_event(event, event_data)
 
@@ -322,10 +339,29 @@ class CalendarService:
 
         Returns:
             Updated CalendarEvent or None if not found
+
+        Raises:
+            APIException: If new_end_time <= start_time or duration < 15 min
         """
         event = self.repository.get_event_by_id(event_id, tenant_id)
         if not event:
             return None
+
+        # Validate end_time > start_time
+        if new_end_time <= event.start_time:
+            raise APIException(
+                status_code=400,
+                code="INVALID_EVENT_DURATION",
+                message="end_time must be after start_time",
+            )
+
+        # Validate minimum duration (15 minutes)
+        if (new_end_time - event.start_time) < MIN_EVENT_DURATION:
+            raise APIException(
+                status_code=400,
+                code="INVALID_EVENT_DURATION",
+                message="Minimum event duration is 15 minutes",
+            )
 
         # Update event
         event_data = {
@@ -437,6 +473,44 @@ class CalendarService:
         reminder_data["event_id"] = event_id
         reminder_data["tenant_id"] = tenant_id
         return self.repository.create_reminder(reminder_data)
+
+    def get_event_reminders(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[EventReminder]:
+        """Get reminders for an event."""
+        return self.repository.get_event_reminders(
+            event_id=event_id,
+            tenant_id=tenant_id,
+            skip=skip,
+            limit=limit,
+        )
+
+    def count_event_reminders(
+        self,
+        event_id: UUID,
+        tenant_id: UUID,
+    ) -> int:
+        """Count reminders for an event."""
+        return self.repository.count_event_reminders(
+            event_id=event_id,
+            tenant_id=tenant_id,
+        )
+
+    def delete_reminder(
+        self,
+        reminder_id: UUID,
+        tenant_id: UUID,
+    ) -> bool:
+        """Delete a reminder."""
+        reminder = self.repository.get_reminder_by_id(reminder_id, tenant_id)
+        if not reminder:
+            return False
+
+        return self.repository.delete_reminder(reminder)
 
 
 class ReminderService:
