@@ -249,53 +249,24 @@ class CommentService:
         updated_comment = self.repository.update_comment(comment, update_data)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="comment.updated",
-                        entity_type="comment",
-                        entity_id=updated_comment.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_comment.created_by,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": updated_comment.entity_type,
-                                "entity_id": str(updated_comment.entity_id),
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="comment.updated",
-                        entity_type="comment",
-                        entity_id=updated_comment.id,
-                        tenant_id=tenant_id,
-                        user_id=updated_comment.created_by,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": updated_comment.entity_type,
-                                "entity_id": str(updated_comment.entity_id),
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish comment.updated event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="comment.updated",
+            entity_type="comment",
+            entity_id=updated_comment.id,
+            tenant_id=tenant_id,
+            user_id=updated_comment.created_by,
+            metadata=EventMetadata(
+                source="comment_service",
+                version="1.0",
+                additional_data={
+                    "entity_type": updated_comment.entity_type,
+                    "entity_id": str(updated_comment.entity_id),
+                },
+            ),
+        )
 
         return updated_comment
 
@@ -308,53 +279,24 @@ class CommentService:
         self.repository.delete_comment(comment)
 
         # Publish event
-        try:
-            import asyncio
+        from app.core.pubsub.event_helpers import safe_publish_event
 
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="comment.deleted",
-                        entity_type="comment",
-                        entity_id=comment.id,
-                        tenant_id=tenant_id,
-                        user_id=comment.created_by,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": comment.entity_type,
-                                "entity_id": str(comment.entity_id),
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="comment.deleted",
-                        entity_type="comment",
-                        entity_id=comment.id,
-                        tenant_id=tenant_id,
-                        user_id=comment.created_by,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": comment.entity_type,
-                                "entity_id": str(comment.entity_id),
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish comment.deleted event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="comment.deleted",
+            entity_type="comment",
+            entity_id=comment.id,
+            tenant_id=tenant_id,
+            user_id=comment.created_by,
+            metadata=EventMetadata(
+                source="comment_service",
+                version="1.0",
+                additional_data={
+                    "entity_type": comment.entity_type,
+                    "entity_id": str(comment.entity_id),
+                },
+            ),
+        )
 
         return True
 

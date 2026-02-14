@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventPublisher, get_event_publisher
+from app.core.pubsub.event_helpers import safe_publish_event
 from app.core.pubsub.models import EventMetadata
 from app.core.tasks.service import TaskService
 from app.models.approval import (
@@ -548,8 +549,6 @@ class ApprovalService:
         self._create_approval_tasks(request, tenant_id)
 
         # Publish event
-        from app.core.pubsub.event_helpers import safe_publish_event
-
         safe_publish_event(
             event_publisher=self.event_publisher,
             event_type="approval.requested",
@@ -737,47 +736,19 @@ class ApprovalService:
                 logger.error(f"Failed to update flow run for approval request {request_id}: {e}")
 
         # Publish event
-        try:
-            import asyncio
-
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="approval.approved",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="approval.approved",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish approval.approved event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="approval.approved",
+            entity_type="approval_request",
+            entity_id=updated_request.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="approval_service",
+                version="1.0",
+                additional_data={"request_title": updated_request.title},
+            ),
+        )
 
         return updated_request
 
@@ -827,47 +798,19 @@ class ApprovalService:
                 logger.error(f"Failed to update flow run for approval request {request_id}: {e}")
 
         # Publish event
-        try:
-            import asyncio
-
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="approval.rejected",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="approval.rejected",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish approval.rejected event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="approval.rejected",
+            entity_type="approval_request",
+            entity_id=updated_request.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="approval_service",
+                version="1.0",
+                additional_data={"request_title": updated_request.title},
+            ),
+        )
 
         return updated_request
 
@@ -911,53 +854,22 @@ class ApprovalService:
         )
 
         # Publish event
-        try:
-            import asyncio
-
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="approval.delegated",
-                        entity_type="approval_request",
-                        entity_id=request_id,
-                        tenant_id=tenant_id,
-                        user_id=from_user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={
-                                "delegated_to": str(to_user_id),
-                                "reason": reason,
-                            },
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="approval.delegated",
-                        entity_type="approval_request",
-                        entity_id=request_id,
-                        tenant_id=tenant_id,
-                        user_id=from_user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={
-                                "delegated_to": str(to_user_id),
-                                "reason": reason,
-                            },
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish approval.delegated event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="approval.delegated",
+            entity_type="approval_request",
+            entity_id=request_id,
+            tenant_id=tenant_id,
+            user_id=from_user_id,
+            metadata=EventMetadata(
+                source="approval_service",
+                version="1.0",
+                additional_data={
+                    "delegated_to": str(to_user_id),
+                    "reason": reason,
+                },
+            ),
+        )
 
         return delegation
 
@@ -992,47 +904,19 @@ class ApprovalService:
         )
 
         # Publish event
-        try:
-            import asyncio
-
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                asyncio.create_task(
-                    self.event_publisher.publish(
-                        event_type="approval.cancelled",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-            else:
-                loop.run_until_complete(
-                    self.event_publisher.publish(
-                        event_type="approval.cancelled",
-                        entity_type="approval_request",
-                        entity_id=updated_request.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="approval_service",
-                            version="1.0",
-                            additional_data={"request_title": updated_request.title},
-                        ),
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Failed to publish approval.cancelled event: {e}")
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="approval.cancelled",
+            entity_type="approval_request",
+            entity_id=updated_request.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="approval_service",
+                version="1.0",
+                additional_data={"request_title": updated_request.title},
+            ),
+        )
 
         return updated_request
 
@@ -1423,47 +1307,19 @@ class ApprovalService:
                 results.append(updated_request)
 
                 # Publish event
-                try:
-                    import asyncio
-
-                    try:
-                        loop = asyncio.get_running_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-
-                    if loop.is_running():
-                        asyncio.create_task(
-                            self.event_publisher.publish(
-                                event_type="approval.approved",
-                                entity_type="approval_request",
-                                entity_id=updated_request.id,
-                                tenant_id=tenant_id,
-                                user_id=user_id,
-                                metadata=EventMetadata(
-                                    source="approval_service",
-                                    version="1.0",
-                                    additional_data={"request_title": updated_request.title},
-                                ),
-                            )
-                        )
-                    else:
-                        loop.run_until_complete(
-                            self.event_publisher.publish(
-                                event_type="approval.approved",
-                                entity_type="approval_request",
-                                entity_id=updated_request.id,
-                                tenant_id=tenant_id,
-                                user_id=user_id,
-                                metadata=EventMetadata(
-                                    source="approval_service",
-                                    version="1.0",
-                                    additional_data={"request_title": updated_request.title},
-                                ),
-                            )
-                        )
-                except Exception as e:
-                    logger.error(f"Failed to publish approval.approved event: {e}")
+                safe_publish_event(
+                    event_publisher=self.event_publisher,
+                    event_type="approval.approved",
+                    entity_type="approval_request",
+                    entity_id=updated_request.id,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    metadata=EventMetadata(
+                        source="approval_service",
+                        version="1.0",
+                        additional_data={"request_title": updated_request.title},
+                    ),
+                )
             except Exception as e:
                 errors.append(f"Failed to approve request {request_id}: {str(e)}")
 
@@ -1503,47 +1359,19 @@ class ApprovalService:
                 results.append(updated_request)
 
                 # Publish event
-                try:
-                    import asyncio
-
-                    try:
-                        loop = asyncio.get_running_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-
-                    if loop.is_running():
-                        asyncio.create_task(
-                            self.event_publisher.publish(
-                                event_type="approval.rejected",
-                                entity_type="approval_request",
-                                entity_id=updated_request.id,
-                                tenant_id=tenant_id,
-                                user_id=user_id,
-                                metadata=EventMetadata(
-                                    source="approval_service",
-                                    version="1.0",
-                                    additional_data={"request_title": updated_request.title},
-                                ),
-                            )
-                        )
-                    else:
-                        loop.run_until_complete(
-                            self.event_publisher.publish(
-                                event_type="approval.rejected",
-                                entity_type="approval_request",
-                                entity_id=updated_request.id,
-                                tenant_id=tenant_id,
-                                user_id=user_id,
-                                metadata=EventMetadata(
-                                    source="approval_service",
-                                    version="1.0",
-                                    additional_data={"request_title": updated_request.title},
-                                ),
-                            )
-                        )
-                except Exception as e:
-                    logger.error(f"Failed to publish approval.rejected event: {e}")
+                safe_publish_event(
+                    event_publisher=self.event_publisher,
+                    event_type="approval.rejected",
+                    entity_type="approval_request",
+                    entity_id=updated_request.id,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    metadata=EventMetadata(
+                        source="approval_service",
+                        version="1.0",
+                        additional_data={"request_title": updated_request.title},
+                    ),
+                )
             except Exception as e:
                 errors.append(f"Failed to reject request {request_id}: {str(e)}")
 

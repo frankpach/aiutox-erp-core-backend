@@ -1,0 +1,31 @@
+{
+  "id": "tasks",
+  "name": "Sistema de Tareas y Workflows",
+  "type": "core",
+  "category": "infrastructure",
+  "description": "Infraestructura base: tareas asignables, estados, prioridades, checklists y soporte de workflows.",
+  "version": "0.1.0",
+  "depends_on": [
+    "auth",
+    "users",
+    "notifications"
+  ],
+  "publishes": [
+    "task.created",
+    "task.updated",
+    "task.completed",
+    "task.assigned"
+  ],
+  "consumes": [
+    "approval.requested"
+  ],
+  "permissions": [
+    "tasks.view",
+    "tasks.manage",
+    "tasks.create",
+    "tasks.update",
+    "tasks.delete",
+    "tasks.assign",
+    "tasks.complete"
+  ]
+}

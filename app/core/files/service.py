@@ -5,7 +5,7 @@ import logging
 import mimetypes
 import os
 from pathlib import Path
-from typing import Any, BinaryIO
+from typing import Any
 from uuid import UUID
 
 from PIL import Image
@@ -143,13 +143,6 @@ class FileService:
                 except Exception as e:
                     logger.error(f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}")
                     return local_backend
-
-                s3_backend = S3StorageBackend(
-                    bucket_name=bucket_name,
-                    aws_access_key_id=access_key_id,
-                    aws_secret_access_key=secret_access_key,
-                    region=region,
-                )
 
                 # For hybrid mode, prefer S3 but fallback to local if S3 fails
                 # Create HybridStorageBackend with use_s3=True to use S3 as primary
@@ -353,7 +346,7 @@ class FileService:
 
         # Create initial version (v1) - IMPORTANT: Every file must have at least one version
         try:
-            initial_version = self.repository.create_version(
+            self.repository.create_version(
                 {
                     "file_id": file.id,
                     "tenant_id": tenant_id,
@@ -438,18 +431,21 @@ class FileService:
 
         if deleted:
             # Publish event
-            await self.event_publisher.publish(
-                event_type="file.deleted",
-                entity_type="file",
-                entity_id=file_id,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                metadata=EventMetadata(
-                    source="file_service",
-                    version="1.0",
-                    additional_data={"filename": file.name},
-                ),
-            )
+            try:
+                await self.event_publisher.publish(
+                    event_type="file.deleted",
+                    entity_type="file",
+                    entity_id=file_id,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    metadata=EventMetadata(
+                        source="file_service",
+                        version="1.0",
+                        additional_data={"filename": file.name},
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish file.deleted event: {e}", exc_info=True)
 
             logger.info(f"File deleted: {file_id}")
 
@@ -507,7 +503,6 @@ class FileService:
 
         # Get file info
         file_size = len(file_content)
-        file_extension = self._get_file_extension(filename)
         mime_type = self._detect_mime_type(filename, file_content)
 
         # Create version record
@@ -1011,20 +1006,26 @@ class FileService:
                 storage_freed += file.size
 
                 # Publish event
-                await self.event_publisher.publish(
-                    event_type="file.permanently_deleted",
-                    entity_type="file",
-                    entity_id=file.id,
-                    tenant_id=tenant_id,
-                    metadata=EventMetadata(
-                        source="file_service",
-                        version="1.0",
-                        additional_data={
-                            "filename": file.name,
-                            "retention_days": retention_days,
-                        },
-                    ),
-                )
+                try:
+                    await self.event_publisher.publish(
+                        event_type="file.permanently_deleted",
+                        entity_type="file",
+                        entity_id=file.id,
+                        tenant_id=tenant_id,
+                        metadata=EventMetadata(
+                            source="file_service",
+                            version="1.0",
+                            additional_data={
+                                "filename": file.name,
+                                "retention_days": retention_days,
+                            },
+                        ),
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to publish file.permanently_deleted event for {file.id}: {e}",
+                        exc_info=True,
+                    )
             except Exception as e:
                 logger.error(f"Failed to cleanup file {file.id}: {e}", exc_info=True)
                 errors.append({"file_id": str(file.id), "error": str(e)})
@@ -1053,17 +1054,20 @@ class FileService:
 
         if restored:
             # Publish event
-            await self.event_publisher.publish(
-                event_type="file.restored",
-                entity_type="file",
-                entity_id=file_id,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                metadata=EventMetadata(
-                    source="file_service",
-                    version="1.0",
-                ),
-            )
+            try:
+                await self.event_publisher.publish(
+                    event_type="file.restored",
+                    entity_type="file",
+                    entity_id=file_id,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    metadata=EventMetadata(
+                        source="file_service",
+                        version="1.0",
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish file.restored event: {e}", exc_info=True)
             logger.info(f"File restored: {file_id}")
 
         return restored

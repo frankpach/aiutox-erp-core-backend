@@ -1,0 +1,64 @@
+module: tasks
+version: "1.0"
+
+publishes:
+  - event: task.created
+    stream: events:domain
+    description: "Published when a task is created"
+    payload:
+      - task_id: UUID
+      - tenant_id: UUID
+  - event: task.updated
+    stream: events:domain
+    description: "Published when a task is updated"
+    payload:
+      - task_id: UUID
+      - tenant_id: UUID
+  - event: task.completed
+    stream: events:domain
+    description: "Published when a task is completed"
+    payload:
+      - task_id: UUID
+      - completed_by: UUID
+      - tenant_id: UUID
+  - event: task.assigned
+    stream: events:domain
+    description: "Published when a task is assigned"
+    payload:
+      - task_id: UUID
+      - assignee_user_id: UUID
+      - assigned_by: UUID
+      - tenant_id: UUID
+
+consumes:
+  - event: approval.requested
+    source_module: approvals
+    handler: handle_approval_requested
+    description: "Create or link task when an approval requires action"
+
+dependencies:
+  hard:
+    - module: auth
+      reason: "Authentication and authorization"
+    - module: users
+      reason: "Assignees and ownership context"
+    - module: notifications
+      reason: "Task notification delivery"
+  soft:
+    - module: pubsub
+      reason: "Asynchronous domain event integration"
+      fallback: "Tasks continue without event-driven automations"
+
+exposes:
+  - interface: get_task_by_id
+    description: "Get task by id and tenant"
+    params:
+      - task_id: UUID
+      - tenant_id: UUID
+    returns: "Task | None"
+  - interface: list_tasks_by_assignee
+    description: "List assignee tasks under tenant scope"
+    params:
+      - assignee_user_id: UUID
+      - tenant_id: UUID
+    returns: "list[Task]"

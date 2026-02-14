@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import APIException
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventPublisher, get_event_publisher
+from app.core.pubsub.event_helpers import safe_publish_event
 from app.core.pubsub.models import EventMetadata
 from app.models.calendar import (
     Calendar,
@@ -69,8 +70,6 @@ class CalendarService:
         calendar = self.repository.create_calendar(calendar_data)
 
         # Publish event
-        from app.core.pubsub.event_helpers import safe_publish_event
-
         safe_publish_event(
             event_publisher=self.event_publisher,
             event_type="calendar.created",
@@ -114,6 +113,21 @@ class CalendarService:
             return False
 
         self.repository.delete_calendar(calendar)
+
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.deleted",
+            entity_type="calendar",
+            entity_id=calendar.id,
+            tenant_id=tenant_id,
+            user_id=calendar.owner_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={"calendar_name": calendar.name},
+            ),
+        )
+
         return True
 
     def create_event(
@@ -153,8 +167,6 @@ class CalendarService:
                 self.repository.create_attendee(attendee_data)
 
         # Publish event
-        from app.core.pubsub.event_helpers import safe_publish_event
-
         safe_publish_event(
             event_publisher=self.event_publisher,
             event_type="calendar.event_created",
@@ -258,8 +270,6 @@ class CalendarService:
         updated_event = self.repository.update_event(event, event_data)
 
         # Publish event
-        from app.core.pubsub.event_helpers import safe_publish_event
-
         safe_publish_event(
             event_publisher=self.event_publisher,
             event_type="calendar.event_updated",
@@ -398,8 +408,6 @@ class CalendarService:
         )
 
         # Publish event
-        from app.core.pubsub.event_helpers import safe_publish_event
-
         safe_publish_event(
             event_publisher=self.event_publisher,
             event_type="calendar.event_cancelled",
@@ -423,6 +431,21 @@ class CalendarService:
             return False
 
         self.repository.delete_event(event)
+
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="calendar.event_deleted",
+            entity_type="calendar_event",
+            entity_id=event_id,
+            tenant_id=tenant_id,
+            user_id=event.organizer_id,
+            metadata=EventMetadata(
+                source="calendar_service",
+                version="1.0",
+                additional_data={"event_title": event.title},
+            ),
+        )
+
         return True
 
     def add_attendee(
@@ -645,25 +668,23 @@ class ReminderService:
             )
 
             # Publish event
-            try:
-                await self.event_publisher.publish(
-                    event_type="calendar.event_reminder_sent",
-                    entity_type="calendar_event",
-                    entity_id=event.id,
-                    tenant_id=reminder.tenant_id,
-                    user_id=event.organizer_id,
-                    metadata=EventMetadata(
-                        source="reminder_service",
-                        version="1.0",
-                        additional_data={
-                            "event_title": event.title,
-                            "reminder_type": reminder.reminder_type,
-                            "minutes_before": reminder.minutes_before,
-                        },
-                    ),
-                )
-            except Exception as e:
-                logger.error(f"Failed to publish calendar.event_reminder_sent event: {e}")
+            safe_publish_event(
+                event_publisher=self.event_publisher,
+                event_type="calendar.event_reminder_sent",
+                entity_type="calendar_event",
+                entity_id=event.id,
+                tenant_id=reminder.tenant_id,
+                user_id=event.organizer_id,
+                metadata=EventMetadata(
+                    source="reminder_service",
+                    version="1.0",
+                    additional_data={
+                        "event_title": event.title,
+                        "reminder_type": reminder.reminder_type,
+                        "minutes_before": reminder.minutes_before,
+                    },
+                ),
+            )
 
             return True
 

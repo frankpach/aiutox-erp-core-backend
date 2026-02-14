@@ -1,11 +1,14 @@
+﻿import logging
 from uuid import UUID
-import logging
 
 from sqlalchemy.orm import Session
 
 from app.core.auth.password import hash_password
 from app.core.logging import create_audit_log_entry, log_user_action
-from app.models.user import User
+from app.core.pubsub import EventPublisher, get_event_publisher
+from app.core.pubsub.event_helpers import safe_publish_event
+from app.core.pubsub.models import EventMetadata
+from app.repositories import refresh_token_repository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
 
@@ -15,9 +18,16 @@ logger = logging.getLogger(__name__)
 class UserService:
     """Service for user business logic."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, event_publisher: EventPublisher | None = None):
         """Initialize service with database session."""
         self.repository = UserRepository(db)
+        if event_publisher is not None:
+            self.event_publisher = event_publisher
+        else:
+            try:
+                self.event_publisher = get_event_publisher()
+            except Exception:
+                self.event_publisher = None
 
     def create_user(
         self,
@@ -46,12 +56,14 @@ class UserService:
 
         # Create user
         user = self.repository.create(user_dict)
+        event_tenant_id = user.tenant_id
 
         # Log user creation
         if created_by:
             # Get tenant_id from creator
             creator = self.repository.get_by_id(created_by)
             if creator:
+                event_tenant_id = creator.tenant_id
                 log_user_action(
                     action="create_user",
                     user_id=str(created_by),
@@ -73,6 +85,23 @@ class UserService:
                     ip_address=ip_address,
                     user_agent=user_agent,
                 )
+
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="user.created",
+            entity_type="user",
+            entity_id=user.id,
+            tenant_id=event_tenant_id,
+            user_id=created_by,
+            metadata=EventMetadata(
+                source="user_service",
+                version="1.0",
+                additional_data={
+                    "email": user.email,
+                    "is_active": user.is_active,
+                },
+            ),
+        )
 
         return {
             "id": user.id,
@@ -151,8 +180,7 @@ class UserService:
             changes["is_active"] = {"old": user.is_active, "new": update_data["is_active"]}
             # If being deactivated, revoke all tokens
             if update_data["is_active"] is False:
-                from app.repositories.refresh_token_repository import RefreshTokenRepository
-                refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
                 tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
                 if tokens_revoked > 0:
                     changes["tokens_revoked"] = tokens_revoked
@@ -187,6 +215,23 @@ class UserService:
                     ip_address=ip_address,
                     user_agent=user_agent,
                 )
+
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="user.updated",
+            entity_type="user",
+            entity_id=updated_user.id,
+            tenant_id=updated_user.tenant_id,
+            user_id=updated_by,
+            metadata=EventMetadata(
+                source="user_service",
+                version="1.0",
+                additional_data={
+                    "changes": changes,
+                    "is_active": updated_user.is_active,
+                },
+            ),
+        )
 
         return {
             "id": updated_user.id,
@@ -240,8 +285,7 @@ class UserService:
         tenant_id = user.tenant_id
 
         # Revoke all refresh tokens for this user
-        from app.repositories.refresh_token_repository import RefreshTokenRepository
-        refresh_token_repo = RefreshTokenRepository(self.repository.db)
+        refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
         tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
         # Set user as inactive
@@ -271,6 +315,23 @@ class UserService:
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
+
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="user.updated",
+            entity_type="user",
+            entity_id=user_id,
+            tenant_id=tenant_id,
+            user_id=deactivated_by,
+            metadata=EventMetadata(
+                source="user_service",
+                version="1.0",
+                additional_data={
+                    "is_active": False,
+                    "deactivated": True,
+                },
+            ),
+        )
 
         return True
 
@@ -322,6 +383,20 @@ class UserService:
             )
 
         # Hard delete with cascade (handled by SQLAlchemy relationships)
+        safe_publish_event(
+            event_publisher=self.event_publisher,
+            event_type="user.deleted",
+            entity_type="user",
+            entity_id=user_id,
+            tenant_id=tenant_id,
+            user_id=deleted_by,
+            metadata=EventMetadata(
+                source="user_service",
+                version="1.0",
+                additional_data={"email": user_email},
+            ),
+        )
+
         self.repository.delete(user)
 
         return True
@@ -438,8 +513,7 @@ class UserService:
                 elif action == "deactivate":
                     # Soft delete (set is_active=False) and revoke tokens
                     # Revoke all refresh tokens for this user
-                    from app.repositories.refresh_token_repository import RefreshTokenRepository
-                    refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                    refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
                     tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
                     # Set user as inactive
@@ -475,8 +549,7 @@ class UserService:
                 elif action == "delete":
                     # Soft delete (set is_active=False) and revoke tokens
                     # Revoke all refresh tokens for this user
-                    from app.repositories.refresh_token_repository import RefreshTokenRepository
-                    refresh_token_repo = RefreshTokenRepository(self.repository.db)
+                    refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
                     tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
                     user_email = user.email
