@@ -1,0 +1,41 @@
+module: products
+version: "1.0"
+
+publishes:
+  - event: product.created
+    stream: events:domain
+    description: "Published when a product is created"
+    payload:
+      - product_id: UUID
+      - tenant_id: UUID
+  - event: product.updated
+    stream: events:domain
+    description: "Published when a product is updated"
+    payload:
+      - product_id: UUID
+      - tenant_id: UUID
+  - event: product.deleted
+    stream: events:domain
+    description: "Published when a product is deleted"
+    payload:
+      - product_id: UUID
+      - tenant_id: UUID
+
+consumes: []
+
+dependencies:
+  hard:
+    - module: auth
+      reason: "Authentication and authorization"
+    - module: users
+      reason: "Owner and user context"
+    - module: pubsub
+      reason: "Domain event bus"
+
+exposes:
+  - interface: get_product_by_id
+    description: "Get product by id and tenant"
+    params:
+      - product_id: UUID
+      - tenant_id: UUID
+    returns: "Product | None"

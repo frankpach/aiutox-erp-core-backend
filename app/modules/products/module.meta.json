@@ -1,0 +1,26 @@
+{
+  "id": "products",
+  "name": "Catalogo de Productos",
+  "type": "business",
+  "category": "catalog",
+  "description": "Gestion de productos, categorias, variantes y precios.",
+  "version": "0.1.0",
+  "depends_on": [
+    "auth",
+    "users",
+    "pubsub"
+  ],
+  "publishes": [
+    "product.created",
+    "product.updated",
+    "product.deleted"
+  ],
+  "consumes": [],
+  "permissions": [
+    "products.view",
+    "products.manage",
+    "products.create",
+    "products.update",
+    "products.delete"
+  ]
+}

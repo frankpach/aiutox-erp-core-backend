@@ -1,0 +1,28 @@
+module: crm
+version: "1.0"
+
+publishes:
+  - event: customer.created
+    stream: events:domain
+    description: "Published when a customer or lead is created"
+    payload:
+      - customer_id: UUID
+      - tenant_id: UUID
+  - event: customer.contact.logged
+    stream: events:domain
+    description: "Published when contact activity is logged"
+    payload:
+      - customer_id: UUID
+      - activity_id: UUID
+      - tenant_id: UUID
+
+consumes: []
+
+dependencies:
+  hard:
+    - module: auth
+      reason: "Authentication and authorization"
+    - module: users
+      reason: "User ownership and assignee context"
+    - module: pubsub
+      reason: "Domain event bus"

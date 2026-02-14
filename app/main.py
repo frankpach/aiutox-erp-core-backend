@@ -1,6 +1,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -19,6 +20,7 @@ from app.core.config_file import get_settings
 from app.core.db.session import SessionLocal
 from app.core.exceptions import APIException
 from app.core.files import tasks as files_tasks  # noqa: F401
+from app.core.module_registry import ModuleRegistry, set_module_registry
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -49,6 +51,23 @@ async def lifespan(app: FastAPI):
         logger.info("TaskScheduler started successfully")
     except Exception as e:
         logger.error(f"Failed to start TaskScheduler: {e}", exc_info=True)
+
+    # Initialize global ModuleRegistry for dynamic module management endpoints.
+    try:
+        registry_db = SessionLocal()
+        try:
+            module_registry = ModuleRegistry(db=registry_db)
+            module_registry.discover_modules(Path(__file__).parent)
+            module_registry.resolve_dependencies()
+            set_module_registry(module_registry)
+            logger.info(
+                "ModuleRegistry initialized with %s discovered modules",
+                len(module_registry.get_all_modules()),
+            )
+        finally:
+            registry_db.close()
+    except Exception as e:
+        logger.error(f"Failed to initialize ModuleRegistry: {e}", exc_info=True)
 
     # Discover and register webhook events from active modules
     try:

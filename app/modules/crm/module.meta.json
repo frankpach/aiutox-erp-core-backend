@@ -1,0 +1,24 @@
+{
+  "id": "crm",
+  "name": "Clientes (CRM)",
+  "type": "business",
+  "category": "sales",
+  "description": "Gestion de clientes, leads, oportunidades y pipelines.",
+  "version": "0.1.0",
+  "depends_on": [
+    "auth",
+    "users",
+    "pubsub"
+  ],
+  "publishes": [
+    "customer.created",
+    "customer.contact.logged"
+  ],
+  "consumes": [],
+  "permissions": [
+    "crm.view",
+    "crm.manage",
+    "crm.leads.manage",
+    "crm.opportunities.manage"
+  ]
+}

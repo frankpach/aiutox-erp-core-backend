@@ -1,0 +1,29 @@
+{
+  "id": "inventory",
+  "name": "Inventario Base",
+  "type": "business",
+  "category": "operations",
+  "description": "Gestion de stock, movimientos, almacenes y ubicaciones.",
+  "version": "0.1.0",
+  "depends_on": [
+    "auth",
+    "users",
+    "products",
+    "pubsub"
+  ],
+  "publishes": [
+    "inventory.stock_low",
+    "inventory.movement.created"
+  ],
+  "consumes": [
+    "product.created",
+    "product.updated",
+    "product.deleted"
+  ],
+  "permissions": [
+    "inventory.view",
+    "inventory.manage",
+    "inventory.adjust",
+    "inventory.movements.view"
+  ]
+}

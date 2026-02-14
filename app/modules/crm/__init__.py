@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
@@ -12,7 +10,7 @@ from app.modules.crm.models.crm import Lead, Opportunity, Pipeline
 
 
 class CRMModule(ModuleInterface):
-    def __init__(self, db: Optional[Session] = None):
+    def __init__(self, db: Session | None = None):
         self._db = db
         self._config_service = ConfigService(db) if db else None
 
@@ -33,14 +31,14 @@ class CRMModule(ModuleInterface):
                 pass
         return True
 
-    def get_router(self) -> Optional[APIRouter]:
+    def get_router(self) -> APIRouter | None:
         return router
 
     def get_models(self) -> list:
         return [Pipeline, Lead, Opportunity]
 
     def get_dependencies(self) -> list[str]:
-        return ["auth", "users", "calendar"]
+        return ["auth", "users", "pubsub"]
 
     @property
     def module_name(self) -> str:
@@ -51,5 +49,5 @@ class CRMModule(ModuleInterface):
         return "Módulo empresarial: leads, oportunidades y pipelines."
 
 
-def create_module(db: Optional[Session] = None) -> CRMModule:
+def create_module(db: Session | None = None) -> CRMModule:
     return CRMModule(db)

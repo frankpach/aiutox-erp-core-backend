@@ -1,0 +1,43 @@
+module: inventory
+version: "1.0"
+
+publishes:
+  - event: inventory.stock_low
+    stream: events:domain
+    description: "Published when a SKU drops below configured threshold"
+    payload:
+      - product_id: UUID
+      - tenant_id: UUID
+      - available_quantity: number
+  - event: inventory.movement.created
+    stream: events:domain
+    description: "Published when a stock movement is created"
+    payload:
+      - movement_id: UUID
+      - tenant_id: UUID
+      - movement_type: string
+
+consumes:
+  - event: product.created
+    source_module: products
+    handler: handle_product_created
+    description: "Initialize stock structures for new product"
+  - event: product.updated
+    source_module: products
+    handler: handle_product_updated
+    description: "Sync inventory references with product updates"
+  - event: product.deleted
+    source_module: products
+    handler: handle_product_deleted
+    description: "Disable inventory records for deleted products"
+
+dependencies:
+  hard:
+    - module: auth
+      reason: "Authentication and authorization"
+    - module: users
+      reason: "User context and ownership"
+    - module: products
+      reason: "Stock entities depend on products"
+    - module: pubsub
+      reason: "Domain event bus"

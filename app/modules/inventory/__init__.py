@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
@@ -12,7 +10,7 @@ from app.modules.inventory.models.inventory import Location, StockMove, Warehous
 
 
 class InventoryModule(ModuleInterface):
-  def __init__(self, db: Optional[Session] = None):
+  def __init__(self, db: Session | None = None):
     self._db = db
     self._config_service = ConfigService(db) if db else None
 
@@ -33,14 +31,14 @@ class InventoryModule(ModuleInterface):
         pass
     return True
 
-  def get_router(self) -> Optional[APIRouter]:
+  def get_router(self) -> APIRouter | None:
     return router
 
   def get_models(self) -> list:
     return [Warehouse, Location, StockMove]
 
   def get_dependencies(self) -> list[str]:
-    return ["auth", "users", "products"]
+    return ["auth", "users", "products", "pubsub"]
 
   @property
   def module_name(self) -> str:
@@ -51,5 +49,5 @@ class InventoryModule(ModuleInterface):
     return "Módulo empresarial: almacenes, ubicaciones y movimientos de stock."
 
 
-def create_module(db: Optional[Session] = None) -> InventoryModule:
+def create_module(db: Session | None = None) -> InventoryModule:
   return InventoryModule(db)
