@@ -1,4 +1,4 @@
-"""Tasks router for task management."""
+ï»¿"""Tasks router for task management."""
 
 # Standard library imports
 import logging
@@ -91,6 +91,7 @@ async def create_task(
         source_id=task_data.source_id,
         source_context=task_data.source_context,
         metadata=task_data.metadata,
+        parent_task_id=task_data.parent_task_id,
     )
 
     return StandardResponse(
@@ -1554,7 +1555,7 @@ async def get_popular_templates(
          c u r r e n t _ u s e r :   A n n o t a t e d [ U s e r ,   D e p e n d s ( r e q u i r e _ p e r m i s s i o n ( " t a s k s . m a n a g e " ) ) ] , 
          d b :   A n n o t a t e d [ S e s s i o n ,   D e p e n d s ( g e t _ d b ) ] , 
  )   - >   S t a n d a r d R e s p o n s e [ d i c t ] : 
-         " " " S i n c r o n i z a r   t a r e a   c o n   c a l e n d a r i o   a u t o m á t i c a m e n t e . " " " 
+         " " " S i n c r o n i z a r   t a r e a   c o n   c a l e n d a r i o   a u t o m ï¿½ t i c a m e n t e . " " " 
          f r o m   a p p . c o r e . t a s k s . t a s k _ e v e n t _ s y n c _ s e r v i c e   i m p o r t   T a s k E v e n t S y n c S e r v i c e 
          
          s y n c _ s e r v i c e   =   T a s k E v e n t S y n c S e r v i c e ( d b ) 

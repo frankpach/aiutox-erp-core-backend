@@ -9,13 +9,13 @@ from sqlalchemy.orm import Session
 from app.core.cache.task_cache import get_task_cache
 from app.core.logging import get_logger
 from app.core.pubsub import get_event_publisher
+from app.core.pubsub.event_helpers import safe_publish_event
 from app.core.pubsub.models import EventMetadata
 from app.core.tasks.audit_integration import get_task_audit_service
 from app.core.tasks.notification_service import get_task_notification_service
 from app.core.tasks.state_machine import TaskStateMachine, TaskTransitionError
 from app.core.tasks.templates import get_task_template_service
 from app.core.tasks.webhooks import get_task_webhook_service
-from app.core.pubsub.event_helpers import safe_publish_event
 from app.models.task import Task, TaskPriority, TaskStatusEnum
 from app.repositories.task_repository import TaskRepository
 
@@ -64,6 +64,7 @@ class TaskService:
         source_id: UUID | None = None,
         source_context: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
+        parent_task_id: UUID | None = None,
     ) -> Task:
         """Create a new task.
 
@@ -85,10 +86,17 @@ class TaskService:
             related_entity_type: Related entity type (optional)
             related_entity_id: Related entity ID (optional)
             metadata: Additional metadata (optional)
+            parent_task_id: Parent task ID for subtask hierarchy (optional)
 
         Returns:
             Created Task object
+
+        Raises:
+            ValueError: If parent_task_id creates a cycle or exceeds max depth (3)
         """
+        # Validate subtask hierarchy
+        if parent_task_id:
+            self._validate_subtask_hierarchy(parent_task_id, tenant_id)
         task = self.repository.create_task(
             {
                 "tenant_id": tenant_id,
@@ -111,6 +119,7 @@ class TaskService:
                 "source_id": source_id,
                 "source_context": source_context,
                 "metadata": metadata,
+                "parent_task_id": parent_task_id,
             }
         )
 
@@ -225,6 +234,55 @@ class TaskService:
 
         return False
 
+    def _validate_subtask_hierarchy(
+        self,
+        parent_task_id: UUID,
+        tenant_id: UUID,
+        current_task_id: UUID | None = None,
+        max_depth: int = 3,
+    ) -> None:
+        """Validate subtask hierarchy constraints.
+
+        Args:
+            parent_task_id: Proposed parent task ID
+            tenant_id: Tenant ID
+            current_task_id: Current task ID (for update, to detect cycles)
+            max_depth: Maximum allowed nesting depth
+
+        Raises:
+            ValueError: If validation fails (cycle, max depth, or parent not found)
+        """
+        # Check parent exists and belongs to same tenant
+        parent = self.repository.get_task_by_id(parent_task_id, tenant_id)
+        if not parent:
+            raise ValueError("Parent task not found")
+
+        # Check for circular dependency (parent cannot be a descendant of current task)
+        if current_task_id:
+            if parent_task_id == current_task_id:
+                raise ValueError("A task cannot be its own parent")
+            # Walk up from parent to check if current_task_id is an ancestor
+            visited: set[UUID] = set()
+            node = parent
+            while node and node.parent_task_id:
+                if node.parent_task_id == current_task_id:
+                    raise ValueError("Circular dependency detected in subtask hierarchy")
+                if node.parent_task_id in visited:
+                    break  # Already a cycle in existing data, stop
+                visited.add(node.parent_task_id)
+                node = self.repository.get_task_by_id(node.parent_task_id, tenant_id)
+
+        # Check max depth: count levels up from parent
+        depth = 1  # Current task will be at depth = parent_depth + 1
+        node = parent
+        while node and node.parent_task_id:
+            depth += 1
+            if depth >= max_depth:
+                raise ValueError(
+                    f"Maximum subtask depth ({max_depth}) exceeded"
+                )
+            node = self.repository.get_task_by_id(node.parent_task_id, tenant_id)
+
     def get_tasks(
         self,
         tenant_id: UUID,
@@ -293,6 +351,13 @@ class TaskService:
         if "tag_ids" in task_data:
             tag_ids = task_data.get("tag_ids")
             task_data["tag_ids"] = [str(tag_id) for tag_id in tag_ids] if tag_ids else None
+
+        # Validate subtask hierarchy if parent_task_id is being updated
+        if "parent_task_id" in task_data and task_data["parent_task_id"]:
+            parent_id = task_data["parent_task_id"]
+            if isinstance(parent_id, str):
+                parent_id = UUID(parent_id)
+            self._validate_subtask_hierarchy(parent_id, tenant_id, task_id)
 
         # Validate state transition if status is being updated
         def _coerce_status(value: TaskStatusEnum | str) -> TaskStatusEnum:

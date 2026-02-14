@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import APIException
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
@@ -16,10 +17,8 @@ from app.models.calendar import (
     EventAttendee,
     EventReminder,
     EventStatus,
-    RecurrenceType,
     ReminderType,
 )
-from app.core.exceptions import APIException
 from app.repositories.calendar_repository import CalendarRepository
 
 MIN_EVENT_DURATION = timedelta(minutes=15)
@@ -469,7 +468,38 @@ class CalendarService:
         tenant_id: UUID,
         reminder_data: dict,
     ) -> EventReminder:
-        """Add reminder to event."""
+        """Add reminder to event.
+
+        Validates:
+        - minutes_before between 5 and 10080 (1 week)
+        - reminder_type is one of: email, in_app, push
+        - Maximum 5 reminders per event
+        """
+        minutes_before = reminder_data.get("minutes_before", 0)
+        if not isinstance(minutes_before, int) or minutes_before < 5 or minutes_before > 10080:
+            raise APIException(
+                status_code=400,
+                code="INVALID_REMINDER_MINUTES",
+                message="minutes_before must be between 5 and 10080",
+            )
+
+        reminder_type = reminder_data.get("reminder_type", "")
+        valid_types = {"email", "in_app", "push"}
+        if reminder_type not in valid_types:
+            raise APIException(
+                status_code=400,
+                code="INVALID_REMINDER_TYPE",
+                message=f"reminder_type must be one of: {', '.join(sorted(valid_types))}",
+            )
+
+        current_count = self.count_event_reminders(event_id, tenant_id)
+        if current_count >= 5:
+            raise APIException(
+                status_code=400,
+                code="REMINDER_LIMIT_EXCEEDED",
+                message="Maximum 5 reminders per event",
+            )
+
         reminder_data["event_id"] = event_id
         reminder_data["tenant_id"] = tenant_id
         return self.repository.create_reminder(reminder_data)
@@ -606,8 +636,6 @@ class ReminderService:
                 logger.info(f"Push notifications not yet implemented for reminder {reminder.id}")
 
             # Mark reminder as sent
-            from datetime import UTC, datetime
-
             self.repository.update_reminder(
                 reminder,
                 {

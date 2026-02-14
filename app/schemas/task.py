@@ -36,6 +36,7 @@ class TaskBase(BaseModel):
     source_id: UUID | None = Field(None, description="Source entity ID")
     source_context: dict[str, Any] | None = Field(None, description="Additional context from source module")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    parent_task_id: UUID | None = Field(None, description="Parent task ID for subtask hierarchy")
 
 
 class TaskCreate(TaskBase):
@@ -59,6 +60,7 @@ class TaskUpdate(BaseModel):
     tag_ids: list[UUID] | None = Field(None, description="Core tag IDs")
     color_override: str | None = Field(None, description="Manual color override (hex)")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    parent_task_id: UUID | None = Field(None, description="Parent task ID for subtask hierarchy")
 
 
 class TaskResponse(TaskBase):

@@ -1,11 +1,11 @@
 """Unit tests for CalendarService."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from unittest.mock import AsyncMock, MagicMock
 
-from app.core.calendar.service import CalendarService, ReminderService
+import pytest
+
+from app.core.calendar.service import CalendarService
 from app.core.pubsub import EventPublisher
 
 
@@ -221,4 +221,95 @@ def test_resize_event_accepts_valid_end_time(calendar_service, test_user, test_t
 
     assert updated is not None
     assert updated.end_time == new_end
+
+
+# --- Reminder validation tests ---
+
+
+def test_add_reminder_rejects_minutes_below_minimum(calendar_service, test_user, test_tenant):
+    """Test that add_reminder raises APIException when minutes_before < 5."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.add_reminder(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            reminder_data={"minutes_before": 2, "reminder_type": "in_app"},
+        )
+
+    assert exc_info.value.code == "INVALID_REMINDER_MINUTES"
+
+
+def test_add_reminder_rejects_minutes_above_maximum(calendar_service, test_user, test_tenant):
+    """Test that add_reminder raises APIException when minutes_before > 10080."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.add_reminder(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            reminder_data={"minutes_before": 20000, "reminder_type": "email"},
+        )
+
+    assert exc_info.value.code == "INVALID_REMINDER_MINUTES"
+
+
+def test_add_reminder_rejects_invalid_type(calendar_service, test_user, test_tenant):
+    """Test that add_reminder raises APIException for invalid reminder_type."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.add_reminder(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            reminder_data={"minutes_before": 15, "reminder_type": "sms"},
+        )
+
+    assert exc_info.value.code == "INVALID_REMINDER_TYPE"
+
+
+def test_add_reminder_rejects_when_limit_exceeded(calendar_service, test_user, test_tenant):
+    """Test that add_reminder raises APIException when 5 reminders already exist."""
+    from app.core.exceptions import APIException
+
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    # Add 5 reminders
+    for i in range(5):
+        calendar_service.add_reminder(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            reminder_data={"minutes_before": 5 + i * 10, "reminder_type": "in_app"},
+        )
+
+    # 6th should fail
+    with pytest.raises(APIException) as exc_info:
+        calendar_service.add_reminder(
+            event_id=event.id,
+            tenant_id=test_tenant.id,
+            reminder_data={"minutes_before": 60, "reminder_type": "email"},
+        )
+
+    assert exc_info.value.code == "REMINDER_LIMIT_EXCEEDED"
+
+
+def test_add_reminder_succeeds_with_valid_data(calendar_service, test_user, test_tenant):
+    """Test that add_reminder succeeds with valid data."""
+    event = _create_test_event(calendar_service, test_user, test_tenant)
+
+    reminder = calendar_service.add_reminder(
+        event_id=event.id,
+        tenant_id=test_tenant.id,
+        reminder_data={"minutes_before": 30, "reminder_type": "email"},
+    )
+
+    assert reminder is not None
+    assert reminder.minutes_before == 30
+    assert reminder.reminder_type == "email"
 

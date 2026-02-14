@@ -231,5 +231,16 @@
     "depends_on": ["auth", "users", "pubsub"],
     "publishes": ["customer.created", "customer.contact.logged"],
     "consumes": []
+  },
+  {
+    "key": "gamification",
+    "name": "Sistema de Gamificación",
+    "type": "core",
+    "category": "infrastructure",
+    "enabled": true,
+    "description": "Infraestructura base: Puntos, niveles, badges, streaks, leaderboards. Sistema transversal que recompensa actividad en cualquier módulo.",
+    "depends_on": ["auth", "users", "pubsub", "tasks"],
+    "publishes": ["gamification.points_added", "gamification.level_up", "gamification.badge_awarded"],
+    "consumes": ["task.completed", "task.created", "calendar.event_attended"]
   }
 ]
