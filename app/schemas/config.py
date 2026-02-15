@@ -7,6 +7,42 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ModuleNavigationSettingRequirementSchema(BaseModel):
+    """Requirement for showing a navigation item based on module settings."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    module: str = Field(..., description="Module ID that owns the setting")
+    key: str = Field(..., description="Configuration key to evaluate")
+    value: Any | None = Field(
+        None,
+        description="Optional value requirement; if provided, the setting must match this value",
+    )
+
+
+class ModuleNavigationItemSchema(BaseModel):
+    """Navigation item published by a module."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(..., description="Unique identifier for the navigation item")
+    label: str = Field(..., description="Localized label for the item")
+    path: str = Field(..., description="Absolute path that the item should open")
+    permission: str | None = Field(
+        None, description="Permission required to show the item (if any)"
+    )
+    icon: str | None = Field(None, description="Icon token understood by the frontend")
+    category: str | None = Field(
+        None, description="Optional category override (defaults to module grouping)"
+    )
+    order: int = Field(0, description="Display order within its category")
+    badge: int | None = Field(None, description="Optional badge count for the item")
+    requires_module_setting: ModuleNavigationSettingRequirementSchema | None = Field(
+        None,
+        description="Requirement definition to display the item",
+    )
+
+
 class ConfigCreate(BaseModel):
     """Schema for creating a configuration entry."""
 
@@ -82,6 +118,14 @@ class ModuleInfoResponse(BaseModel):
     description: str = Field(default="", description="Module description")
     has_router: bool = Field(..., description="Whether the module has API endpoints")
     model_count: int = Field(..., description="Number of SQLAlchemy models in the module")
+    navigation_items: list[ModuleNavigationItemSchema] = Field(
+        default_factory=list,
+        description="Primary navigation entries exposed by the module",
+    )
+    settings_links: list[ModuleNavigationItemSchema] = Field(
+        default_factory=list,
+        description="Configuration entries that must show under Configuración",
+    )
 
 
 class ModuleListItem(BaseModel):
@@ -95,6 +139,14 @@ class ModuleListItem(BaseModel):
         default_factory=list, description="List of module IDs this module depends on"
     )
     description: str = Field(default="", description="Module description")
+    navigation_items: list[ModuleNavigationItemSchema] = Field(
+        default_factory=list,
+        description="Primary navigation entries exposed by the module",
+    )
+    settings_links: list[ModuleNavigationItemSchema] = Field(
+        default_factory=list,
+        description="Configuration entries that must show under Configuración",
+    )
 
 
 class GeneralSettingsRequest(BaseModel):

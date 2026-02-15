@@ -1,9 +1,34 @@
 """Module interface for all modules in the system."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any
 
 from fastapi import APIRouter
+
+
+@dataclass(slots=True)
+class ModuleNavigationSettingRequirement:
+    """Requirement for displaying a navigation item based on module settings."""
+
+    module: str
+    key: str
+    value: Any | None = None
+
+
+@dataclass(slots=True)
+class ModuleNavigationItem:
+    """Navigation item exposed by a module (main or configuration)."""
+
+    id: str
+    label: str
+    path: str
+    permission: str | None = None
+    icon: str | None = None
+    category: str | None = None
+    order: int = 0
+    badge: int | None = None
+    requires_module_setting: ModuleNavigationSettingRequirement | None = None
 
 
 class ModuleInterface(ABC):
@@ -41,7 +66,7 @@ class ModuleInterface(ABC):
         """
         pass
 
-    def get_router(self) -> Optional[APIRouter]:
+    def get_router(self) -> APIRouter | None:
         """Get the FastAPI router for this module.
 
         Returns:
@@ -72,6 +97,16 @@ class ModuleInterface(ABC):
         notification templates, etc.
         """
         pass
+
+    def get_navigation_items(self) -> list[ModuleNavigationItem]:
+        """Main navigation entries exposed by the module."""
+
+        return []
+
+    def get_settings_navigation(self) -> list[ModuleNavigationItem]:
+        """Configuration/navigation entries that should appear under Configuración."""
+
+        return []
 
     @property
     def module_name(self) -> str:

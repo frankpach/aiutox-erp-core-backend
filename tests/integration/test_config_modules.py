@@ -3,6 +3,7 @@
 import pytest
 from fastapi import status
 
+from app.core.module_navigation_icons import MODULE_NAVIGATION_ICON_TOKENS
 from app.models.module_role import ModuleRole
 from app.services.auth_service import AuthService
 
@@ -290,4 +291,95 @@ class TestConfigModules:
         data = response.json()
         assert "data" in data
         assert data["data"]["enabled"] is False
+
+    def test_modules_expose_valid_navigation_items(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
+        """Test that modules expose navigation items with expected schema semantics."""
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="viewer",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        response = client_with_db.get(
+            "/api/v1/config/modules",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        modules = response.json()["data"]
+        assert isinstance(modules, list)
+
+        for module in modules:
+            navigation_items = module.get("navigation_items", [])
+            settings_links = module.get("settings_links", [])
+
+            for item in [*navigation_items, *settings_links]:
+                assert isinstance(item.get("id"), str) and item["id"]
+                assert isinstance(item.get("label"), str) and item["label"]
+                assert isinstance(item.get("path"), str) and item["path"].startswith("/")
+                assert isinstance(item.get("order"), int)
+
+                permission = item.get("permission")
+                assert permission is None or (isinstance(permission, str) and permission)
+
+                icon = item.get("icon")
+                assert icon is None or icon in MODULE_NAVIGATION_ICON_TOKENS
+
+                requirement = item.get("requires_module_setting")
+                if requirement is not None:
+                    assert isinstance(requirement.get("module"), str) and requirement["module"]
+                    assert isinstance(requirement.get("key"), str) and requirement["key"]
+
+    def test_prioritized_modules_publish_dynamic_navigation(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
+        """Test that prioritized modules publish main/settings dynamic navigation entries."""
+        module_role = ModuleRole(
+            user_id=test_user.id,
+            module="config",
+            role_name="viewer",
+            granted_by=test_user.id,
+        )
+        db_session.add(module_role)
+        db_session.commit()
+
+        auth_service = AuthService(db_session)
+        access_token = auth_service.create_access_token_for_user(test_user)
+
+        response = client_with_db.get(
+            "/api/v1/config/modules",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        modules = response.json()["data"]
+        if not modules:
+            pytest.skip("No modules available in registry")
+        modules_by_id = {module["id"]: module for module in modules}
+
+        prioritized_modules = {
+            "tasks",
+            "products",
+            "inventory",
+            "crm",
+            "integrations",
+            "files",
+            "config",
+            "notifications",
+        }
+
+        for module_id in prioritized_modules:
+            assert module_id in modules_by_id
+            module_data = modules_by_id[module_id]
+            navigation_count = len(module_data.get("navigation_items", []))
+            settings_count = len(module_data.get("settings_links", []))
+            assert navigation_count + settings_count > 0
 

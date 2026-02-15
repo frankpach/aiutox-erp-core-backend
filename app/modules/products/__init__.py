@@ -1,13 +1,10 @@
 """Products module for catalog management."""
 
-from typing import Optional
-from uuid import UUID
-
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
 from app.core.config.service import ConfigService
-from app.core.module_interface import ModuleInterface
+from app.core.module_interface import ModuleInterface, ModuleNavigationItem
 from app.modules.products.api import router
 from app.modules.products.models.product import (
     Category,
@@ -15,12 +12,17 @@ from app.modules.products.models.product import (
     ProductBarcode,
     ProductVariant,
 )
+from app.modules.products.permissions import (
+    PRODUCTS_CREATE,
+    PRODUCTS_MANAGE,
+    PRODUCTS_VIEW,
+)
 
 
 class ProductsModule(ModuleInterface):
     """Products module for catalog management."""
 
-    def __init__(self, db: Optional[Session] = None):
+    def __init__(self, db: Session | None = None):
         """Initialize ProductsModule.
 
         Args:
@@ -55,7 +57,7 @@ class ProductsModule(ModuleInterface):
                 pass
         return True  # Default to enabled
 
-    def get_router(self) -> Optional[APIRouter]:
+    def get_router(self) -> APIRouter | None:
         """Get FastAPI router for products module."""
         return router
 
@@ -85,9 +87,42 @@ class ProductsModule(ModuleInterface):
         """Callback when module is loaded."""
         pass
 
+    def get_navigation_items(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="products.main",
+                label="Productos",
+                path="/products",
+                permission=PRODUCTS_VIEW,
+                icon="grid",
+                order=0,
+            ),
+            ModuleNavigationItem(
+                id="products.create",
+                label="Nuevo producto",
+                path="/products-create",
+                permission=PRODUCTS_CREATE,
+                icon="grid",
+                order=10,
+            ),
+        ]
+
+    def get_settings_navigation(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="products.config",
+                label="Configuración de catálogo",
+                path="/config/modules?module=products",
+                permission=PRODUCTS_MANAGE,
+                icon="settings",
+                category="Configuración",
+                order=0,
+            )
+        ]
+
 
 # Export module instance factory
-def create_module(db: Optional[Session] = None) -> ProductsModule:
+def create_module(db: Session | None = None) -> ProductsModule:
     """Create a ProductsModule instance.
 
     Args:

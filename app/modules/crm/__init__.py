@@ -4,9 +4,10 @@ from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
 from app.core.config.service import ConfigService
-from app.core.module_interface import ModuleInterface
+from app.core.module_interface import ModuleInterface, ModuleNavigationItem
 from app.modules.crm.api import router
 from app.modules.crm.models.crm import Lead, Opportunity, Pipeline
+from app.modules.crm.permissions import CRM_MANAGE, CRM_VIEW
 
 
 class CRMModule(ModuleInterface):
@@ -47,6 +48,39 @@ class CRMModule(ModuleInterface):
     @property
     def description(self) -> str:
         return "Módulo empresarial: leads, oportunidades y pipelines."
+
+    def get_navigation_items(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="crm.main",
+                label="CRM",
+                path="/crm",
+                permission=CRM_VIEW,
+                icon="grid",
+                order=0,
+            ),
+            ModuleNavigationItem(
+                id="crm.pipeline",
+                label="Pipelines",
+                path="/crm/pipelines",
+                permission=CRM_VIEW,
+                icon="grid",
+                order=10,
+            ),
+        ]
+
+    def get_settings_navigation(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="crm.config",
+                label="Configuración CRM",
+                path="/config/modules?module=crm",
+                permission=CRM_MANAGE,
+                icon="settings",
+                category="Configuración",
+                order=0,
+            )
+        ]
 
 
 def create_module(db: Session | None = None) -> CRMModule:

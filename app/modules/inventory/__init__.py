@@ -4,9 +4,13 @@ from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
 from app.core.config.service import ConfigService
-from app.core.module_interface import ModuleInterface
+from app.core.module_interface import ModuleInterface, ModuleNavigationItem
 from app.modules.inventory.api import router
 from app.modules.inventory.models.inventory import Location, StockMove, Warehouse
+from app.modules.inventory.permissions import (
+    INVENTORY_MANAGE,
+    INVENTORY_VIEW,
+)
 
 
 class InventoryModule(ModuleInterface):
@@ -47,6 +51,39 @@ class InventoryModule(ModuleInterface):
   @property
   def description(self) -> str:
     return "Módulo empresarial: almacenes, ubicaciones y movimientos de stock."
+
+  def get_navigation_items(self) -> list[ModuleNavigationItem]:
+    return [
+        ModuleNavigationItem(
+            id="inventory.main",
+            label="Inventario",
+            path="/inventory",
+            permission=INVENTORY_VIEW,
+            icon="grid",
+            order=0,
+        ),
+        ModuleNavigationItem(
+            id="inventory.movements",
+            label="Movimientos",
+            path="/inventory/movements",
+            permission=INVENTORY_VIEW,
+            icon="grid",
+            order=10,
+        ),
+    ]
+
+  def get_settings_navigation(self) -> list[ModuleNavigationItem]:
+    return [
+        ModuleNavigationItem(
+            id="inventory.config",
+            label="Configuración de inventario",
+            path="/config/modules?module=inventory",
+            permission=INVENTORY_MANAGE,
+            icon="settings",
+            category="Configuración",
+            order=0,
+        ),
+    ]
 
 
 def create_module(db: Session | None = None) -> InventoryModule:

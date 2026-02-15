@@ -26,6 +26,7 @@ from app.schemas.config import (
     ModuleConfigResponse,
     ModuleInfoResponse,
     ModuleListItem,
+    ModuleNavigationItemSchema,
     ThemePresetCreate,
     ThemePresetResponse,
     ThemePresetUpdate,
@@ -194,11 +195,33 @@ async def list_modules(
                 module_type = getattr(module_instance, "module_type", "business") or "business"
                 dependencies = getattr(module_instance, "get_dependencies", lambda: [])() or []
                 description = getattr(module_instance, "description", "") or ""
+                navigation_items = (
+                    getattr(module_instance, "get_navigation_items", lambda: [])() or []
+                )
+                settings_links = (
+                    getattr(module_instance, "get_settings_navigation", lambda: [])() or []
+                )
 
                 # Ensure dependencies is a list of strings
                 if not isinstance(dependencies, list):
                     dependencies = []
                 dependencies = [str(dep) for dep in dependencies if dep]
+
+                try:
+                    parsed_navigation = [
+                        ModuleNavigationItemSchema.model_validate(item)
+                        for item in navigation_items
+                    ]
+                except Exception:
+                    parsed_navigation = []
+
+                try:
+                    parsed_settings = [
+                        ModuleNavigationItemSchema.model_validate(item)
+                        for item in settings_links
+                    ]
+                except Exception:
+                    parsed_settings = []
 
                 modules_list.append(
                     ModuleListItem(
@@ -208,6 +231,8 @@ async def list_modules(
                         enabled=bool(is_enabled),
                         dependencies=dependencies,
                         description=str(description),
+                        navigation_items=parsed_navigation,
+                        settings_links=parsed_settings,
                     )
                 )
             except Exception as module_error:
@@ -365,6 +390,14 @@ async def get_module_info(
             description=module.description,
             has_router=module.get_router() is not None,
             model_count=len(module.get_models()),
+            navigation_items=[
+                ModuleNavigationItemSchema.model_validate(item)
+                for item in module.get_navigation_items()
+            ],
+            settings_links=[
+                ModuleNavigationItemSchema.model_validate(item)
+                for item in module.get_settings_navigation()
+            ],
         )
     )
 
