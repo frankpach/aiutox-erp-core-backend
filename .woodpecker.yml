@@ -34,19 +34,13 @@ steps:
     when:
       branch: main
       event: push
-    privileged: true
-    depends_on: [docker]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     commands:
       - docker build -t registry:5000/aiutox/backend:latest .
       - docker tag registry:5000/aiutox/backend:latest registry:5000/aiutox/backend:${CI_COMMIT_SHA}
       - docker push registry:5000/aiutox/backend:latest
       - docker push registry:5000/aiutox/backend:${CI_COMMIT_SHA}
-
-# Docker-in-Docker service
-  docker:
-    image: docker:29-dind
-    privileged: true
-    command: ["dockerd-entrypoint.sh", "--tls=false"]
 
 # services:
 #   postgres:
