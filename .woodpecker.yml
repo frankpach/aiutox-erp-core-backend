@@ -41,10 +41,10 @@ steps:
         - latest
         - ${CI_COMMIT_SHA:0:8}
       dockerfile: Dockerfile
-      username:
-        from_secret: REGISTRY_USER
-      password:
-        from_secret: REGISTRY_PASSWORD
+      #username:
+      #  from_secret: REGISTRY_USER
+      #password:
+      #  from_secret: REGISTRY_PASSWORD
       insecure: true
 
 services:
