@@ -35,17 +35,7 @@ steps:
       branch: main
       event: push
     commands:
-      - |
-        cat > /kaniko/.docker/config.json <<EOF
-        {
-          "auths": {
-            "registry:5000": {
-              "username": "$CI_REGISTRY_USERNAME",
-              "password": "$CI_REGISTRY_PASSWORD"
-            }
-          }
-        }
-        EOF
+      - echo '{"auths":{"registry:5000":{"username":"$CI_REGISTRY_USERNAME","password":"$CI_REGISTRY_PASSWORD"}}}' > /kaniko/.docker/config.json
       - /kaniko/executor --dockerfile=Dockerfile --destination=registry:5000/aiutox/backend:latest --destination=registry:5000/aiutox/backend:${CI_COMMIT_SHA} --cache=true
 
 # services:
