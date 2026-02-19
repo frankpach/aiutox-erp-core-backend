@@ -7,7 +7,8 @@ steps:
       event: [push, pull_request]
     commands:
       - uv sync --dev --quiet
-      - uv tool install ruff black
+      - uv tool install ruff
+      - uv tool install black
       - uv run ruff check app/
       - uv run black --check app/
 
