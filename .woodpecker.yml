@@ -43,6 +43,7 @@ steps:
       - docker push aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${CI_COMMIT_SHA}
 
 # services:
+
 #   postgres:
 #     image: postgres:16-alpine
 #     environment:
