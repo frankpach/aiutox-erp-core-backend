@@ -36,7 +36,6 @@ class TaskAdoptionAnalytics:
             Diccionario con métricas de adopción
         """
         from app.models.task import Task
-        from app.models.user import User
 
         # Total de usuarios activos (con tareas)
         total_users_with_tasks = (
@@ -224,7 +223,7 @@ class TaskAdoptionAnalytics:
         # Estados custom (no sistema)
         custom_states = (
             self.db.query(func.count(TaskStatus.id))
-            .filter(TaskStatus.tenant_id == tenant_id, TaskStatus.is_system == False)
+            .filter(TaskStatus.tenant_id == tenant_id, not TaskStatus.is_system)
             .scalar()
             or 0
         )

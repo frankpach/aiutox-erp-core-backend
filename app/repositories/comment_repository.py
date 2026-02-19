@@ -48,7 +48,7 @@ class CommentRepository:
         )
 
         if not include_deleted:
-            query = query.filter(Comment.is_deleted == False)
+            query = query.filter(not Comment.is_deleted)
 
         return query.order_by(Comment.created_at.asc()).offset(skip).limit(limit).all()
 
@@ -61,7 +61,7 @@ class CommentRepository:
         )
 
         if not include_deleted:
-            query = query.filter(Comment.is_deleted == False)
+            query = query.filter(not Comment.is_deleted)
 
         return query.order_by(Comment.created_at.asc()).all()
 
@@ -113,7 +113,7 @@ class CommentRepository:
         """Get unnotified mentions."""
         query = self.db.query(CommentMention).filter(
             CommentMention.tenant_id == tenant_id,
-            CommentMention.notification_sent == False,
+            not CommentMention.notification_sent,
         )
 
         if user_id:

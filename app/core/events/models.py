@@ -1,6 +1,6 @@
 """Event models for the events system."""
 
-from typing import Any, Optional
+from typing import Any
 
 
 class EventMetadata:
@@ -9,7 +9,7 @@ class EventMetadata:
     def __init__(
         self,
         version: str = "1.0",
-        additional_data: Optional[dict[str, Any]] = None
+        additional_data: dict[str, Any] | None = None
     ):
         """Initialize event metadata."""
         self.version = version

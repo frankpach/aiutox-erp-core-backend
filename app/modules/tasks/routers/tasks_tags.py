@@ -4,12 +4,11 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
-from app.core.exceptions import APIException
 from app.core.tasks.tag_service import get_task_tag_service
 from app.models.user import User
 from app.schemas.common import StandardListResponse, StandardResponse

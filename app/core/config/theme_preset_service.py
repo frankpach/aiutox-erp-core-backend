@@ -3,11 +3,10 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.config.service import ConfigService
-from app.core.exceptions import APIException, raise_bad_request, raise_not_found
+from app.core.exceptions import raise_bad_request, raise_not_found
 from app.models.theme_preset import ThemePreset
 
 
@@ -292,7 +291,7 @@ class ThemePresetService:
         """
         self.db.query(ThemePreset).filter(
             ThemePreset.tenant_id == tenant_id,
-            ThemePreset.is_default == True,
+            ThemePreset.is_default,
         ).update({"is_default": False})
         self.db.commit()
 

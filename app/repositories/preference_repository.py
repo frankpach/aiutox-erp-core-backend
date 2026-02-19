@@ -5,7 +5,13 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.preference import Dashboard, OrgPreference, RolePreference, SavedView, UserPreference
+from app.models.preference import (
+    Dashboard,
+    OrgPreference,
+    RolePreference,
+    SavedView,
+    UserPreference,
+)
 
 
 class PreferenceRepository:

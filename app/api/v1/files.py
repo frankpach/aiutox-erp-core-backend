@@ -4,7 +4,8 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File as FastAPIFile, Path, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Path, Query, UploadFile, status
+from fastapi import File as FastAPIFile
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -94,8 +95,9 @@ async def upload_file(
             )
 
     # Reload file with user relationship for response
-    from sqlalchemy.orm import joinedload
     import logging
+
+    from sqlalchemy.orm import joinedload
 
     logger = logging.getLogger(__name__)
 
@@ -1316,12 +1318,12 @@ async def get_file_content(
         )
 
     # Limit file size for preview (5MB)
-    MAX_PREVIEW_SIZE = 5 * 1024 * 1024
-    if file.size > MAX_PREVIEW_SIZE:
+    max_preview_size = 5 * 1024 * 1024
+    if file.size > max_preview_size:
         raise APIException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code="FILE_TOO_LARGE",
-            message=f"File is too large for preview (max {MAX_PREVIEW_SIZE} bytes)",
+            message=f"File is too large for preview (max {max_preview_size} bytes)",
         )
 
     try:

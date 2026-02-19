@@ -1,10 +1,11 @@
 """AuditLog model for security and audit event tracking."""
 
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import Column, ForeignKey, Index, String
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
@@ -46,7 +47,7 @@ class AuditLog(Base):
     user_agent = Column(String(500), nullable=True, comment="Client user agent string")
     created_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
         index=True,
     )

@@ -2,8 +2,8 @@
 
 import json
 import logging
-from datetime import datetime, timedelta, UTC
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -92,7 +92,7 @@ class TaskCacheOptimized:
         """Establecer valor en caché con TTL opcional."""
         try:
             ttl = ttl or self.default_ttl
-            
+
             # Serializar si es necesario
             if serialize and not isinstance(value, (str, int, float, bool)):
                 value = json.dumps(value, default=str)
@@ -183,10 +183,10 @@ class TaskCacheOptimized:
         for k, v in sorted(filters.items()):
             if v is not None:
                 filter_parts.append(f"{k}:{v}")
-        
+
         filter_hash = hash(tuple(filter_parts))
         key = f"task_list:{tenant_id}:{filter_hash}"
-        
+
         await self.set(key, tasks, ttl)
 
     async def get_cached_task_list(
@@ -199,10 +199,10 @@ class TaskCacheOptimized:
         for k, v in sorted(filters.items()):
             if v is not None:
                 filter_parts.append(f"{k}:{v}")
-        
+
         filter_hash = hash(tuple(filter_parts))
         key = f"task_list:{tenant_id}:{filter_hash}"
-        
+
         result = await self.get(key)
         return result if isinstance(result, list) else None
 
@@ -217,7 +217,7 @@ class TaskCacheOptimized:
         """Cachear tareas visibles para usuario."""
         groups_str = ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
         key = f"visible_tasks:{tenant_id}:{user_id}:{groups_str}"
-        
+
         await self.set(key, tasks, ttl)
 
     async def get_cached_user_visibility(
@@ -229,7 +229,7 @@ class TaskCacheOptimized:
         """Obtener tareas visibles cachéadas para usuario."""
         groups_str = ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
         key = f"visible_tasks:{tenant_id}:{user_id}:{groups_str}"
-        
+
         result = await self.get(key)
         return result if isinstance(result, list) else None
 
@@ -271,7 +271,7 @@ class TaskCacheOptimized:
             f"visible_tasks:{tenant_id}:{user_id}:*",
             f"task_list:{tenant_id}:*",
         ]
-        
+
         for pattern in patterns:
             await self.delete_pattern(pattern)
 
@@ -282,7 +282,7 @@ class TaskCacheOptimized:
             f"task_list:{tenant_id}:*",
             f"visible_tasks:{tenant_id}:*",
         ]
-        
+
         for key in keys:
             if "*" in key:
                 await self.delete_pattern(key)
@@ -298,7 +298,7 @@ class TaskCacheOptimized:
             f"task_stats:{tenant_id}",
             f"task_search:{tenant_id}:*",
         ]
-        
+
         for pattern in patterns:
             await self.delete_pattern(pattern)
 
@@ -336,14 +336,14 @@ class TaskCacheOptimized:
             # Obtener claves con TTL cercano a expiración
             cursor = 0
             cleaned = 0
-            
+
             while cursor != 0 and cleaned < max_keys:
                 cursor, keys = await self.redis.scan(
                     cursor=cursor,
                     match="task:*",
                     count=100,
                 )
-                
+
                 for key in keys:
                     ttl = await self.get_ttl(key)
                     if ttl == -1:  # Sin TTL, establecer TTL por defecto
@@ -351,7 +351,7 @@ class TaskCacheOptimized:
                     elif ttl == -2:  # Expirada
                         await self.delete(key)
                         cleaned += 1
-            
+
             return cleaned
         except Exception as e:
             logger.error(f"Error en limpieza de caché: {e}")
@@ -375,7 +375,7 @@ class TaskCacheOptimized:
             start_time = datetime.now(UTC)
             await self.redis.ping()
             latency = (datetime.now(UTC) - start_time).total_seconds() * 1000
-            
+
             return {
                 "status": "healthy",
                 "latency_ms": latency,
@@ -398,18 +398,18 @@ _task_cache_instance: TaskCacheOptimized | None = None
 async def get_task_cache_optimized() -> TaskCacheOptimized:
     """Obtener instancia global del caché optimizado."""
     global _task_cache_instance
-    
+
     if _task_cache_instance is None:
         _task_cache_instance = TaskCacheOptimized()
         await _task_cache_instance.connect()
-    
+
     return _task_cache_instance
 
 
 async def close_task_cache_optimized() -> None:
     """Cerrar instancia global del caché."""
     global _task_cache_instance
-    
+
     if _task_cache_instance:
         await _task_cache_instance.disconnect()
         _task_cache_instance = None

@@ -1,24 +1,21 @@
 """Migration manager for Alembic migrations."""
 
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
 
 from alembic import command, config, script
 from alembic.runtime.migration import MigrationContext
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import text
 
 from app.core.config_file import get_settings
-from app.core.db.session import Base, engine
+from app.core.db.session import engine
 from app.core.migrations.models import MigrationInfo, MigrationResult, MigrationStatus
 
 
 class MigrationManager:
     """Manager for Alembic migrations."""
 
-    def __init__(self, alembic_cfg_path: Optional[Path] = None):
+    def __init__(self, alembic_cfg_path: Path | None = None):
         """Initialize migration manager.
 
         Args:
@@ -34,7 +31,7 @@ class MigrationManager:
         self.settings = get_settings()
         self.engine = engine
 
-    def get_current_revision(self) -> Optional[str]:
+    def get_current_revision(self) -> str | None:
         """Get current revision from database.
 
         Returns:
@@ -59,7 +56,7 @@ class MigrationManager:
                     except Exception:
                         return None
 
-    def _get_migration_info_from_file(self, file_path: Path) -> Optional[MigrationInfo]:
+    def _get_migration_info_from_file(self, file_path: Path) -> MigrationInfo | None:
         """Extract migration info from a migration file.
 
         Args:
@@ -69,7 +66,7 @@ class MigrationManager:
             MigrationInfo or None if file cannot be parsed
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Extract revision
@@ -112,7 +109,7 @@ class MigrationManager:
         except Exception:
             return None
 
-    def _get_all_migration_files(self) -> List[MigrationInfo]:
+    def _get_all_migration_files(self) -> list[MigrationInfo]:
         """Get all migration files from versions directory.
 
         Returns:
@@ -131,7 +128,7 @@ class MigrationManager:
 
         return migrations
 
-    def get_applied_migrations(self) -> List[MigrationInfo]:
+    def get_applied_migrations(self) -> list[MigrationInfo]:
         """Get list of applied migrations.
 
         Returns:
@@ -165,7 +162,7 @@ class MigrationManager:
 
         return applied
 
-    def get_pending_migrations(self) -> List[MigrationInfo]:
+    def get_pending_migrations(self) -> list[MigrationInfo]:
         """Get list of pending migrations.
 
         Returns:
@@ -277,7 +274,7 @@ class MigrationManager:
             try:
                 # Use "heads" (plural) to handle multiple head revisions
                 command.upgrade(self.alembic_cfg, "heads")
-                output = buffer.getvalue()
+                buffer.getvalue()
             finally:
                 sys.stdout = old_stdout
 
@@ -332,7 +329,7 @@ class MigrationManager:
                     command.downgrade(self.alembic_cfg, target_revision)
                 else:
                     command.downgrade(self.alembic_cfg, "base")
-                output = buffer.getvalue()
+                buffer.getvalue()
             finally:
                 sys.stdout = old_stdout
 

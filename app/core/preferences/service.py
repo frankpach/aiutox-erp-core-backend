@@ -7,7 +7,6 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.preferences.inheritance import merge_preferences
-from app.models.user import User
 from app.repositories.preference_repository import PreferenceRepository
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 """Schemas for delegated permission management."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -58,9 +58,8 @@ class DelegatedPermissionCreate(BaseModel):
             ValueError: If expires_at is in the past.
         """
         if v is not None:
-            from datetime import timezone
 
-            now = datetime.now(timezone.utc) if v.tzinfo else datetime.now()
+            now = datetime.now(UTC) if v.tzinfo else datetime.now()
             if v <= now:
                 raise ValueError("expires_at must be in the future")
         return v
@@ -147,9 +146,8 @@ class PermissionGrantRequest(BaseModel):
             ValueError: If expires_at is in the past.
         """
         if v is not None:
-            from datetime import timezone
 
-            now = datetime.now(timezone.utc) if v.tzinfo else datetime.now()
+            now = datetime.now(UTC) if v.tzinfo else datetime.now()
             if v <= now:
                 raise ValueError("expires_at must be in the future")
         return v

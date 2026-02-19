@@ -183,7 +183,7 @@ class NotificationEventConsumer:
                 },
                 tenant_id=event.tenant_id,
             )
-        logger.info(f"Sent task.status_changed notification")
+        logger.info("Sent task.status_changed notification")
 
     async def _handle_task_due_soon(self, event: Event) -> None:
         """Handle task.due_soon event."""
@@ -237,7 +237,7 @@ class NotificationEventConsumer:
                 },
                 tenant_id=event.tenant_id,
             )
-        logger.info(f"Sent task.overdue notification")
+        logger.info("Sent task.overdue notification")
 
     async def _handle_task_created(self, event: Event) -> None:
         """Handle task.created event."""
@@ -255,7 +255,7 @@ class NotificationEventConsumer:
                 },
                 tenant_id=event.tenant_id,
             )
-            logger.info(f"Sent task.created notification")
+            logger.info("Sent task.created notification")
 
     async def _handle_task_completed(self, event: Event) -> None:
         """Handle task.completed event."""
@@ -272,7 +272,7 @@ class NotificationEventConsumer:
                 },
                 tenant_id=event.tenant_id,
             )
-            logger.info(f"Sent task.completed notification")
+            logger.info("Sent task.completed notification")
 
     def _extract_notification_data(self, event: Event) -> dict[str, Any]:
         """Extract data from event for notification template rendering.

@@ -10,8 +10,6 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.core.auth.dependencies import require_permission
 from app.core.config_file import get_settings
 from app.core.db.deps import get_db
@@ -27,6 +25,8 @@ from app.schemas.notification import (
     NotificationTemplateResponse,
     NotificationTemplateUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -339,7 +339,7 @@ async def stream_notifications(
         current_interval_index = 0
 
         # Heartbeat configuration (from settings)
-        HEARTBEAT_INTERVAL = settings.SSE_HEARTBEAT_INTERVAL
+        heartbeat_interval = settings.SSE_HEARTBEAT_INTERVAL
         last_heartbeat = time.time()
 
         logger.info(
@@ -379,7 +379,7 @@ async def stream_notifications(
 
                     # Send heartbeat to keep connection alive
                     current_time = time.time()
-                    if current_time - last_heartbeat >= HEARTBEAT_INTERVAL:
+                    if current_time - last_heartbeat >= heartbeat_interval:
                         # Send SSE comment (heartbeat) to keep connection alive
                         yield ": heartbeat\n\n"
                         last_heartbeat = current_time

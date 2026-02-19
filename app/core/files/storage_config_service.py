@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config.service import ConfigService
 from app.core.exceptions import APIException
 from app.core.files.storage import S3StorageBackend
-from app.core.security.encryption import decrypt_credentials, encrypt_credentials
+from app.core.security.encryption import encrypt_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -271,28 +271,29 @@ class StorageConfigService:
         Returns:
             Dictionary with storage statistics
         """
-        from sqlalchemy import func, distinct
-        from app.models.file import File, FileVersion, FilePermission
+        from sqlalchemy import distinct, func
+
+        from app.models.file import File, FilePermission, FileVersion
         from app.models.folder import Folder, FolderPermission
 
         # Calculate total space used
         total_size = (
             self.db.query(func.sum(File.size))
-            .filter(File.tenant_id == tenant_id, File.is_current == True)
+            .filter(File.tenant_id == tenant_id, File.is_current)
             .scalar()
         ) or 0
 
         # Count total files
         total_files = (
             self.db.query(File)
-            .filter(File.tenant_id == tenant_id, File.is_current == True)
+            .filter(File.tenant_id == tenant_id, File.is_current)
             .count()
         )
 
         # Count files by MIME type
         mime_stats = (
             self.db.query(File.mime_type, func.count(File.id).label("count"))
-            .filter(File.tenant_id == tenant_id, File.is_current == True)
+            .filter(File.tenant_id == tenant_id, File.is_current)
             .group_by(File.mime_type)
             .all()
         )
@@ -302,7 +303,7 @@ class StorageConfigService:
         # Count files by entity type
         entity_stats = (
             self.db.query(File.entity_type, func.count(File.id).label("count"))
-            .filter(File.tenant_id == tenant_id, File.is_current == True)
+            .filter(File.tenant_id == tenant_id, File.is_current)
             .filter(File.entity_type.isnot(None))
             .group_by(File.entity_type)
             .all()

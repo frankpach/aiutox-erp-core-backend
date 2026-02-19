@@ -19,7 +19,6 @@ from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
 from app.models.user import User
 from app.modules.products.repositories.product_repository import CategoryRepository
-from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.modules.products.schemas.product import (
     CategoryCreate,
     CategoryUpdate,
@@ -31,6 +30,7 @@ from app.modules.products.schemas.product import (
     ProductVariantUpdate,
 )
 from app.modules.products.services.product_service import ProductService
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 
 router = APIRouter()
 

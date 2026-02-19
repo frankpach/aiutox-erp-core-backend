@@ -3,8 +3,6 @@
 import csv
 import io
 import logging
-from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -13,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.files.service import FileService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
-from app.models.import_export import ExportFormat, ExportJob, ImportJob, ImportStatus
+from app.models.import_export import ExportJob, ImportJob, ImportStatus
 from app.repositories.import_export_repository import ImportExportRepository
 
 logger = logging.getLogger(__name__)
@@ -110,7 +108,6 @@ class DataExporter:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import letter
-            from reportlab.lib.units import inch
             from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
             if not data:

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.files.service import FileService
 from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import EventMetadata
-from app.models.template import Template, TemplateVersion, TemplateCategory
+from app.models.template import Template, TemplateCategory, TemplateVersion
 from app.repositories.template_repository import TemplateRepository
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,8 @@ class TemplateRenderer:
         """
         try:
             from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Paragraph
             from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import Paragraph, SimpleDocTemplate
 
             # First render HTML content
             html_content = self.render(template_content, variables, format="html")
@@ -81,8 +81,8 @@ class TemplateRenderer:
             elements = []
 
             # Simple conversion (in production, use proper HTML to PDF converter)
-            from html import unescape
             import re
+            from html import unescape
 
             # Remove HTML tags and create paragraphs
             text_content = re.sub(r"<[^>]+>", "", html_content)

@@ -6,7 +6,6 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.search_index import SearchIndex
 from app.repositories.search_repository import SearchRepository
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,5 @@
 """Assignment service for managing task assignments with audit integration."""
 
-from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -206,7 +205,7 @@ class AssignmentService:
         """Log assignment-related audit event."""
         # This would integrate with the audit repository
         # For now, we'll use the existing audit service pattern
-        details = {
+        {
             "assignment_id": str(assignment_id),
             "assignment_data": assignment_data,
             "previous_data": previous_data,

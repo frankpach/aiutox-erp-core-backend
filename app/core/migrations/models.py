@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional
 
 
 @dataclass
@@ -10,32 +9,32 @@ class MigrationInfo:
     """Information about a single migration."""
 
     revision: str
-    down_revision: Optional[str]
+    down_revision: str | None
     file: str
     applied: bool
-    applied_date: Optional[datetime] = None
-    description: Optional[str] = None
+    applied_date: datetime | None = None
+    description: str | None = None
 
 
 @dataclass
 class MigrationStatus:
     """Complete migration status."""
 
-    current_revision: Optional[str]
-    applied: List[MigrationInfo] = field(default_factory=list)
-    pending: List[MigrationInfo] = field(default_factory=list)
-    orphaned: List[str] = field(default_factory=list)
+    current_revision: str | None
+    applied: list[MigrationInfo] = field(default_factory=list)
+    pending: list[MigrationInfo] = field(default_factory=list)
+    orphaned: list[str] = field(default_factory=list)
 
 
 @dataclass
 class SchemaDiff:
     """Schema differences between models and database."""
 
-    missing_tables: List[str] = field(default_factory=list)
-    extra_tables: List[str] = field(default_factory=list)
-    missing_columns: List[tuple[str, str]] = field(default_factory=list)  # (table, column)
-    extra_columns: List[tuple[str, str]] = field(default_factory=list)  # (table, column)
-    column_type_mismatches: List[tuple[str, str, str, str]] = field(
+    missing_tables: list[str] = field(default_factory=list)
+    extra_tables: list[str] = field(default_factory=list)
+    missing_columns: list[tuple[str, str]] = field(default_factory=list)  # (table, column)
+    extra_columns: list[tuple[str, str]] = field(default_factory=list)  # (table, column)
+    column_type_mismatches: list[tuple[str, str, str, str]] = field(
         default_factory=list
     )  # (table, column, expected, actual)
 
@@ -47,8 +46,8 @@ class VerificationResult:
     applied_match: bool
     schema_match: bool
     integrity_ok: bool
-    issues: List[str] = field(default_factory=list)
-    schema_diff: Optional[SchemaDiff] = None
+    issues: list[str] = field(default_factory=list)
+    schema_diff: SchemaDiff | None = None
 
 
 @dataclass
@@ -56,8 +55,8 @@ class IntegrityResult:
     """Result of integrity verification."""
 
     valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -66,7 +65,7 @@ class SchemaVerificationResult:
 
     match: bool
     diff: SchemaDiff
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -75,9 +74,9 @@ class MigrationResult:
 
     success: bool
     applied_count: int = 0
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    applied_migrations: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    applied_migrations: list[str] = field(default_factory=list)
 
 
 

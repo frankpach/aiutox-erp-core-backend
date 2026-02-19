@@ -1,7 +1,6 @@
 """Integration service for managing third-party integrations."""
 
 import json
-from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -39,9 +38,9 @@ class IntegrationService:
         integration = self.repository.get_by_id(integration_id, tenant_id)
         if not integration:
             raise ValueError(f"Integration not found: {integration_id}")
-        
+
         config = self._ensure_config_is_dict(integration.config)
-        
+
         return {
             "id": integration.id,
             "tenant_id": integration.tenant_id,
@@ -84,7 +83,7 @@ class IntegrationService:
             import logging
             logger = logging.getLogger(__name__)
             logger.info(f"get_all_paginated result type: {type(result)}, value: {result}")
-            
+
             items_list = []
             for idx, i in enumerate(result["items"]):
                 try:
@@ -409,8 +408,9 @@ class IntegrationService:
         Raises:
             ValueError: If integration not found
         """
-        from app.core.security.encryption import decrypt_credentials
         import json
+
+        from app.core.security.encryption import decrypt_credentials
 
         integration = self.repository.get_by_id(integration_id, tenant_id)
         if not integration:

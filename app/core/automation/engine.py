@@ -1,8 +1,6 @@
 """Automation engine for executing rules."""
 
 import logging
-from typing import Any
-from uuid import UUID
 
 from sqlalchemy.orm import Session
 

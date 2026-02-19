@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class Scheduler:
         """
         try:
             target_time = datetime.fromisoformat(execute_at.replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             if target_time > now:
                 wait_seconds = (target_time - now).total_seconds()

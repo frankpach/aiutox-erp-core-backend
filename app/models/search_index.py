@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy import Column, ForeignKey, Index, String, Text
-from sqlalchemy.dialects.postgresql import TIMESTAMP, TSVECTOR, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP, TSVECTOR
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.session import Base
 

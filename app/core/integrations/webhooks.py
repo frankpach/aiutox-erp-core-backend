@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import logging
+from datetime import UTC
 from typing import Any
 from uuid import UUID
 
@@ -11,7 +12,6 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.core.pubsub import EventPublisher, get_event_publisher
-from app.core.pubsub.models import EventMetadata
 from app.models.integration import Webhook, WebhookDelivery, WebhookStatus
 from app.repositories.integration_repository import IntegrationRepository
 
@@ -123,9 +123,9 @@ class WebhookHandler:
             if not response.is_success:
                 delivery.error_message = f"HTTP {response.status_code}: {response.text[:500]}"
 
-            from datetime import datetime, timezone
+            from datetime import datetime
 
-            delivery.sent_at = datetime.now(timezone.utc)
+            delivery.sent_at = datetime.now(UTC)
 
         except Exception as e:
             logger.error(f"Failed to deliver webhook {webhook.id}: {e}")

@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 import redis.asyncio as redis
 

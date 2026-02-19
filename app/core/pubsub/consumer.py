@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import redis.asyncio as aioredis
 

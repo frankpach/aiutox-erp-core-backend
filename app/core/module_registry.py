@@ -5,7 +5,6 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -20,19 +19,19 @@ logger = logging.getLogger(__name__)
 class ModuleRegistry:
     """Central registry for discovering and loading modules."""
 
-    def __init__(self, db: Optional[Session] = None):
+    def __init__(self, db: Session | None = None):
         """Initialize module registry.
 
         Args:
             db: Optional database session for reading module configuration
         """
-        self._modules: Dict[str, ModuleInterface] = {}
-        self._load_order: List[str] = []
+        self._modules: dict[str, ModuleInterface] = {}
+        self._load_order: list[str] = []
         self._db = db
         self._config_service = ConfigService(db) if db else None
         self._default_config = self._load_modules_json()
 
-    def _load_modules_json(self) -> Dict[str, bool]:
+    def _load_modules_json(self) -> dict[str, bool]:
         """Load default configuration from backend/config/modules.json.
 
         Returns:
@@ -63,7 +62,7 @@ class ModuleRegistry:
             return {}
 
     def is_module_enabled(
-        self, module_id: str, tenant_id: Optional[UUID] = None
+        self, module_id: str, tenant_id: UUID | None = None
     ) -> bool:
         """Check if a module is enabled.
 
@@ -108,7 +107,7 @@ class ModuleRegistry:
 
         return False
 
-    def get_enabled_modules(self, tenant_id: Optional[UUID] = None) -> List[str]:
+    def get_enabled_modules(self, tenant_id: UUID | None = None) -> list[str]:
         """Get list of enabled module IDs.
 
         Args:
@@ -167,7 +166,7 @@ class ModuleRegistry:
             except Exception as e:
                 logger.warning(f"Failed to load module {module_dir.name}: {e}")
 
-    def _load_module(self, module_dir: Path, module_type: str) -> Optional[ModuleInterface]:
+    def _load_module(self, module_dir: Path, module_type: str) -> ModuleInterface | None:
         """Load a module from a directory.
 
         Args:
@@ -218,27 +217,27 @@ class ModuleRegistry:
             logger.error(f"Error loading module {module_name}: {e}", exc_info=True)
             return None
 
-    def resolve_dependencies(self) -> List[str]:
+    def resolve_dependencies(self) -> list[str]:
         """Resolve load order based on dependencies using topological sort.
 
         Returns:
             List of module IDs in dependency order
         """
         # Build dependency graph
-        graph: Dict[str, List[str]] = {}
+        graph: dict[str, list[str]] = {}
         for module_id, module in self._modules.items():
             graph[module_id] = module.get_dependencies()
 
         # Topological sort
-        in_degree: Dict[str, int] = {module_id: 0 for module_id in self._modules.keys()}
+        in_degree: dict[str, int] = {module_id: 0 for module_id in self._modules.keys()}
         for module_id, deps in graph.items():
             for dep in deps:
                 if dep in in_degree:
                     in_degree[module_id] += 1
 
         # Kahn's algorithm
-        queue: List[str] = [module_id for module_id, degree in in_degree.items() if degree == 0]
-        result: List[str] = []
+        queue: list[str] = [module_id for module_id, degree in in_degree.items() if degree == 0]
+        result: list[str] = []
 
         while queue:
             # Sort queue for deterministic order
@@ -264,8 +263,8 @@ class ModuleRegistry:
         return result
 
     def get_routers(
-        self, tenant_id: Optional[UUID] = None
-    ) -> Dict[str, APIRouter]:
+        self, tenant_id: UUID | None = None
+    ) -> dict[str, APIRouter]:
         """Get routers for enabled modules.
 
         Args:
@@ -286,7 +285,7 @@ class ModuleRegistry:
 
         return routers
 
-    def get_all_models(self, tenant_id: Optional[UUID] = None) -> List:
+    def get_all_models(self, tenant_id: UUID | None = None) -> list:
         """Get all models from enabled modules.
 
         Args:
@@ -305,7 +304,7 @@ class ModuleRegistry:
 
         return models
 
-    def get_module(self, module_id: str) -> Optional[ModuleInterface]:
+    def get_module(self, module_id: str) -> ModuleInterface | None:
         """Get a module by ID.
 
         Args:
@@ -316,7 +315,7 @@ class ModuleRegistry:
         """
         return self._modules.get(module_id)
 
-    def get_all_modules(self) -> Dict[str, ModuleInterface]:
+    def get_all_modules(self) -> dict[str, ModuleInterface]:
         """Get all registered modules.
 
         Returns:
@@ -326,7 +325,7 @@ class ModuleRegistry:
 
 
 # Global registry instance (will be initialized in main.py)
-_registry: Optional[ModuleRegistry] = None
+_registry: ModuleRegistry | None = None
 
 
 def get_module_registry() -> ModuleRegistry:

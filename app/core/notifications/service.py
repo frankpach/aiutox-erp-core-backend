@@ -1,6 +1,7 @@
 """Notification service for sending notifications."""
 
 import logging
+from datetime import UTC
 from typing import Any
 from uuid import UUID
 
@@ -8,8 +9,11 @@ from sqlalchemy.orm import Session
 
 from app.core.preferences.service import PreferencesService
 from app.core.pubsub import EventPublisher, get_event_publisher
-from app.core.pubsub.models import EventMetadata
-from app.models.notification import NotificationQueue, NotificationStatus, NotificationTemplate
+from app.models.notification import (
+    NotificationQueue,
+    NotificationStatus,
+    NotificationTemplate,
+)
 from app.repositories.notification_repository import NotificationRepository
 
 logger = logging.getLogger(__name__)
@@ -103,9 +107,9 @@ class NotificationService:
             try:
                 await self._send_notification(queue_entry, template, data or {})
                 queue_entry.status = NotificationStatus.SENT
-                from datetime import datetime, timezone
+                from datetime import datetime
 
-                queue_entry.sent_at = datetime.now(timezone.utc)
+                queue_entry.sent_at = datetime.now(UTC)
                 self.db.commit()
 
                 # Publish notification.sent event
@@ -223,9 +227,10 @@ class NotificationService:
             return
 
         try:
-            import aiosmtplib
-            from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+
+            import aiosmtplib
 
             # Create message
             message = MIMEMultipart("alternative")
@@ -272,8 +277,8 @@ class NotificationService:
             raise ValueError(f"User {recipient_id} not found")
 
         # Get user phone number from contact methods
-        from app.repositories.contact_method_repository import ContactMethodRepository
         from app.models.contact_method import ContactMethodType, EntityType
+        from app.repositories.contact_method_repository import ContactMethodRepository
 
         contact_repo = ContactMethodRepository(self.db)
         contact_methods = contact_repo.get_by_entity(entity_type=EntityType.USER, entity_id=recipient_id)
@@ -355,8 +360,9 @@ class NotificationService:
         Raises:
             Exception: If SMS sending fails
         """
-        import httpx
         import base64
+
+        import httpx
 
         # Twilio API endpoint
         url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
@@ -408,7 +414,6 @@ class NotificationService:
 
         # Get webhook configuration for timeout
         from app.core.config.service import ConfigService
-        from app.repositories.user_repository import UserRepository
 
         # Try to get timeout from config (default: 30 seconds)
         timeout = 30.0

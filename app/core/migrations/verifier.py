@@ -2,10 +2,8 @@
 
 import re
 from pathlib import Path
-from typing import List, Tuple
 
-from sqlalchemy import inspect, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import inspect
 
 from app.core.config_file import get_settings
 from app.core.db.session import Base, engine
@@ -193,7 +191,7 @@ class MigrationVerifier:
                 continue
 
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
 
                 # Extract revision
@@ -271,7 +269,7 @@ class MigrationVerifier:
             warnings=warnings,
         )
 
-    def get_orphaned_migrations(self) -> List[str]:
+    def get_orphaned_migrations(self) -> list[str]:
         """Get list of orphaned migrations (in DB but not in files).
 
         Returns:
@@ -286,7 +284,7 @@ class MigrationVerifier:
         orphaned = applied_revision_ids - all_revision_ids
         return list(orphaned)
 
-    def get_missing_tables(self) -> List[str]:
+    def get_missing_tables(self) -> list[str]:
         """Get list of missing tables (expected but not in DB).
 
         Returns:

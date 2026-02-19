@@ -11,17 +11,13 @@ from app.core.automation.engine import AutomationEngine
 from app.core.automation.service import AutomationService
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
-from app.core.pubsub import EventPublisher, get_event_publisher
 from app.core.pubsub.models import Event, EventMetadata
 from app.models.user import User
 from app.schemas.automation import (
-    ActionSchema,
     AutomationExecutionResponse,
-    ConditionSchema,
     RuleCreate,
     RuleResponse,
     RuleUpdate,
-    TriggerSchema,
 )
 from app.schemas.common import StandardListResponse, StandardResponse
 

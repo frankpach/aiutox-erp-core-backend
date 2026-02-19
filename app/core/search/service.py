@@ -6,9 +6,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.pubsub import EventPublisher
 from app.core.search.engine import SearchEngine
 from app.core.search.indexer import SearchIndexer
-from app.core.pubsub import EventPublisher
 from app.repositories.search_repository import SearchRepository
 
 logger = logging.getLogger(__name__)
@@ -212,8 +212,7 @@ class SearchService:
             Dictionary with search statistics
         """
         # Get total indexed entities by type
-        stats = {}
-        
+
         # This would typically query the search_index table
         # For now, we'll return placeholder data
         # In a real implementation, this would:
@@ -221,7 +220,7 @@ class SearchService:
         # 2. Count by entity type
         # 3. Get last indexing time
         # 4. Get search performance metrics
-        
+
         return {
             "tenant_id": str(tenant_id),
             "total_indexed": 0,

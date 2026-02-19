@@ -27,7 +27,7 @@ class TagRepository:
         """Get tag by ID and tenant."""
         return (
             self.db.query(Tag)
-            .filter(Tag.id == tag_id, Tag.tenant_id == tenant_id, Tag.is_active == True)
+            .filter(Tag.id == tag_id, Tag.tenant_id == tenant_id, Tag.is_active)
             .first()
         )
 
@@ -37,7 +37,7 @@ class TagRepository:
         """Get all tags for a tenant."""
         query = self.db.query(Tag).filter(Tag.tenant_id == tenant_id)
         if active_only:
-            query = query.filter(Tag.is_active == True)
+            query = query.filter(Tag.is_active)
         if category_id:
             query = query.filter(Tag.category_id == category_id)
         return query.order_by(Tag.name).all()
@@ -48,7 +48,7 @@ class TagRepository:
             self.db.query(Tag)
             .filter(
                 Tag.tenant_id == tenant_id,
-                Tag.is_active == True,
+                Tag.is_active,
                 Tag.name.ilike(f"%{query_text}%"),
             )
             .order_by(Tag.name)
@@ -132,7 +132,7 @@ class TagRepository:
 
         return (
             self.db.query(Tag)
-            .filter(Tag.id.in_(tag_ids), Tag.is_active == True)
+            .filter(Tag.id.in_(tag_ids), Tag.is_active)
             .all()
         )
 

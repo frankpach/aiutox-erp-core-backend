@@ -1,13 +1,11 @@
 """View service for saved filters and custom views management."""
 
 import logging
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.core.pubsub import EventPublisher, get_event_publisher
-from app.core.pubsub.models import EventMetadata
 from app.models.view import CustomView, SavedFilter, ViewShare
 from app.repositories.view_repository import ViewRepository
 

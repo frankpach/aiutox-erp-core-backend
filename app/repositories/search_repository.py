@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.search_index import SearchIndex

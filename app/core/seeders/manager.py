@@ -3,7 +3,6 @@
 import importlib
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -15,7 +14,7 @@ from app.core.seeders.models import SeederRecord
 class SeederManager:
     """Manager for executing and tracking database seeders."""
 
-    def __init__(self, seeders_dir: Optional[Path] = None):
+    def __init__(self, seeders_dir: Path | None = None):
         """Initialize seeder manager.
 
         Args:
@@ -31,7 +30,7 @@ class SeederManager:
         # Ensure seeders table exists
         Base.metadata.create_all(bind=engine, tables=[SeederRecord.__table__])
 
-    def _get_seeder_files(self) -> List[Path]:
+    def _get_seeder_files(self) -> list[Path]:
         """Get all seeder files from seeders directory.
 
         Returns:
@@ -82,7 +81,7 @@ class SeederManager:
 
         raise ImportError(f"No Seeder class found in {file_path}")
 
-    def get_executed_seeders(self, db: Session) -> List[str]:
+    def get_executed_seeders(self, db: Session) -> list[str]:
         """Get list of executed seeder names.
 
         Args:
@@ -94,7 +93,7 @@ class SeederManager:
         records = db.query(SeederRecord).all()
         return [record.seeder_name for record in records]
 
-    def get_pending_seeders(self, db: Session) -> List[type[Seeder]]:
+    def get_pending_seeders(self, db: Session) -> list[type[Seeder]]:
         """Get list of pending seeders.
 
         Args:
@@ -142,7 +141,7 @@ class SeederManager:
         db.add(record)
         db.commit()
 
-    def run_all(self, db: Optional[Session] = None) -> dict:
+    def run_all(self, db: Session | None = None) -> dict:
         """Run all pending seeders.
 
         Args:
@@ -180,7 +179,7 @@ class SeederManager:
             "total": len(executed),
         }
 
-    def run_seeder(self, seeder_name: str, db: Optional[Session] = None) -> dict:
+    def run_seeder(self, seeder_name: str, db: Session | None = None) -> dict:
         """Run a specific seeder by name.
 
         Args:
@@ -215,7 +214,7 @@ class SeederManager:
             "error": f"Seeder '{seeder_name}' not found",
         }
 
-    def rollback_last(self, db: Optional[Session] = None) -> dict:
+    def rollback_last(self, db: Session | None = None) -> dict:
         """Rollback last executed seeder (remove from tracking).
 
         Args:

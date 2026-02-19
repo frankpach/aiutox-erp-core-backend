@@ -1,7 +1,6 @@
 """Webhooks system for Tasks module integrations."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from app.core.logging import get_logger
@@ -18,14 +17,14 @@ class TaskWebhook:
         tenant_id: UUID,
         url: str,
         events: list[str],
-        secret: Optional[str] = None,
+        secret: str | None = None,
         is_active: bool = True,
-        headers: Optional[dict] = None,
+        headers: dict | None = None,
         retry_count: int = 3,
         timeout: int = 30,
-        created_by_id: Optional[UUID] = None,
-        created_at: Optional[datetime] = None,
-        last_triggered: Optional[datetime] = None,
+        created_by_id: UUID | None = None,
+        created_at: datetime | None = None,
+        last_triggered: datetime | None = None,
         success_count: int = 0,
         failure_count: int = 0,
     ):
@@ -77,11 +76,11 @@ class TaskWebhookService:
         tenant_id: UUID,
         url: str,
         events: list[str],
-        secret: Optional[str] = None,
-        headers: Optional[dict] = None,
+        secret: str | None = None,
+        headers: dict | None = None,
         retry_count: int = 3,
         timeout: int = 30,
-        created_by_id: Optional[UUID] = None,
+        created_by_id: UUID | None = None,
     ) -> TaskWebhook:
         """Create a new webhook."""
         webhook = TaskWebhook(
@@ -105,8 +104,8 @@ class TaskWebhookService:
     def get_webhooks(
         self,
         tenant_id: UUID,
-        event: Optional[str] = None,
-        is_active: Optional[bool] = None
+        event: str | None = None,
+        is_active: bool | None = None
     ) -> list[TaskWebhook]:
         """Get webhooks for a tenant."""
         webhooks = []
@@ -125,7 +124,7 @@ class TaskWebhookService:
 
         return webhooks
 
-    def get_webhook(self, webhook_id: UUID, tenant_id: UUID) -> Optional[TaskWebhook]:
+    def get_webhook(self, webhook_id: UUID, tenant_id: UUID) -> TaskWebhook | None:
         """Get a specific webhook."""
         webhook = self._webhooks.get(str(webhook_id))
         if webhook and webhook.tenant_id == tenant_id:
@@ -137,7 +136,7 @@ class TaskWebhookService:
         webhook_id: UUID,
         tenant_id: UUID,
         updates: dict
-    ) -> Optional[TaskWebhook]:
+    ) -> TaskWebhook | None:
         """Update a webhook."""
         webhook = self.get_webhook(webhook_id, tenant_id)
         if not webhook:
@@ -216,8 +215,8 @@ class TaskWebhookService:
         # Add signature if secret is provided
         headers = webhook.headers.copy()
         if webhook.secret:
-            import hmac
             import hashlib
+            import hmac
 
             signature = hmac.new(
                 webhook.secret.encode(),
@@ -263,7 +262,7 @@ class TaskWebhookService:
                 "status_code": None,
             }
 
-    def get_webhook_stats(self, webhook_id: UUID, tenant_id: UUID) -> Optional[dict]:
+    def get_webhook_stats(self, webhook_id: UUID, tenant_id: UUID) -> dict | None:
         """Get webhook statistics."""
         webhook = self.get_webhook(webhook_id, tenant_id)
         if not webhook:

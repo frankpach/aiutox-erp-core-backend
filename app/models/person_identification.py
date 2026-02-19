@@ -8,12 +8,13 @@ Note: This table will be populated primarily by the Employee module.
 For now, it's created as a placeholder for future development.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum as PyEnum
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy import Column, Enum, Index, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.session import Base
 
@@ -79,13 +80,13 @@ class PersonIdentification(Base):
     # Timestamps
     created_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     updated_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 

@@ -198,7 +198,7 @@ class CalendarRepository:
         end_date: datetime | None = None,
     ) -> int:
         """Count events where user is organizer or attendee."""
-        from sqlalchemy import func, or_
+        from sqlalchemy import func
 
         # Count events where user is organizer
         organizer_query = self.db.query(func.count(CalendarEvent.id)).filter(
@@ -332,7 +332,7 @@ class CalendarRepository:
             .join(CalendarEvent)
             .filter(
                 EventReminder.tenant_id == tenant_id,
-                EventReminder.is_sent == False,
+                not EventReminder.is_sent,
                 CalendarEvent.start_time <= before_time,
                 CalendarEvent.status != "cancelled",
             )

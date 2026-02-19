@@ -1,8 +1,7 @@
 """Trigger handler for automation rules."""
 
-import asyncio
 import logging
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from app.core.config_file import get_settings
 from app.core.pubsub import EventConsumer

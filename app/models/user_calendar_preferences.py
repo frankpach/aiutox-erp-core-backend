@@ -4,10 +4,11 @@ Sprint 5 - Fase 2: Preferencias de calendario por usuario
 """
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, ForeignKey, String
-from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID as PG_UUID
-from uuid import uuid4
+from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.base_class import Base
 

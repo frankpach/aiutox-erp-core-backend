@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+
 from app.models.integration import IntegrationType
 
 logger = logging.getLogger(__name__)

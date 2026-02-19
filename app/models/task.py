@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
+
 # Import TaskStatus and TaskTemplate models to ensure they're available for relationships
 from app.models.task_status import TaskStatus  # noqa: F401
 from app.models.task_template import TaskTemplate  # noqa: F401
@@ -171,7 +172,6 @@ class Task(Base):
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
 
 
-TaskStatus = TaskStatusEnum
 
 
 class TaskChecklistItem(Base):

@@ -1,28 +1,29 @@
 """Interfaces y abstracciones para el dominio de Tasks."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from datetime import datetime
+from typing import Any, TypeVar
 from uuid import UUID
 
-from .task_entity import Task, TaskStatus, TaskPriority
+from .task_entity import Task, TaskPriority, TaskStatus
 
 # Type variables para genéricos
 T = TypeVar("T")
 
 
-class ITaskRepository(ABC, Generic[T]):
+class ITaskRepository[T](ABC):
     """Interfaz para repositorio de tareas."""
-    
+
     @abstractmethod
     async def save(self, task: Task) -> Task:
         """Guardar tarea."""
         pass
-    
+
     @abstractmethod
     async def find_by_id(self, task_id: UUID, tenant_id: UUID) -> Task | None:
         """Buscar tarea por ID."""
         pass
-    
+
     @abstractmethod
     async def find_by_tenant(
         self,
@@ -32,7 +33,7 @@ class ITaskRepository(ABC, Generic[T]):
     ) -> list[Task]:
         """Buscar tareas por tenant."""
         pass
-    
+
     @abstractmethod
     async def find_visible_to_user(
         self,
@@ -44,12 +45,12 @@ class ITaskRepository(ABC, Generic[T]):
     ) -> list[Task]:
         """Buscar tareas visibles para usuario."""
         pass
-    
+
     @abstractmethod
     async def delete(self, task_id: UUID, tenant_id: UUID) -> bool:
         """Eliminar tarea."""
         pass
-    
+
     @abstractmethod
     async def count_by_tenant(
         self,
@@ -62,7 +63,7 @@ class ITaskRepository(ABC, Generic[T]):
 
 class ITaskService(ABC):
     """Interfaz para servicio de aplicación de tareas."""
-    
+
     @abstractmethod
     async def create_task(
         self,
@@ -73,7 +74,7 @@ class ITaskService(ABC):
     ) -> Task:
         """Crear nueva tarea."""
         pass
-    
+
     @abstractmethod
     async def update_task(
         self,
@@ -84,7 +85,7 @@ class ITaskService(ABC):
     ) -> Task:
         """Actualizar tarea."""
         pass
-    
+
     @abstractmethod
     async def delete_task(
         self,
@@ -94,7 +95,7 @@ class ITaskService(ABC):
     ) -> bool:
         """Eliminar tarea."""
         pass
-    
+
     @abstractmethod
     async def assign_task(
         self,
@@ -105,7 +106,7 @@ class ITaskService(ABC):
     ) -> Task:
         """Asignar tarea a usuario."""
         pass
-    
+
     @abstractmethod
     async def unassign_task(
         self,
@@ -115,7 +116,7 @@ class ITaskService(ABC):
     ) -> Task:
         """Desasignar tarea."""
         pass
-    
+
     @abstractmethod
     async def transition_status(
         self,
@@ -130,7 +131,7 @@ class ITaskService(ABC):
 
 class ITaskNotificationService(ABC):
     """Interfaz para servicio de notificaciones de tareas."""
-    
+
     @abstractmethod
     async def notify_task_created(
         self,
@@ -139,7 +140,7 @@ class ITaskNotificationService(ABC):
     ) -> None:
         """Notificar creación de tarea."""
         pass
-    
+
     @abstractmethod
     async def notify_task_assigned(
         self,
@@ -149,7 +150,7 @@ class ITaskNotificationService(ABC):
     ) -> None:
         """Notificar asignación de tarea."""
         pass
-    
+
     @abstractmethod
     async def notify_task_status_changed(
         self,
@@ -159,7 +160,7 @@ class ITaskNotificationService(ABC):
     ) -> None:
         """Notificar cambio de estado."""
         pass
-    
+
     @abstractmethod
     async def notify_task_due_soon(
         self,
@@ -172,7 +173,7 @@ class ITaskNotificationService(ABC):
 
 class ITaskValidationService(ABC):
     """Interfaz para servicio de validación de tareas."""
-    
+
     @abstractmethod
     async def validate_task_creation(
         self,
@@ -182,7 +183,7 @@ class ITaskValidationService(ABC):
     ) -> dict[str, Any]:
         """Validar datos para creación de tarea."""
         pass
-    
+
     @abstractmethod
     async def validate_task_update(
         self,
@@ -193,7 +194,7 @@ class ITaskValidationService(ABC):
     ) -> dict[str, Any]:
         """Validar datos para actualización de tarea."""
         pass
-    
+
     @abstractmethod
     async def validate_task_deletion(
         self,
@@ -207,7 +208,7 @@ class ITaskValidationService(ABC):
 
 class ITaskSearchService(ABC):
     """Interfaz para servicio de búsqueda de tareas."""
-    
+
     @abstractmethod
     async def search_tasks(
         self,
@@ -218,7 +219,7 @@ class ITaskSearchService(ABC):
     ) -> list[Task]:
         """Buscar tareas por texto."""
         pass
-    
+
     @abstractmethod
     async def get_search_suggestions(
         self,
@@ -232,7 +233,7 @@ class ITaskSearchService(ABC):
 
 class ITaskAnalyticsService(ABC):
     """Interfaz para servicio de analíticas de tareas."""
-    
+
     @abstractmethod
     async def get_task_statistics(
         self,
@@ -241,7 +242,7 @@ class ITaskAnalyticsService(ABC):
     ) -> dict[str, Any]:
         """Obtener estadísticas de tareas."""
         pass
-    
+
     @abstractmethod
     async def get_completion_metrics(
         self,
@@ -250,7 +251,7 @@ class ITaskAnalyticsService(ABC):
     ) -> dict[str, Any]:
         """Obtener métricas de completitud."""
         pass
-    
+
     @abstractmethod
     async def get_productivity_metrics(
         self,
@@ -264,7 +265,7 @@ class ITaskAnalyticsService(ABC):
 
 class ITaskWorkflowService(ABC):
     """Interfaz para servicio de workflows de tareas."""
-    
+
     @abstractmethod
     async def create_workflow(
         self,
@@ -274,7 +275,7 @@ class ITaskWorkflowService(ABC):
     ) -> dict[str, Any]:
         """Crear workflow."""
         pass
-    
+
     @abstractmethod
     async def execute_workflow_step(
         self,
@@ -284,7 +285,7 @@ class ITaskWorkflowService(ABC):
     ) -> dict[str, Any]:
         """Ejecutar paso de workflow."""
         pass
-    
+
     @abstractmethod
     async def get_workflow_status(
         self,
@@ -297,7 +298,7 @@ class ITaskWorkflowService(ABC):
 
 class ITaskIntegrationService(ABC):
     """Interfaz para servicio de integraciones de tareas."""
-    
+
     @abstractmethod
     async def sync_with_external_system(
         self,
@@ -308,7 +309,7 @@ class ITaskIntegrationService(ABC):
     ) -> dict[str, Any]:
         """Sincronizar tarea con sistema externo."""
         pass
-    
+
     @abstractmethod
     async def handle_external_update(
         self,
@@ -323,7 +324,7 @@ class ITaskIntegrationService(ABC):
 
 class ITaskPermissionService(ABC):
     """Interfaz para servicio de permisos de tareas."""
-    
+
     @abstractmethod
     async def can_create_task(
         self,
@@ -332,7 +333,7 @@ class ITaskPermissionService(ABC):
     ) -> bool:
         """Verificar si usuario puede crear tareas."""
         pass
-    
+
     @abstractmethod
     async def can_view_task(
         self,
@@ -342,7 +343,7 @@ class ITaskPermissionService(ABC):
     ) -> bool:
         """Verificar si usuario puede ver tarea."""
         pass
-    
+
     @abstractmethod
     async def can_edit_task(
         self,
@@ -352,7 +353,7 @@ class ITaskPermissionService(ABC):
     ) -> bool:
         """Verificar si usuario puede editar tarea."""
         pass
-    
+
     @abstractmethod
     async def can_delete_task(
         self,
@@ -362,7 +363,7 @@ class ITaskPermissionService(ABC):
     ) -> bool:
         """Verificar si usuario puede eliminar tarea."""
         pass
-    
+
     @abstractmethod
     async def can_assign_task(
         self,
@@ -377,7 +378,7 @@ class ITaskPermissionService(ABC):
 
 class ITaskCacheService(ABC):
     """Interfaz para servicio de caché de tareas."""
-    
+
     @abstractmethod
     async def get_task(
         self,
@@ -386,7 +387,7 @@ class ITaskCacheService(ABC):
     ) -> Task | None:
         """Obtener tarea del caché."""
         pass
-    
+
     @abstractmethod
     async def set_task(
         self,
@@ -395,7 +396,7 @@ class ITaskCacheService(ABC):
     ) -> None:
         """Guardar tarea en caché."""
         pass
-    
+
     @abstractmethod
     async def invalidate_task(
         self,
@@ -404,7 +405,7 @@ class ITaskCacheService(ABC):
     ) -> None:
         """Invalidar caché de tarea."""
         pass
-    
+
     @abstractmethod
     async def get_task_list(
         self,
@@ -412,7 +413,7 @@ class ITaskCacheService(ABC):
     ) -> list[Task] | None:
         """Obtener listado de tareas del caché."""
         pass
-    
+
     @abstractmethod
     async def set_task_list(
         self,
@@ -422,7 +423,7 @@ class ITaskCacheService(ABC):
     ) -> None:
         """Guardar listado de tareas en caché."""
         pass
-    
+
     @abstractmethod
     async def invalidate_tenant_cache(
         self,
@@ -434,7 +435,7 @@ class ITaskCacheService(ABC):
 
 class ITaskEventPublisher(ABC):
     """Interfaz para publicador de eventos de tareas."""
-    
+
     @abstractmethod
     async def publish_task_created(
         self,
@@ -443,7 +444,7 @@ class ITaskEventPublisher(ABC):
     ) -> None:
         """Publicar evento de creación de tarea."""
         pass
-    
+
     @abstractmethod
     async def publish_task_updated(
         self,
@@ -453,7 +454,7 @@ class ITaskEventPublisher(ABC):
     ) -> None:
         """Publicar evento de actualización de tarea."""
         pass
-    
+
     @abstractmethod
     async def publish_task_deleted(
         self,
@@ -463,7 +464,7 @@ class ITaskEventPublisher(ABC):
     ) -> None:
         """Publicar evento de eliminación de tarea."""
         pass
-    
+
     @abstractmethod
     async def publish_task_assigned(
         self,
@@ -474,7 +475,7 @@ class ITaskEventPublisher(ABC):
     ) -> None:
         """Publicar evento de asignación de tarea."""
         pass
-    
+
     @abstractmethod
     async def publish_task_status_changed(
         self,
@@ -491,7 +492,7 @@ class ITaskEventPublisher(ABC):
 # Value Objects
 class TaskFilters:
     """Value object para filtros de tareas."""
-    
+
     def __init__(
         self,
         status: TaskStatus | None = None,
@@ -509,11 +510,11 @@ class TaskFilters:
         self.category = category
         self.due_date_range = due_date_range
         self.tags = tags or []
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convertir a diccionario."""
         result = {}
-        
+
         if self.status:
             result["status"] = self.status.value
         if self.priority:
@@ -529,13 +530,13 @@ class TaskFilters:
             result["due_date_to"] = self.due_date_range[1].isoformat()
         if self.tags:
             result["tags"] = self.tags
-        
+
         return result
 
 
 class TaskSortOptions:
     """Value object para opciones de ordenamiento."""
-    
+
     def __init__(
         self,
         field: str = "created_at",
@@ -543,7 +544,7 @@ class TaskSortOptions:
     ):
         self.field = field
         self.order = order.lower()
-    
+
     def is_valid(self) -> bool:
         """Verificar si las opciones son válidas."""
         valid_fields = [
@@ -557,13 +558,13 @@ class TaskSortOptions:
             "end_at",
         ]
         valid_orders = ["asc", "desc"]
-        
+
         return self.field in valid_fields and self.order in valid_orders
 
 
 class TaskPaginationOptions:
     """Value object para opciones de paginación."""
-    
+
     def __init__(
         self,
         page: int = 1,
@@ -571,12 +572,12 @@ class TaskPaginationOptions:
     ):
         self.page = max(1, page)
         self.page_size = min(max(1, page_size), 100)
-    
+
     @property
     def offset(self) -> int:
         """Calcular offset para base de datos."""
         return (self.page - 1) * self.page_size
-    
+
     def to_dict(self) -> dict[str, int]:
         """Convertir a diccionario."""
         return {
@@ -589,7 +590,7 @@ class TaskPaginationOptions:
 # Domain Events
 class TaskDomainEvent(ABC):
     """Clase base para eventos de dominio de tareas."""
-    
+
     def __init__(
         self,
         task_id: UUID,
@@ -607,7 +608,7 @@ class TaskDomainEvent(ABC):
 
 class TaskCreatedEvent(TaskDomainEvent):
     """Evento de creación de tarea."""
-    
+
     def __init__(
         self,
         task_id: UUID,
@@ -623,7 +624,7 @@ class TaskCreatedEvent(TaskDomainEvent):
 
 class TaskUpdatedEvent(TaskDomainEvent):
     """Evento de actualización de tarea."""
-    
+
     def __init__(
         self,
         task_id: UUID,
@@ -639,7 +640,7 @@ class TaskUpdatedEvent(TaskDomainEvent):
 
 class TaskAssignedEvent(TaskDomainEvent):
     """Evento de asignación de tarea."""
-    
+
     def __init__(
         self,
         task_id: UUID,
@@ -655,7 +656,7 @@ class TaskAssignedEvent(TaskDomainEvent):
 
 class TaskStatusChangedEvent(TaskDomainEvent):
     """Evento de cambio de estado de tarea."""
-    
+
     def __init__(
         self,
         task_id: UUID,
@@ -673,7 +674,7 @@ class TaskStatusChangedEvent(TaskDomainEvent):
 
 class TaskDeletedEvent(TaskDomainEvent):
     """Evento de eliminación de tarea."""
-    
+
     def __init__(
         self,
         task_id: UUID,

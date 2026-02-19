@@ -97,7 +97,7 @@ class TemplateRepository:
             .filter(
                 TemplateVersion.template_id == template_id,
                 TemplateVersion.tenant_id == tenant_id,
-                TemplateVersion.is_current == True,
+                TemplateVersion.is_current,
             )
             .first()
         )

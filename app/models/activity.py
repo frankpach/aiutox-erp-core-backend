@@ -5,7 +5,8 @@ from enum import Enum
 from uuid import uuid4
 
 from sqlalchemy import Column, ForeignKey, Index, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.session import Base
 

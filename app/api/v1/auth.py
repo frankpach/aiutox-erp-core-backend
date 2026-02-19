@@ -1,29 +1,26 @@
 """Authentication router for login, refresh, logout, and user info."""
 
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
-
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.auth.dependencies import get_current_user
+from app.core.auth.dependencies import get_current_user, require_permission
+from app.core.auth.rate_limit import (
+    check_login_rate_limit,
+    create_rate_limit_exception,
+    record_login_attempt,
+)
+from app.core.db.deps import get_db
 from app.core.exceptions import (
     raise_bad_request,
-    raise_conflict,
     raise_forbidden,
     raise_internal_server_error,
     raise_not_found,
     raise_unauthorized,
 )
-from app.core.auth.rate_limit import (
-    check_login_rate_limit,
-    clear_successful_login,
-    create_rate_limit_exception,
-    record_login_attempt,
-)
-from app.core.db.deps import get_db
 from app.core.logging import (
     create_audit_log_entry,
     get_client_info,
@@ -33,9 +30,8 @@ from app.core.logging import (
     log_permission_change,
     log_rate_limit_exceeded,
 )
-from app.core.auth.dependencies import require_permission
 from app.models.user import User
-from app.schemas.audit import AuditLogListResponse, AuditLogResponse
+from app.schemas.audit import AuditLogListResponse
 from app.schemas.auth import (
     AccessTokenResponse,
     LoginRequest,
@@ -105,14 +101,14 @@ async def login(
         raise create_rate_limit_exception()
 
     # Authenticate user
-    logger.debug(f"[LOGIN] Step 0: Authenticating user")
+    logger.debug("[LOGIN] Step 0: Authenticating user")
     auth_service = AuthService(db)
     user = auth_service.authenticate_user(login_data.email, login_data.password)
     logger.debug(f"[LOGIN] Step 0: Authentication completed, user={user is not None}")
 
     # Generic error message (does not reveal if user exists)
     if not user:
-        logger.debug(f"[LOGIN] Step 0.1: User not found or invalid credentials")
+        logger.debug("[LOGIN] Step 0.1: User not found or invalid credentials")
         # This is a FAILED attempt - record it for rate limiting
         record_login_attempt(client_ip)
         log_auth_failure(login_data.email, "invalid_credentials", client_ip)
@@ -128,16 +124,16 @@ async def login(
 
     # Log successful login (auth_service already logs, but we add IP here)
     try:
-        logger.debug(f"[LOGIN] Step 0.3: Logging auth success")
+        logger.debug("[LOGIN] Step 0.3: Logging auth success")
         log_auth_success(str(user.id), login_data.email, str(user.tenant_id), client_ip)
-        logger.debug(f"[LOGIN] Step 0.3: Auth success logged")
+        logger.debug("[LOGIN] Step 0.3: Auth success logged")
     except Exception as e:
         import logging
         logger = logging.getLogger("app")
         logger.warning(f"Failed to log auth success for user {user.id}: {e}", exc_info=True)
         # Continue even if logging fails
 
-    logger.debug(f"[LOGIN] Step 0.4: About to create tokens")
+    logger.debug("[LOGIN] Step 0.4: About to create tokens")
 
     # Create tokens
     try:
@@ -149,16 +145,17 @@ async def login(
         logger.debug(f"[LOGIN] Step 1: Creating access token for user {user.id}")
         logger.debug(f"[LOGIN] Step 1.1: Getting user roles for user {user.id}")
         access_token = auth_service.create_access_token_for_user(user)
-        logger.debug(f"[LOGIN] Step 1: Access token created successfully")
+        logger.debug("[LOGIN] Step 1: Access token created successfully")
 
         logger.debug(f"[LOGIN] Step 2: Creating refresh token for user {user.id}, remember_me={login_data.remember_me}")
         refresh_token = auth_service.create_refresh_token_for_user(user, remember_me=login_data.remember_me)
-        logger.debug(f"[LOGIN] Step 2: Refresh token created successfully")
+        logger.debug("[LOGIN] Step 2: Refresh token created successfully")
 
         logger.debug(f"[LOGIN] Tokens created successfully for user {user.id}")
     except Exception as e:
         # Log the error for debugging
         import logging
+
         from app.core.config_file import get_settings
         logger = logging.getLogger("app")
         settings = get_settings()
@@ -253,7 +250,7 @@ async def refresh_token(
 
     # Use the refresh token's remaining lifetime for cookie max_age
     max_age_seconds = max(
-        int((refresh_expires_at - datetime.now(timezone.utc)).total_seconds()),
+        int((refresh_expires_at - datetime.now(UTC)).total_seconds()),
         0,
     )
 
@@ -405,10 +402,11 @@ async def get_encryption_secret(
     Returns:
         StandardResponse with encryption secret and expiration time.
     """
-    from app.core.config_file import get_settings
-    from datetime import datetime, timedelta
     import hashlib
     import hmac
+    from datetime import datetime, timedelta
+
+    from app.core.config_file import get_settings
 
     # Get settings (contains SECRET_KEY used for JWT)
     settings = get_settings()

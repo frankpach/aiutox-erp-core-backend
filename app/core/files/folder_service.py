@@ -347,8 +347,8 @@ class FolderService:
         Raises:
             ValueError: If target_id doesn't exist or doesn't belong to tenant
         """
-        from app.models.user import User
         from app.models.organization import Organization
+        from app.models.user import User
 
         # Delete existing permissions
         existing = self.repository.get_permissions(folder_id, tenant_id)
@@ -374,7 +374,7 @@ class FolderService:
                     raise ValueError(f"User with ID {target_id} not found or doesn't belong to tenant")
             elif target_type == "role":
                 # Validate role exists (check in ROLE_PERMISSIONS or MODULE_ROLES)
-                from app.core.auth.permissions import ROLE_PERMISSIONS, MODULE_ROLES
+                from app.core.auth.permissions import MODULE_ROLES, ROLE_PERMISSIONS
                 role_name = str(target_id)
                 # Check if it's a global role
                 if role_name not in ROLE_PERMISSIONS:

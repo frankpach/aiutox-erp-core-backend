@@ -1,11 +1,12 @@
 """Service for managing task dependencies."""
 
 from uuid import UUID
+
 from sqlalchemy.orm import Session
 
-from app.models.task_dependency import TaskDependency
-from app.models.task import Task
 from app.core.logging import get_logger
+from app.models.task import Task
+from app.models.task_dependency import TaskDependency
 
 logger = get_logger(__name__)
 
@@ -69,10 +70,10 @@ class TaskDependencyService:
     def _would_create_cycle(self, task_id: UUID, depends_on_id: UUID) -> bool:
         """Verifica si agregar la dependencia crearía un ciclo."""
         visited = set()
-        MAX_DEPTH = 50  # Prevenir stack overflow
+        max_depth = 50  # Prevenir stack overflow
 
         def has_path(from_id: UUID, to_id: UUID, depth: int = 0) -> bool:
-            if depth > MAX_DEPTH:
+            if depth > max_depth:
                 raise ValueError("Profundidad máxima de dependencias excedida")
 
             if from_id == to_id:

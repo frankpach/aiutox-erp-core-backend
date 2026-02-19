@@ -1,14 +1,12 @@
 """Preferences router for user personalization."""
 
 from typing import Annotated, Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
-from app.core.exceptions import APIException
 from app.core.preferences.dashboards import DashboardsService
 from app.core.preferences.service import PreferencesService
 from app.core.preferences.views import ViewsService
@@ -17,13 +15,11 @@ from app.schemas.common import StandardListResponse, StandardResponse
 from app.schemas.preference import (
     DashboardCreate,
     DashboardResponse,
-    DashboardUpdate,
-    NotificationPreferencesRequest,
     NotificationPreferenceSchema,
+    NotificationPreferencesRequest,
     PreferenceSetRequest,
     SavedViewCreate,
     SavedViewResponse,
-    SavedViewUpdate,
 )
 
 router = APIRouter()

@@ -6,8 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.integration import IntegrationStatus, IntegrationType
-
 
 class IntegrationBase(BaseModel):
     """Base schema for integration."""

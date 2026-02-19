@@ -1,9 +1,9 @@
 """Permission repository for delegated permission data access operations."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.delegated_permission import DelegatedPermission
@@ -67,7 +67,7 @@ class PermissionRepository:
         Returns:
             List of active DelegatedPermission instances.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (
             self.db.query(DelegatedPermission)
             .filter(
@@ -119,7 +119,7 @@ class PermissionRepository:
         if not permission or permission.revoked_at is not None:
             return False
 
-        permission.revoked_at = datetime.now(timezone.utc)
+        permission.revoked_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(permission)
         return True
@@ -139,7 +139,7 @@ class PermissionRepository:
         Returns:
             Number of permissions revoked.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         permissions = (
             self.db.query(DelegatedPermission)
             .filter(

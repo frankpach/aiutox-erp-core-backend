@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # Estos imports solo se usan para type checking
-    from app.schemas.contact import ContactCreate, ContactResponse
-    from app.schemas.organization import OrganizationCreate, OrganizationResponse
+    pass
 
 def get_contact_schemas():
     """Importa schemas de contacto de forma lazy."""

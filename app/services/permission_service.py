@@ -3,22 +3,25 @@
 from datetime import datetime
 from uuid import UUID
 
+from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.core.auth.permissions import GLOBAL_PERMISSIONS, MODULE_ROLES, ROLE_PERMISSIONS, has_permission
+from app.core.auth.permissions import (
+    MODULE_ROLES,
+    ROLE_PERMISSIONS,
+    has_permission,
+)
 from app.core.exceptions import (
     APIException,
     raise_bad_request,
-    raise_conflict,
     raise_forbidden,
     raise_internal_server_error,
     raise_not_found,
 )
-from fastapi import status
+from app.core.logging import create_audit_log_entry, log_permission_change
 from app.models.delegated_permission import DelegatedPermission
 from app.models.module_role import ModuleRole
 from app.models.user_role import UserRole
-from app.core.logging import create_audit_log_entry, log_permission_change
 from app.repositories.permission_repository import PermissionRepository
 
 

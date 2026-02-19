@@ -1,11 +1,11 @@
 """ThemePreset model for storing theme presets per tenant."""
 
-from datetime import datetime, timezone
-from typing import Any
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID as PG_UUID
+from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.session import Base
 
@@ -58,13 +58,13 @@ class ThemePreset(Base):
     )
     created_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     updated_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 

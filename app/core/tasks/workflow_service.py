@@ -1,7 +1,7 @@
 """Workflow service for workflow management."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -224,7 +224,7 @@ class WorkflowService:
 
         # If status changed to completed or failed, set completed_at
         if execution and execution_data.get("status") in ["completed", "failed", "cancelled"]:
-            execution.completed_at = datetime.now(timezone.utc)
+            execution.completed_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(execution)
 

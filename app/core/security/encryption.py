@@ -1,15 +1,11 @@
 """Encryption utilities for secure credential storage."""
 
+import base64
 import hashlib
 import hmac
-from typing import Any
 from uuid import UUID
 
 from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.backends import default_backend
-import base64
 
 from app.core.config_file import get_settings
 

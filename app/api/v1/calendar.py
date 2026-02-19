@@ -12,7 +12,6 @@ from app.core.calendar.resource_service import CalendarResourceService
 from app.core.calendar.service import CalendarService, ReminderService
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
-from app.core.notifications.service import NotificationService
 from app.models.user import User
 from app.schemas.calendar import (
     CalendarCreate,
@@ -26,7 +25,6 @@ from app.schemas.calendar import (
     CalendarUpdate,
     EventAttendeeCreate,
     EventAttendeeResponse,
-    EventAttendeeUpdate,
     EventReminderCreate,
     EventReminderResponse,
     EventResourceCreate,

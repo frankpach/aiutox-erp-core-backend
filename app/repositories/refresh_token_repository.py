@@ -1,6 +1,6 @@
 """Refresh token repository for data access operations."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import and_
@@ -45,7 +45,7 @@ class RefreshTokenRepository:
         Note: This is less efficient but necessary since we hash tokens.
         In production, consider using a faster hash algorithm or storing tokens differently.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         tokens = (
             self.db.query(RefreshToken)
             .filter(
@@ -65,13 +65,13 @@ class RefreshTokenRepository:
 
     def revoke_token(self, token: RefreshToken) -> None:
         """Revoke a refresh token by setting revoked_at."""
-        token.revoked_at = datetime.now(timezone.utc)
+        token.revoked_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(token)
 
     def revoke_all_user_tokens(self, user_id: UUID) -> int:
         """Revoke all refresh tokens for a user."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         count = (
             self.db.query(RefreshToken)
             .filter(
@@ -87,7 +87,7 @@ class RefreshTokenRepository:
 
     def delete_expired_tokens(self) -> int:
         """Delete expired and revoked tokens (cleanup operation)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         count = (
             self.db.query(RefreshToken)
             .filter(

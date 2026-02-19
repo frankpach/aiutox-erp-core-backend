@@ -1,6 +1,5 @@
 """Automatic cache invalidation service for Tasks module."""
 
-from typing import Optional
 from uuid import UUID
 
 from app.core.tasks.cache_service import task_cache_service
@@ -30,8 +29,8 @@ class TaskCacheInvalidationService:
         self,
         tenant_id: UUID,
         task_id: UUID,
-        old_assigned_to_id: Optional[UUID],
-        new_assigned_to_id: Optional[UUID],
+        old_assigned_to_id: UUID | None,
+        new_assigned_to_id: UUID | None,
         created_by_id: UUID,
         updated_by_id: UUID
     ) -> None:
@@ -60,7 +59,7 @@ class TaskCacheInvalidationService:
         self,
         tenant_id: UUID,
         task_id: UUID,
-        assigned_to_id: Optional[UUID],
+        assigned_to_id: UUID | None,
         created_by_id: UUID,
         deleted_by_id: UUID
     ) -> None:
@@ -86,7 +85,7 @@ class TaskCacheInvalidationService:
         self,
         tenant_id: UUID,
         task_id: UUID,
-        old_assigned_to_id: Optional[UUID],
+        old_assigned_to_id: UUID | None,
         new_assigned_to_id: UUID,
         assigned_by_id: UUID,
         created_by_id: UUID
@@ -116,7 +115,7 @@ class TaskCacheInvalidationService:
         old_status: str,
         new_status: str,
         changed_by_id: UUID,
-        assigned_to_id: Optional[UUID],
+        assigned_to_id: UUID | None,
         created_by_id: UUID
     ) -> None:
         """Invalidate cache when task status changes."""
@@ -145,7 +144,7 @@ class TaskCacheInvalidationService:
         tenant_id: UUID,
         task_id: UUID,
         updated_by_id: UUID,
-        assigned_to_id: Optional[UUID],
+        assigned_to_id: UUID | None,
         created_by_id: UUID
     ) -> None:
         """Invalidate cache when checklist is updated."""
@@ -204,8 +203,6 @@ class TaskCacheInvalidationService:
         """Warm up cache for a user by preloading common queries."""
         try:
             # Preload common task queries
-            from app.core.tasks.service import TaskService
-            from app.core.deps import get_db
 
             # This would need to be called with a proper database session
             # For now, we'll just show the structure

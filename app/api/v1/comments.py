@@ -17,7 +17,6 @@ from app.schemas.comment import (
     CommentCreate,
     CommentResponse,
     CommentUpdate,
-    CommentMentionResponse,
 )
 from app.schemas.common import StandardListResponse, StandardResponse
 

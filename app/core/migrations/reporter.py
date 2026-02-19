@@ -1,7 +1,5 @@
 """Migration reporter for generating formatted reports."""
 
-from datetime import datetime
-from typing import List
 
 from rich.console import Console
 from rich.panel import Panel
@@ -35,7 +33,6 @@ class MigrationReporter:
         Returns:
             Formatted status report string
         """
-        output = []
 
         # Header
         self.console.print(
@@ -193,7 +190,7 @@ class MigrationReporter:
 
         return "\n".join(lines)
 
-    def format_migration_list(self, migrations: List[MigrationInfo]) -> str:
+    def format_migration_list(self, migrations: list[MigrationInfo]) -> str:
         """Format list of migrations.
 
         Args:

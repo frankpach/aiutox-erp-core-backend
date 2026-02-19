@@ -4,7 +4,6 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import BinaryIO
 
 from app.core.config_file import get_settings
 

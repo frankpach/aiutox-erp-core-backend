@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import uuid4
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -14,7 +16,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
-from uuid import uuid4
 
 from app.core.db.session import Base
 

@@ -1,7 +1,6 @@
 """Calendar synchronization service for Tasks module."""
 
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import UUID
 
 from app.core.logging import get_logger
@@ -272,7 +271,7 @@ class CalendarSyncService:
         tenant_id: UUID,
         user_id: UUID,
         credentials: dict,
-        calendar_mappings: Optional[dict] = None
+        calendar_mappings: dict | None = None
     ) -> dict:
         """Connect to a calendar provider."""
         provider = self._providers.get(provider_type)
@@ -324,8 +323,8 @@ class CalendarSyncService:
         task_id: UUID,
         task_data: dict,
         connection_id: str,
-        calendar_id: Optional[str] = None
-    ) -> Optional[dict]:
+        calendar_id: str | None = None
+    ) -> dict | None:
         """Sync a task to external calendar."""
         connection = self._connections.get(connection_id)
         if not connection:
@@ -367,7 +366,7 @@ class CalendarSyncService:
         task_data: dict,
         connection_id: str,
         event_id: str
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Update calendar event for a task."""
         connection = self._connections.get(connection_id)
         if not connection:

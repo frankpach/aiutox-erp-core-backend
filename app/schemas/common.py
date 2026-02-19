@@ -1,6 +1,6 @@
 """Common schemas for standard API responses."""
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,7 +22,7 @@ class PaginationMeta(BaseModel):
     total_pages: int = Field(..., description="Total number of pages", ge=0)
 
 
-class StandardResponse(BaseModel, Generic[T]):
+class StandardResponse[T](BaseModel):
     """Standard response wrapper for single resources.
 
     Follows the API contract defined in rules/api-contract.md.
@@ -37,7 +37,7 @@ class StandardResponse(BaseModel, Generic[T]):
     error: None = Field(None, description="Error object (null on success)")
 
 
-class StandardListResponse(BaseModel, Generic[T]):
+class StandardListResponse[T](BaseModel):
     """Standard response wrapper for collections with pagination.
 
     Follows the API contract defined in rules/api-contract.md.

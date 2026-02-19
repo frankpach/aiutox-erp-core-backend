@@ -74,7 +74,7 @@ class FileRepository:
             .filter(File.id == file_id, File.tenant_id == tenant_id)
         )
         if current_only:
-            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+            query = query.filter(File.is_current, File.deleted_at.is_(None))
         return query.first()
 
     def get_by_entity(
@@ -88,7 +88,7 @@ class FileRepository:
             File.tenant_id == tenant_id,
         )
         if current_only:
-            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+            query = query.filter(File.is_current, File.deleted_at.is_(None))
         return query.order_by(File.created_at.desc()).all()
 
     def count_by_entity(
@@ -103,7 +103,7 @@ class FileRepository:
             File.tenant_id == tenant_id,
         )
         if current_only:
-            query = query.filter(File.is_current == True)
+            query = query.filter(File.is_current)
         return query.scalar() or 0
 
     def get_all(
@@ -136,7 +136,7 @@ class FileRepository:
             .filter(File.tenant_id == tenant_id)
         )
         if current_only:
-            query = query.filter(File.is_current == True).filter(File.deleted_at.is_(None))
+            query = query.filter(File.is_current).filter(File.deleted_at.is_(None))
         # Only filter by folder_id if it's explicitly provided (not None)
         # If folder_id is None, we don't filter (get all files regardless of folder)
         if folder_id is not None:
@@ -188,7 +188,7 @@ class FileRepository:
 
         query = self.db.query(func.count(File.id)).filter(File.tenant_id == tenant_id)
         if current_only:
-            query = query.filter(File.is_current == True, File.deleted_at.is_(None))
+            query = query.filter(File.is_current, File.deleted_at.is_(None))
         # Only filter by folder_id if it's explicitly provided (not None)
         # If folder_id is None, we don't filter (count all files regardless of folder)
         if folder_id is not None:

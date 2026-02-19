@@ -1,10 +1,7 @@
 """Event publisher for Redis Streams."""
 
 import logging
-from typing import Any
 from uuid import UUID
-
-import redis.asyncio as aioredis
 
 from app.core.config_file import get_settings
 from app.core.pubsub.client import RedisStreamsClient

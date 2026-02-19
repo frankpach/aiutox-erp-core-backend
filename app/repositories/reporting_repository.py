@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.reporting import DashboardWidget, ReportDefinition
+from app.models.reporting import ReportDefinition
 
 
 class ReportingRepository:

@@ -1,8 +1,7 @@
 """Audit integration service for Tasks module."""
 
-from typing import Optional
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
 from app.core.logging import get_logger
 
@@ -72,7 +71,7 @@ class TaskAuditService:
         changes: dict,
         updated_by_id: UUID,
         tenant_id: UUID,
-        old_values: Optional[dict] = None
+        old_values: dict | None = None
     ) -> None:
         """Log task update in audit system."""
         try:
@@ -166,7 +165,7 @@ class TaskAuditService:
         self,
         task_id: UUID,
         title: str,
-        old_assigned_to_id: Optional[UUID],
+        old_assigned_to_id: UUID | None,
         new_assigned_to_id: UUID,
         assigned_by_id: UUID,
         tenant_id: UUID

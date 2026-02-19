@@ -1,7 +1,7 @@
 """Pydantic models for events."""
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -26,7 +26,7 @@ class Event(BaseModel):
     tenant_id: UUID = Field(..., description="Tenant ID")
     user_id: UUID | None = Field(default=None, description="User ID (optional)")
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp (UTC)"
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp (UTC)"
     )
     metadata: EventMetadata = Field(..., description="Event metadata")
 

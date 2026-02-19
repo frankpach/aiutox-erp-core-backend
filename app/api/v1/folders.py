@@ -6,22 +6,22 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.db.deps import get_db
-from app.core.files.folder_service import FolderService
 from app.core.auth.dependencies import require_permission
+from app.core.db.deps import get_db
 from app.core.exceptions import APIException
-from app.models.user import User
+from app.core.files.folder_service import FolderService
 from app.models.folder import Folder
-from app.schemas.common import StandardListResponse, StandardResponse, PaginationMeta
+from app.models.user import User
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.schemas.folder import (
-    FolderCreate,
-    FolderResponse,
-    FolderTreeItem,
     FolderContentResponse,
-    FolderUpdate,
-    MoveItemsRequest,
+    FolderCreate,
     FolderPermissionRequest,
     FolderPermissionResponse,
+    FolderResponse,
+    FolderTreeItem,
+    FolderUpdate,
+    MoveItemsRequest,
 )
 
 router = APIRouter(tags=["folders"])
@@ -311,7 +311,7 @@ async def get_folder_content(
     )
 
     # Get files in folder
-    file_service = FileService(service.db, tenant_id=current_user.tenant_id)
+    FileService(service.db, tenant_id=current_user.tenant_id)
     files_query = folder.files.filter_by(tenant_id=current_user.tenant_id, is_current=True)
     files = files_query.all()
 

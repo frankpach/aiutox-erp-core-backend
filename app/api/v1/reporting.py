@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
-from app.core.reporting.engine import ReportingEngine
 from app.core.reporting.service import ReportingService
 from app.core.reporting.sources.products_data_source import ProductsDataSource
 from app.models.user import User

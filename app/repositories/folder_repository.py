@@ -1,10 +1,9 @@
 """Repository for folder data access."""
 
-from typing import List
 from uuid import UUID
 
-from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import and_
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.folder import Folder, FolderPermission
 
@@ -53,7 +52,7 @@ class FolderRepository:
 
     def get_by_parent(
         self, parent_id: UUID | None, tenant_id: UUID, entity_type: str | None = None, entity_id: UUID | None = None
-    ) -> List[Folder]:
+    ) -> list[Folder]:
         """Get folders by parent ID.
 
         Args:
@@ -79,7 +78,7 @@ class FolderRepository:
 
         return query.order_by(Folder.name).all()
 
-    def get_tree(self, tenant_id: UUID, parent_id: UUID | None = None, entity_type: str | None = None, entity_id: UUID | None = None) -> List[Folder]:
+    def get_tree(self, tenant_id: UUID, parent_id: UUID | None = None, entity_type: str | None = None, entity_id: UUID | None = None) -> list[Folder]:
         """Get folder tree starting from a parent.
 
         Args:
@@ -187,7 +186,7 @@ class FolderRepository:
         self.db.refresh(folder)
         return folder
 
-    def search(self, tenant_id: UUID, query: str, entity_type: str | None = None) -> List[Folder]:
+    def search(self, tenant_id: UUID, query: str, entity_type: str | None = None) -> list[Folder]:
         """Search folders by name.
 
         Args:
@@ -210,7 +209,7 @@ class FolderRepository:
 
         return search_query.order_by(Folder.name).limit(100).all()
 
-    def get_path(self, folder_id: UUID, tenant_id: UUID) -> List[Folder]:
+    def get_path(self, folder_id: UUID, tenant_id: UUID) -> list[Folder]:
         """Get the path from root to folder (breadcrumbs).
 
         Args:

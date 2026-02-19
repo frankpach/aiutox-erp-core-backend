@@ -1,6 +1,6 @@
 """JWT token creation and validation utilities."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -17,7 +17,7 @@ def _encode_jwt(payload: dict[str, Any]) -> str:
     to_encode = payload.copy()
     to_encode.update({
         "exp": to_encode.get("exp"),
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
         "type": to_encode.get("type", "access")
     })
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -45,9 +45,9 @@ def create_access_token(
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     to_encode.update({"exp": expire, "type": "access"})
@@ -78,9 +78,9 @@ def create_refresh_token(
     """
     if expires_at is None:
         expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
-        expire = datetime.now(timezone.utc) + timedelta(days=expire_days)
+        expire = datetime.now(UTC) + timedelta(days=expire_days)
     else:
-        expire = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=timezone.utc)
+        expire = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=UTC)
     to_encode = {
         "sub": str(user_id),
         "exp": expire,

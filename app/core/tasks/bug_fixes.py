@@ -1,6 +1,6 @@
 """Bug fixes y mejoras de estabilidad para TaskService."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 
@@ -10,7 +10,7 @@ def ensure_timezone_aware(dt: datetime | None) -> datetime | None:
         return None
 
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
 
     return dt
 

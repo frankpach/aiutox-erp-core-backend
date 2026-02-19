@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from app.schemas.contact_method import ContactMethodResponse
-# MOVED TO LOCAL IMPORT:     from app.schemas.organization import OrganizationResponse
+    from app.schemas.organization import OrganizationResponse
 
 
 class ContactBase(BaseModel):

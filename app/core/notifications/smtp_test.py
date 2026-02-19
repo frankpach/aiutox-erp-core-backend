@@ -2,9 +2,14 @@
 
 import logging
 from dataclasses import dataclass
+from smtplib import (
+    SMTP,
+    SMTPAuthenticationError,
+    SMTPConnectError,
+    SMTPException,
+    SMTPServerDisconnected,
+)
 from typing import Any
-
-from smtplib import SMTP, SMTPAuthenticationError, SMTPConnectError, SMTPException, SMTPServerDisconnected
 
 logger = logging.getLogger(__name__)
 

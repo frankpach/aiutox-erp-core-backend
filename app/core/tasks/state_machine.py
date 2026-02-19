@@ -1,7 +1,5 @@
 """Task state machine for validating state transitions."""
 
-from typing import Dict, List, Set
-from enum import Enum
 
 from app.models.task import TaskStatusEnum
 
@@ -9,7 +7,7 @@ from app.models.task import TaskStatusEnum
 class TaskTransitionError(Exception):
     """Exception raised when an invalid state transition is attempted."""
 
-    def __init__(self, from_state: str, to_state: str, allowed_states: List[str]):
+    def __init__(self, from_state: str, to_state: str, allowed_states: list[str]):
         self.from_state = from_state
         self.to_state = to_state
         self.allowed_states = allowed_states
@@ -21,7 +19,7 @@ class TaskStateMachine:
     """State machine for managing task status transitions."""
 
     # Define valid transitions
-    VALID_TRANSITIONS: Dict[TaskStatusEnum, Set[TaskStatusEnum]] = {
+    VALID_TRANSITIONS: dict[TaskStatusEnum, set[TaskStatusEnum]] = {
         TaskStatusEnum.TODO: {
             TaskStatusEnum.IN_PROGRESS,
             TaskStatusEnum.BLOCKED,
@@ -124,7 +122,7 @@ class TaskStateMachine:
         return True
 
     @classmethod
-    def get_allowed_transitions(cls, from_state: TaskStatusEnum) -> List[TaskStatusEnum]:
+    def get_allowed_transitions(cls, from_state: TaskStatusEnum) -> list[TaskStatusEnum]:
         """
         Get all allowed transitions from a given state.
 
@@ -137,7 +135,7 @@ class TaskStateMachine:
         return list(cls.VALID_TRANSITIONS.get(from_state, set()))
 
     @classmethod
-    def get_transition_path(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> List[TaskStatusEnum]:
+    def get_transition_path(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> list[TaskStatusEnum]:
         """
         Get the shortest path from one state to another.
 
@@ -187,7 +185,7 @@ class TaskStateMachine:
         return len(cls.get_transition_path(from_state, to_state)) > 0
 
     @classmethod
-    def get_state_metadata(cls, state: TaskStatusEnum) -> Dict[str, any]:
+    def get_state_metadata(cls, state: TaskStatusEnum) -> dict[str, any]:
         """
         Get metadata about a state (color, icon, description, etc.).
 
@@ -250,7 +248,7 @@ class TaskStateMachine:
         })
 
     @classmethod
-    def get_states_by_category(cls, category: str) -> List[TaskStatusEnum]:
+    def get_states_by_category(cls, category: str) -> list[TaskStatusEnum]:
         """
         Get all states in a specific category.
 

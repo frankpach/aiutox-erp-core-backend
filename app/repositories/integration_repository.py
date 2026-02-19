@@ -1,10 +1,9 @@
 """Integration repository for data access operations."""
 
 from typing import Any
-
-from sqlalchemy import func
-from sqlalchemy.orm import Session
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.models.integration import (
     Integration,
@@ -146,7 +145,7 @@ class IntegrationRepository:
             .filter(Webhook.tenant_id == tenant_id, Webhook.event_type == event_type)
         )
         if enabled_only:
-            query = query.filter(Webhook.enabled == True)
+            query = query.filter(Webhook.enabled)
         return query.all()
 
     def create_delivery(self, data: dict[str, Any]) -> WebhookDelivery:

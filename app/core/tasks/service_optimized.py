@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 from app.core.cache.task_cache import get_task_cache
 from app.core.logging import get_logger
 from app.core.pubsub import get_event_publisher
+from app.core.pubsub.event_helpers import safe_publish_event
 from app.core.pubsub.models import EventMetadata
 from app.core.tasks.audit_integration import get_task_audit_service
 from app.core.tasks.notification_service import get_task_notification_service
 from app.core.tasks.templates import get_task_template_service
 from app.core.tasks.webhooks import get_task_webhook_service
-from app.core.pubsub.event_helpers import safe_publish_event
 from app.models.task import Task, TaskPriority, TaskStatusEnum
 from app.repositories.task_repository_optimized import TaskRepositoryOptimized
 

@@ -37,7 +37,7 @@ class AutomationRepository:
         """Get all rules by tenant with pagination."""
         query = self.db.query(Rule).filter(Rule.tenant_id == tenant_id)
         if enabled_only:
-            query = query.filter(Rule.enabled == True)
+            query = query.filter(Rule.enabled)
         return query.offset(skip).limit(limit).all()
 
     def count_all_rules(
@@ -48,7 +48,7 @@ class AutomationRepository:
 
         query = self.db.query(func.count(Rule.id)).filter(Rule.tenant_id == tenant_id)
         if enabled_only:
-            query = query.filter(Rule.enabled == True)
+            query = query.filter(Rule.enabled)
         return query.scalar() or 0
 
     def update_rule(self, rule_id: UUID, tenant_id: UUID, rule_data: dict) -> Rule | None:

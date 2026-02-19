@@ -1,7 +1,7 @@
 """Flow Run repository for data access operations."""
 
+from datetime import UTC, datetime
 from uuid import UUID
-from datetime import datetime, UTC
 
 from sqlalchemy.orm import Session
 

@@ -168,7 +168,7 @@ async def list_my_tasks(
     """List tasks visible to current user."""
     skip = (page - 1) * page_size
 
-    # Usar cache wrapper si está disponible
+    # Usar cache wrapper si est� disponible
     if hasattr(service.repository, 'get_visible_tasks_cached'):
         tasks = service.repository.get_visible_tasks_cached(
             tenant_id=current_user.tenant_id,
@@ -179,7 +179,7 @@ async def list_my_tasks(
             limit=page_size,
         )
     else:
-        # Fallback al método original
+        # Fallback al m�todo original
         tasks = service.repository.get_visible_tasks(
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
@@ -231,7 +231,7 @@ async def get_tasks_dashboard(
 
     # Ejecutar todas las consultas en paralelo
     async def get_tasks_data():
-        # Usar cache wrapper si está disponible
+        # Usar cache wrapper si est� disponible
         if hasattr(service.repository, 'get_visible_tasks_cached'):
             tasks = service.repository.get_visible_tasks_cached(
                 tenant_id=current_user.tenant_id,
@@ -271,8 +271,8 @@ async def get_tasks_dashboard(
         }
 
     async def get_settings_data():
-        # TODO: Implementar get_task_settings cuando esté disponible
-        # Por ahora retornar configuración por defecto
+        # TODO: Implementar get_task_settings cuando est� disponible
+        # Por ahora retornar configuraci�n por defecto
         return {
             "default_view": "list",
             "available_views": ["list", "board", "calendar"],
@@ -345,7 +345,7 @@ async def get_tasks_dashboard(
         dashboard_data.update(tasks_data)
 
     if isinstance(settings_data, Exception):
-        # Settings no es crítico, usar defaults
+        # Settings no es cr�tico, usar defaults
         dashboard_data["settings"] = {
             "default_view": "list",
             "available_views": ["list", "board", "calendar"],
@@ -355,7 +355,7 @@ async def get_tasks_dashboard(
         dashboard_data["settings"] = settings_data
 
     if isinstance(assignments_data, Exception):
-        # Assignments no es crítico, usar vacío
+        # Assignments no es cr�tico, usar vac�o
         dashboard_data["assignments"] = {}
     else:
         dashboard_data["assignments"] = assignments_data
@@ -551,7 +551,7 @@ async def list_assignments(
         )
     except Exception as e:
         logger.error(f"Error fetching assignments: {e}", exc_info=True)
-        # Retornar lista vacía en caso de error
+        # Retornar lista vac�a en caso de error
         return StandardListResponse(
             data=[],
             meta={
@@ -796,6 +796,34 @@ async def delete_recurrence(
 
 
 # Task CRUD endpoints (must come after /{task_id}/... routes)
+@router.post(
+    "/{task_id}/sync-to-calendar",
+    response_model=StandardResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Sync task to calendar",
+    description="Synchronize a task with calendar as an event. Requires tasks.manage permission.",
+)
+async def sync_task_to_calendar(
+    task_id: Annotated[UUID, Path(..., description="Task ID")],
+    current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> StandardResponse[dict]:
+    """Sincronizar tarea con calendario autom�ticamente."""
+    from app.core.tasks.task_event_sync_service import TaskEventSyncService
+
+    sync_service = TaskEventSyncService(db)
+    result = await sync_service.sync_task_to_calendar(
+        task_id=task_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
+
+    return StandardResponse(
+        data=result,
+        message="Task synchronized to calendar successfully"
+    )
+
+
 @router.get(
     "/{task_id}",
     response_model=StandardResponse[TaskResponse],
@@ -1051,13 +1079,6 @@ async def get_calendar_sources(
     )
 
 
-@router.put(
-    "/calendar-sources",
-    response_model=StandardResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Update calendar sources preferences",
-    description="Update user's calendar sources preferences. Requires tasks.agenda.manage permission.",
-)
 async def update_calendar_sources(
     current_user: Annotated[User, Depends(require_permission("tasks.agenda.manage"))],
     preferences: dict,
@@ -1238,9 +1259,9 @@ async def test_post_minimal_get():
     print("!!! TEST POST MINIMAL GET REACHED !!!")
     return {"message": "GET works!"}
 
-# NOTA: Los endpoints de comments están en app/modules/tasks/api.py
-# Este archivo (app/api/v1/tasks.py) NO está registrado en el router principal
-# Solo app/modules/tasks/api.py está registrado en app/api/v1/__init__.py
+# NOTA: Los endpoints de comments est�n en app/modules/tasks/api.py
+# Este archivo (app/api/v1/tasks.py) NO est� registrado en el router principal
+# Solo app/modules/tasks/api.py est� registrado en app/api/v1/__init__.py
 
 
 # TEMPORALMENTE COMENTADO - CAUSA QUE EL BACKEND SE CUELGUE
@@ -1279,7 +1300,7 @@ async def test_post_minimal_get():
 #         raise APIException(
 #             status_code=status.HTTP_400_BAD_REQUEST,
 #             code="INVALID_BODY",
-#             message="No se pudo leer el cuerpo de la petición",
+#             message="No se pudo leer el cuerpo de la petici�n",
 #         )
 
 #     # Validar y crear comentario manualmente
@@ -1299,7 +1320,7 @@ async def test_post_minimal_get():
 #         raise APIException(
 #             status_code=status.HTTP_400_BAD_REQUEST,
 #             code="VALIDATION_ERROR",
-#             message="El contenido no puede estar vacío",
+#             message="El contenido no puede estar vac�o",
 #         )
 
 #     logger.info(f"[CREATE_COMMENT] 8. Processing comment: content='{content[:50]}...', mentions={mentions}")
@@ -1336,7 +1357,7 @@ async def test_post_minimal_get():
 #         )
 
 
-# Endpoints de comments eliminados - están en app/modules/tasks/api.py
+# Endpoints de comments eliminados - est�n en app/modules/tasks/api.py
 
 
 # Template endpoints
@@ -1510,64 +1531,4 @@ async def create_task_template(
     )
 
 
-@router.get(
-    "/templates/popular",
-    response_model=StandardListResponse[dict],
-    status_code=status.HTTP_200_OK,
-    summary="Get popular templates",
-    description="Get most used task templates.",
-)
-async def get_popular_templates(
-    current_user: Annotated[User, Depends(require_permission("tasks.view"))],
-    limit: int = Query(default=5, ge=1, le=20, description="Number of templates to return"),
-) -> StandardListResponse[dict]:
-    """Get popular templates."""
-    from app.core.tasks.templates import get_task_template_service
 
-    template_service = get_task_template_service(current_user.db)
-    templates = template_service.get_popular_templates(
-        tenant_id=current_user.tenant_id,
-        limit=limit
-    )
-
-    return StandardListResponse(
-        data=[template.to_dict() for template in templates],
-        meta=PaginationMeta(
-            total=len(templates),
-            page=1,
-            page_size=limit,
-            total_pages=1,
-        ),
-    )
-
-
-
- 
- @ r o u t e r . p o s t ( 
-         " / { t a s k _ i d } / s y n c - t o - c a l e n d a r " , 
-         r e s p o n s e _ m o d e l = S t a n d a r d R e s p o n s e [ d i c t ] , 
-         s t a t u s _ c o d e = s t a t u s . H T T P _ 2 0 0 _ O K , 
-         s u m m a r y = " S y n c   t a s k   t o   c a l e n d a r " , 
-         d e s c r i p t i o n = " S y n c h r o n i z e   a   t a s k   w i t h   c a l e n d a r   a s   a n   e v e n t .   R e q u i r e s   t a s k s . m a n a g e   p e r m i s s i o n . " , 
- ) 
- a s y n c   d e f   s y n c _ t a s k _ t o _ c a l e n d a r ( 
-         t a s k _ i d :   A n n o t a t e d [ U U I D ,   P a t h ( . . . ,   d e s c r i p t i o n = " T a s k   I D " ) ] , 
-         c u r r e n t _ u s e r :   A n n o t a t e d [ U s e r ,   D e p e n d s ( r e q u i r e _ p e r m i s s i o n ( " t a s k s . m a n a g e " ) ) ] , 
-         d b :   A n n o t a t e d [ S e s s i o n ,   D e p e n d s ( g e t _ d b ) ] , 
- )   - >   S t a n d a r d R e s p o n s e [ d i c t ] : 
-         " " " S i n c r o n i z a r   t a r e a   c o n   c a l e n d a r i o   a u t o m � t i c a m e n t e . " " " 
-         f r o m   a p p . c o r e . t a s k s . t a s k _ e v e n t _ s y n c _ s e r v i c e   i m p o r t   T a s k E v e n t S y n c S e r v i c e 
-         
-         s y n c _ s e r v i c e   =   T a s k E v e n t S y n c S e r v i c e ( d b ) 
-         r e s u l t   =   a w a i t   s y n c _ s e r v i c e . s y n c _ t a s k _ t o _ c a l e n d a r ( 
-                 t a s k _ i d = t a s k _ i d , 
-                 t e n a n t _ i d = c u r r e n t _ u s e r . t e n a n t _ i d , 
-                 u s e r _ i d = c u r r e n t _ u s e r . i d 
-         ) 
-         
-         r e t u r n   S t a n d a r d R e s p o n s e ( 
-                 d a t a = r e s u l t , 
-                 m e s s a g e = " T a s k   s y n c h r o n i z e d   t o   c a l e n d a r   s u c c e s s f u l l y " 
-         ) 
-  
- 

@@ -33,7 +33,7 @@ class NotificationRepository:
                 NotificationTemplate.event_type == event_type,
                 NotificationTemplate.channel == channel,
                 NotificationTemplate.tenant_id == tenant_id,
-                NotificationTemplate.is_active == True,
+                NotificationTemplate.is_active,
             )
             .first()
         )

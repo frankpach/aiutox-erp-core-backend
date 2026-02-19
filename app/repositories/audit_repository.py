@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
@@ -92,7 +91,7 @@ class AuditRepository:
         Returns:
             Tuple of (list of AuditLog instances, total count).
         """
-        from sqlalchemy import cast, String, func
+        from sqlalchemy import String, cast
 
         query = self.db.query(AuditLog).filter(AuditLog.tenant_id == tenant_id)
 

@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
-# MOVED TO LOCAL IMPORT:     from app.schemas.contact import ContactResponse
+    from app.schemas.contact import ContactResponse
     from app.schemas.contact_method import ContactMethodResponse
 
 

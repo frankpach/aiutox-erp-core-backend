@@ -6,15 +6,15 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.reporting.engine import ReportingEngine
+from app.modules.tasks.reporting.data_source import TasksDataSource
 from app.modules.tasks.reporting.definitions import (
     CUSTOM_STATES_USAGE_REPORT,
     PRODUCTIVITY_METRICS_REPORT,
+    TASK_COMPLETION_TIMELINE_REPORT,
     TASKS_BY_PRIORITY_REPORT,
     TASKS_BY_STATUS_REPORT,
-    TASK_COMPLETION_TIMELINE_REPORT,
     TASKS_TRENDS_REPORT,
 )
-from app.modules.tasks.reporting.data_source import TasksDataSource
 
 logger = logging.getLogger(__name__)
 

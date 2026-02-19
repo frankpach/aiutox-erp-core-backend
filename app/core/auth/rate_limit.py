@@ -1,17 +1,15 @@
 """Rate limiting utilities for authentication endpoints."""
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Callable
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
-from fastapi import Request
+from fastapi import status
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.config_file import get_settings
 from app.core.exceptions import APIException
-from fastapi import status
 
 settings = get_settings()
 
@@ -73,7 +71,7 @@ def check_login_rate_limit(ip_address: str, max_attempts: int = 5, window_minute
         >>> check_login_rate_limit(ip, max_attempts=5)
         True
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     window_start = now - timedelta(minutes=window_minutes)
 
     # Clean old attempts
@@ -99,7 +97,7 @@ def record_login_attempt(ip_address: str) -> None:
     Example:
         >>> record_login_attempt("127.0.0.1")
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _login_attempts[ip_address].append(now)
 
 

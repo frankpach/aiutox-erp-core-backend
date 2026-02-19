@@ -32,7 +32,6 @@ class CleanupDeletedFilesTask(Task):
             Dict with cleanup statistics
         """
         # Import here to avoid circular imports
-        from app.core.db.deps import get_db
 
         # Get database session
         db = next(get_db())

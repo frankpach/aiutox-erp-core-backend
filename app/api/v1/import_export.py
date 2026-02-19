@@ -3,7 +3,8 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File as FastAPIFile, Path, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Path, Query, UploadFile, status
+from fastapi import File as FastAPIFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -11,7 +12,6 @@ from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
 from app.core.exceptions import APIException
 from app.core.import_export.service import ImportExportService
-from app.core.files.service import FileService
 from app.models.user import User
 from app.schemas.common import StandardListResponse, StandardResponse
 from app.schemas.import_export import (
@@ -21,7 +21,6 @@ from app.schemas.import_export import (
     ImportJobResponse,
     ImportTemplateCreate,
     ImportTemplateResponse,
-    ImportTemplateUpdate,
 )
 
 router = APIRouter()

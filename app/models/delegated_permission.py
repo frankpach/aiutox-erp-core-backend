@@ -1,10 +1,11 @@
 """DelegatedPermission model for user-specific permission delegation."""
 
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import Column, ForeignKey, Index, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
@@ -33,7 +34,7 @@ class DelegatedPermission(Base):
     expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     revoked_at = Column(TIMESTAMP(timezone=True), nullable=True)
@@ -66,7 +67,7 @@ class DelegatedPermission(Base):
             return False
         if self.expires_at is None:
             return True
-        return self.expires_at > datetime.now(timezone.utc)
+        return self.expires_at > datetime.now(UTC)
 
     def __repr__(self) -> str:
         return (

@@ -1,6 +1,6 @@
 """Authentication service for login, token management, and user authentication."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -12,12 +12,12 @@ from app.core.auth import (
     verify_password,
     verify_refresh_token,
 )
+from app.core.cache import cache_service
 from app.core.config_file import get_settings
 from app.core.logging import (
     log_refresh_token_invalid,
     log_refresh_token_used,
 )
-from app.core.cache import cache_service
 from app.models.user import User
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
@@ -58,23 +58,23 @@ class AuthService:
         # Always perform password verification to prevent timing attacks
         # If user doesn't exist, verify against a dummy hash
         if user:
-            logger.debug(f"[AUTH] Step 2: User exists, checking if active")
+            logger.debug("[AUTH] Step 2: User exists, checking if active")
             if not user.is_active:
-                logger.debug(f"[AUTH] Step 2: User is not active")
+                logger.debug("[AUTH] Step 2: User is not active")
                 return None
-            logger.debug(f"[AUTH] Step 3: User is active, verifying password")
+            logger.debug("[AUTH] Step 3: User is active, verifying password")
             if self.user_repository.verify_password(user, password):
-                logger.debug(f"[AUTH] Step 3: Password verified successfully")
+                logger.debug("[AUTH] Step 3: Password verified successfully")
                 return user
-            logger.debug(f"[AUTH] Step 3: Password verification failed")
+            logger.debug("[AUTH] Step 3: Password verification failed")
         else:
-            logger.debug(f"[AUTH] Step 4: User does not exist, performing dummy verification")
+            logger.debug("[AUTH] Step 4: User does not exist, performing dummy verification")
             # Dummy verification to prevent timing attacks
             # This ensures similar response time whether user exists or not
             verify_password(password, hash_password("dummy"))
-            logger.debug(f"[AUTH] Step 4: Dummy verification completed")
+            logger.debug("[AUTH] Step 4: Dummy verification completed")
 
-        logger.debug(f"[AUTH] Step 5: Returning None (authentication failed)")
+        logger.debug("[AUTH] Step 5: Returning None (authentication failed)")
         return None
 
     def get_user_permissions(self, user_id: UUID) -> list[str]:
@@ -174,7 +174,7 @@ class AuthService:
 
         # Calculate expiration
         expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
-        expires_at = datetime.now(timezone.utc) + timedelta(days=expire_days)
+        expires_at = datetime.now(UTC) + timedelta(days=expire_days)
 
         # Store hashed token in database
         self.refresh_token_repository.create(user.id, refresh_token, expires_at)
@@ -204,7 +204,7 @@ class AuthService:
         if not isinstance(refresh_exp, (int, float)):
             log_refresh_token_invalid("missing_exp")
             return None
-        refresh_expires_at = datetime.fromtimestamp(refresh_exp, tz=timezone.utc)
+        refresh_expires_at = datetime.fromtimestamp(refresh_exp, tz=UTC)
 
         # Verify token exists in database and is not revoked
         stored_token = self.refresh_token_repository.find_valid_token(

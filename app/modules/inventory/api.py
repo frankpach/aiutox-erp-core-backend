@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
+from app.models.user import User
 from app.modules.inventory.schemas.inventory import (
   LocationCreate,
   LocationResponse,
@@ -19,7 +20,6 @@ from app.modules.inventory.schemas.inventory import (
   WarehouseUpdate,
 )
 from app.modules.inventory.services.inventory_service import InventoryService
-from app.models.user import User
 from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 
 router = APIRouter()
@@ -138,7 +138,7 @@ async def list_locations(
   total = len(locations)
   total_pages = (total + page_size - 1) // page_size if total > 0 else 0
   return StandardListResponse(
-    data=[LocationResponse.model_validate(l) for l in locations],
+    data=[LocationResponse.model_validate(location) for location in locations],
     meta=PaginationMeta(total=total, page=page, page_size=page_size, total_pages=total_pages),
   )
 

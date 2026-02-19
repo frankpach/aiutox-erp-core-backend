@@ -1,15 +1,12 @@
 """Task cache service for Redis caching of task operations."""
 
 import json
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 from uuid import UUID
 
 import redis.asyncio as redis
-from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.schemas.common import StandardListResponse, StandardResponse
 from app.schemas.task import TaskResponse
 
 
@@ -19,7 +16,7 @@ class TaskCacheService:
     def __init__(self):
         """Initialize cache service with Redis connection."""
         self.settings = get_settings()
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: redis.Redis | None = None
         self.default_ttl = 300  # 5 minutes
 
     async def connect(self) -> None:
@@ -49,7 +46,7 @@ class TaskCacheService:
                 return False
         return False
 
-    def _make_key(self, *parts: Union[str, UUID]) -> str:
+    def _make_key(self, *parts: str | UUID) -> str:
         """Create a cache key from parts."""
         return ":".join(str(part) for part in parts)
 
@@ -57,11 +54,11 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-        status: Optional[str] = None,
-        priority: Optional[str] = None,
+        status: str | None = None,
+        priority: str | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> Optional[List[TaskResponse]]:
+    ) -> list[TaskResponse] | None:
         """Get cached visible tasks for a user."""
         if not await self.is_available():
             return None
@@ -98,12 +95,12 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-        tasks: List[TaskResponse],
-        status: Optional[str] = None,
-        priority: Optional[str] = None,
+        tasks: list[TaskResponse],
+        status: str | None = None,
+        priority: str | None = None,
         skip: int = 0,
         limit: int = 100,
-        ttl: Optional[int] = None,
+        ttl: int | None = None,
     ) -> None:
         """Cache visible tasks for a user."""
         if not await self.is_available():
@@ -144,9 +141,9 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, Any] | None:
         """Get cached agenda data."""
         if not await self.is_available():
             return None
@@ -177,10 +174,10 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-        agenda_data: Dict[str, Any],
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        ttl: Optional[int] = None,
+        agenda_data: dict[str, Any],
+        start_date: str | None = None,
+        end_date: str | None = None,
+        ttl: int | None = None,
     ) -> None:
         """Cache agenda data."""
         if not await self.is_available():
@@ -213,7 +210,7 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get cached calendar sources."""
         if not await self.is_available():
             return None
@@ -238,8 +235,8 @@ class TaskCacheService:
         self,
         tenant_id: UUID,
         user_id: UUID,
-        sources_data: Dict[str, Any],
-        ttl: Optional[int] = None,
+        sources_data: dict[str, Any],
+        ttl: int | None = None,
     ) -> None:
         """Cache calendar sources."""
         if not await self.is_available():
@@ -284,7 +281,7 @@ class TaskCacheService:
     async def invalidate_task_cache(
         self,
         tenant_id: UUID,
-        task_id: Optional[UUID] = None,
+        task_id: UUID | None = None,
     ) -> None:
         """Invalidate cache entries related to a task or all tasks in tenant."""
         if not await self.is_available():
@@ -305,7 +302,7 @@ class TaskCacheService:
         except Exception as e:
             print(f"Cache invalidation error: {e}")
 
-    async def get_cache_stats(self) -> Dict[str, Any]:
+    async def get_cache_stats(self) -> dict[str, Any]:
         """Get Redis cache statistics."""
         if not await self.is_available():
             return {"available": False}

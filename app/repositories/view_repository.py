@@ -61,19 +61,19 @@ class ViewRepository:
         if user_id is not None:
             if is_shared is True:
                 # Only shared filters
-                query = query.filter(SavedFilter.is_shared == True)
+                query = query.filter(SavedFilter.is_shared)
             elif is_shared is False:
                 # Only user's non-shared filters
                 query = query.filter(
                     SavedFilter.created_by == user_id,
-                    SavedFilter.is_shared == False
+                    not SavedFilter.is_shared
                 )
             else:
                 # User's filters OR shared filters
                 query = query.filter(
                     or_(
                         SavedFilter.created_by == user_id,
-                        SavedFilter.is_shared == True
+                        SavedFilter.is_shared
                     )
                 )
         elif is_shared is not None:
@@ -90,7 +90,7 @@ class ViewRepository:
         is_shared: bool | None = None,
     ) -> int:
         """Count saved filters with optional filters."""
-        from sqlalchemy import or_, func
+        from sqlalchemy import func, or_
 
         query = self.db.query(func.count(SavedFilter.id)).filter(SavedFilter.tenant_id == tenant_id)
 
@@ -100,17 +100,17 @@ class ViewRepository:
         # Handle user_id and is_shared logic (same as get_saved_filters)
         if user_id is not None:
             if is_shared is True:
-                query = query.filter(SavedFilter.is_shared == True)
+                query = query.filter(SavedFilter.is_shared)
             elif is_shared is False:
                 query = query.filter(
                     SavedFilter.created_by == user_id,
-                    SavedFilter.is_shared == False
+                    not SavedFilter.is_shared
                 )
             else:
                 query = query.filter(
                     or_(
                         SavedFilter.created_by == user_id,
-                        SavedFilter.is_shared == True
+                        SavedFilter.is_shared
                     )
                 )
         elif is_shared is not None:

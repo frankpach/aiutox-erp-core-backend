@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.core.auth.dependencies import require_permission
 from app.core.db.deps import get_db
 from app.models.user import User
-from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 from app.modules.crm.schemas.crm import (
     LeadCreate,
     LeadResponse,
@@ -22,6 +21,7 @@ from app.modules.crm.schemas.crm import (
     PipelineUpdate,
 )
 from app.modules.crm.services.crm_service import CRMService
+from app.schemas.common import PaginationMeta, StandardListResponse, StandardResponse
 
 router = APIRouter()
 
@@ -148,7 +148,7 @@ async def list_leads(
     total = len(leads)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return StandardListResponse(
-        data=[LeadResponse.model_validate(l) for l in leads],
+        data=[LeadResponse.model_validate(lead) for lead in leads],
         meta=PaginationMeta(total=total, page=page, page_size=page_size, total_pages=total_pages),
     )
 

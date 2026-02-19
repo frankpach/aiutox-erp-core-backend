@@ -1,10 +1,11 @@
 """Models for seeder tracking."""
 
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import Column, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.core.db.session import Base
 
@@ -18,7 +19,7 @@ class SeederRecord(Base):
     seeder_name = Column(String(255), nullable=False, unique=True, index=True)
     executed_at = Column(
         TIMESTAMP(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

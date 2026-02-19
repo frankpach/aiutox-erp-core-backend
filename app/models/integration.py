@@ -2,11 +2,19 @@
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import UUID as POSTGRES_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db.session import Base
@@ -46,8 +54,8 @@ class Integration(Base):
 
     __tablename__ = "integrations"
 
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PostgresUUID(as_uuid=True), nullable=False, index=True)
+    id = Column(POSTGRES_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     type = Column(String(50), nullable=False)  # IntegrationType
     status = Column(String(20), nullable=False, default=IntegrationStatus.INACTIVE.value)  # IntegrationStatus
@@ -72,9 +80,9 @@ class Webhook(Base):
 
     __tablename__ = "webhooks"
 
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PostgresUUID(as_uuid=True), nullable=False, index=True)
-    integration_id = Column(PostgresUUID(as_uuid=True), ForeignKey("integrations.id", ondelete="CASCADE"), nullable=True, index=True)
+    id = Column(POSTGRES_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
+    integration_id = Column(POSTGRES_UUID(as_uuid=True), ForeignKey("integrations.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     url = Column(String(1000), nullable=False)
     event_type = Column(String(100), nullable=False, index=True)
@@ -106,9 +114,9 @@ class WebhookDelivery(Base):
 
     __tablename__ = "webhook_deliveries"
 
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
-    webhook_id = Column(PostgresUUID(as_uuid=True), ForeignKey("webhooks.id", ondelete="CASCADE"), nullable=False, index=True)
-    tenant_id = Column(PostgresUUID(as_uuid=True), nullable=False, index=True)
+    id = Column(POSTGRES_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    webhook_id = Column(POSTGRES_UUID(as_uuid=True), ForeignKey("webhooks.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
     status = Column(String(20), nullable=False, default=WebhookStatus.PENDING.value, index=True)
     event_type = Column(String(100), nullable=False)
     payload = Column(JSON, nullable=False)

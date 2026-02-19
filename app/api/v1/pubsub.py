@@ -3,11 +3,9 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
 
 from app.core.auth.dependencies import require_permission
 from app.core.config_file import get_settings
-from app.core.db.deps import get_db
 from app.core.exceptions import APIException
 from app.core.pubsub.client import RedisStreamsClient
 from app.core.pubsub.errors import PubSubError
@@ -160,7 +158,7 @@ async def list_failed_events(
                     "total_pages": 1,
                 },
             )
-    except PubSubError as e:
+    except PubSubError:
         # Stream might not exist yet
         return StandardListResponse(
             data=[],

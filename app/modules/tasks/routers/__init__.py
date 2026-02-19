@@ -17,7 +17,7 @@ from app.modules.tasks.routers import (
 
 __all__ = [
     "tasks_analytics",
-    "tasks_assignments", 
+    "tasks_assignments",
     "tasks_calendar",
     "tasks_checklist",
     "tasks_comments",

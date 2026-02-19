@@ -2,14 +2,12 @@
 
 import logging
 import re
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.core.logging import create_audit_log_entry
 from app.core.pubsub import EventPublisher, get_event_publisher
-from app.core.pubsub.models import EventMetadata
 from app.modules.products.models.product import Product
 from app.modules.products.repositories.product_repository import (
     CategoryRepository,
@@ -92,7 +90,7 @@ class ProductService:
             raise ValueError(f"Currency '{currency}' is not supported")
 
     @staticmethod
-    def _validate_barcode(barcode: str, barcode_type: Optional[str] = None) -> None:
+    def _validate_barcode(barcode: str, barcode_type: str | None = None) -> None:
         """Validate barcode format based on type.
 
         Args:
