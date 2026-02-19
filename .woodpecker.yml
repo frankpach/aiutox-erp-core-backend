@@ -51,7 +51,6 @@ steps:
 #       POSTGRES_USER: aiutox
 #       POSTGRES_PASSWORD: aiutox
 #       POSTGRES_DB: aiutox_erp_test
-
 #   redis:
 #     image: redis:7-alpine
 
