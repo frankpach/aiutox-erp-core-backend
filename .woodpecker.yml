@@ -35,7 +35,7 @@ steps:
       branch: main
       event: push
     commands:
-      - /kaniko/executor --dockerfile=Dockerfile --destination=aiutox-nas.tail2a2cda.ts.net:5000/aiutox/backend:latest --destination=aiutox-nas.tail2a2cda.ts.net:5000/aiutox/backend:${CI_COMMIT_SHA} --cache=true --insecure
+      - /kaniko/executor --dockerfile=Dockerfile --destination=aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest --destination=aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${CI_COMMIT_SHA} --cache=true --skip-tls-verify
 
 # services:
 #   postgres:
