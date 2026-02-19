@@ -30,6 +30,13 @@ Los seeders son scripts que poblan la base de datos con datos iniciales necesari
 **Crea**:
 - `owner@aiutox.com` con rol `owner` (permiso `*` - acceso total)
 
+**Configuración por variables de entorno**:
+- `INITIAL_OWNER_EMAIL` (default: `owner@aiutox.com`)
+- `INITIAL_OWNER_PASSWORD` (default: `password`, mínimo 8 caracteres)
+- `INITIAL_OWNER_FULL_NAME` (default: `System Owner`)
+
+> ⚠️ En producción, define siempre `INITIAL_OWNER_PASSWORD` con un valor fuerte.
+
 **Cuándo usar**: En producción o cuando solo necesitas el usuario administrador principal.
 
 **Ejecución**:
@@ -254,6 +261,7 @@ def run(self, db: Session) -> None:
 2. **Producción**: En producción, solo se crea el usuario `owner`. Los demás usuarios deben crearse manualmente
 3. **Seguridad**: Nunca hardcodees contraseñas reales en producción
 4. **Tenants**: Los seeders asumen que existe un tenant con slug `"default"`. Si no existe, lo crean
+5. **Owner inicial**: Configura `INITIAL_OWNER_EMAIL`, `INITIAL_OWNER_PASSWORD` y `INITIAL_OWNER_FULL_NAME` en `.env` antes de ejecutar seeders en producción
 
 ## Referencias
 

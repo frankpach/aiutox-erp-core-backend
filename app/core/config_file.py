@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     REFRESH_TOKEN_REMEMBER_ME_DAYS: int = 30
 
+    # Initial owner bootstrap (used by AdminUserSeeder)
+    INITIAL_OWNER_EMAIL: str = "owner@aiutox.com"
+    INITIAL_OWNER_PASSWORD: str = "password"
+    INITIAL_OWNER_FULL_NAME: str = "System Owner"
+
     # Cookie Configuration
     COOKIE_SECURE: bool = True  # Only HTTPS in production
     COOKIE_SAMESITE: str = "lax"

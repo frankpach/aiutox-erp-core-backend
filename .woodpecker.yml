@@ -1,0 +1,59 @@
+steps:
+  # ── 1. Lint ────────────────────────────────────────────────────────────────
+  lint:
+    image: python:3.12-slim
+    when:
+      branch: [main, dev]
+      event: [push, pull_request]
+    commands:
+      - pip install --quiet uv
+      - uv sync --frozen --dev --quiet
+      - uv run ruff check app/
+      - uv run black --check app/
+
+  # ── 2. Tests (unit + API) ──────────────────────────────────────────────────
+  test:
+    image: python:3.12-slim
+    when:
+      branch: [main, dev]
+      event: [push, pull_request]
+    environment:
+      TEST_DATABASE_URL: postgresql://aiutox:aiutox@postgres:5432/aiutox_erp_test
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ci-secret-key-not-for-production
+      ENVIRONMENT: test
+    commands:
+      - apt-get update -qq && apt-get install -y -qq gcc postgresql-client
+      - pip install --quiet uv
+      - uv sync --frozen --dev --quiet
+      - uv run pytest tests/ -v --tb=short --durations=10 -m "not performance"
+
+  # ── 3. Build & push imagen Docker ─────────────────────────────────────────
+  build-push:
+    image: woodpeckerci/plugin-docker-buildx
+    when:
+      branch: main
+      event: push
+    settings:
+      registry: aiutox-nas.tail2a2cda.ts.net:5010
+      repo: aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend
+      tags:
+        - latest
+        - ${CI_COMMIT_SHA:0:8}
+      dockerfile: Dockerfile
+      username:
+        from_secret: REGISTRY_USER
+      password:
+        from_secret: REGISTRY_PASSWORD
+      insecure: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aiutox
+      POSTGRES_PASSWORD: aiutox
+      POSTGRES_DB: aiutox_erp_test
+
+  redis:
+    image: redis:7-alpine

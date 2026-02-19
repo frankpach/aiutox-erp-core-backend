@@ -4,6 +4,7 @@ Creates default badges for all tenants.
 This seeder is idempotent - it will not create duplicate badges.
 """
 
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from app.core.seeders.base import Seeder
@@ -109,6 +110,11 @@ class GamificationSeeder(Seeder):
         Args:
             db: Database session
         """
+        bind = db.get_bind()
+        if bind is None or not inspect(bind).has_table("badges"):
+            print("[GamificationSeeder] Skipping: 'badges' table does not exist")
+            return
+
         tenants = db.query(Tenant).all()
 
         for tenant in tenants:

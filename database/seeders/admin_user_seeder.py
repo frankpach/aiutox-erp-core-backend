@@ -7,6 +7,7 @@ This seeder is idempotent - it will not create duplicate users.
 from sqlalchemy.orm import Session
 
 from app.core.auth import hash_password
+from app.core.config_file import get_settings
 from app.core.seeders.base import Seeder
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -28,6 +29,23 @@ class AdminUserSeeder(Seeder):
         Args:
             db: Database session
         """
+        settings = get_settings()
+        owner_email = settings.INITIAL_OWNER_EMAIL.strip()
+        owner_password = settings.INITIAL_OWNER_PASSWORD
+        owner_full_name = settings.INITIAL_OWNER_FULL_NAME.strip() or "System Owner"
+
+        if not owner_email:
+            raise ValueError("INITIAL_OWNER_EMAIL cannot be empty")
+
+        if len(owner_password) < 8:
+            raise ValueError("INITIAL_OWNER_PASSWORD must be at least 8 characters")
+
+        if settings.ENV.lower() in ("prod", "production") and owner_password == "password":
+            print(
+                "⚠️  AdminUserSeeder: Using default INITIAL_OWNER_PASSWORD in production. "
+                "Set INITIAL_OWNER_PASSWORD in environment variables."
+            )
+
         # Get or create default tenant
         tenant = db.query(Tenant).filter(Tenant.slug == "default").first()
         if not tenant:
@@ -40,14 +58,13 @@ class AdminUserSeeder(Seeder):
             db.refresh(tenant)
 
         # Create owner user
-        owner_email = "owner@aiutox.com"
         owner_user = db.query(User).filter(User.email == owner_email).first()
 
         if not owner_user:
             owner_user = User(
                 email=owner_email,
-                password_hash=hash_password("password"),
-                full_name="System Owner",
+                password_hash=hash_password(owner_password),
+                full_name=owner_full_name,
                 tenant_id=tenant.id,
                 is_active=True,
             )

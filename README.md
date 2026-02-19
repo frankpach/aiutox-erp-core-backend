@@ -22,6 +22,18 @@ Backend FastAPI para el sistema AiutoX ERP.
    # Editar .env con tus configuraciones
    ```
 
+   Para evitar mezclar contextos de ejecución:
+
+   - `backend/.env.local`: backend ejecutando fuera de Docker (`localhost:15432`, `localhost:6379`)
+   - `backend/.env.docker`: backend ejecutando dentro de Docker (`db:5432`, `redis:6379`)
+
+   Variables recomendadas para bootstrap seguro del owner inicial:
+   ```env
+   INITIAL_OWNER_EMAIL=owner@aiutox.com
+   INITIAL_OWNER_PASSWORD=<define-una-password-segura>
+   INITIAL_OWNER_FULL_NAME=System Owner
+   ```
+
 3. Ejecutar migraciones:
    ```bash
    # Usando el CLI unificado (recomendado)
@@ -35,7 +47,17 @@ Backend FastAPI para el sistema AiutoX ERP.
    uv run alembic upgrade head
    ```
 
-4. Iniciar servidor de desarrollo:
+4. Ejecutar seeders iniciales:
+   ```bash
+   # Ejecuta seeders pendientes según ENV
+   uv run aiutox db:seed
+   ```
+
+   En `ENV=prod` / `ENV=production`, `AdminUserSeeder` usa
+   `INITIAL_OWNER_EMAIL`, `INITIAL_OWNER_PASSWORD` y `INITIAL_OWNER_FULL_NAME`
+   para crear el usuario owner inicial.
+
+5. Iniciar servidor de desarrollo:
    ```bash
    uv run fastapi dev app/main.py
    ```
@@ -44,6 +66,36 @@ Backend FastAPI para el sistema AiutoX ERP.
    ```bash
    uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
+
+### Setup automatizado (no destructivo)
+
+Desde la raíz del repositorio también puedes ejecutar:
+
+```bash
+python scripts/40-utilities/setup-backend-install.py
+```
+
+Opciones útiles:
+
+```bash
+python scripts/40-utilities/setup-backend-install.py --dry-run
+python scripts/40-utilities/setup-backend-install.py --skip-sync
+python scripts/40-utilities/setup-backend-install.py --skip-db-check
+```
+
+### Stack Docker dev (backend + frontend + db + redis)
+
+Desde la raíz del repositorio:
+
+```bash
+python scripts/00-development/dev-docker-stack.py
+python scripts/00-development/dev-docker-stack.py --with-install
+```
+
+Este flujo levanta contenedores con `backend/docker-compose.dev.yml` y valida:
+
+- `http://localhost:8000/healthz`
+- `http://localhost:5173`
 
 ## Estructura
 

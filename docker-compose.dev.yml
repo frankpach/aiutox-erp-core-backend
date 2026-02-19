@@ -7,17 +7,18 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - .env.docker
     environment:
-      # Database configuration - use service name 'db' when running in Docker
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
+      # Force Docker-internal connectivity for backend
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      # Redis configuration - use service name 'redis' when running in Docker
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: redis://redis:6379/0
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FRONTEND_URL: http://frontend:5173
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://frontend:5173,http://aiutox_frontend_dev:5173
     volumes:
       - .:/app
       - /app/.venv
@@ -26,7 +27,37 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      target: development-dependencies-env
+    container_name: aiutox_frontend_dev
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:5173/@vite/client"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    command: npm run dev -- --host 0.0.0.0 --port 5173
 
   db:
     image: postgres:17-alpine
