@@ -6,7 +6,7 @@ steps:
       branch: [main, dev]
       event: [push, pull_request]
     commands:
-      - uv sync --frozen --dev --quiet
+      - uv sync --dev --quiet
       - uv run ruff check app/
       - uv run black --check app/
 
@@ -23,7 +23,7 @@ steps:
       ENVIRONMENT: test
     commands:
       - apt-get update -qq && apt-get install -y -qq gcc postgresql-client
-      - uv sync --frozen --dev --quiet
+      - uv sync --dev --quiet
       - uv run pytest tests/ -v --tb=short --durations=10 -m "not performance"
 
   # ── 3. Build & push imagen Docker ─────────────────────────────────────────
