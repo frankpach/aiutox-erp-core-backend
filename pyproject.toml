@@ -96,6 +96,7 @@ asyncio_mode = "auto"
 # timeout_method = "thread"
 # Markers for test organization
 markers = [
+    "unit: mark test as unit test",
     "redis: mark test as requiring Redis",
     "integration: mark test as integration test",
     "db: mark test as database test (may be excluded from parallel execution)",

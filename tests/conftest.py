@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,9 +17,13 @@ from app.models.user import User
 from app.models.user_role import UserRole
 from tests.helpers import create_task, create_user_with_permission
 
+# Add backend directory to Python path for all tests
+backend_dir = Path(__file__).parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 # Load environment variables from .env files
 # Priority: .env (current dir) > ../.env (parent dir) > system env vars
-backend_dir = Path(__file__).parent.parent
 env_files = [
     backend_dir / ".env",  # backend/.env
     backend_dir.parent / ".env",  # ../.env (project root)
