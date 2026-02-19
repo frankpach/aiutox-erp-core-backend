@@ -30,19 +30,19 @@ steps:
 
   # ── 3. Build & push imagen Docker ─────────────────────────────────────────
   build-push:
-  image: woodpeckerci/plugin-docker-buildx
-  depends_on: [test]
-  when:
-    branch: main
-    event: push
-  settings:
-    registry: registry:5000
-    repo: registry:5000/aiutox/backend
-    tags:
-      - latest
-      - ${CI_COMMIT_SHA}
-    dockerfile: Dockerfile
-    insecure: true
+    image: woodpeckerci/plugin-docker-buildx
+    depends_on: [test]
+    when:
+      branch: main
+      event: push
+    settings:
+      registry: registry:5000
+      repo: registry:5000/aiutox/backend
+      tags:
+        - latest
+        - ${CI_COMMIT_SHA}
+      dockerfile: Dockerfile
+      insecure: true
 
 services:
   postgres:
