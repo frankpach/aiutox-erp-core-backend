@@ -35,8 +35,7 @@ steps:
       branch: main
       event: push
     commands:
-      - echo '{"auths":{"registry:5000"}}' > /kaniko/.docker/config.json
-      - /kaniko/executor --dockerfile=Dockerfile --destination=registry:5000/aiutox/backend:latest --destination=registry:5000/aiutox/backend:${CI_COMMIT_SHA} --cache=true
+      - /kaniko/executor --dockerfile=Dockerfile --destination=registry:5000/aiutox/backend:latest --destination=registry:5000/aiutox/backend:${CI_COMMIT_SHA} --cache=true --insecure
 
 # services:
 #   postgres:
