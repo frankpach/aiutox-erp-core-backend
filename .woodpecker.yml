@@ -31,7 +31,6 @@ steps:
   # ── 3. Build & push imagen Docker ─────────────────────────────────────────
   build-push:
     image: docker:29
-    depends_on: [test]
     when:
       branch: main
       event: push
