@@ -1,19 +1,18 @@
 steps:
   # ── 1. Lint ────────────────────────────────────────────────────────────────
   lint:
-    image: python:3.12-slim
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     when:
       branch: [main, dev]
       event: [push, pull_request]
     commands:
-      - pip install --quiet uv
       - uv sync --frozen --dev --quiet
       - uv run ruff check app/
       - uv run black --check app/
 
   # ── 2. Tests (unit + API) ──────────────────────────────────────────────────
   test:
-    image: python:3.12-slim
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     when:
       branch: [main, dev]
       event: [push, pull_request]
@@ -24,7 +23,6 @@ steps:
       ENVIRONMENT: test
     commands:
       - apt-get update -qq && apt-get install -y -qq gcc postgresql-client
-      - pip install --quiet uv
       - uv sync --frozen --dev --quiet
       - uv run pytest tests/ -v --tb=short --durations=10 -m "not performance"
 
