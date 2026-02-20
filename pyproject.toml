@@ -69,7 +69,11 @@ exclude = '''
   | venv
   | \.git
   | __pycache__
+  | \.pytest_cache
+  | temp_pytest_cache
   | migrations
+  | htmlcov
+  | \.ruff_cache
 )/
 '''
 
