@@ -62,6 +62,16 @@ packages = ["app"]
 line-length = 88
 target-version = ['py312']
 include = '\.pyi?$'
+exclude = '''
+/(
+    \.venv
+  | \.venv_traditional
+  | venv
+  | \.git
+  | __pycache__
+  | migrations
+)/
+'''
 
 [tool.isort]
 profile = "black"
