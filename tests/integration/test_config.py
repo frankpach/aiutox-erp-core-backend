@@ -1,11 +1,9 @@
 """Integration tests for configuration module."""
 
-from uuid import uuid4
 
 from fastapi import status
 
 from app.models.module_role import ModuleRole
-from app.models.user import User
 from app.services.auth_service import AuthService
 
 

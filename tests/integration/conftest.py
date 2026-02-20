@@ -1,7 +1,8 @@
 """Fixtures compartidos para tests de integración."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.core.pubsub import EventPublisher
 

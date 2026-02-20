@@ -1,12 +1,8 @@
 """Integration tests for product events publication."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-from app.core.pubsub import EventPublisher
-from app.core.pubsub.models import EventMetadata
-from app.models.module_role import ModuleRole
 from app.modules.products.schemas.product import ProductCreate
 from tests.helpers import create_user_with_permission
 
@@ -48,7 +44,6 @@ def test_update_product_publishes_event(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "products", "editor")
 
     from app.modules.products.services.product_service import ProductService
-    from app.modules.products.schemas.product import ProductCreate, ProductUpdate
 
     # Create a product first
     product_service = ProductService(db_session)
@@ -86,7 +81,6 @@ def test_delete_product_publishes_event(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "products", "manager")
 
     from app.modules.products.services.product_service import ProductService
-    from app.modules.products.schemas.product import ProductCreate
 
     # Create a product first
     product_service = ProductService(db_session)

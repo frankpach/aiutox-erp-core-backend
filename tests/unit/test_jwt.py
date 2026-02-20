@@ -1,9 +1,7 @@
 """Unit tests for JWT token creation and validation utilities."""
 
-from datetime import datetime, timedelta, timezone
-from uuid import UUID, uuid4
-
-import pytest
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from app.core.auth.jwt import (
     create_access_token,
@@ -172,8 +170,8 @@ def test_create_access_token_with_custom_expiration():
     # Verify expiration is approximately 30 minutes from now
     exp_timestamp = decoded["exp"]
     iat_timestamp = decoded["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     assert abs(diff.total_seconds() - 30 * 60) < 5  # Allow 5 seconds tolerance
@@ -188,8 +186,8 @@ def test_refresh_token_expiration():
     assert payload is not None
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
@@ -205,8 +203,8 @@ def test_refresh_token_with_remember_me_true():
     assert payload is not None
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS
@@ -222,8 +220,8 @@ def test_refresh_token_with_remember_me_false():
     assert payload is not None
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
@@ -246,8 +244,8 @@ def test_access_token_expires_in_60_minutes():
     assert decoded is not None
     exp_timestamp = decoded["exp"]
     iat_timestamp = decoded["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_minutes = 60  # Explicit expiration time

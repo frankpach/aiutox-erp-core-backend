@@ -1,10 +1,8 @@
 """Unit tests for FileRepository soft delete functionality."""
 
-import pytest
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from app.models.file import File
 from app.repositories.file_repository import FileRepository
 
 
@@ -193,7 +191,7 @@ class TestFileRepositorySoftDelete:
         """Test that get_all excludes deleted files when current_only=True."""
         # Arrange
         repo = FileRepository(db_session)
-        
+
         # Create a file and then delete it (proper soft delete flow)
         deleted_file = repo.create({
             "tenant_id": test_tenant.id,
@@ -206,10 +204,10 @@ class TestFileRepositorySoftDelete:
             "is_current": True,  # Initially current
             "deleted_at": None,
         })
-        
+
         # Properly soft delete the file
         repo.delete(deleted_file.id, test_tenant.id)
-        
+
         current_file = repo.create({
             "tenant_id": test_tenant.id,
             "name": "current.pdf",

@@ -1,10 +1,7 @@
 """Integration tests for Tasks Dependencies API endpoints."""
 
-import pytest
-from uuid import uuid4
 
-from app.models.task import Task
-from app.models.task_dependency import TaskDependency
+import pytest
 
 
 @pytest.mark.integration

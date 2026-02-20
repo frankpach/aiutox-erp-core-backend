@@ -1,6 +1,5 @@
 """Integration tests for Files API endpoints."""
 
-import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole
@@ -109,8 +108,9 @@ def test_delete_file(client_with_db, test_user, db_session):
     assert response.status_code == 204
 
     # Verify it's deleted (soft delete with deleted_at)
-    from app.repositories.file_repository import FileRepository
     from uuid import UUID
+
+    from app.repositories.file_repository import FileRepository
     repo = FileRepository(db_session)
     deleted_file = repo.get_by_id(UUID(file_id), test_user.tenant_id, current_only=False)
     if deleted_file:
@@ -128,8 +128,9 @@ def test_get_file_preview_image(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create a simple test image (1x1 PNG)
-    from PIL import Image
     import io
+
+    from PIL import Image
 
     img = Image.new("RGB", (100, 100), color="red")
     img_bytes = io.BytesIO()
@@ -260,10 +261,8 @@ def test_get_file_content_file_not_found(client_with_db, test_user, db_session):
 def test_get_file_content_no_permission(client_with_db, test_user, db_session):
     """Test getting file content without permission."""
     # Create another user without files.view permission
-    from app.models.user import User
-    from app.models.tenant import Tenant
-
     from app.core.auth import hash_password
+    from app.models.user import User
     other_user = User(
         email="other@test.com",
         full_name="Other User",

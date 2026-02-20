@@ -14,7 +14,7 @@ def create_lazy_api_router():
     """Crea una versión del api_router con lazy loading."""
     print("🔧 CREANDO API ROUTER CON LAZY LOADING")
     print("=" * 50)
-    
+
     lazy_router_content = '''"""
 API Router con lazy loading para evitar timeouts en imports.
 """
@@ -113,16 +113,16 @@ def get_api_router() -> APIRouter:
 # Para compatibilidad con el código existente
 api_router = get_api_router()
 '''
-    
+
     lazy_router_path = backend_path / "app" / "api" / "v1" / "lazy_router.py"
-    
+
     try:
         with open(lazy_router_path, 'w', encoding='utf-8') as f:
             f.write(lazy_router_content)
-        
+
         print(f"✅ Lazy router creado en: {lazy_router_path}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error creando lazy router: {e}")
         return False
@@ -131,40 +131,40 @@ def modify_main_to_use_lazy_router():
     """Modifica main.py para usar el lazy router."""
     print("\n🔧 MODIFICANDO main.py PARA USAR LAZY ROUTER")
     print("=" * 50)
-    
+
     main_path = backend_path / "app" / "main.py"
-    
+
     try:
-        with open(main_path, 'r', encoding='utf-8') as f:
+        with open(main_path, encoding='utf-8') as f:
             content = f.read()
-        
+
         # Reemplazar el import del api_router
         old_import = "from app.api.v1 import api_router"
         new_import = "from app.api.v1.lazy_router import get_api_router"
-        
+
         if old_import in content:
             content = content.replace(old_import, new_import)
             print("   📝 Import de api_router reemplazado")
         else:
             print("   ⚠️ No se encontró el import original")
-        
+
         # Reemplazar el uso del api_router
         old_usage = "app.include_router(api_router, prefix=\"/api/v1\")"
         new_usage = "app.include_router(get_api_router(), prefix=\"/api/v1\")"
-        
+
         if old_usage in content:
             content = content.replace(old_usage, new_usage)
             print("   📝 Uso de api_router reemplazado")
         else:
             print("   ⚠️ No se encontró el uso original")
-        
+
         # Guardar el archivo modificado
         with open(main_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        
+
         print("✅ main.py modificado exitosamente")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error modificando main.py: {e}")
         return False
@@ -173,20 +173,20 @@ def create_backup_original():
     """Crea una copia de seguridad del archivo original."""
     print("\n💾 CREANDO COPIA DE SEGURIDAD")
     print("=" * 50)
-    
+
     original_path = backend_path / "app" / "api" / "v1" / "__init__.py"
     backup_path = backend_path / "app" / "api" / "v1" / "__init__.py.backup"
-    
+
     try:
-        with open(original_path, 'r', encoding='utf-8') as f:
+        with open(original_path, encoding='utf-8') as f:
             content = f.read()
-        
+
         with open(backup_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        
+
         print(f"✅ Copia de seguridad creada en: {backup_path}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error creando copia de seguridad: {e}")
         return False
@@ -195,20 +195,20 @@ def test_lazy_import():
     """Prueba el import del lazy router."""
     print("\n🧪 PROBANDO LAZY ROUTER")
     print("=" * 50)
-    
+
     try:
         # Importar el lazy router
         from app.api.v1.lazy_router import get_api_router
-        
+
         print("   📦 Import exitoso")
-        
+
         # Intentar obtener el router (esto debería tomar más tiempo)
         import threading
         import time
-        
+
         result = [None]
         exception = [None]
-        
+
         def get_router_thread():
             try:
                 start_time = time.time()
@@ -218,12 +218,12 @@ def test_lazy_import():
             except Exception as e:
                 exception[0] = str(e)
                 result[0] = (False, 0, None)
-        
+
         thread = threading.Thread(target=get_router_thread)
         thread.daemon = True
         thread.start()
         thread.join(timeout=10)  # Darle 10 segundos
-        
+
         if thread.is_alive():
             print("   ⏰ TIMEOUT creando el router")
             return False
@@ -234,7 +234,7 @@ def test_lazy_import():
         else:
             print(f"   ❌ Error: {exception[0]}")
             return False
-            
+
     except Exception as e:
         print(f"   ❌ Error importando lazy router: {e}")
         return False
@@ -243,30 +243,30 @@ def main():
     """Función principal."""
     print("🔧 REPARACIÓN DEFINITIVA DEL API ROUTER")
     print("=" * 60)
-    
+
     success_count = 0
     total_tasks = 4
-    
+
     # Tarea 1: Crear copia de seguridad
     if create_backup_original():
         success_count += 1
-    
+
     # Tarea 2: Crear lazy router
     if create_lazy_api_router():
         success_count += 1
-    
+
     # Tarea 3: Modificar main.py
     if modify_main_to_use_lazy_router():
         success_count += 1
-    
+
     # Tarea 4: Probar lazy import
     if test_lazy_import():
         success_count += 1
-    
-    print(f"\n📊 RESUMEN")
+
+    print("\n📊 RESUMEN")
     print("=" * 50)
     print(f"Tareas completadas: {success_count}/{total_tasks}")
-    
+
     if success_count == total_tasks:
         print("✅ Reparación completada exitosamente")
         print("\n💡 PASOS SIGUIENTES:")
@@ -278,7 +278,7 @@ def main():
     else:
         print("❌ Algunas tareas fallaron")
         print("💡 Revisa los errores e intenta manualmente")
-    
+
     return success_count == total_tasks
 
 if __name__ == "__main__":

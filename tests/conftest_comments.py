@@ -1,15 +1,15 @@
 """Configuration for comment module tests."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
+from app.core.db.base import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.db.base import Base
 from app.models.task import Task
 from app.models.user import User
 from app.modules.products.models.product import Product
-
 
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite:///:memory:"

@@ -1,10 +1,6 @@
 """Unit tests for AuthService."""
 
-from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
-from uuid import uuid4
-
-import pytest
 
 from app.services.auth_service import AuthService
 

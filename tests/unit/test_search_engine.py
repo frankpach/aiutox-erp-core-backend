@@ -1,7 +1,8 @@
 """Unit tests for SearchEngine."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.search.engine import SearchEngine
 from app.core.search.indexer import SearchIndexer

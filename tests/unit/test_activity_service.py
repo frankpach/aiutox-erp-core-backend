@@ -1,12 +1,13 @@
 """Unit tests for ActivityService."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from app.core.activities.service import ActivityService
 from app.core.pubsub import EventPublisher
-from app.models.activity import Activity, ActivityType
+from app.models.activity import ActivityType
 
 
 @pytest.fixture

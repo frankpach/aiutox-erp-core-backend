@@ -1,8 +1,9 @@
 """Helper functions for tests."""
 
 import json
+from collections.abc import Iterable
 from datetime import UTC, datetime
-from typing import Any, Iterable
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session

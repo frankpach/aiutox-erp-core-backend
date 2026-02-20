@@ -1,10 +1,7 @@
 """Integration tests for module roles (internal roles)."""
 
-import pytest
-from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.core.auth import create_access_token
 from app.models.module_role import ModuleRole
 from app.models.user import User
 from app.models.user_role import UserRole

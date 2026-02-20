@@ -1,9 +1,9 @@
 """Unit tests for Async Tasks Scheduler."""
 
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
+
+import pytest
 
 from app.core.async_tasks.registry import TaskRegistry
 from app.core.async_tasks.scheduler import AsyncTaskScheduler

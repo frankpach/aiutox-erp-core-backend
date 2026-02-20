@@ -1,13 +1,11 @@
 """Integration tests for audit logs functionality."""
 
-from datetime import datetime, timedelta, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 
@@ -113,7 +111,7 @@ def test_get_audit_logs_with_date_filters(
     """Test getting audit logs with date filters."""
     repo = AuditRepository(db_session)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     yesterday = now - timedelta(days=1)
     tomorrow = now + timedelta(days=1)
 
@@ -294,8 +292,8 @@ def test_get_audit_logs_endpoint_with_advanced_filters(
 ) -> None:
     """Test GET /api/v1/auth/audit-logs endpoint with advanced filters (IP, user_agent, details_search)."""
     from app.models.user_role import UserRole
-    from app.services.auth_service import AuthService
     from app.repositories.audit_repository import AuditRepository
+    from app.services.auth_service import AuthService
 
     # Assign admin role to test_user
     admin_role = UserRole(
@@ -381,11 +379,12 @@ def test_audit_log_created_on_permission_grant(
     test_user: User,
 ) -> None:
     """Test that audit log is created when granting permission."""
+    from uuid import uuid4
+
     from app.core.auth import hash_password
     from app.models.module_role import ModuleRole
     from app.repositories.audit_repository import AuditRepository
     from app.services.auth_service import AuthService
-    from uuid import uuid4
 
     # Make test_user a leader of inventory module
     module_role = ModuleRole(
@@ -446,11 +445,12 @@ def test_audit_log_created_on_role_assignment(
     test_user: User,
 ) -> None:
     """Test that audit log is created when assigning role."""
+    from uuid import uuid4
+
     from app.core.auth import hash_password
     from app.models.user_role import UserRole
     from app.repositories.audit_repository import AuditRepository
     from app.services.auth_service import AuthService
-    from uuid import uuid4
 
     # Create admin user
     admin_user = User(
@@ -507,11 +507,12 @@ def test_audit_log_created_on_user_creation(
     test_tenant,
 ) -> None:
     """Test that audit log is created when creating user."""
+    from uuid import uuid4
+
     from app.core.auth import hash_password
     from app.models.user_role import UserRole
     from app.repositories.audit_repository import AuditRepository
     from app.services.auth_service import AuthService
-    from uuid import uuid4
 
     # Create admin user
     admin_user = User(

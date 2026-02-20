@@ -1,12 +1,10 @@
 """Integration tests for permission delegation functionality."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.models.delegated_permission import DelegatedPermission
 from app.models.module_role import ModuleRole
 from app.models.user import User
 from app.models.user_role import UserRole
@@ -32,10 +30,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
 
-        from app.models.tenant import Tenant
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -81,8 +78,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -121,8 +119,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -161,8 +160,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -213,8 +213,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -253,8 +254,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -267,7 +269,7 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Act: Grant permission with expiration
-        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at = datetime.now(UTC) + timedelta(days=30)
         permission_service = PermissionService(db_session)
         delegated_permission = permission_service.grant_permission(
             user_id=target_user.id,
@@ -296,8 +298,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -338,8 +341,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -381,8 +385,9 @@ class TestPermissionDelegation:
         )
         db_session.add(module_role1)
 
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         leader2 = User(
             email=f"leader2-{uuid4().hex[:8]}@example.com",
@@ -442,8 +447,9 @@ class TestPermissionDelegation:
         db_session.add(admin_role)
 
         # Create leader and target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         leader = User(
             email=f"leader-{uuid4().hex[:8]}@example.com",
@@ -505,8 +511,9 @@ class TestPermissionDelegation:
         db_session.add(admin_role)
 
         # Create leader and target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         leader = User(
             email=f"leader-{uuid4().hex[:8]}@example.com",
@@ -581,8 +588,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -627,8 +635,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -672,8 +681,9 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Create target user
-        from app.core.auth import hash_password
         from uuid import uuid4
+
+        from app.core.auth import hash_password
 
         target_user = User(
             email=f"target-{uuid4().hex[:8]}@example.com",
@@ -686,7 +696,7 @@ class TestPermissionDelegation:
         db_session.commit()
 
         # Grant permission with expiration in the past
-        expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+        expires_at = datetime.now(UTC) - timedelta(days=1)
         permission_service = PermissionService(db_session)
         repo = PermissionRepository(db_session)
         expired_permission = repo.create_delegated_permission(

@@ -1,8 +1,5 @@
 """Integration tests for Import/Export module interactions."""
 
-import pytest
-from unittest.mock import AsyncMock, patch
-from uuid import uuid4
 
 from app.models.module_role import ModuleRole
 

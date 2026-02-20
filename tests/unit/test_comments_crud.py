@@ -7,18 +7,18 @@ Tests comment functionality for:
 """
 
 import hashlib
-import pytest
+from unittest.mock import Mock
 from uuid import uuid4
 
-from app.core.db.session import Base
-from tests.conftest import TestingSessionLocal
+import pytest
+
 from app.core.tasks.comment_service import TaskCommentService
 from app.models.comment import Comment, CommentMention
-from app.models.user import User
 from app.models.task import Task
 from app.models.tenant import Tenant
+from app.models.user import User
 from app.modules.products.models.product import Product
-from unittest.mock import Mock
+from tests.conftest import TestingSessionLocal
 
 
 @pytest.fixture

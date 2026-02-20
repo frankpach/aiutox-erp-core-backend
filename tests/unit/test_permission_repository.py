@@ -1,9 +1,7 @@
 """Unit tests for PermissionRepository."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-
-import pytest
 
 from app.repositories.permission_repository import PermissionRepository
 
@@ -34,7 +32,7 @@ class TestPermissionRepository:
     def test_create_delegated_permission_with_expiration(self, db_session, test_user):
         """Test creating a delegated permission with expiration date."""
         repo = PermissionRepository(db_session)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at = datetime.now(UTC) + timedelta(days=30)
         permission = repo.create_delegated_permission(
             user_id=test_user.id,
             granted_by=test_user.id,
@@ -59,7 +57,7 @@ class TestPermissionRepository:
         )
 
         # Create expired permission
-        expired_at = datetime.now(timezone.utc) - timedelta(days=1)
+        expired_at = datetime.now(UTC) - timedelta(days=1)
         expired_permission = repo.create_delegated_permission(
             user_id=test_user.id,
             granted_by=test_user.id,
@@ -90,7 +88,7 @@ class TestPermissionRepository:
         repo = PermissionRepository(db_session)
 
         # Create expired permission
-        expired_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        expired_at = datetime.now(UTC) - timedelta(hours=1)
         repo.create_delegated_permission(
             user_id=test_user.id,
             granted_by=test_user.id,
@@ -256,8 +254,8 @@ class TestPermissionRepository:
     def test_get_permissions_by_granted_by(self, db_session, test_user):
         """Test getting permissions granted by a specific user."""
         repo = PermissionRepository(db_session)
-        from app.models.user import User
         from app.core.auth.password import hash_password
+        from app.models.user import User
 
         # Create another user
         other_user = User(

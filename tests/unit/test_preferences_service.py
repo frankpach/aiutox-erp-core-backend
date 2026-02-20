@@ -1,10 +1,9 @@
 """Unit tests for PreferencesService."""
 
+
 import pytest
-from uuid import uuid4
 
 from app.core.preferences.service import PreferencesService
-from app.repositories.preference_repository import PreferenceRepository
 
 
 @pytest.fixture

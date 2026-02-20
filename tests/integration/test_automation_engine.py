@@ -1,11 +1,12 @@
 """Integration tests for AutomationEngine."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.automation.engine import AutomationEngine
 from app.core.pubsub.models import Event, EventMetadata
-from app.models.automation import AutomationExecutionStatus, Rule
+from app.models.automation import AutomationExecutionStatus
 from app.repositories.automation_repository import AutomationRepository
 
 

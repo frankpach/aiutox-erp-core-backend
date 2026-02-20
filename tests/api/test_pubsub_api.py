@@ -4,14 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.core.pubsub.client import RedisStreamsClient
 from tests.helpers import create_user_with_permission
 
 
 @pytest.fixture
 def mock_redis_client():
     """Mock Redis client for testing."""
-    from unittest.mock import AsyncMock, MagicMock
+    from unittest.mock import AsyncMock
 
     client = MagicMock()
     client.get_stream_info = AsyncMock()

@@ -1,7 +1,6 @@
 """Unit tests for rate limiting utilities."""
 
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException, status
@@ -61,7 +60,7 @@ def test_check_login_rate_limit_cleans_old_attempts():
     ip_address = "127.0.0.1"
 
     # Manually add old attempts (outside 1 minute window)
-    old_time = datetime.now(timezone.utc) - timedelta(minutes=2)
+    old_time = datetime.now(UTC) - timedelta(minutes=2)
     _login_attempts[ip_address] = [old_time, old_time, old_time]
 
     # Should clean old attempts and allow new ones
@@ -72,7 +71,7 @@ def test_check_login_rate_limit_cleans_old_attempts():
     # Verify old attempts were cleaned (only the new attempt should remain)
     attempts = _login_attempts[ip_address]
     assert len(attempts) == 1  # Only the new attempt
-    assert all(attempt > datetime.now(timezone.utc) - timedelta(minutes=1) for attempt in attempts)
+    assert all(attempt > datetime.now(UTC) - timedelta(minutes=1) for attempt in attempts)
 
 
 def test_check_login_rate_limit_per_ip():
@@ -180,11 +179,11 @@ def test_record_login_attempt_multiple_ips():
 def test_record_login_attempt_timestamp():
     """Test that record_login_attempt records correct timestamp."""
     ip_address = "127.0.0.1"
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
 
     record_login_attempt(ip_address)
 
-    after = datetime.now(timezone.utc)
+    after = datetime.now(UTC)
 
     # Verify timestamp is within reasonable range
     attempts = _login_attempts[ip_address]

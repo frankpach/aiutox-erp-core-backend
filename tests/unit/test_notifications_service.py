@@ -1,12 +1,11 @@
 """Unit tests for NotificationService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
+
+import pytest
 
 from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventPublisher
-from app.models.notification import NotificationStatus, NotificationTemplate
 
 
 @pytest.fixture
@@ -194,11 +193,10 @@ async def test_send_notification_publishes_failed_event(
 async def test_send_sms(notification_service, test_user, test_tenant, db_session):
     """Test sending SMS notification."""
     from app.core.config.service import ConfigService
-    from app.repositories.contact_method_repository import ContactMethodRepository
-    from app.models.contact_method import ContactMethodType
 
     # Create phone contact method for user
-    from app.models.contact_method import EntityType
+    from app.models.contact_method import ContactMethodType, EntityType
+    from app.repositories.contact_method_repository import ContactMethodRepository
 
     contact_repo = ContactMethodRepository(db_session)
     contact_repo.create(
@@ -244,7 +242,6 @@ async def test_send_sms(notification_service, test_user, test_tenant, db_session
         value="+1234567890",
     )
 
-    import httpx
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_response = MagicMock()
         mock_response.status_code = 201
@@ -285,7 +282,6 @@ async def test_send_sms_no_phone(notification_service, test_user, test_tenant, d
 @pytest.mark.asyncio
 async def test_send_webhook(notification_service):
     """Test sending webhook notification."""
-    import httpx
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_response = MagicMock()
         mock_response.status_code = 200

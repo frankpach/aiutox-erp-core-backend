@@ -1,7 +1,8 @@
 """Unit tests for Pub-Sub group management."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.core.pubsub.client import RedisStreamsClient
 from app.core.pubsub.errors import PubSubError

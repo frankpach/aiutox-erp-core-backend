@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.orm import Session
 
-from app.models.system_config import SystemConfig
 from app.repositories.config_repository import ConfigRepository
 
 

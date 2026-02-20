@@ -1,9 +1,7 @@
 """Integration tests for authentication service."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-
-import pytest
 
 from app.models.user_role import UserRole
 from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -132,7 +130,7 @@ def test_refresh_access_token_expired(db_session, test_user):
     from app.repositories.refresh_token_repository import RefreshTokenRepository
 
     refresh_token_str = create_refresh_token(test_user.id)
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=-1)  # Expired
+    expires_at = datetime.now(UTC) + timedelta(seconds=-1)  # Expired
 
     refresh_token_repo = RefreshTokenRepository(db_session)
     refresh_token_repo.create(test_user.id, refresh_token_str, expires_at)
@@ -314,7 +312,6 @@ def test_revoke_refresh_token_invalid_user_id(db_session, test_user):
     refresh_token = auth_service.create_refresh_token_for_user(test_user)
 
     # Try to revoke with wrong user_id
-    from uuid import uuid4
 
     wrong_user_id = uuid4()
     result = auth_service.revoke_refresh_token(refresh_token, wrong_user_id)

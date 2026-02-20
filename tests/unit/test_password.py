@@ -1,6 +1,5 @@
 """Unit tests for password hashing and verification utilities."""
 
-import pytest
 
 from app.core.auth.password import hash_password, verify_password
 

@@ -1,13 +1,13 @@
 """Unit tests for FileService."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from app.core.files.service import FileService
 from app.core.files.storage import LocalStorageBackend
 from app.core.pubsub import EventPublisher
-from app.models.file import StorageBackend
 
 
 @pytest.fixture
@@ -185,8 +185,9 @@ async def test_generate_thumbnail(
     file_service, test_user, test_tenant, mock_storage_backend
 ):
     """Test generating thumbnail for an image."""
-    from PIL import Image
     import io
+
+    from PIL import Image
 
     # Create a test image
     img = Image.new("RGB", (200, 200), color="blue")
@@ -250,10 +251,11 @@ async def test_generate_thumbnail_non_image(file_service, test_user, test_tenant
 
 def test_check_permissions_user_can_view(file_service, test_user, test_tenant, db_session):
     """Test checking permissions for a user to view a file."""
+    import asyncio
+    from uuid import uuid4
+
     from app.core.auth import hash_password
     from app.models.user import User
-    from uuid import uuid4
-    import asyncio
 
     # Create a second user (not the owner)
     other_user = User(
@@ -313,10 +315,11 @@ def test_check_permissions_user_can_view(file_service, test_user, test_tenant, d
 
 def test_check_permissions_user_cannot_view(file_service, test_user, test_tenant, db_session):
     """Test checking permissions when user cannot view a file."""
+    import asyncio
+    from uuid import uuid4
+
     from app.core.auth import hash_password
     from app.models.user import User
-    from uuid import uuid4
-    import asyncio
 
     # Create a second user (not the owner)
     other_user = User(
@@ -393,9 +396,8 @@ def test_check_permissions_owner_has_access(file_service, test_user, test_tenant
 
 def test_check_permissions_role_based(file_service, test_user, test_tenant, db_session):
     """Test checking permissions based on role."""
-    from app.models.user_role import UserRole
-    from uuid import uuid4
     import asyncio
+    from uuid import uuid4
 
     # Create a second user (not the owner)
     from app.core.auth import hash_password

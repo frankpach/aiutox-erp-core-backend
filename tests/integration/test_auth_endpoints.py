@@ -1,7 +1,8 @@
 """Integration tests for authentication endpoints."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, timezone
 from fastapi import status
 
 from app.core.auth import create_access_token, decode_token
@@ -205,7 +206,6 @@ def test_get_me_invalid_token(client):
 
 def test_get_me_expired_token(client_with_db, test_user):
     """Test that GET /me endpoint returns 401 for expired token."""
-    from datetime import timedelta
 
     # Create expired token
     token_data = {
@@ -419,9 +419,9 @@ def test_multi_tenant_isolation(client_with_db, db_session, test_user, test_tena
     """Test that users cannot access resources from other tenants via token manipulation."""
     from uuid import uuid4
 
+    from app.core.auth import hash_password
     from app.models.tenant import Tenant
     from app.models.user import User
-    from app.core.auth import hash_password
 
     # Create another tenant
     other_tenant = Tenant(
@@ -505,8 +505,8 @@ def test_login_with_remember_me_true(client_with_db, test_user):
 
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = 30  # REFRESH_TOKEN_REMEMBER_ME_DAYS
@@ -534,8 +534,8 @@ def test_login_with_remember_me_false(client_with_db, test_user):
 
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = 7  # REFRESH_TOKEN_EXPIRE_DAYS
@@ -562,8 +562,8 @@ def test_login_without_remember_me_default(client_with_db, test_user):
 
     exp_timestamp = payload["exp"]
     iat_timestamp = payload["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     expected_days = 7  # REFRESH_TOKEN_EXPIRE_DAYS (default)
@@ -704,8 +704,8 @@ def test_access_token_expires_in_60_minutes(client_with_db, test_user):
 
     exp_timestamp = decoded["exp"]
     iat_timestamp = decoded["iat"]
-    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
-    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+    exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
+    iat_datetime = datetime.fromtimestamp(iat_timestamp, tz=UTC)
 
     diff = exp_datetime - iat_datetime
     actual_minutes = diff.total_seconds() / 60

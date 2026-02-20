@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine, engine_from_config, pool, text
+from sqlalchemy import create_engine, pool, text
 
 from app.core.config_file import get_settings
 from app.core.db.session import Base
@@ -21,12 +21,11 @@ from app.models import (  # noqa: F401
     UserRole,
 )
 
-# Import products models from modules (not in app.models to avoid circular imports)
-from app.modules.products.models.product import (  # noqa: F401
-    Category,
-    Product,
-    ProductBarcode,
-    ProductVariant,
+# Import CRM models from modules
+from app.modules.crm.models.crm import (  # noqa: F401
+    Lead,
+    Opportunity,
+    Pipeline,
 )
 
 # Import inventory models from modules
@@ -36,11 +35,12 @@ from app.modules.inventory.models.inventory import (  # noqa: F401
     Warehouse,
 )
 
-# Import CRM models from modules
-from app.modules.crm.models.crm import (  # noqa: F401
-    Lead,
-    Opportunity,
-    Pipeline,
+# Import products models from modules (not in app.models to avoid circular imports)
+from app.modules.products.models.product import (  # noqa: F401
+    Category,
+    Product,
+    ProductBarcode,
+    ProductVariant,
 )
 
 # this is the Alembic Config object

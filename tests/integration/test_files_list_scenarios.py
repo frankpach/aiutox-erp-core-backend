@@ -1,12 +1,7 @@
 """Integration tests for Files API list endpoint scenarios (Fase 1)."""
 
-import pytest
-from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from app.models.file import File
-from app.models.file import FilePermission
-from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 
@@ -36,8 +31,8 @@ def test_list_files_without_permissions(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
 
     # Create another user
-    from app.models.user import User
     from app.core.auth import hash_password
+    from app.models.user import User
 
     other_user = User(
         email=f"other-list-{uuid4().hex[:8]}@test.com",
@@ -93,8 +88,9 @@ def test_list_files_with_deleted_files(client_with_db, test_user, db_session):
     assert delete_response.status_code == 204
 
     # Verify file is marked as deleted
-    from app.repositories.file_repository import FileRepository
     from uuid import UUID
+
+    from app.repositories.file_repository import FileRepository
     repo = FileRepository(db_session)
     deleted_file = repo.get_by_id(UUID(file_id), test_user.tenant_id, current_only=False)
     assert deleted_file is not None

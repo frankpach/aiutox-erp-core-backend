@@ -1,6 +1,6 @@
 """Tests de integración para TaskScheduler."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -44,7 +44,7 @@ class TestTaskScheduler:
             "priority": TaskPriority.HIGH,
             "assigned_to_id": test_user.id,
             "created_by_id": test_user.id,
-            "due_date": datetime.now(timezone.utc) + timedelta(hours=12),
+            "due_date": datetime.now(UTC) + timedelta(hours=12),
         })
 
         scheduler = TaskScheduler()
@@ -68,7 +68,7 @@ class TestTaskScheduler:
             "priority": TaskPriority.URGENT,
             "assigned_to_id": test_user.id,
             "created_by_id": test_user.id,
-            "due_date": datetime.now(timezone.utc) - timedelta(days=2),
+            "due_date": datetime.now(UTC) - timedelta(days=2),
         })
 
         scheduler = TaskScheduler()
@@ -77,7 +77,7 @@ class TestTaskScheduler:
         await scheduler.check_overdue_tasks()
 
         # Verificar que se procesó
-        assert task.due_date < datetime.now(timezone.utc)
+        assert task.due_date < datetime.now(UTC)
 
     async def test_scheduler_handles_no_tasks(self, db_session):
         """Verifica que el scheduler maneja correctamente cuando no hay tareas."""

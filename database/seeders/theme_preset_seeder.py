@@ -78,7 +78,7 @@ class ThemePresetSeeder(Seeder):
                 db.query(ThemePreset)
                 .filter(
                     ThemePreset.tenant_id == tenant.id,
-                    ThemePreset.is_system == True,
+                    ThemePreset.is_system.is_(True),
                     ThemePreset.name == "Original",
                 )
                 .first()

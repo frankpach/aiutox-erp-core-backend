@@ -1,11 +1,11 @@
 """Unit tests for TemplateService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
 
-from app.core.templates.service import TemplateService, TemplateRenderer
+import pytest
+
 from app.core.pubsub import EventPublisher
+from app.core.templates.service import TemplateRenderer, TemplateService
 
 
 @pytest.fixture

@@ -1,7 +1,8 @@
 """Unit tests for TagService."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.tags.service import TagService
 

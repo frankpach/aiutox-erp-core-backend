@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import httpx
-import pytest
 
 # Import module to avoid pytest detecting functions as tests
 from app.core.integrations import integration_test

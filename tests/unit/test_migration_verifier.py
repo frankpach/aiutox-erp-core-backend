@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.migrations.manager import MigrationManager
-from app.core.migrations.models import IntegrityResult, SchemaVerificationResult, VerificationResult
+from app.core.migrations.models import (
+    IntegrityResult,
+    SchemaVerificationResult,
+    VerificationResult,
+)
 from app.core.migrations.verifier import MigrationVerifier
 
 

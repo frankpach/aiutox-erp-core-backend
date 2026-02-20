@@ -1,10 +1,7 @@
 """Integration tests for Files Tags API endpoints."""
 
-import pytest
 from uuid import uuid4
 
-from app.models.module_role import ModuleRole
-from app.models.tag import Tag
 from tests.helpers import create_user_with_permission
 
 
@@ -253,8 +250,8 @@ def test_add_tags_to_file_no_permission(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "files", "viewer")
 
     # Create another user to upload the file (so test_user is not the owner)
-    from app.models.user import User
     from app.core.auth import hash_password
+    from app.models.user import User
     other_user = User(
         email=f"other-tags-{uuid4().hex[:8]}@test.com",
         full_name="Other User",

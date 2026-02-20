@@ -1,7 +1,8 @@
 """Unit tests for ConditionEvaluator."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.automation.condition_evaluator import ConditionEvaluator
 from app.core.pubsub.models import Event, EventMetadata

@@ -1,6 +1,5 @@
 """Integration tests for Approvals module interactions with other modules."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -127,6 +126,7 @@ def test_approval_delegation(client_with_db, test_user, auth_headers, db_session
             "approver_id": test_user.id,
         },
     )
+    assert step.approver_id == test_user.id
 
     entity_id = uuid4()
     request = approval_service.create_approval_request(
@@ -162,7 +162,7 @@ def test_approval_delegation(client_with_db, test_user, auth_headers, db_session
 
     assert delegation.from_user_id == test_user.id
     assert delegation.to_user_id == delegated_user.id
-    assert delegation.is_active == True
+    assert delegation.is_active
 
 
 def test_approval_publishes_events(client_with_db, test_user, auth_headers, db_session):

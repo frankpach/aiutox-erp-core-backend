@@ -1,9 +1,10 @@
 """Unit tests for CleanupDeletedFilesTask."""
 
-import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
+
+import pytest
 
 from app.core.files.tasks import CleanupDeletedFilesTask
 

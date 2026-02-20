@@ -1,12 +1,9 @@
 """Unit tests for AuditService."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 from uuid import uuid4
 
-import pytest
-
-from app.repositories.audit_repository import AuditRepository
 from app.services.audit_service import AuditService
 
 
@@ -27,7 +24,7 @@ class TestAuditService:
                 tenant_id=test_tenant.id,
                 action=f"action_{i}",
                 resource_type="user",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
             mock_logs.append(log)
 
@@ -58,7 +55,7 @@ class TestAuditService:
                 id=uuid4(),
                 tenant_id=test_tenant.id,
                 action=f"action_{i}",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
             mock_logs.append(log)
 
@@ -96,7 +93,7 @@ class TestAuditService:
                 user_id=test_user.id,
                 tenant_id=test_tenant.id,
                 action="create_user",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         ]
 
@@ -133,7 +130,7 @@ class TestAuditService:
                 id=uuid4(),
                 tenant_id=test_tenant.id,
                 action="grant_permission",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         ]
 
@@ -165,15 +162,15 @@ class TestAuditService:
 
         from app.models.audit_log import AuditLog
 
-        date_from = datetime.now(timezone.utc) - timedelta(days=1)
-        date_to = datetime.now(timezone.utc)
+        date_from = datetime.now(UTC) - timedelta(days=1)
+        date_to = datetime.now(UTC)
 
         mock_logs = [
             AuditLog(
                 id=uuid4(),
                 tenant_id=test_tenant.id,
                 action="action",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         ]
 

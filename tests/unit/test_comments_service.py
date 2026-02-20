@@ -1,8 +1,9 @@
 """Unit tests for CommentService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from app.core.comments.service import CommentService, MentionParser
 from app.core.pubsub import EventPublisher

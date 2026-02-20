@@ -1,11 +1,12 @@
 """Unit tests for TaskService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from app.core.tasks.service import TaskService
+import pytest
+
 from app.core.pubsub import EventPublisher
+from app.core.tasks.service import TaskService
 from app.models.task import TaskPriority, TaskStatus
 
 

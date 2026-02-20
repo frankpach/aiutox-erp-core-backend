@@ -1,9 +1,6 @@
 """Integration tests for Automation API endpoints."""
 
-import pytest
-from uuid import uuid4
 
-from app.models.automation import Rule
 from app.models.module_role import ModuleRole
 
 

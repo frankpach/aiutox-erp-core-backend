@@ -1,15 +1,16 @@
 """Unit tests for EventConsumer."""
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 from app.core.config_file import get_settings
 from app.core.pubsub.client import RedisStreamsClient
 from app.core.pubsub.consumer import EventConsumer
 from app.core.pubsub.errors import ConsumeError
-from app.core.pubsub.models import Event, EventMetadata
+from app.core.pubsub.models import Event
 
 settings = get_settings()
 
@@ -138,7 +139,7 @@ async def test_consume_loop_processes_messages(event_consumer, mock_client):
         # Wait for processing with timeout
         try:
             await asyncio.wait_for(processing_done.wait(), timeout=2.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass  # Puede que no se procese en tiempo, pero no es crítico para el test
 
         # Stop consumer inmediatamente

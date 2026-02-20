@@ -1,9 +1,7 @@
 """Integration tests for Calendar module interactions with other modules."""
 
-import pytest
-from unittest.mock import AsyncMock, patch
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from unittest.mock import AsyncMock, patch
 
 from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission

@@ -1,10 +1,7 @@
 """Integration tests for Files version restore API endpoint."""
 
-import pytest
 from uuid import uuid4
 
-from app.models.file import File
-from app.models.file import FileVersion
 from tests.helpers import create_user_with_permission
 
 
@@ -92,9 +89,9 @@ def test_restore_file_version_not_found(client_with_db, test_user, db_session):
 
 def test_restore_file_version_requires_permission(client_with_db, test_user, db_session):
     """Test that restore version requires files.manage permission."""
-    from app.models.user import User
     from app.core.auth import hash_password
     from app.models.module_role import ModuleRole
+    from app.models.user import User
 
     # Create a separate user for uploading (with manager permission)
     manager_user = User(

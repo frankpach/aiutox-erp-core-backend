@@ -1,9 +1,6 @@
 """Unit tests for RefreshTokenRepository."""
 
-from datetime import datetime, timedelta, timezone
-from uuid import uuid4
-
-import pytest
+from datetime import UTC, datetime, timedelta
 
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 
@@ -15,7 +12,7 @@ class TestRefreshTokenRepository:
         """Test creating a refresh token."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         refresh_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
 
@@ -32,7 +29,7 @@ class TestRefreshTokenRepository:
 
         token = "test_refresh_token_12345"
         token_hash = hash_token(token)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
 
@@ -56,7 +53,7 @@ class TestRefreshTokenRepository:
         """Test finding a valid refresh token for a user."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
 
@@ -69,7 +66,7 @@ class TestRefreshTokenRepository:
         """Test finding a token with wrong token string."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
 
@@ -81,7 +78,7 @@ class TestRefreshTokenRepository:
         """Test that expired tokens are not found."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) - timedelta(days=1)  # Expired
+        expires_at = datetime.now(UTC) - timedelta(days=1)  # Expired
 
         repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
 
@@ -93,7 +90,7 @@ class TestRefreshTokenRepository:
         """Test that revoked tokens are not found."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
         repo.revoke_token(created_token)
@@ -106,7 +103,7 @@ class TestRefreshTokenRepository:
         """Test revoking a refresh token."""
         repo = RefreshTokenRepository(db_session)
         token = "test_refresh_token_12345"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         refresh_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
         assert refresh_token.revoked_at is None
@@ -125,12 +122,12 @@ class TestRefreshTokenRepository:
         token1 = repo.create(
             user_id=test_user.id,
             token="token1",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
         token2 = repo.create(
             user_id=test_user.id,
             token="token2",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         # Revoke all
@@ -160,14 +157,14 @@ class TestRefreshTokenRepository:
         active_token = repo.create(
             user_id=test_user.id,
             token="active_token",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         # Create and revoke a token
         revoked_token = repo.create(
             user_id=test_user.id,
             token="revoked_token",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
         repo.revoke_token(revoked_token)
 
@@ -188,7 +185,7 @@ class TestRefreshTokenRepository:
         expired_token = repo.create(
             user_id=test_user.id,
             token="expired_token",
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
         # Save token hash before revoking and deleting
         expired_token_hash = expired_token.token_hash
@@ -198,7 +195,7 @@ class TestRefreshTokenRepository:
         expired_not_revoked = repo.create(
             user_id=test_user.id,
             token="expired_not_revoked",
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
         expired_not_revoked_hash = expired_not_revoked.token_hash
 
@@ -206,7 +203,7 @@ class TestRefreshTokenRepository:
         active_token = repo.create(
             user_id=test_user.id,
             token="active_token",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
         active_token_hash = active_token.token_hash
 

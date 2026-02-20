@@ -1,9 +1,7 @@
 """Integration tests for Files upload with permissions."""
 
-import pytest
 from uuid import uuid4
 
-from app.models.file import FilePermission
 from tests.helpers import create_user_with_permission
 
 
@@ -13,8 +11,8 @@ def test_upload_file_with_permissions(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create another user
-    from app.models.user import User
     from app.core.auth.password import hash_password
+    from app.models.user import User
     other_user = User(
         email=f"other-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
@@ -75,8 +73,8 @@ def test_upload_file_with_multiple_permissions(client_with_db, test_user, db_ses
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
 
     # Create another user
-    from app.models.user import User
     from app.core.auth.password import hash_password
+    from app.models.user import User
     other_user = User(
         email=f"other-multi-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
@@ -124,8 +122,9 @@ def test_upload_file_with_multiple_permissions(client_with_db, test_user, db_ses
     file_id = data["id"]
 
     # Verify permissions were created
-    from app.repositories.file_repository import FileRepository
     from uuid import UUID
+
+    from app.repositories.file_repository import FileRepository
     repo = FileRepository(db_session)
     permissions = repo.get_permissions(UUID(file_id), test_user.tenant_id)
     assert len(permissions) >= 2

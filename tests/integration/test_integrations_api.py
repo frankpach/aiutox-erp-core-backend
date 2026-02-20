@@ -1,12 +1,12 @@
 """Integration tests for Integrations API endpoints."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from fastapi import status
-from app.services.auth_service import AuthService
-from app.models.module_role import ModuleRole
 
+from app.models.module_role import ModuleRole
+from app.services.auth_service import AuthService
 from tests.helpers import create_user_with_permission
 
 
@@ -332,9 +332,10 @@ def test_test_integration_requires_permission(client_with_db, test_user, db_sess
     integration_id = create_response.json()["data"]["id"]
 
     # Create another user without permissions
-    from app.models.user import User
-    from app.core.auth.password import hash_password
     from uuid import uuid4
+
+    from app.core.auth.password import hash_password
+    from app.models.user import User
 
     other_user = User(
         email=f"no-perm-{uuid4().hex[:8]}@test.com",
@@ -441,6 +442,7 @@ def test_test_integration_not_found(client_with_db, test_user, db_session):
 def test_get_credentials_with_permission(client_with_db, test_user, db_session):
     """Test getting credentials with proper permission."""
     import json
+
     from app.core.security.encryption import encrypt_credentials
     from app.repositories.integration_repository import IntegrationRepository
 

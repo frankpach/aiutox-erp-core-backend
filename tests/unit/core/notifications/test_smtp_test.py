@@ -1,12 +1,9 @@
 """Unit tests for SMTP connection testing functionality."""
 
+from smtplib import SMTPAuthenticationError, SMTPConnectError, SMTPServerDisconnected
 from unittest.mock import MagicMock, Mock, patch
 
-import pytest
-from smtplib import SMTPAuthenticationError, SMTPConnectError, SMTPServerDisconnected
-
 from app.core.notifications.smtp_test import (
-    SMTPTestResult,
     check_smtp_connection,
 )
 

@@ -7,7 +7,6 @@ Create Date: 2026-03-05 10:00:00.000000
 """
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = '2026_03_05_optimize_task_indexes'
 down_revision = '2026_01_24_001'

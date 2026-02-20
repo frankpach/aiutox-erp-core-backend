@@ -2,8 +2,6 @@
 
 import pytest
 
-from tests.helpers import create_auth_headers_for_user
-
 
 @pytest.mark.integration
 def test_list_status_definitions_success(

@@ -2,17 +2,14 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-
-# Add backend to path
+# Add backend to path before importing CLI
 backend_dir = Path(__file__).parent.parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from scripts.cli.commands.make import app
-from scripts.cli.utils.generators import generate_model
+from scripts.cli.commands.make import app  # noqa: E402
 
 
 class TestMakeCommands:

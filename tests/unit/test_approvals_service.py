@@ -1,10 +1,11 @@
 """Unit tests for ApprovalService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from app.core.approvals.service import ApprovalService, FlowEngine
+import pytest
+
+from app.core.approvals.service import ApprovalService
 from app.core.pubsub import EventPublisher
 
 

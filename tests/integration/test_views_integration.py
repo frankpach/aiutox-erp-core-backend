@@ -1,6 +1,5 @@
 """Integration tests for Views module interactions."""
 
-import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole

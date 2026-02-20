@@ -1,8 +1,9 @@
 """Unit tests for ActionExecutor."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
+
+import pytest
 
 from app.core.automation.action_executor import ActionExecutor
 from app.core.pubsub.models import Event, EventMetadata

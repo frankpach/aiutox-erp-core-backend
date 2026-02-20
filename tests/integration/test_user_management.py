@@ -2,7 +2,6 @@
 
 from uuid import uuid4
 
-import pytest
 from fastapi import status
 
 from app.core.auth import hash_password

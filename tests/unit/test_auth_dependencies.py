@@ -1,7 +1,7 @@
 """Unit tests for authentication dependencies."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException, status
@@ -12,7 +12,6 @@ from app.core.auth.dependencies import (
     verify_tenant_access,
 )
 from app.models.tenant import Tenant
-from app.models.user import User
 
 
 @pytest.mark.asyncio

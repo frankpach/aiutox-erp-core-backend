@@ -1,7 +1,8 @@
 """Unit tests for Pub-Sub models."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.pubsub.models import Event, EventMetadata
 

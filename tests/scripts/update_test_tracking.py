@@ -4,7 +4,6 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # Add backend to path
 backend_dir = Path(__file__).parent.parent.parent
@@ -12,7 +11,7 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 
-def find_latest_tracking_file() -> Optional[Path]:
+def find_latest_tracking_file() -> Path | None:
     """Encontrar el archivo de seguimiento más reciente."""
     analysis_dir = backend_dir / "tests" / "analysis"
     if not analysis_dir.exists():
@@ -76,8 +75,8 @@ def update_tracking_file(
     test_file: str,
     pytest_output: str,
     status: str = "✅ Completado",
-    errors: Optional[list[str]] = None,
-    actions: Optional[list[str]] = None,
+    errors: list[str] | None = None,
+    actions: list[str] | None = None,
 ) -> Path:
     """
     Actualizar archivo de seguimiento con resultados de test.
@@ -102,7 +101,7 @@ def update_tracking_file(
     stats = parse_pytest_output(pytest_output)
 
     # Leer contenido actual
-    with open(tracking_file, "r", encoding="utf-8") as f:
+    with open(tracking_file, encoding="utf-8") as f:
         content = f.read()
 
     # Preparar nueva sección

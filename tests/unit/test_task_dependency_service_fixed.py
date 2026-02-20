@@ -4,7 +4,6 @@ import pytest
 
 from app.core.tasks.dependency_service import TaskDependencyService
 from app.models.task import Task
-from app.models.task_dependency import TaskDependency
 
 
 @pytest.mark.unit
@@ -43,7 +42,7 @@ class TestTaskDependencyService:
 
         db_session.add_all([task1, task2, task3])
         db_session.commit()
-        
+
         # Refresh objects to get their IDs
         db_session.refresh(task1)
         db_session.refresh(task2)
@@ -204,7 +203,7 @@ class TestTaskDependencyService:
             dependency_type="finish_to_start",
             tenant_id=test_tenant.id
         )
-        
+
         # Now task3 -> task1 would create a cycle: task3 -> task1 -> task2 -> task3
         has_cycle = dependency_service._would_create_cycle(
             task_id=task3.id,

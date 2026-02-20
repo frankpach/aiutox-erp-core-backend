@@ -8,10 +8,10 @@ This seeder is idempotent - it will not create duplicate events.
 
 from datetime import datetime, timedelta
 
-from app.models.calendar import CalendarEvent
 from sqlalchemy.orm import Session
 
 from app.core.seeders.base import Seeder
+from app.models.calendar import CalendarEvent
 from app.models.task import Task
 from app.models.task_status import TaskStatus
 from app.models.tenant import Tenant

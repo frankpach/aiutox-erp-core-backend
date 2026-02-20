@@ -1,18 +1,18 @@
 """Fixed login test that bypasses the problematic database session fixture."""
 
+from uuid import uuid4
+
 import pytest
 from fastapi import status
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from app.core.auth import hash_password
+from app.core.db.deps import get_db
+from app.main import app
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.core.db.deps import get_db
-from fastapi.testclient import TestClient
-from app.main import app
-from uuid import uuid4
-from pathlib import Path
-from dotenv import load_dotenv
 
 
 @pytest.fixture(scope="function")
@@ -20,8 +20,8 @@ def simple_client():
     """Create a test client without database session fixture."""
 
     # Import the test database URL from conftest
-    import sys
     import os
+    import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from conftest import TEST_DATABASE_URL
 
@@ -51,7 +51,7 @@ def simple_client():
             print(f"Migration failed: {result.errors}")
             raise RuntimeError(f"Failed to setup database: {result.errors}")
 
-        print(f"Migrations applied successfully")
+        print("Migrations applied successfully")
     except Exception as e:
         print(f"Error running migrations: {e}")
         raise

@@ -1,11 +1,11 @@
 """Unit tests for NotificationEventConsumer."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
 from app.core.notifications.consumer import NotificationEventConsumer
-from app.core.notifications.service import NotificationService
 from app.core.pubsub import EventConsumer
 from app.core.pubsub.models import Event, EventMetadata
 

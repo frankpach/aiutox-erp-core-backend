@@ -8,8 +8,8 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from app.models.view import SavedFilter
 from app.models.user import User
+from app.models.view import SavedFilter
 
 
 def seed_saved_filters(db: Session, tenant_id: str) -> None:

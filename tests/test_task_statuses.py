@@ -3,18 +3,18 @@ Tests for Task Statuses API
 Unit and integration tests for task status management
 """
 
-import pytest
 import asyncio
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 from unittest.mock import patch
 
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
 from app.api.deps import get_current_user
-from app.core.db.deps import get_db
 from app.features.tasks.statuses import router
 from app.models.task_status import TaskStatus
-from app.models.user import User
 from app.models.tenant import Tenant
+from app.models.user import User
 
 
 class TestTaskStatusesAPI:

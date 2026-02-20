@@ -2,7 +2,6 @@
 
 import time
 
-import pytest
 from fastapi import status
 
 from app.core.auth.rate_limit import _login_attempts

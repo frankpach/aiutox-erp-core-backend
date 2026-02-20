@@ -1,8 +1,9 @@
 """Robust integration tests for Redis connection and error handling."""
 
 import asyncio
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.config_file import get_settings
 from app.core.pubsub.client import RedisStreamsClient

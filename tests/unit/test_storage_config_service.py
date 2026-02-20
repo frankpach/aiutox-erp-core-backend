@@ -1,8 +1,9 @@
 """Unit tests for StorageConfigService."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 from app.core.exceptions import APIException
 from app.core.files.storage_config_service import StorageConfigService
@@ -295,8 +296,6 @@ class TestStorageConfigService:
         """Test: Obtener estadísticas de almacenamiento."""
         # Arrange
         tenant_id = uuid4()
-        from sqlalchemy import func
-        from unittest.mock import Mock
 
         # Mock query results
         mock_query = MagicMock()

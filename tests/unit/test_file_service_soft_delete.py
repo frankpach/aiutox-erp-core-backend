@@ -1,12 +1,12 @@
 """Unit tests for FileService soft delete functionality."""
 
-import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
 from app.core.files.service import FileService
-from app.models.file import File
 
 
 class TestFileServiceSoftDelete:

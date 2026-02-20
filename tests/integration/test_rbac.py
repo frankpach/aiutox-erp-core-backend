@@ -4,17 +4,14 @@ from uuid import uuid4
 
 import pytest
 from fastapi import APIRouter, Depends, status
-from fastapi.testclient import TestClient
 
 from app.core.auth.dependencies import (
     get_current_user,
     get_user_permissions,
     require_any_permission,
-    require_permission,
     require_roles,
 )
 from app.core.auth.permissions import has_permission
-from app.core.db.deps import get_db
 from app.models.user import User
 from app.models.user_role import UserRole
 from app.services.permission_service import PermissionService
@@ -30,7 +27,6 @@ async def rbac_test_permission_endpoint(
     user_permissions: set[str] = Depends(get_user_permissions),
 ):
     """Test endpoint that requires a specific permission."""
-    from app.core.auth.permissions import has_permission
     from app.core.exceptions import raise_forbidden
 
     if not has_permission(user_permissions, permission):
@@ -247,7 +243,6 @@ def test_require_permission_denies_access_without_permission(client_with_db, db_
 
 def test_wildcard_matching_module_wildcard(db_session, test_user):
     """Test wildcard matching with module wildcard (inventory.*)."""
-    from app.core.auth.permissions import has_permission
 
     # Assign admin role (has *.*.view, *.*.edit, etc.)
     role = UserRole(
@@ -269,7 +264,6 @@ def test_wildcard_matching_module_wildcard(db_session, test_user):
 
 def test_wildcard_matching_action_wildcard(db_session, test_user):
     """Test wildcard matching with action wildcard (*.view)."""
-    from app.core.auth.permissions import has_permission
 
     # Assign viewer role (has *.*.view)
     role = UserRole(
@@ -291,7 +285,6 @@ def test_wildcard_matching_action_wildcard(db_session, test_user):
 
 def test_wildcard_matching_total_wildcard(db_session, test_user):
     """Test wildcard matching with total wildcard (*)."""
-    from app.core.auth.permissions import has_permission
 
     # Assign owner role (has *)
     role = UserRole(
@@ -458,11 +451,10 @@ def test_require_any_permission_denies_access_without_any_permission(client_with
 
 def test_rbac_multi_tenant_isolation(client_with_db, db_session, test_user, test_tenant):
     """Test that RBAC permissions are isolated per tenant."""
-    from uuid import uuid4
 
+    from app.core.auth import hash_password
     from app.models.tenant import Tenant
     from app.models.user import User
-    from app.core.auth import hash_password
 
     # Create another tenant
     other_tenant = Tenant(

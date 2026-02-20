@@ -1,7 +1,8 @@
 """Unit tests for WorkflowService."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.tasks.workflow_service import WorkflowService
 

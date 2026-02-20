@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.products.services.product_service import ProductService
 from app.modules.products.schemas.product import (
     CategoryCreate,
     ProductBarcodeCreate,
@@ -14,6 +13,7 @@ from app.modules.products.schemas.product import (
     ProductUpdate,
     ProductVariantCreate,
 )
+from app.modules.products.services.product_service import ProductService
 
 
 class TestProductService:

@@ -1,8 +1,9 @@
 """Integration tests for Pub-Sub module with real Redis."""
 
 import asyncio
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.config_file import get_settings
 from app.core.pubsub.client import RedisStreamsClient
@@ -142,7 +143,7 @@ async def test_publish_and_consume_event(redis_client, event_publisher, event_co
         # Wait for event to be received (con timeout)
         try:
             await asyncio.wait_for(event_received.wait(), timeout=3.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("Event was not received within timeout")
 
         # Stop consumer inmediatamente
@@ -277,7 +278,7 @@ async def test_event_metadata_preserved(event_publisher, event_consumer, redis_a
         # Wait for event with timeout
         try:
             await asyncio.wait_for(event_received.wait(), timeout=3.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("Event was not received within timeout")
 
         await event_consumer.stop()

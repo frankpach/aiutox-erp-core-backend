@@ -1,11 +1,10 @@
 """Unit tests for Async Tasks Registry."""
 
-import pytest
-from unittest.mock import MagicMock
+
+from uuid import UUID
 
 from app.core.async_tasks.registry import TaskRegistry, get_registry
 from app.core.async_tasks.task import Task
-from uuid import UUID
 
 
 class MockTask(Task):

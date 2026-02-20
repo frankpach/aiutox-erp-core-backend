@@ -1,6 +1,5 @@
 """Unit tests for permission verification utilities."""
 
-import pytest
 
 from app.core.auth.permissions import ROLE_PERMISSIONS, has_permission
 

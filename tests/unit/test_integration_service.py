@@ -1,8 +1,8 @@
 """Unit tests for IntegrationService."""
 
-import pytest
-from unittest.mock import patch
 from uuid import uuid4
+
+import pytest
 
 from app.core.integrations.service import IntegrationService
 from app.models.integration import IntegrationStatus, IntegrationType
@@ -119,6 +119,7 @@ def test_delete_integration(integration_service, test_tenant):
 def test_get_credentials_success(integration_service, test_tenant, db_session):
     """Test getting decrypted credentials successfully."""
     import json
+
     from app.core.security.encryption import encrypt_credentials
 
     # Create integration with encrypted credentials
@@ -151,7 +152,6 @@ def test_get_credentials_success(integration_service, test_tenant, db_session):
 
 def test_get_credentials_not_found(integration_service, test_tenant):
     """Test getting credentials for non-existent integration."""
-    from uuid import uuid4
 
     fake_id = uuid4()
     with pytest.raises(ValueError, match="Integration not found"):
@@ -179,6 +179,7 @@ def test_get_credentials_from_config(integration_service, test_tenant):
 def test_get_credentials_from_column(integration_service, test_tenant, db_session):
     """Test getting credentials from credentials column (new method)."""
     import json
+
     from app.core.security.encryption import encrypt_credentials
     from app.repositories.integration_repository import IntegrationRepository
 

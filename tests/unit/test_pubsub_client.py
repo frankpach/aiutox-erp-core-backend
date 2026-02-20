@@ -1,8 +1,8 @@
 """Unit tests for RedisStreamsClient."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
+import pytest
 import redis.asyncio as aioredis
 
 from app.core.config_file import get_settings

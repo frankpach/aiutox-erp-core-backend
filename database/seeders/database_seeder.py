@@ -28,8 +28,8 @@ class DatabaseSeeder(Seeder):
         # Import seeders
         from database.seeders.config_seeder import ConfigSeeder
         from database.seeders.default_tenant_seeder import DefaultTenantSeeder
-        from database.seeders.theme_seeder import ThemeSeeder
         from database.seeders.theme_preset_seeder import ThemePresetSeeder
+        from database.seeders.theme_seeder import ThemeSeeder
 
         # Always create default tenant first (required for all other seeders)
         DefaultTenantSeeder().run(db)

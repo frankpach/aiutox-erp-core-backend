@@ -29,7 +29,7 @@ def create_test_tracking_file() -> Path:
     # Leer plantilla del plan si existe
     plan_file = analysis_dir / "PLAN_MEJORADO_TESTS.md"
     if plan_file.exists():
-        with open(plan_file, "r", encoding="utf-8") as f:
+        with open(plan_file, encoding="utf-8") as f:
             plan_content = f.read()
     else:
         plan_content = "# Plan de Tests\n\n[Plan no encontrado - ver PLAN_MEJORADO_TESTS.md]"

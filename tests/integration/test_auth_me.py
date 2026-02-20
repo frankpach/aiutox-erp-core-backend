@@ -3,7 +3,6 @@
 import time
 from datetime import timedelta
 
-import pytest
 from fastapi import status
 
 from app.core.auth import create_access_token

@@ -1,8 +1,8 @@
 """Integration tests for Activities API endpoints."""
 
-import pytest
-from fastapi.testclient import TestClient
 from uuid import uuid4
+
+from fastapi.testclient import TestClient
 
 from app.models.activity import ActivityType
 from tests.helpers import create_user_with_permission

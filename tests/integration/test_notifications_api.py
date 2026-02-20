@@ -1,10 +1,8 @@
 """Integration tests for Notifications API endpoints."""
 
 import asyncio
-import pytest
-from uuid import uuid4
+from datetime import UTC, datetime
 from unittest.mock import patch
-from datetime import datetime, timezone
 
 from tests.helpers import create_user_with_permission
 
@@ -201,8 +199,6 @@ def test_stream_notifications_sse(client_with_db, test_user, db_session):
     Since SSE streams are infinite (they check for new notifications every 5 seconds),
     we use a mock to make the stream terminate quickly after the first check.
     """
-    import threading
-    import time
     from unittest.mock import patch
 
     # Assign notifications.view permission
@@ -365,7 +361,7 @@ def test_stream_notifications_adaptive_interval_with_notifications(client_with_d
         event_type="product.created",
         channel="in-app",
         status=NotificationStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db_session.add(notification1)
     db_session.commit()

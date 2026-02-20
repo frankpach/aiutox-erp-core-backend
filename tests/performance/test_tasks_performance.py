@@ -1,11 +1,12 @@
 """Tests de performance para Tasks module."""
 
-import pytest
 import time
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
-from app.core.tasks.service import TaskService
+import pytest
+
 from app.core.tasks.scheduler import TaskScheduler
+from app.core.tasks.service import TaskService
 from app.repositories.task_repository import TaskRepository
 
 

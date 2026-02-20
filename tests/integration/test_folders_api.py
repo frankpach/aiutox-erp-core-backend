@@ -1,6 +1,5 @@
 """Integration tests for Folders API endpoints - Permissions."""
 
-import pytest
 from uuid import uuid4
 
 from tests.helpers import create_user_with_permission

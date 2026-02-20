@@ -4,8 +4,9 @@ Creates default theme configuration (colors, logos, fonts, styles).
 This seeder is idempotent - it will not create duplicate configurations.
 """
 
-from sqlalchemy.orm import Session
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.core.seeders.base import Seeder
 from app.models.system_config import SystemConfig

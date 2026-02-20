@@ -1,6 +1,5 @@
 """Integration tests for error handling in Fase 3 modules."""
 
-import pytest
 from uuid import uuid4
 
 from app.models.module_role import ModuleRole

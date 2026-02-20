@@ -1,6 +1,5 @@
 """Integration tests for Reporting API endpoints."""
 
-import pytest
 from tests.helpers import create_user_with_permission
 
 

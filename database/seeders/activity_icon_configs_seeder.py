@@ -11,7 +11,6 @@ from app.core.seeders.base import Seeder
 from app.models.activity_icon_config import ActivityIconConfig
 from app.models.tenant import Tenant
 
-
 # Configuraciones de iconos por defecto
 DEFAULT_ICON_CONFIGS = {
     "task": {

@@ -1,7 +1,7 @@
 """Unit tests for BaseDataSource and ProductsDataSource."""
 
+
 import pytest
-from uuid import uuid4
 
 from app.core.reporting.data_source import BaseDataSource
 from app.core.reporting.sources.products_data_source import ProductsDataSource

@@ -1,7 +1,5 @@
 """Integration tests for Import/Export API endpoints."""
 
-import pytest
-from uuid import uuid4
 
 from app.models.module_role import ModuleRole
 

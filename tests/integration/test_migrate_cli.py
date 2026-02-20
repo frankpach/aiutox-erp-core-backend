@@ -1,6 +1,6 @@
 """Integration tests for migrate_cli."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

@@ -1,12 +1,12 @@
 """Robust integration tests for database operations."""
 
-import pytest
 from uuid import uuid4
 
+from sqlalchemy.exc import IntegrityError
+
+from app.core.auth import hash_password
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.core.auth import hash_password
-from sqlalchemy.exc import IntegrityError
 
 
 def test_database_transaction_rollback(db_session):

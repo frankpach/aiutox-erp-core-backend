@@ -1,8 +1,9 @@
 """Unit tests for encryption module."""
 
 import json
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.security.encryption import (
     decrypt_credentials,

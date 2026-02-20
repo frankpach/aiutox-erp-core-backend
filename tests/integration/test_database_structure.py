@@ -1,8 +1,7 @@
 """Integration tests to verify database structure and migrations."""
 
-import pytest
 from sqlalchemy import inspect, text
-from sqlalchemy.engine import Engine
+
 from app.core.config_file import get_settings
 
 
@@ -28,7 +27,7 @@ def test_database_connection(db_session):
     else:
         masked_url = database_url
 
-    print(f"\n[DB CONNECTION] Database Connection Info:")
+    print("\n[DB CONNECTION] Database Connection Info:")
     print(f"   URL (masked): {masked_url}")
     print(f"   Host: {settings.POSTGRES_HOST}")
     print(f"   Port: {settings.POSTGRES_PORT}")

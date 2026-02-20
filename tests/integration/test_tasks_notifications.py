@@ -1,10 +1,11 @@
 """Tests de integración para notificaciones de tasks."""
 
-import pytest
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
-from app.core.tasks.service import TaskService
+import pytest
+
 from app.core.tasks.scheduler import TaskScheduler
+from app.core.tasks.service import TaskService
 from app.models.task import TaskStatusEnum
 
 

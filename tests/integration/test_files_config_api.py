@@ -1,7 +1,5 @@
 """Integration tests for Files configuration API endpoints."""
 
-import pytest
-from uuid import uuid4
 
 from tests.helpers import create_user_with_system_permission
 

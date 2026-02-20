@@ -1,6 +1,5 @@
 """Unit tests for ConfigSchema validation."""
 
-import pytest
 
 from app.core.config.schema import ConfigSchema
 

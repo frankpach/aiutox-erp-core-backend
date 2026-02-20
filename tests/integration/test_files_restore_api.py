@@ -1,11 +1,8 @@
 """Integration tests for Files restore API endpoint."""
 
-import pytest
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.models.file import File
-from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 

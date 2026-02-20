@@ -2,8 +2,6 @@
 
 from uuid import uuid4
 
-import pytest
-
 from app.core.auth.password import hash_password
 from app.repositories.user_repository import UserRepository
 

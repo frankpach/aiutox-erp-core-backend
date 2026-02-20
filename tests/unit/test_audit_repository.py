@@ -1,9 +1,7 @@
 """Unit tests for AuditRepository."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-
-import pytest
 
 from app.repositories.audit_repository import AuditRepository
 
@@ -142,8 +140,8 @@ class TestAuditRepository:
     def test_get_audit_logs_by_user(self, db_session, test_user, test_tenant):
         """Test getting audit logs filtered by user."""
         repo = AuditRepository(db_session)
-        from app.models.user import User
         from app.core.auth.password import hash_password
+        from app.models.user import User
 
         # Create another user
         other_user = User(
@@ -205,7 +203,7 @@ class TestAuditRepository:
         repo = AuditRepository(db_session)
 
         # Create logs at different times
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         yesterday = now - timedelta(days=1)
         tomorrow = now + timedelta(days=1)
 

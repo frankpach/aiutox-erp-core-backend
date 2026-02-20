@@ -5,8 +5,8 @@ Revises: 2026_03_05_optimize_task_indexes
 Create Date: 2026-03-10 12:00:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "2026_03_10_add_tenant_is_active"

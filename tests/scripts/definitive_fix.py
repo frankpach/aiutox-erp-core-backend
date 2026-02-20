@@ -14,7 +14,7 @@ def create_definitive_main():
     """Crea una versión definitiva de main.py sin dependencias circulares."""
     print("🔧 CREANDO VERSIÓN DEFINITIVA DE main.py")
     print("=" * 50)
-    
+
     definitive_main_content = '''"""
 Versión definitiva de main.py con lazy loading para evitar dependencias circulares.
 """
@@ -170,16 +170,16 @@ if __name__ == "__main__":
         reload=True,
     )
 '''
-    
+
     main_path = backend_path / "app" / "main_definitive.py"
-    
+
     try:
         with open(main_path, 'w', encoding='utf-8') as f:
             f.write(definitive_main_content)
-        
+
         print(f"✅ main_definitive.py creado en: {main_path}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error creando main_definitive.py: {e}")
         return False
@@ -188,7 +188,7 @@ def create_minimal_lazy_router():
     """Crea un router lazy minimal que solo carga endpoints esenciales."""
     print("\n🔧 CREANDO ROUTER LAZY MINIMAL")
     print("=" * 50)
-    
+
     minimal_router_content = '''"""
 Router lazy minimal con solo endpoints esenciales.
 """
@@ -244,16 +244,16 @@ def get_api_router() -> APIRouter:
 # Para compatibilidad
 api_router = get_api_router()
 '''
-    
+
     router_path = backend_path / "app" / "api" / "v1" / "minimal_router.py"
-    
+
     try:
         with open(router_path, 'w', encoding='utf-8') as f:
             f.write(minimal_router_content)
-        
+
         print(f"✅ minimal_router.py creado en: {router_path}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error creando minimal_router.py: {e}")
         return False
@@ -262,27 +262,27 @@ def test_definitive_solution():
     """Prueba la solución definitiva."""
     print("\n🧪 PROBANDO SOLUCIÓN DEFINITIVA")
     print("=" * 50)
-    
+
     try:
         # Probar import del main definitivo
         print("   📦 Importando main_definitive...")
         import app.main_definitive
-        
+
         print("   ✅ main_definitive importado exitosamente")
-        
+
         # Probar crear la aplicación
         print("   📦 Creando aplicación FastAPI...")
         app = app.main_definitive.app
-        
+
         print("   ✅ Aplicación creada exitosamente")
-        
+
         # Probar health check
         print("   📦 Probando health check...")
         from fastapi.testclient import TestClient
-        
+
         client = TestClient(app)
         response = client.get("/healthz")
-        
+
         if response.status_code == 200:
             print("   ✅ Health check funciona")
             print(f"   📄 Response: {response.json()}")
@@ -290,7 +290,7 @@ def test_definitive_solution():
         else:
             print(f"   ❌ Health check falló: {response.status_code}")
             return False
-            
+
     except Exception as e:
         print(f"   ❌ Error en prueba: {e}")
         return False
@@ -299,26 +299,26 @@ def main():
     """Función principal."""
     print("🔧 SOLUCIÓN DEFINITIVA AL PROBLEMA DE DEPENDENCIAS")
     print("=" * 60)
-    
+
     success_count = 0
     total_tasks = 3
-    
+
     # Tarea 1: Crear main definitivo
     if create_definitive_main():
         success_count += 1
-    
+
     # Tarea 2: Crear router minimal
     if create_minimal_lazy_router():
         success_count += 1
-    
+
     # Tarea 3: Probar solución
     if test_definitive_solution():
         success_count += 1
-    
-    print(f"\n📊 RESUMEN")
+
+    print("\n📊 RESUMEN")
     print("=" * 50)
     print(f"Tareas completadas: {success_count}/{total_tasks}")
-    
+
     if success_count == total_tasks:
         print("✅ SOLUCIÓN DEFINITIVA COMPLETADA")
         print("\n💡 PASOS SIGUIENTES:")
@@ -339,7 +339,7 @@ def main():
     else:
         print("❌ Algunas tareas fallaron")
         print("💡 Revisa los errores y prueba manualmente")
-    
+
     return success_count == total_tasks
 
 if __name__ == "__main__":

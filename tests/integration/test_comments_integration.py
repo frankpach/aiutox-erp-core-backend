@@ -1,11 +1,10 @@
 """Integration tests for Comments module interactions with other modules."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-from app.models.module_role import ModuleRole
 from app.core.activities.service import ActivityService
+from app.models.module_role import ModuleRole
 
 
 def test_comment_creates_activity(client_with_db, test_user, auth_headers, db_session):

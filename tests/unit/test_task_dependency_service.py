@@ -1,7 +1,8 @@
 """Unit tests for Task Dependency Service."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from app.core.tasks.dependency_service import TaskDependencyService
 from app.models.task import Task

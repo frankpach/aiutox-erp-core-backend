@@ -1,11 +1,11 @@
 """Unit tests for ViewService."""
 
-import pytest
 from unittest.mock import MagicMock
-from uuid import uuid4
 
-from app.core.views.service import ViewService
+import pytest
+
 from app.core.pubsub import EventPublisher
+from app.core.views.service import ViewService
 
 
 @pytest.fixture

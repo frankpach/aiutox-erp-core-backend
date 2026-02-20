@@ -2,12 +2,9 @@
 
 from uuid import uuid4
 
-import pytest
 from fastapi import status
 
-from app.core.auth import hash_password
 from app.models.contact_method import ContactMethod, ContactMethodType, EntityType
-from app.models.user import User
 from app.models.user_role import UserRole
 from app.services.auth_service import AuthService
 

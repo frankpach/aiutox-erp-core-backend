@@ -1,6 +1,5 @@
 """Unit tests for PermissionService."""
 
-from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 from uuid import uuid4
 

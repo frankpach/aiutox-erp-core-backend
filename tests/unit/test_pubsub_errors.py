@@ -1,12 +1,11 @@
 """Unit tests for Pub-Sub errors."""
 
-import pytest
 
 from app.core.pubsub.errors import (
     ConsumeError,
     GroupNotFoundError,
-    PubSubError,
     PublishError,
+    PubSubError,
     StreamNotFoundError,
 )
 

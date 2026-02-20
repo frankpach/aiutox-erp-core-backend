@@ -1,8 +1,6 @@
 """Integration tests for Calendar API endpoints."""
 
-import pytest
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
 
 from app.models.module_role import ModuleRole
 
