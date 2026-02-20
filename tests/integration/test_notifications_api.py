@@ -219,7 +219,6 @@ def test_stream_notifications_sse(client_with_db, test_user, db_session):
 
     # Mock asyncio.sleep to make the stream terminate quickly
     # After the first iteration, we'll raise CancelledError to stop the stream
-    original_sleep = None
     call_count = [0]  # Use list to allow modification in nested function
 
     async def mock_sleep(delay):

@@ -427,9 +427,8 @@ def test_check_permissions_role_based(file_service, test_user, test_tenant, db_s
         user_id=test_user.id,
     ))
 
-    # Use a role name string (not UUID) - in this system roles are strings like "viewer", "manager", etc.
-    # For file permissions, we'll use a custom role name
-    role_name = "file_viewer"
+    # Use a role UUID as the permission target (roles are strings in this system,
+    # but FilePermission.target_id expects a UUID)
     role_id = uuid4()  # Generate a UUID for the role permission target
 
     # Set permissions: role can view

@@ -255,6 +255,7 @@ class TestThemePresetService:
             name="Preset 1",
             config={"primary_color": "#000000"},
         )
+        assert preset1.name == "Preset 1"
         preset2 = service.create_preset(
             tenant_id=tenant_id,
             name="Preset 2",

@@ -60,6 +60,7 @@ def test_db_session_import():
             connect_args={"check_same_thread": False},
             echo=False
         )
+        assert engine is not None
 
         elapsed = time.time() - start_time
         print(f"   ✅ Engine creado manualmente en {elapsed:.2f}s")

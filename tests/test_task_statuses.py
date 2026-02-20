@@ -324,7 +324,7 @@ class TestTaskStatusModel:
         # Check that system statuses were created
         statuses = db_session.query(TaskStatus).filter(
             TaskStatus.tenant_id == tenant_id,
-            TaskStatus.is_system == True
+            TaskStatus.is_system.is_(True)
         ).all()
 
         assert len(statuses) == 5  # Default system statuses

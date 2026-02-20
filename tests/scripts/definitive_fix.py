@@ -42,20 +42,20 @@ async def lifespan(app: FastAPI):
 
     # Startup - solo inicializar lo esencial
     logger.info("Iniciando aplicación...")
-    
+
     # Inicializar servicios de forma lazy
     try:
         # Importar y configurar servicios básicos
         from app.core.config_file import get_settings
         settings = get_settings()
         logger.info(f"Configuración cargada: DEBUG={settings.DEBUG}")
-        
+
         # Inicializar servicios de base de datos si es necesario
         from app.core.db.session import SessionLocal
         db = SessionLocal()
         db.close()
         logger.info("Conexión a base de datos verificada")
-        
+
     except Exception as e:
         logger.error(f"Error en inicialización: {e}", exc_info=True)
 
@@ -79,12 +79,12 @@ app = FastAPI(
 async def add_security_headers(request: Request, call_next):
     """Add basic security headers."""
     response = await call_next(request)
-    
+
     # Headers básicos
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    
+
     return response
 
 # Exception handlers básicos
@@ -107,7 +107,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle all unhandled exceptions."""
     logger.exception(f"Unhandled exception: {exc}")
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -134,16 +134,16 @@ def load_api_routes():
     """Carga las rutas de API de forma lazy."""
     try:
         logger.info("Cargando rutas de API...")
-        
+
         # Importar y configurar el router lazy
         from app.api.v1.lazy_router import get_api_router
         api_router = get_api_router()
-        
+
         # Incluir el router en la aplicación
         app.include_router(api_router, prefix="/api/v1")
-        
+
         logger.info("Rutas de API cargadas exitosamente")
-        
+
     except Exception as e:
         logger.error(f"Error cargando rutas de API: {e}", exc_info=True)
 
@@ -162,7 +162,7 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
@@ -205,40 +205,40 @@ _api_router = None
 def get_api_router() -> APIRouter:
     """Obtiene el API router con lazy loading."""
     global _api_router
-    
+
     if _api_router is not None:
         return _api_router
-    
+
     print("🔄 Creando API router minimal (lazy loading)...")
-    
+
     # Importar solo los módulos esenciales que funcionan
     try:
         # Importar módulos básicos que no causan problemas
         from app.api.v1 import config
         from app.api.v1 import users
         from app.api.v1 import auth
-        
+
         # Crear el router
         _api_router = APIRouter()
-        
+
         # Incluir solo los routers esenciales
         _api_router.include_router(config.router, prefix="/config", tags=["config"])
         _api_router.include_router(users.router, prefix="/users", tags=["users"])
         _api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
-        
+
         print("✅ API router minimal creado exitosamente")
         return _api_router
-        
+
     except Exception as e:
         print(f"❌ Error creando router minimal: {e}")
-        
+
         # Crear un router vacío si hay errores
         _api_router = APIRouter()
-        
+
         @_api_router.get("/status")
         def router_status():
             return {"status": "minimal_router", "message": "Router minimal funcionando"}
-        
+
         return _api_router
 
 # Para compatibilidad

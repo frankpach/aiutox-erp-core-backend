@@ -147,8 +147,8 @@ def analyze_session_imports():
                 result = [None]
                 def settings_thread():
                     try:
-                        settings = test_settings()
-                        result[0] = True
+                        _settings = test_settings()
+                        result[0] = _settings is not None
                     except Exception as e:
                         result[0] = False
                         print(f"   ❌ Error en get_settings(): {e}")

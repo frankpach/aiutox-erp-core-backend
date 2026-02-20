@@ -56,8 +56,8 @@ def test_login_with_direct_db():
         print(f"Error running migrations: {e}")
         raise
 
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
 
     try:
         # Create tenant
@@ -124,11 +124,11 @@ def test_login_with_direct_db():
             db.query(User).filter(User.email.like("test-%@example.com")).delete()
             db.query(Tenant).filter(Tenant.slug.like("test-tenant-%")).delete()
             db.commit()
-        except:
+        except Exception:
             pass
         try:
             db.close()
-        except:
+        except Exception:
             pass
 
         # Clear dependency override

@@ -96,6 +96,7 @@ async def test_get_tasks(task_service, test_user, test_tenant):
     # Get all tasks
     tasks = task_service.get_tasks(test_tenant.id)
     assert len(tasks) >= 2
+    assert any(t.id == task2.id for t in tasks)
 
     # Filter by status
     todo_tasks = task_service.get_tasks(test_tenant.id, status=TaskStatus.TODO)

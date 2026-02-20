@@ -37,8 +37,8 @@ def test_fastapi_minimal():
         result = [None]
         def fastapi_thread():
             try:
-                app = import_fastapi()
-                result[0] = True
+                _app = import_fastapi()
+                result[0] = _app is not None
             except Exception as e:
                 result[0] = False
                 print(f"❌ Error importando FastAPI: {e}")

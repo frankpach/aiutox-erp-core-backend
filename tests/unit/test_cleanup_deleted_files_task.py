@@ -40,6 +40,7 @@ class TestCleanupDeletedFilesTask:
             "is_current": False,
             "deleted_at": datetime.now(UTC) - timedelta(days=retention_days + 1),
         })
+        assert old_deleted_file.id is not None
 
         # Mock FileService
         with patch("app.core.files.tasks.FileService") as mock_service_class:

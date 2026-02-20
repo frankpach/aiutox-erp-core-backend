@@ -32,6 +32,7 @@ def test_restore_file_version_success(client_with_db, test_user, db_session):
     )
     assert version_response.status_code == 201
     version_id = version_response.json()["data"]["id"]
+    assert version_id is not None
 
     # Get the first version (should be version 1)
     versions_response = client_with_db.get(f"/api/v1/files/{file_id}/versions", headers=headers)

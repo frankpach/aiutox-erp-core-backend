@@ -32,6 +32,7 @@ class TestRefreshTokenRepository:
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
         created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        assert created_token.token_hash == token_hash
 
         found_token = repo.get_by_token_hash(created_token.token_hash)
 

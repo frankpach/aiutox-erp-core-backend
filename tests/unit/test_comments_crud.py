@@ -432,14 +432,14 @@ class TestCrossEntityComments:
         task_comments = db.query(Comment).filter(
             Comment.entity_type == "task",
             Comment.tenant_id == sample_task.tenant_id,
-            Comment.is_deleted == False
+            Comment.is_deleted.is_(False)
         ).all()
 
         # Query product comments
         product_comments = db.query(Comment).filter(
             Comment.entity_type == "product",
             Comment.tenant_id == sample_product.tenant_id,
-            Comment.is_deleted == False
+            Comment.is_deleted.is_(False)
         ).all()
 
         # Assert

@@ -46,7 +46,6 @@ def parse_pytest_output(output: str) -> dict:
     }
 
     # Buscar línea de resumen (ej: "10 passed, 2 failed, 1 skipped in 5.23s")
-    summary_pattern = r"(\d+)\s+passed|(\d+)\s+failed|(\d+)\s+skipped|(\d+)\s+error"
     duration_pattern = r"in\s+([\d.]+)s"
 
     for line in output.split("\n"):

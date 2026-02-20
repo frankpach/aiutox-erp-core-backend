@@ -63,7 +63,7 @@ def test_create_template(template_service, test_user, test_tenant, mock_event_pu
     versions = template_service.get_template_versions(template.id, test_tenant.id)
     assert len(versions) == 1
     assert versions[0].version_number == 1
-    assert versions[0].is_current == True
+    assert versions[0].is_current
 
 
 def test_render_template_with_variables(template_service, test_user, test_tenant):

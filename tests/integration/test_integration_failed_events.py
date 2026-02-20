@@ -62,6 +62,7 @@ async def test_failed_event_moved_to_failed_stream(event_publisher, event_consum
         tenant_id=tenant_id,
         metadata=EventMetadata(source="test_service"),
     )
+    assert message_id is not None
 
     # Wait for processing attempts
     # Note: Full retry cycle (5 attempts with backoff) takes ~30+ seconds

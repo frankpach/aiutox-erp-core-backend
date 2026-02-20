@@ -124,6 +124,7 @@ async def test_redis_concurrent_consumers(event_publisher, event_consumer):
         tenant_id=tenant_id,
         metadata=EventMetadata(source="test"),
     )
+    assert event_id is not None
 
     # Wait for processing
     await asyncio.sleep(2)

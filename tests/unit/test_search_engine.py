@@ -77,6 +77,7 @@ def test_remove_index(search_indexer, test_tenant):
         tenant_id=test_tenant.id,
         title="Test Product",
     )
+    assert index is not None
 
     # Remove it
     deleted = search_indexer.remove_index("product", entity_id, test_tenant.id)

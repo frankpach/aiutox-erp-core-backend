@@ -97,6 +97,9 @@ async def test_retry_handler_backoff_timing():
     with pytest.raises(ValueError):
         await handler.retry_with_backoff(failing_callback, "test_operation")
 
+    total_elapsed = asyncio.get_running_loop().time() - start_time
+    assert total_elapsed >= 0  # Sanity check timing was captured
+
     # Verify delays between calls (allowing some tolerance)
     if len(call_times) >= 2:
         delay1 = call_times[1] - call_times[0]

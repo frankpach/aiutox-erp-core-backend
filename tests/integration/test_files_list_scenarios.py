@@ -175,6 +175,8 @@ def test_list_files_different_folders(client_with_db, test_user, db_session):
     data = response.json()
     assert len(data["data"]) == 3
     assert data["meta"]["total"] == 3
+    all_ids = {f["id"] for f in data["data"]}
+    assert file_id3 in all_ids
 
     # List files in folder1 (should return only file1)
     response = client_with_db.get(f"/api/v1/files?folder_id={folder1.id}", headers=headers)

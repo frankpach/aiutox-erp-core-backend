@@ -129,6 +129,7 @@ def test_bulk_approve_requests(approval_service, test_user, test_tenant, mock_ev
             "approver_id": test_user.id,
         },
     )
+    assert step.flow_id == flow.id
 
     # Create multiple requests
     request_ids = []

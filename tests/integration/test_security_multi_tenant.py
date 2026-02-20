@@ -130,6 +130,7 @@ def test_comments_tenant_isolation(client_with_db, test_user, second_user, db_se
         tenant_id=test_user.tenant_id,
         user_id=test_user.id,
     )
+    assert comment1.tenant_id == test_user.tenant_id
 
     # Try to get from second tenant (should not find it)
     comments2 = comment_service.get_comments_by_entity(

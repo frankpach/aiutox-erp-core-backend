@@ -307,6 +307,7 @@ class TestUserRepository:
                 "is_active": False,
             }
         )
+        assert not inactive_john.is_active
 
         # Filter: search "john" AND is_active=True
         users, total = repo.get_all_by_tenant(

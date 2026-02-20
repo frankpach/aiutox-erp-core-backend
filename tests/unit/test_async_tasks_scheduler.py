@@ -101,7 +101,7 @@ class TestAsyncTaskScheduler:
         registry.register(task, schedule, enabled=True)
 
         # Mock Tenant model - patch where it's actually defined
-        with patch("app.models.tenant.Tenant") as mock_tenant_class:
+        with patch("app.models.tenant.Tenant") as _mock_tenant_class:  # noqa: F841
             mock_tenant1 = MagicMock()
             mock_tenant1.id = uuid4()
             mock_tenant2 = MagicMock()

@@ -31,6 +31,7 @@ def test_create_product_publishes_event(client_with_db, test_user, db_session):
 
         assert response.status_code == 201
         product = response.json()["data"]
+        assert product["id"] is not None
 
         # Verify event was published (check if publish was called)
         # Note: Background tasks run after response, so we check the call was scheduled

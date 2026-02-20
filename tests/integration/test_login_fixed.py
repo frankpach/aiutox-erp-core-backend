@@ -56,8 +56,8 @@ def simple_client():
         print(f"Error running migrations: {e}")
         raise
 
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
 
     # Create test data
     tenant = Tenant(
@@ -103,11 +103,11 @@ def simple_client():
             db.query(User).filter(User.id == user.id).delete()
             db.query(Tenant).filter(Tenant.id == tenant.id).delete()
             db.commit()
-        except:
+        except Exception:
             pass
         try:
             db.close()
-        except:
+        except Exception:
             pass
 
         # Clear dependency override

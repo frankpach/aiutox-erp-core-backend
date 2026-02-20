@@ -115,6 +115,7 @@ def test_search_activities(activity_service, test_user, test_tenant):
         tenant_id=test_tenant.id,
         user_id=test_user.id,
     )
+    assert activity2.title == "Regular Note"
 
     # Search for "Important"
     results = activity_service.search_activities(

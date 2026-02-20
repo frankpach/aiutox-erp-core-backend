@@ -32,12 +32,12 @@ _api_router = None
 def get_api_router() -> APIRouter:
     """Obtiene el API router con lazy loading."""
     global _api_router
-    
+
     if _api_router is not None:
         return _api_router
-    
+
     print("🔄 Creando API router (lazy loading)...")
-    
+
     # Importar todos los módulos necesarios
     from app.api.v1 import (
         activities,
@@ -71,10 +71,10 @@ def get_api_router() -> APIRouter:
     from app.modules.products.api import router as products_router
     from app.modules.tasks.api import router as tasks_router
     from app.features.tasks.statuses import router as task_statuses_router
-    
+
     # Crear el router
     _api_router = APIRouter()
-    
+
     # Incluir todos los routers
     _api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
     _api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -106,7 +106,7 @@ def get_api_router() -> APIRouter:
     _api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
     _api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])
     _api_router.include_router(sse.router, tags=["sse"])
-    
+
     print("✅ API router creado exitosamente")
     return _api_router
 

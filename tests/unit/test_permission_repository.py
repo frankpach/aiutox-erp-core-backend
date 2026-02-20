@@ -65,6 +65,7 @@ class TestPermissionRepository:
             permission="inventory.view",
             expires_at=expired_at,
         )
+        assert expired_permission.expires_at == expired_at
 
         # Create revoked permission
         revoked_permission = repo.create_delegated_permission(
