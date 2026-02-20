@@ -1,0 +1,28 @@
+name: Build and Push Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: [self-hosted, aiutox]
+    # Solo ejecutar en pushes, no en PRs
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest .
+
+      - name: Tag with commit SHA
+        run: |
+          docker tag aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${{ github.sha }}
+
+      - name: Push to registry
+        run: |
+          docker push aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest
+          docker push aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${{ github.sha }}
