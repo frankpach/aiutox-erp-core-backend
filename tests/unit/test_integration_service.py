@@ -136,6 +136,7 @@ def test_get_credentials_success(integration_service, test_tenant, db_session):
 
     # Update integration with encrypted credentials (simulating storage)
     from app.repositories.integration_repository import IntegrationRepository
+
     repo = IntegrationRepository(db_session)
     integration_model = repo.get_by_id(integration["id"], test_tenant.id)
     integration_model.credentials = encrypted_credentials
@@ -256,11 +257,3 @@ def test_get_credentials_decryption_error(integration_service, test_tenant, db_s
 def test_get_logs(integration_service, test_tenant):
     """Test getting integration logs."""
     pass
-
-
-
-
-
-
-
-

@@ -265,11 +265,13 @@ class SearchService:
                 indexed_count += 1
             except Exception as e:
                 failed_count += 1
-                errors.append({
-                    "entity_type": entity_data["entity_type"],
-                    "entity_id": str(entity_data["entity_id"]),
-                    "error": str(e),
-                })
+                errors.append(
+                    {
+                        "entity_type": entity_data["entity_type"],
+                        "entity_id": str(entity_data["entity_id"]),
+                        "error": str(e),
+                    }
+                )
 
         # Log bulk indexing event
         if self.event_publisher:

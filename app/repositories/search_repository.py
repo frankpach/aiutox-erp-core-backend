@@ -67,11 +67,15 @@ class SearchRepository:
         limit: int = 50,
     ) -> list[SearchIndex]:
         """Search across all indexed entities."""
-        search_query = self.db.query(SearchIndex).filter(SearchIndex.tenant_id == tenant_id)
+        search_query = self.db.query(SearchIndex).filter(
+            SearchIndex.tenant_id == tenant_id
+        )
 
         # Filter by entity types if provided
         if entity_types:
-            search_query = search_query.filter(SearchIndex.entity_type.in_(entity_types))
+            search_query = search_query.filter(
+                SearchIndex.entity_type.in_(entity_types)
+            )
 
         # Full-text search using PostgreSQL ts_vector
         # Using ilike for simple search (can be enhanced with full-text search)
@@ -90,16 +94,11 @@ class SearchRepository:
         """Get all indices for a specific entity type."""
         return (
             self.db.query(SearchIndex)
-            .filter(SearchIndex.tenant_id == tenant_id, SearchIndex.entity_type == entity_type)
+            .filter(
+                SearchIndex.tenant_id == tenant_id,
+                SearchIndex.entity_type == entity_type,
+            )
             .offset(skip)
             .limit(limit)
             .all()
         )
-
-
-
-
-
-
-
-

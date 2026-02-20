@@ -143,6 +143,3 @@ def test_login_rate_limiting_per_ip(client_with_db, test_user):
     )
 
     assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-
-
-

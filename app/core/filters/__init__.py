@@ -3,7 +3,3 @@
 from app.core.filters.parser import FilterParser
 
 __all__ = ["FilterParser"]
-
-
-
-

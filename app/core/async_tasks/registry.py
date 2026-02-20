@@ -119,14 +119,10 @@ def register_task(
         class CleanupDeletedFilesTask(Task):
             ...
     """
+
     def decorator(task_class: type[Task]):
         task_instance = task_class(module, name, description)
         _registry.register(task_instance, schedule, enabled)
         return task_class
+
     return decorator
-
-
-
-
-
-

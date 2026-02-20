@@ -98,8 +98,9 @@ class TestMakeCommands:
         from typer.testing import CliRunner
 
         runner = CliRunner()
-        result = runner.invoke(app, ["module", "TestModule", "--entities", "Entity1,Entity2"])
+        result = runner.invoke(
+            app, ["module", "TestModule", "--entities", "Entity1,Entity2"]
+        )
 
         assert result.exit_code == 0
         mock_generate.assert_called_once_with("TestModule", ["Entity1", "Entity2"])
-

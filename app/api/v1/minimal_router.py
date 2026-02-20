@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 # Cache para el router
 _api_router = None
 
+
 def get_api_router() -> APIRouter:
     """Obtiene el API router con lazy loading."""
     global _api_router
@@ -48,6 +49,7 @@ def get_api_router() -> APIRouter:
             return {"status": "minimal_router", "message": "Router minimal funcionando"}
 
         return _api_router
+
 
 # Para compatibilidad
 api_router = get_api_router()

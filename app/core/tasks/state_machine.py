@@ -1,6 +1,5 @@
 """Task state machine for validating state transitions."""
 
-
 from app.models.task import TaskStatusEnum
 
 
@@ -81,7 +80,9 @@ class TaskStateMachine:
     }
 
     @classmethod
-    def validate_transition(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> bool:
+    def validate_transition(
+        cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum
+    ) -> bool:
         """
         Validate if a state transition is allowed.
 
@@ -122,7 +123,9 @@ class TaskStateMachine:
         return True
 
     @classmethod
-    def get_allowed_transitions(cls, from_state: TaskStatusEnum) -> list[TaskStatusEnum]:
+    def get_allowed_transitions(
+        cls, from_state: TaskStatusEnum
+    ) -> list[TaskStatusEnum]:
         """
         Get all allowed transitions from a given state.
 
@@ -135,7 +138,9 @@ class TaskStateMachine:
         return list(cls.VALID_TRANSITIONS.get(from_state, set()))
 
     @classmethod
-    def get_transition_path(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> list[TaskStatusEnum]:
+    def get_transition_path(
+        cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum
+    ) -> list[TaskStatusEnum]:
         """
         Get the shortest path from one state to another.
 
@@ -171,7 +176,9 @@ class TaskStateMachine:
         return []  # No path found
 
     @classmethod
-    def can_reach_state(cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum) -> bool:
+    def can_reach_state(
+        cls, from_state: TaskStatusEnum, to_state: TaskStatusEnum
+    ) -> bool:
         """
         Check if a state can be reached from another state (directly or indirectly).
 
@@ -240,12 +247,15 @@ class TaskStateMachine:
             },
         }
 
-        return metadata.get(state, {
-            "color": "gray",
-            "icon": "help-circle",
-            "description": "Unknown state",
-            "category": "unknown",
-        })
+        return metadata.get(
+            state,
+            {
+                "color": "gray",
+                "icon": "help-circle",
+                "description": "Unknown state",
+                "category": "unknown",
+            },
+        )
 
     @classmethod
     def get_states_by_category(cls, category: str) -> list[TaskStatusEnum]:
@@ -259,6 +269,7 @@ class TaskStateMachine:
             List of states in the category
         """
         return [
-            state for state in TaskStatusEnum
+            state
+            for state in TaskStatusEnum
             if cls.get_state_metadata(state)["category"] == category
         ]

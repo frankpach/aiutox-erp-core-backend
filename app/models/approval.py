@@ -56,7 +56,9 @@ class ApprovalFlow(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     flow_type = Column(String(20), nullable=False)  # sequential, parallel, conditional
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'orders'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'orders'
 
     # Configuration
     conditions = Column(JSONB, nullable=True)  # Conditional rules for flow
@@ -95,12 +97,12 @@ class ApprovalFlow(Base):
     )
 
     # Relationships
-    steps = relationship("ApprovalStep", back_populates="flow", cascade="all, delete-orphan")
+    steps = relationship(
+        "ApprovalStep", back_populates="flow", cascade="all, delete-orphan"
+    )
     requests = relationship("ApprovalRequest", back_populates="flow")
 
-    __table_args__ = (
-        Index("idx_approval_flows_tenant_module", "tenant_id", "module"),
-    )
+    __table_args__ = (Index("idx_approval_flows_tenant_module", "tenant_id", "module"),)
 
     def __repr__(self) -> str:
         return f"<ApprovalFlow(id={self.id}, name={self.name}, type={self.flow_type})>"
@@ -135,17 +137,25 @@ class ApprovalStep(Base):
     # Approver configuration
     approver_type = Column(String(20), nullable=False)  # user, role, dynamic
     approver_id = Column(PG_UUID(as_uuid=True), nullable=True)  # User or role ID
-    approver_role = Column(String(50), nullable=True)  # Role name if approver_type is role
+    approver_role = Column(
+        String(50), nullable=True
+    )  # Role name if approver_type is role
     approver_rule = Column(JSONB, nullable=True)  # Dynamic approver rule
 
     # Requirements
-    require_all = Column(Boolean, default=False, nullable=False)  # Require all approvers (for parallel)
+    require_all = Column(
+        Boolean, default=False, nullable=False
+    )  # Require all approvers (for parallel)
     min_approvals = Column(Integer, nullable=True)  # Minimum approvals required
 
     # Form and print configuration
     form_schema = Column(JSONB, nullable=True)  # JSON Schema for dynamic form
-    print_config = Column(JSONB, nullable=True)  # Configuration for printing (label, template, position)
-    rejection_required = Column(Boolean, default=False, nullable=False)  # Require explanation on rejection
+    print_config = Column(
+        JSONB, nullable=True
+    )  # Configuration for printing (label, template, position)
+    rejection_required = Column(
+        Boolean, default=False, nullable=False
+    )  # Require explanation on rejection
 
     # Timestamps
     created_at = Column(
@@ -163,9 +173,7 @@ class ApprovalStep(Base):
     # Relationships
     flow = relationship("ApprovalFlow", back_populates="steps")
 
-    __table_args__ = (
-        Index("idx_approval_steps_flow_order", "flow_id", "step_order"),
-    )
+    __table_args__ = (Index("idx_approval_steps_flow_order", "flow_id", "step_order"),)
 
     def __repr__(self) -> str:
         return f"<ApprovalStep(id={self.id}, flow_id={self.flow_id}, order={self.step_order})>"
@@ -197,11 +205,15 @@ class ApprovalRequest(Base):
     description = Column(Text, nullable=True)
 
     # Entity relationship (polymorphic)
-    entity_type = Column(String(50), nullable=False, index=True)  # e.g., 'order', 'invoice'
+    entity_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'order', 'invoice'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
     # Status
-    status = Column(String(20), nullable=False, default=ApprovalStatus.PENDING, index=True)
+    status = Column(
+        String(20), nullable=False, default=ApprovalStatus.PENDING, index=True
+    )
     current_step = Column(Integer, default=1, nullable=False)  # Current step in flow
 
     # Requester
@@ -237,19 +249,30 @@ class ApprovalRequest(Base):
 
     # Relationships
     flow = relationship("ApprovalFlow", back_populates="requests")
-    actions = relationship("ApprovalAction", back_populates="request", cascade="all, delete-orphan")
-    delegations = relationship("ApprovalDelegation", back_populates="request", cascade="all, delete-orphan")
+    actions = relationship(
+        "ApprovalAction", back_populates="request", cascade="all, delete-orphan"
+    )
+    delegations = relationship(
+        "ApprovalDelegation", back_populates="request", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_approval_requests_entity", "entity_type", "entity_id"),
         Index("idx_approval_requests_status", "tenant_id", "status"),
         Index("idx_approval_requests_flow", "flow_id", "status"),
-        Index("idx_approval_requests_tenant_entity", "tenant_id", "entity_type", "entity_id"),
+        Index(
+            "idx_approval_requests_tenant_entity",
+            "tenant_id",
+            "entity_type",
+            "entity_id",
+        ),
         Index("idx_approval_requests_requested_by", "requested_by", "status"),
     )
 
     def __repr__(self) -> str:
-        return f"<ApprovalRequest(id={self.id}, title={self.title}, status={self.status})>"
+        return (
+            f"<ApprovalRequest(id={self.id}, title={self.title}, status={self.status})>"
+        )
 
 
 class ApprovalAction(Base):
@@ -274,11 +297,17 @@ class ApprovalAction(Base):
     )
 
     # Action information
-    action_type = Column(String(20), nullable=False)  # approve, reject, delegate, comment
+    action_type = Column(
+        String(20), nullable=False
+    )  # approve, reject, delegate, comment
     step_order = Column(Integer, nullable=False)  # Step where action was taken
     comment = Column(Text, nullable=True)
-    rejection_reason = Column(Text, nullable=True)  # Explanation of rejection (separate from comment)
-    form_data = Column(JSONB, nullable=True)  # Data from dynamic form filled in this step
+    rejection_reason = Column(
+        Text, nullable=True
+    )  # Explanation of rejection (separate from comment)
+    form_data = Column(
+        JSONB, nullable=True
+    )  # Data from dynamic form filled in this step
 
     # Actor
     acted_by = Column(
@@ -306,9 +335,7 @@ class ApprovalAction(Base):
     # Relationships
     request = relationship("ApprovalRequest", back_populates="actions")
 
-    __table_args__ = (
-        Index("idx_approval_actions_request", "request_id", "acted_at"),
-    )
+    __table_args__ = (Index("idx_approval_actions_request", "request_id", "acted_at"),)
 
     def __repr__(self) -> str:
         return f"<ApprovalAction(id={self.id}, request_id={self.request_id}, type={self.action_type})>"
@@ -379,5 +406,3 @@ class ApprovalDelegation(Base):
 
     def __repr__(self) -> str:
         return f"<ApprovalDelegation(id={self.id}, from={self.from_user_id}, to={self.to_user_id})>"
-
-

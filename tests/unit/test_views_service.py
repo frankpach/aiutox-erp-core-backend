@@ -79,11 +79,3 @@ def test_get_saved_filters(view_service, test_user, test_tenant):
 
     assert len(filters) >= 1
     assert any(f.id == filter1.id for f in filters)
-
-
-
-
-
-
-
-

@@ -23,9 +23,7 @@ class TaskCacheService:
         """Connect to Redis."""
         if not self.redis_client and self.settings.REDIS_URL:
             self.redis_client = redis.from_url(
-                self.settings.REDIS_URL,
-                encoding="utf-8",
-                decode_responses=True
+                self.settings.REDIS_URL, encoding="utf-8", decode_responses=True
             )
 
     async def disconnect(self) -> None:
@@ -129,9 +127,7 @@ class TaskCacheService:
 
             # Set cache with TTL
             await self.redis_client.setex(
-                cache_key,
-                ttl or self.default_ttl,
-                cached_json
+                cache_key, ttl or self.default_ttl, cached_json
             )
         except Exception as e:
             # Log error but don't fail the operation
@@ -199,9 +195,7 @@ class TaskCacheService:
         try:
             cached_json = json.dumps(agenda_data, default=str)
             await self.redis_client.setex(
-                cache_key,
-                ttl or self.default_ttl,
-                cached_json
+                cache_key, ttl or self.default_ttl, cached_json
             )
         except Exception as e:
             print(f"Cache set error: {e}")
@@ -216,10 +210,7 @@ class TaskCacheService:
             return None
 
         cache_key = self._make_key(
-            "tasks",
-            "calendar_sources",
-            str(tenant_id),
-            str(user_id)
+            "tasks", "calendar_sources", str(tenant_id), str(user_id)
         )
 
         try:
@@ -243,18 +234,13 @@ class TaskCacheService:
             return
 
         cache_key = self._make_key(
-            "tasks",
-            "calendar_sources",
-            str(tenant_id),
-            str(user_id)
+            "tasks", "calendar_sources", str(tenant_id), str(user_id)
         )
 
         try:
             cached_json = json.dumps(sources_data, default=str)
             await self.redis_client.setex(
-                cache_key,
-                ttl or 3600,  # 1 hour for calendar sources
-                cached_json
+                cache_key, ttl or 3600, cached_json  # 1 hour for calendar sources
             )
         except Exception as e:
             print(f"Cache set error: {e}")
@@ -290,7 +276,9 @@ class TaskCacheService:
         try:
             if task_id:
                 # Invalidate specific task cache (if implemented)
-                pattern = self._make_key("tasks", "*", str(tenant_id), "*", f"*{task_id}*")
+                pattern = self._make_key(
+                    "tasks", "*", str(tenant_id), "*", f"*{task_id}*"
+                )
             else:
                 # Invalidate all task cache for tenant
                 pattern = self._make_key("tasks", "*", str(tenant_id), "*")

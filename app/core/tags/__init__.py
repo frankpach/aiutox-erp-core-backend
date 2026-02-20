@@ -5,4 +5,3 @@ from app.core.tags.service import TagService
 __all__ = [
     "TagService",
 ]
-

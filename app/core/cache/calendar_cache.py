@@ -43,10 +43,7 @@ class CalendarCache:
             logger.info(f"Calendar cache connected to Redis at {self.redis_url}")
 
     async def get_calendar_view(
-        self,
-        tenant_id: UUID,
-        view_type: str,
-        date: datetime
+        self, tenant_id: UUID, view_type: str, date: datetime
     ) -> dict[str, Any] | None:
         """
         Obtiene vista de calendario cacheada.
@@ -77,7 +74,7 @@ class CalendarCache:
         view_type: str,
         date: datetime,
         data: dict[str, Any],
-        ttl: int | None = None
+        ttl: int | None = None,
     ):
         """
         Guarda vista de calendario en cache.
@@ -94,11 +91,7 @@ class CalendarCache:
         cache_key = f"calendar:view:{tenant_id}:{view_type}:{date.strftime('%Y-%m-%d')}"
         ttl = ttl or self.default_ttl
 
-        await self.redis.setex(
-            cache_key,
-            ttl,
-            json.dumps(data, default=str)
-        )
+        await self.redis.setex(cache_key, ttl, json.dumps(data, default=str))
         logger.debug(f"Cached {cache_key} with TTL {ttl}s")
 
     async def invalidate_calendar_views(self, tenant_id: UUID):
@@ -119,7 +112,9 @@ class CalendarCache:
 
         if keys:
             await self.redis.delete(*keys)
-            logger.info(f"Invalidated {len(keys)} calendar view caches for tenant {tenant_id}")
+            logger.info(
+                f"Invalidated {len(keys)} calendar view caches for tenant {tenant_id}"
+            )
 
     async def get_board_view(self, tenant_id: UUID) -> list[dict[str, Any]] | None:
         """
@@ -147,7 +142,7 @@ class CalendarCache:
         self,
         tenant_id: UUID,
         data: list[dict[str, Any]],
-        ttl: int = 60  # 1 minuto para Board (más dinámico)
+        ttl: int = 60,  # 1 minuto para Board (más dinámico)
     ):
         """
         Guarda vista Board en cache.
@@ -161,11 +156,7 @@ class CalendarCache:
 
         cache_key = f"task:board:{tenant_id}"
 
-        await self.redis.setex(
-            cache_key,
-            ttl,
-            json.dumps(data, default=str)
-        )
+        await self.redis.setex(cache_key, ttl, json.dumps(data, default=str))
         logger.debug(f"Cached {cache_key} with TTL {ttl}s")
 
     async def invalidate_board_view(self, tenant_id: UUID):
@@ -202,7 +193,8 @@ async def get_calendar_cache() -> CalendarCache:
     global _calendar_cache
     if _calendar_cache is None:
         from app.core.config import get_settings
+
         settings = get_settings()
-        redis_url = getattr(settings, 'REDIS_URL', 'redis://localhost:6379/1')
+        redis_url = getattr(settings, "REDIS_URL", "redis://localhost:6379/1")
         _calendar_cache = CalendarCache(redis_url=redis_url)
     return _calendar_cache

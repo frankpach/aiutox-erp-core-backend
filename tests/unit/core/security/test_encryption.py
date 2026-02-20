@@ -62,7 +62,9 @@ class TestEncryption:
         encrypted = encrypt_credentials(original_data, tenant1)
 
         # Should fail when trying to decrypt with different tenant
-        with pytest.raises(ValueError, match="Invalid encrypted data or wrong tenant key"):
+        with pytest.raises(
+            ValueError, match="Invalid encrypted data or wrong tenant key"
+        ):
             decrypt_credentials(encrypted, tenant2)
 
     def test_encrypt_empty_string(self):
@@ -91,7 +93,7 @@ class TestEncryption:
         credentials_dict = {
             "api_key": "sk_test_1234567890",
             "api_secret": "secret_abc123",
-            "webhook_secret": "whsec_xyz789"
+            "webhook_secret": "whsec_xyz789",
         }
         original_data = json.dumps(credentials_dict)
 
@@ -119,4 +121,3 @@ class TestEncryption:
         key2 = get_encryption_key(tenant2)
 
         assert key1 != key2
-

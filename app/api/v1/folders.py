@@ -92,7 +92,9 @@ async def create_folder(
 async def list_folders(
     current_user: Annotated[User, Depends(require_permission("files.view"))],
     service: Annotated[FolderService, Depends(get_folder_service)],
-    parent_id: UUID | None = Query(default=None, description="Parent folder ID (null for root)"),
+    parent_id: UUID | None = Query(
+        default=None, description="Parent folder ID (null for root)"
+    ),
     entity_type: str | None = Query(default=None, description="Entity type filter"),
     entity_id: UUID | None = Query(default=None, description="Entity ID filter"),
 ) -> StandardListResponse[FolderResponse]:
@@ -139,7 +141,9 @@ async def list_folders(
 async def get_folder_tree(
     current_user: Annotated[User, Depends(require_permission("files.view"))],
     service: Annotated[FolderService, Depends(get_folder_service)],
-    parent_id: UUID | None = Query(default=None, description="Parent folder ID (null for root)"),
+    parent_id: UUID | None = Query(
+        default=None, description="Parent folder ID (null for root)"
+    ),
     entity_type: str | None = Query(default=None, description="Entity type filter"),
     entity_id: UUID | None = Query(default=None, description="Entity ID filter"),
 ) -> StandardListResponse[FolderTreeItem]:
@@ -153,6 +157,7 @@ async def get_folder_tree(
         )
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error getting folder tree: {e}", exc_info=True)
         folders = []
@@ -162,7 +167,7 @@ async def get_folder_tree(
         # Get children - folder.children should be loaded by selectinload
         children = []
         try:
-            if hasattr(folder, 'children'):
+            if hasattr(folder, "children"):
                 children_list = list(folder.children) if folder.children else []
                 children = [build_tree_item(child) for child in children_list]
         except Exception:
@@ -172,7 +177,7 @@ async def get_folder_tree(
         # Get file count - use files relationship if available
         file_count = 0
         try:
-            if hasattr(folder, 'files'):
+            if hasattr(folder, "files"):
                 file_count = folder.files.count()
         except Exception:
             # If files relationship not available, default to 0
@@ -194,8 +199,11 @@ async def get_folder_tree(
             return folder_item
         except Exception as e:
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.error(f"Error building tree item for folder {folder.id}: {e}", exc_info=True)
+            logger.error(
+                f"Error building tree item for folder {folder.id}: {e}", exc_info=True
+            )
             # Return minimal tree item
             folder_item = FolderTreeItem(
                 id=folder.id,
@@ -272,6 +280,7 @@ async def get_folder(
         raise
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error getting folder {folder_id}: {e}", exc_info=True)
         raise APIException(
@@ -312,7 +321,9 @@ async def get_folder_content(
 
     # Get files in folder
     FileService(service.db, tenant_id=current_user.tenant_id)
-    files_query = folder.files.filter_by(tenant_id=current_user.tenant_id, is_current=True)
+    files_query = folder.files.filter_by(
+        tenant_id=current_user.tenant_id, is_current=True
+    )
     files = files_query.all()
 
     folder_response = FolderResponse.model_validate(folder)
@@ -438,6 +449,7 @@ async def delete_folder(
         )
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error deleting folder {folder_id}: {e}", exc_info=True)
         # Check if folder exists to determine if it's 404 or 500
@@ -465,7 +477,9 @@ async def move_folder(
     current_user: Annotated[User, Depends(require_permission("files.manage"))],
     service: Annotated[FolderService, Depends(get_folder_service)],
     folder_id: UUID,
-    new_parent_id: UUID | None = Query(default=None, description="New parent folder ID (null for root)"),
+    new_parent_id: UUID | None = Query(
+        default=None, description="New parent folder ID (null for root)"
+    ),
 ) -> StandardResponse[FolderResponse]:
     """Move a folder."""
     try:
@@ -729,6 +743,7 @@ async def update_folder_permissions(
     if folder.created_by != current_user.id:
         # Check module-level permission
         from app.core.auth.dependencies import check_permission
+
         if not check_permission(current_user, "folders.manage_users"):
             raise APIException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -816,4 +831,3 @@ async def check_folder_permissions_endpoint(
         },
         message="Folder permissions checked successfully",
     )
-

@@ -52,7 +52,9 @@ def seed_saved_filters(db: Session, tenant_id: str) -> None:
             "filters": {
                 "last_login_at": {
                     "operator": "lt",
-                    "value": (datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)).isoformat(),
+                    "value": (
+                        datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+                    ).isoformat(),
                 }
             },
             "is_default": False,
@@ -81,7 +83,9 @@ def seed_saved_filters(db: Session, tenant_id: str) -> None:
             "filters": {
                 "created_at": {
                     "operator": "gte",
-                    "value": (datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)).isoformat(),
+                    "value": (
+                        datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+                    ).isoformat(),
                 }
             },
             "is_default": False,
@@ -127,4 +131,3 @@ def clear_saved_filters(db: Session, tenant_id: str) -> None:
         SavedFilter.tenant_id == tenant_id, SavedFilter.module == "users"
     ).delete()
     db.commit()
-

@@ -128,7 +128,7 @@ class TaskRepositoryOptimized:
         assigned_via_task_condition = exists().where(
             TaskAssignment.task_id == Task.id,
             TaskAssignment.tenant_id == tenant_id,
-            TaskAssignment.assigned_to_id == user_id
+            TaskAssignment.assigned_to_id == user_id,
         )
 
         # Construir condiciones de visibilidad
@@ -143,7 +143,7 @@ class TaskRepositoryOptimized:
             assigned_via_group_condition = exists().where(
                 TaskAssignment.task_id == Task.id,
                 TaskAssignment.tenant_id == tenant_id,
-                TaskAssignment.assigned_to_group_id.in_(user_group_ids)
+                TaskAssignment.assigned_to_group_id.in_(user_group_ids),
             )
             visibility_conditions.append(assigned_via_group_condition)
 
@@ -162,7 +162,7 @@ class TaskRepositoryOptimized:
         entity_type: str,
         entity_id: UUID,
         tenant_id: UUID,
-        include_relations: bool = False
+        include_relations: bool = False,
     ) -> list[Task]:
         """Obtener tareas por entidad relacionada con eager loading opcional."""
         query = self.db.query(Task).filter(
@@ -179,7 +179,9 @@ class TaskRepositoryOptimized:
 
         return query.order_by(Task.created_at.desc()).all()
 
-    def update_task(self, task_id: UUID, tenant_id: UUID, task_data: dict) -> Task | None:
+    def update_task(
+        self, task_id: UUID, tenant_id: UUID, task_data: dict
+    ) -> Task | None:
         """Actualizar una tarea."""
         task = self.get_task_by_id(task_id, tenant_id)
         if not task:
@@ -208,7 +210,9 @@ class TaskRepositoryOptimized:
         self.db.refresh(item)
         return item
 
-    def get_checklist_items(self, task_id: UUID, tenant_id: UUID) -> list[TaskChecklistItem]:
+    def get_checklist_items(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> list[TaskChecklistItem]:
         """Obtener todos los ítems de checklist de una tarea."""
         return (
             self.db.query(TaskChecklistItem)
@@ -220,7 +224,9 @@ class TaskRepositoryOptimized:
             .all()
         )
 
-    def get_checklist_items_with_task(self, task_id: UUID, tenant_id: UUID) -> Task | None:
+    def get_checklist_items_with_task(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> Task | None:
         """Obtener tarea con sus ítems de checklist cargados."""
         return (
             self.db.query(Task)
@@ -274,7 +280,9 @@ class TaskRepositoryOptimized:
         self.db.refresh(assignment)
         return assignment
 
-    def get_assignments_by_task(self, task_id: UUID, tenant_id: UUID) -> list[TaskAssignment]:
+    def get_assignments_by_task(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> list[TaskAssignment]:
         """Obtener asignaciones de una tarea con eager loading."""
         return (
             self.db.query(TaskAssignment)
@@ -363,7 +371,7 @@ class TaskRepositoryOptimized:
             exists().where(
                 TaskAssignment.task_id == Task.id,
                 TaskAssignment.tenant_id == tenant_id,
-                TaskAssignment.assigned_to_id == user_id
+                TaskAssignment.assigned_to_id == user_id,
             ),
         ]
 
@@ -372,7 +380,7 @@ class TaskRepositoryOptimized:
                 exists().where(
                     TaskAssignment.task_id == Task.id,
                     TaskAssignment.tenant_id == tenant_id,
-                    TaskAssignment.assigned_to_group_id.in_(user_group_ids)
+                    TaskAssignment.assigned_to_group_id.in_(user_group_ids),
                 )
             )
 
@@ -455,11 +463,19 @@ class TaskRepositoryOptimized:
             self.db.query(
                 func.count(Task.id).label("total"),
                 func.sum(func.case((Task.status == "todo", 1), else_=0)).label("todo"),
-                func.sum(func.case((Task.status == "in_progress", 1), else_=0)).label("in_progress"),
+                func.sum(func.case((Task.status == "in_progress", 1), else_=0)).label(
+                    "in_progress"
+                ),
                 func.sum(func.case((Task.status == "done", 1), else_=0)).label("done"),
-                func.sum(func.case((Task.priority == "high", 1), else_=0)).label("high_priority"),
-                func.sum(func.case((Task.priority == "medium", 1), else_=0)).label("medium_priority"),
-                func.sum(func.case((Task.priority == "low", 1), else_=0)).label("low_priority"),
+                func.sum(func.case((Task.priority == "high", 1), else_=0)).label(
+                    "high_priority"
+                ),
+                func.sum(func.case((Task.priority == "medium", 1), else_=0)).label(
+                    "medium_priority"
+                ),
+                func.sum(func.case((Task.priority == "low", 1), else_=0)).label(
+                    "low_priority"
+                ),
             )
             .filter(Task.tenant_id == tenant_id)
             .first()

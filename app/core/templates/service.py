@@ -51,9 +51,7 @@ class TemplateRenderer:
             logger.error(f"Unexpected error rendering template: {e}")
             raise ValueError(f"Failed to render template: {e}") from e
 
-    def render_pdf(
-        self, template_content: str, variables: dict[str, Any]
-    ) -> bytes:
+    def render_pdf(self, template_content: str, variables: dict[str, Any]) -> bytes:
         """Render a template to PDF format.
 
         Args:
@@ -151,20 +149,20 @@ class TemplateService:
 
         safe_publish_event(
             event_publisher=self.event_publisher,
-                        event_type="template.created",
-                        entity_type="template",
-                        entity_id=template.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={
-                                "template_name": template.name,
-                                "template_type": template.template_type,
-                            },
-                        ),
-                    )
+            event_type="template.created",
+            entity_type="template",
+            entity_id=template.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="template_service",
+                version="1.0",
+                additional_data={
+                    "template_name": template.name,
+                    "template_type": template.template_type,
+                },
+            ),
+        )
 
         return template
 
@@ -195,7 +193,9 @@ class TemplateService:
             return None
 
         # Check if content changed
-        content_changed = "content" in template_data and template_data["content"] != template.content
+        content_changed = (
+            "content" in template_data and template_data["content"] != template.content
+        )
 
         # Update template
         updated_template = self.repository.update_template(template, template_data)
@@ -203,10 +203,10 @@ class TemplateService:
         # Create new version if content changed
         if content_changed:
             # Get current version number
-            current_version = self.repository.get_current_version(template_id, tenant_id)
-            next_version = (
-                current_version.version_number + 1 if current_version else 1
+            current_version = self.repository.get_current_version(
+                template_id, tenant_id
             )
+            next_version = current_version.version_number + 1 if current_version else 1
 
             # Mark old version as not current
             if current_version:
@@ -232,17 +232,17 @@ class TemplateService:
 
         safe_publish_event(
             event_publisher=self.event_publisher,
-                        event_type="template.updated",
-                        entity_type="template",
-                        entity_id=updated_template.id,
-                        tenant_id=tenant_id,
-                        user_id=template.created_by,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={"template_name": updated_template.name},
-                        ),
-                    )
+            event_type="template.updated",
+            entity_type="template",
+            entity_id=updated_template.id,
+            tenant_id=tenant_id,
+            user_id=template.created_by,
+            metadata=EventMetadata(
+                source="template_service",
+                version="1.0",
+                additional_data={"template_name": updated_template.name},
+            ),
+        )
 
         return updated_template
 
@@ -306,20 +306,20 @@ class TemplateService:
 
         safe_publish_event(
             event_publisher=self.event_publisher,
-                        event_type="template.rendered",
-                        entity_type="template",
-                        entity_id=template.id,
-                        tenant_id=tenant_id,
+            event_type="template.rendered",
+            entity_type="template",
+            entity_id=template.id,
+            tenant_id=tenant_id,
             user_id=None,
-                        metadata=EventMetadata(
-                            source="template_service",
-                            version="1.0",
-                            additional_data={
-                                "template_name": template.name,
-                                "format": output_format,
-                            },
-                        ),
-                    )
+            metadata=EventMetadata(
+                source="template_service",
+                version="1.0",
+                additional_data={
+                    "template_name": template.name,
+                    "format": output_format,
+                },
+            ),
+        )
 
         return {
             "rendered_content": rendered_content,
@@ -371,4 +371,3 @@ class TemplateService:
 
         self.repository.delete_template_category(category)
         return True
-

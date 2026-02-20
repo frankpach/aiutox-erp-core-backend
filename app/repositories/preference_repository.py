@@ -101,7 +101,9 @@ class PreferenceRepository:
         self, tenant_id: UUID, preference_type: str | None = None
     ) -> list[OrgPreference]:
         """Get all organization preferences, optionally filtered by type."""
-        query = self.db.query(OrgPreference).filter(OrgPreference.tenant_id == tenant_id)
+        query = self.db.query(OrgPreference).filter(
+            OrgPreference.tenant_id == tenant_id
+        )
         if preference_type:
             query = query.filter(OrgPreference.preference_type == preference_type)
         return query.all()
@@ -118,7 +120,10 @@ class PreferenceRepository:
             return existing
         else:
             preference = OrgPreference(
-                tenant_id=tenant_id, preference_type=preference_type, key=key, value=value
+                tenant_id=tenant_id,
+                preference_type=preference_type,
+                key=key,
+                value=value,
             )
             self.db.add(preference)
             self.db.commit()
@@ -275,7 +280,9 @@ class PreferenceRepository:
         self.db.refresh(dashboard)
         return dashboard
 
-    def delete_dashboard(self, dashboard_id: UUID, user_id: UUID, tenant_id: UUID) -> bool:
+    def delete_dashboard(
+        self, dashboard_id: UUID, user_id: UUID, tenant_id: UUID
+    ) -> bool:
         """Delete a dashboard."""
         dashboard = self.get_dashboard_by_id(dashboard_id, user_id, tenant_id)
         if not dashboard:
@@ -283,13 +290,3 @@ class PreferenceRepository:
         self.db.delete(dashboard)
         self.db.commit()
         return True
-
-
-
-
-
-
-
-
-
-

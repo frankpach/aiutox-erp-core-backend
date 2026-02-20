@@ -14,77 +14,77 @@ from app.modules.inventory.permissions import (
 
 
 class InventoryModule(ModuleInterface):
-  def __init__(self, db: Session | None = None):
-    self._db = db
-    self._config_service = ConfigService(db) if db else None
+    def __init__(self, db: Session | None = None):
+        self._db = db
+        self._config_service = ConfigService(db) if db else None
 
-  @property
-  def module_id(self) -> str:
-    return "inventory"
+    @property
+    def module_id(self) -> str:
+        return "inventory"
 
-  @property
-  def module_type(self) -> str:
-    return "business"
+    @property
+    def module_type(self) -> str:
+        return "business"
 
-  @property
-  def enabled(self) -> bool:
-    if self._db and self._config_service:
-      try:
+    @property
+    def enabled(self) -> bool:
+        if self._db and self._config_service:
+            try:
+                return True
+            except Exception:
+                pass
         return True
-      except Exception:
-        pass
-    return True
 
-  def get_router(self) -> APIRouter | None:
-    return router
+    def get_router(self) -> APIRouter | None:
+        return router
 
-  def get_models(self) -> list:
-    return [Warehouse, Location, StockMove]
+    def get_models(self) -> list:
+        return [Warehouse, Location, StockMove]
 
-  def get_dependencies(self) -> list[str]:
-    return ["auth", "users", "products", "pubsub"]
+    def get_dependencies(self) -> list[str]:
+        return ["auth", "users", "products", "pubsub"]
 
-  @property
-  def module_name(self) -> str:
-    return "Inventory"
+    @property
+    def module_name(self) -> str:
+        return "Inventory"
 
-  @property
-  def description(self) -> str:
-    return "Módulo empresarial: almacenes, ubicaciones y movimientos de stock."
+    @property
+    def description(self) -> str:
+        return "Módulo empresarial: almacenes, ubicaciones y movimientos de stock."
 
-  def get_navigation_items(self) -> list[ModuleNavigationItem]:
-    return [
-        ModuleNavigationItem(
-            id="inventory.main",
-            label="Inventario",
-            path="/inventory",
-            permission=INVENTORY_VIEW,
-            icon="grid",
-            order=0,
-        ),
-        ModuleNavigationItem(
-            id="inventory.movements",
-            label="Movimientos",
-            path="/inventory/movements",
-            permission=INVENTORY_VIEW,
-            icon="grid",
-            order=10,
-        ),
-    ]
+    def get_navigation_items(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="inventory.main",
+                label="Inventario",
+                path="/inventory",
+                permission=INVENTORY_VIEW,
+                icon="grid",
+                order=0,
+            ),
+            ModuleNavigationItem(
+                id="inventory.movements",
+                label="Movimientos",
+                path="/inventory/movements",
+                permission=INVENTORY_VIEW,
+                icon="grid",
+                order=10,
+            ),
+        ]
 
-  def get_settings_navigation(self) -> list[ModuleNavigationItem]:
-    return [
-        ModuleNavigationItem(
-            id="inventory.config",
-            label="Configuración de inventario",
-            path="/config/modules?module=inventory",
-            permission=INVENTORY_MANAGE,
-            icon="settings",
-            category="Configuración",
-            order=0,
-        ),
-    ]
+    def get_settings_navigation(self) -> list[ModuleNavigationItem]:
+        return [
+            ModuleNavigationItem(
+                id="inventory.config",
+                label="Configuración de inventario",
+                path="/config/modules?module=inventory",
+                permission=INVENTORY_MANAGE,
+                icon="settings",
+                category="Configuración",
+                order=0,
+            ),
+        ]
 
 
 def create_module(db: Session | None = None) -> InventoryModule:
-  return InventoryModule(db)
+    return InventoryModule(db)

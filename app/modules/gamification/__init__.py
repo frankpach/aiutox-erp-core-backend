@@ -55,7 +55,9 @@ class GamificationModule(ModuleInterface):
 
     @property
     def description(self) -> str:
-        return "Sistema de gamificación: puntos, niveles, badges, streaks y leaderboards."
+        return (
+            "Sistema de gamificación: puntos, niveles, badges, streaks y leaderboards."
+        )
 
 
 def create_module(db: Session | None = None) -> GamificationModule:

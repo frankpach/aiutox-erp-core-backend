@@ -88,7 +88,9 @@ class ConfigVersionRepository:
         Returns:
             ConfigVersion instance or None
         """
-        return self.db.query(ConfigVersion).filter(ConfigVersion.id == version_id).first()
+        return (
+            self.db.query(ConfigVersion).filter(ConfigVersion.id == version_id).first()
+        )
 
     def get_version_by_number(
         self, tenant_id: UUID, module: str, key: str, version_number: int
@@ -271,4 +273,3 @@ class ConfigVersionRepository:
             )
             .count()
         )
-

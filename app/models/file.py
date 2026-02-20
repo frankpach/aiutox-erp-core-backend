@@ -58,7 +58,9 @@ class File(Base):
     storage_backend = Column(
         String(20), nullable=False, default=StorageBackend.LOCAL
     )  # local, s3, hybrid
-    storage_path = Column(String(500), nullable=False)  # Path in storage (local path or S3 key)
+    storage_path = Column(
+        String(500), nullable=False
+    )  # Path in storage (local path or S3 key)
     storage_url = Column(String(1000), nullable=True)  # Public URL if available
 
     # Folder relationship
@@ -70,13 +72,17 @@ class File(Base):
     )
 
     # Polymorphic relationship
-    entity_type = Column(String(50), nullable=True, index=True)  # e.g., 'product', 'order'
+    entity_type = Column(
+        String(50), nullable=True, index=True
+    )  # e.g., 'product', 'order'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
 
     # Metadata
     description = Column(Text, nullable=True)
     # Use explicit column name to avoid conflict with SQLAlchemy's reserved 'metadata'
-    file_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
+    file_metadata = Column(
+        "metadata", JSONB, nullable=True
+    )  # Additional metadata as JSON
 
     # Versioning
     version_number = Column(Integer, default=1, nullable=False)
@@ -149,7 +155,9 @@ class FileVersion(Base):
     mime_type = Column(String(100), nullable=False)
 
     # Version metadata
-    change_description = Column(Text, nullable=True)  # Description of changes in this version
+    change_description = Column(
+        Text, nullable=True
+    )  # Description of changes in this version
     created_by = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -164,9 +172,7 @@ class FileVersion(Base):
         index=True,
     )
 
-    __table_args__ = (
-        Index("idx_file_versions_file", "file_id", "version_number"),
-    )
+    __table_args__ = (Index("idx_file_versions_file", "file_id", "version_number"),)
 
     def __repr__(self) -> str:
         return f"<FileVersion(id={self.id}, file_id={self.file_id}, version={self.version_number})>"
@@ -223,4 +229,3 @@ class FilePermission(Base):
 
     def __repr__(self) -> str:
         return f"<FilePermission(id={self.id}, file_id={self.file_id}, target={self.target_type}:{self.target_id})>"
-

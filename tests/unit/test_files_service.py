@@ -75,7 +75,9 @@ async def test_upload_file(
 
 
 @pytest.mark.asyncio
-async def test_download_file(file_service, test_user, test_tenant, mock_storage_backend):
+async def test_download_file(
+    file_service, test_user, test_tenant, mock_storage_backend
+):
     """Test downloading a file."""
     # First upload a file
     file_content = b"test file content"
@@ -122,7 +124,9 @@ async def test_delete_file(
     assert deleted is True
 
     # Verify file is soft deleted
-    deleted_file = file_service.repository.get_by_id(file.id, test_tenant.id, current_only=False)
+    deleted_file = file_service.repository.get_by_id(
+        file.id, test_tenant.id, current_only=False
+    )
     assert deleted_file.is_current is False
 
     # Verify event was published
@@ -249,7 +253,9 @@ async def test_generate_thumbnail_non_image(file_service, test_user, test_tenant
         )
 
 
-def test_check_permissions_user_can_view(file_service, test_user, test_tenant, db_session):
+def test_check_permissions_user_can_view(
+    file_service, test_user, test_tenant, db_session
+):
     """Test checking permissions for a user to view a file."""
     import asyncio
     from uuid import uuid4
@@ -273,14 +279,16 @@ def test_check_permissions_user_can_view(file_service, test_user, test_tenant, d
     file_content = b"test file content"
     filename = "test.pdf"
 
-    file = asyncio.run(file_service.upload_file(
-        file_content=file_content,
-        filename=filename,
-        entity_type=None,
-        entity_id=None,
-        tenant_id=test_tenant.id,
-        user_id=test_user.id,
-    ))
+    file = asyncio.run(
+        file_service.upload_file(
+            file_content=file_content,
+            filename=filename,
+            entity_type=None,
+            entity_id=None,
+            tenant_id=test_tenant.id,
+            user_id=test_user.id,
+        )
+    )
 
     # Set permissions: other_user can view but not download
     permissions = [
@@ -313,7 +321,9 @@ def test_check_permissions_user_can_view(file_service, test_user, test_tenant, d
     assert can_download is False
 
 
-def test_check_permissions_user_cannot_view(file_service, test_user, test_tenant, db_session):
+def test_check_permissions_user_cannot_view(
+    file_service, test_user, test_tenant, db_session
+):
     """Test checking permissions when user cannot view a file."""
     import asyncio
     from uuid import uuid4
@@ -337,14 +347,16 @@ def test_check_permissions_user_cannot_view(file_service, test_user, test_tenant
     file_content = b"test file content"
     filename = "test.pdf"
 
-    file = asyncio.run(file_service.upload_file(
-        file_content=file_content,
-        filename=filename,
-        entity_type=None,
-        entity_id=None,
-        tenant_id=test_tenant.id,
-        user_id=test_user.id,
-    ))
+    file = asyncio.run(
+        file_service.upload_file(
+            file_content=file_content,
+            filename=filename,
+            entity_type=None,
+            entity_id=None,
+            tenant_id=test_tenant.id,
+            user_id=test_user.id,
+        )
+    )
 
     # Set permissions: other_user cannot view
     permissions = [
@@ -372,17 +384,20 @@ def test_check_permissions_user_cannot_view(file_service, test_user, test_tenant
 def test_check_permissions_owner_has_access(file_service, test_user, test_tenant):
     """Test that file owner has access even without explicit permissions."""
     import asyncio
+
     file_content = b"test file content"
     filename = "test.pdf"
 
-    file = asyncio.run(file_service.upload_file(
-        file_content=file_content,
-        filename=filename,
-        entity_type=None,
-        entity_id=None,
-        tenant_id=test_tenant.id,
-        user_id=test_user.id,
-    ))
+    file = asyncio.run(
+        file_service.upload_file(
+            file_content=file_content,
+            filename=filename,
+            entity_type=None,
+            entity_id=None,
+            tenant_id=test_tenant.id,
+            user_id=test_user.id,
+        )
+    )
 
     # Don't set any permissions - owner should still have access
     can_view = file_service.check_permissions(
@@ -418,14 +433,16 @@ def test_check_permissions_role_based(file_service, test_user, test_tenant, db_s
     file_content = b"test file content"
     filename = "test.pdf"
 
-    file = asyncio.run(file_service.upload_file(
-        file_content=file_content,
-        filename=filename,
-        entity_type=None,
-        entity_id=None,
-        tenant_id=test_tenant.id,
-        user_id=test_user.id,
-    ))
+    file = asyncio.run(
+        file_service.upload_file(
+            file_content=file_content,
+            filename=filename,
+            entity_type=None,
+            entity_id=None,
+            tenant_id=test_tenant.id,
+            user_id=test_user.id,
+        )
+    )
 
     # Use a role UUID as the permission target (roles are strings in this system,
     # but FilePermission.target_id expects a UUID)
@@ -454,4 +471,3 @@ def test_check_permissions_role_based(file_service, test_user, test_tenant, db_s
     # and FilePermission uses UUID targets. This would need a mapping layer.
     # Instead, test that user-specific permissions work correctly
     pass  # Test skipped - role-based permissions need additional implementation
-

@@ -37,7 +37,9 @@ class TestConfigService:
 
         assert result == 5.0
 
-    def test_get_config_not_found_without_default(self, db_session: Session, test_tenant):
+    def test_get_config_not_found_without_default(
+        self, db_session: Session, test_tenant
+    ):
         """Test getting a non-existent configuration without default."""
         service = ConfigService(db_session)
         tenant_id = test_tenant.id
@@ -196,6 +198,7 @@ class TestConfigService:
         # Should not find it for tenant 2 (should return None, not schema default)
         # Note: get() may return schema default if one is registered, so we check repository directly
         from app.repositories.config_repository import ConfigRepository
+
         repo = ConfigRepository(db_session)
         config_tenant_2 = repo.get(tenant_id_2, module, key)
         assert config_tenant_2 is None
@@ -203,7 +206,9 @@ class TestConfigService:
         # Should exist for tenant 1
         assert service.get(tenant_id_1, module, key) == 10.0
 
-    def test_set_config_with_audit_log(self, db_session: Session, test_tenant, test_user):
+    def test_set_config_with_audit_log(
+        self, db_session: Session, test_tenant, test_user
+    ):
         """Test setting configuration with audit logging."""
         service = ConfigService(db_session)
         tenant_id = test_tenant.id
@@ -225,13 +230,20 @@ class TestConfigService:
 
         # Verify audit log was created
         from app.models.audit_log import AuditLog
-        audit_logs = db_session.query(AuditLog).filter(
-            AuditLog.action == "config.created",
-            AuditLog.resource_type == "config",
-        ).all()
+
+        audit_logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "config.created",
+                AuditLog.resource_type == "config",
+            )
+            .all()
+        )
         assert len(audit_logs) > 0
 
-    def test_set_config_with_versioning(self, db_session: Session, test_tenant, test_user):
+    def test_set_config_with_versioning(
+        self, db_session: Session, test_tenant, test_user
+    ):
         """Test setting configuration with versioning enabled."""
         service = ConfigService(db_session, use_versioning=True)
         tenant_id = test_tenant.id
@@ -289,7 +301,9 @@ class TestConfigService:
         stats = service.get_cache_stats()
         assert stats["enabled"] is False
 
-    def test_service_without_versioning(self, db_session: Session, test_tenant, test_user):
+    def test_service_without_versioning(
+        self, db_session: Session, test_tenant, test_user
+    ):
         """Test service behavior without versioning."""
         service = ConfigService(db_session, use_versioning=False)
         tenant_id = test_tenant.id
@@ -308,7 +322,9 @@ class TestConfigService:
         with pytest.raises(ValueError, match="Versioning is not enabled"):
             service.rollback_to_version(tenant_id, module, key, version_number=1)
 
-    def test_delete_config_with_audit(self, db_session: Session, test_tenant, test_user):
+    def test_delete_config_with_audit(
+        self, db_session: Session, test_tenant, test_user
+    ):
         """Test deleting configuration with audit logging."""
         service = ConfigService(db_session)
         tenant_id = test_tenant.id
@@ -334,10 +350,15 @@ class TestConfigService:
 
         # Verify audit log was created
         from app.models.audit_log import AuditLog
-        audit_logs = db_session.query(AuditLog).filter(
-            AuditLog.action == "config.deleted",
-            AuditLog.resource_type == "config",
-        ).all()
+
+        audit_logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "config.deleted",
+                AuditLog.resource_type == "config",
+            )
+            .all()
+        )
         assert len(audit_logs) > 0
 
     def test_cleanup_old_versions(self, db_session: Session, test_tenant, test_user):
@@ -352,7 +373,9 @@ class TestConfigService:
             service.set(tenant_id, module, key, f"value{i}", user_id=test_user.id)
 
         # Cleanup, keeping only 10 versions
-        deleted_count = service.cleanup_old_versions(tenant_id, module, key, keep_versions=10)
+        deleted_count = service.cleanup_old_versions(
+            tenant_id, module, key, keep_versions=10
+        )
 
         # Verify cleanup happened
         assert deleted_count > 0
@@ -360,14 +383,3 @@ class TestConfigService:
         # Verify we still have versions
         versions, total = service.get_version_history(tenant_id, module, key)
         assert total <= 10
-
-
-
-
-
-
-
-
-
-
-

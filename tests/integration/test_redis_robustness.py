@@ -18,7 +18,9 @@ settings = get_settings()
 @pytest.fixture
 async def redis_client():
     """Create Redis client for testing with proper cleanup."""
-    client = RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    client = RedisStreamsClient(
+        redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+    )
     try:
         yield client
     finally:
@@ -204,4 +206,3 @@ async def test_redis_stream_cleanup(event_publisher):
         if messages:
             message_ids = [msg[0] for msg in messages]
             await client.xdel(test_stream, *message_ids)
-

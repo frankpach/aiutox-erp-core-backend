@@ -26,11 +26,15 @@ class SavedFilter(Base):
     # Filter information
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
 
     # Filter configuration
     filters = Column(JSONB, nullable=False)  # Filter conditions as JSON
-    is_default = Column(Boolean, default=False, nullable=False)  # Default filter for module
+    is_default = Column(
+        Boolean, default=False, nullable=False
+    )  # Default filter for module
 
     # Ownership and sharing
     created_by = Column(
@@ -39,7 +43,9 @@ class SavedFilter(Base):
         nullable=True,
         index=True,
     )
-    is_shared = Column(Boolean, default=False, nullable=False)  # Whether filter is shared
+    is_shared = Column(
+        Boolean, default=False, nullable=False
+    )  # Whether filter is shared
 
     # Timestamps
     created_at = Column(
@@ -79,16 +85,22 @@ class CustomView(Base):
     # View information
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
 
     # View configuration
-    columns = Column(JSONB, nullable=False)  # Column configuration (visible, order, width, etc.)
+    columns = Column(
+        JSONB, nullable=False
+    )  # Column configuration (visible, order, width, etc.)
     sorting = Column(JSONB, nullable=True)  # Sorting configuration
     grouping = Column(JSONB, nullable=True)  # Grouping configuration
     filters = Column(JSONB, nullable=True)  # Associated filters
 
     # Settings
-    is_default = Column(Boolean, default=False, nullable=False)  # Default view for module
+    is_default = Column(
+        Boolean, default=False, nullable=False
+    )  # Default view for module
     is_shared = Column(Boolean, default=False, nullable=False)  # Whether view is shared
 
     # Ownership
@@ -162,11 +174,3 @@ class ViewShare(Base):
 
     def __repr__(self) -> str:
         return f"<ViewShare(id={self.id}, filter_id={self.filter_id}, view_id={self.view_id})>"
-
-
-
-
-
-
-
-

@@ -67,4 +67,3 @@ class AuditService:
         log_responses = [AuditLogResponse.model_validate(log) for log in logs]
 
         return log_responses, total
-

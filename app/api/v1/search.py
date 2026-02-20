@@ -69,7 +69,9 @@ async def get_suggestions(
     current_user: Annotated[User, Depends(require_permission("search.view"))],
     engine: Annotated[SearchEngine, Depends(get_search_engine)],
     query: Annotated[str, Query(..., description="Search query", min_length=1)],
-    limit: int = Query(default=10, ge=1, le=50, description="Maximum number of suggestions"),
+    limit: int = Query(
+        default=10, ge=1, le=50, description="Maximum number of suggestions"
+    ),
 ) -> StandardResponse[list[SearchSuggestion]]:
     """Get search suggestions."""
     suggestions = engine.get_suggestions(
@@ -106,7 +108,11 @@ async def index_entity(
     )
 
     return StandardResponse(
-        data={"id": str(index.id), "entity_type": index.entity_type, "entity_id": str(index.entity_id)},
+        data={
+            "id": str(index.id),
+            "entity_type": index.entity_type,
+            "entity_id": str(index.entity_id),
+        },
         message="Entity indexed successfully",
     )
 
@@ -133,4 +139,3 @@ async def remove_index(
             code="INDEX_NOT_FOUND",
             message=f"Index for {entity_type}:{entity_id} not found",
         )
-

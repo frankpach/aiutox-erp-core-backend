@@ -8,12 +8,16 @@ if TYPE_CHECKING:
     # Estos imports solo se usan para type checking
     pass
 
+
 def get_contact_schemas():
     """Importa schemas de contacto de forma lazy."""
     from app.schemas.contact import ContactCreate, ContactResponse
+
     return ContactCreate, ContactResponse
+
 
 def get_organization_schemas():
     """Importa schemas de organización de forma lazy."""
     from app.schemas.organization import OrganizationCreate, OrganizationResponse
+
     return OrganizationCreate, OrganizationResponse

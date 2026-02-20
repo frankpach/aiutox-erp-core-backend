@@ -169,6 +169,7 @@ class TaskService:
         if self._should_sync_to_calendar(task, tenant_id):
             try:
                 from app.core.tasks.task_event_sync_service import TaskEventSyncService
+
                 sync_service = TaskEventSyncService(self.db)
                 await sync_service.sync_task_to_event(task)
                 logger.info(f"Task {task.id} synced to calendar")
@@ -177,15 +178,21 @@ class TaskService:
                 # Continue without failing task creation
 
         # Trigger webhooks for task.created event
-        await self._trigger_webhooks("task.created", {
-            "task_id": str(task.id),
-            "title": task.title,
-            "status": task.status,
-            "priority": task.priority,
-            "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
-            "created_by_id": str(created_by_id),
-            "tenant_id": str(tenant_id),
-        }, tenant_id)
+        await self._trigger_webhooks(
+            "task.created",
+            {
+                "task_id": str(task.id),
+                "title": task.title,
+                "status": task.status,
+                "priority": task.priority,
+                "assigned_to_id": (
+                    str(task.assigned_to_id) if task.assigned_to_id else None
+                ),
+                "created_by_id": str(created_by_id),
+                "tenant_id": str(tenant_id),
+            },
+            tenant_id,
+        )
 
         return task
 
@@ -220,11 +227,15 @@ class TaskService:
             from app.models.user_calendar_preferences import UserCalendarPreferences
 
             if task.assigned_to_id:
-                prefs = self.db.query(UserCalendarPreferences).filter(
-                    UserCalendarPreferences.user_id == task.assigned_to_id,
-                    UserCalendarPreferences.tenant_id == tenant_id,
-                    UserCalendarPreferences.auto_sync_tasks
-                ).first()
+                prefs = (
+                    self.db.query(UserCalendarPreferences)
+                    .filter(
+                        UserCalendarPreferences.user_id == task.assigned_to_id,
+                        UserCalendarPreferences.tenant_id == tenant_id,
+                        UserCalendarPreferences.auto_sync_tasks,
+                    )
+                    .first()
+                )
 
                 return prefs is not None
         except Exception as e:
@@ -266,7 +277,9 @@ class TaskService:
             node = parent
             while node and node.parent_task_id:
                 if node.parent_task_id == current_task_id:
-                    raise ValueError("Circular dependency detected in subtask hierarchy")
+                    raise ValueError(
+                        "Circular dependency detected in subtask hierarchy"
+                    )
                 if node.parent_task_id in visited:
                     break  # Already a cycle in existing data, stop
                 visited.add(node.parent_task_id)
@@ -278,9 +291,7 @@ class TaskService:
         while node and node.parent_task_id:
             depth += 1
             if depth >= max_depth:
-                raise ValueError(
-                    f"Maximum subtask depth ({max_depth}) exceeded"
-                )
+                raise ValueError(f"Maximum subtask depth ({max_depth}) exceeded")
             node = self.repository.get_task_by_id(node.parent_task_id, tenant_id)
 
     def get_tasks(
@@ -350,7 +361,9 @@ class TaskService:
 
         if "tag_ids" in task_data:
             tag_ids = task_data.get("tag_ids")
-            task_data["tag_ids"] = [str(tag_id) for tag_id in tag_ids] if tag_ids else None
+            task_data["tag_ids"] = (
+                [str(tag_id) for tag_id in tag_ids] if tag_ids else None
+            )
 
         # Validate subtask hierarchy if parent_task_id is being updated
         if "parent_task_id" in task_data and task_data["parent_task_id"]:
@@ -367,7 +380,9 @@ class TaskService:
             try:
                 new_status = TaskStatusEnum(task_data["status"])
                 current_status = _coerce_status(current_task.status)
-                logger.info(f"Attempting transition: {current_status.value} -> {new_status.value}")
+                logger.info(
+                    f"Attempting transition: {current_status.value} -> {new_status.value}"
+                )
                 TaskStateMachine.validate_transition(current_status, new_status)
                 logger.info(
                     "Valid state transition: %s -> %s",
@@ -389,7 +404,9 @@ class TaskService:
             # Publish event
             additional_data = {"changes": list(task_data.keys())}
             if "status" in task_data:
-                additional_data["previous_status"] = _coerce_status(current_task.status).value
+                additional_data["previous_status"] = _coerce_status(
+                    current_task.status
+                ).value
                 additional_data["new_status"] = _coerce_status(task.status).value
 
             safe_publish_event(
@@ -407,7 +424,10 @@ class TaskService:
             )
 
             # If status changed to DONE, set completed_at
-            if "status" in task_data and _coerce_status(task.status) == TaskStatusEnum.DONE:
+            if (
+                "status" in task_data
+                and _coerce_status(task.status) == TaskStatusEnum.DONE
+            ):
                 task.completed_at = datetime.now(UTC)
                 self.db.commit()
                 self.db.refresh(task)
@@ -457,11 +477,15 @@ class TaskService:
             )
 
             # Trigger webhooks for task.deleted event
-            await self._trigger_webhooks("task.deleted", {
-                "task_id": str(task_id),
-                "deleted_by_id": str(user_id),
-                "tenant_id": str(tenant_id),
-            }, tenant_id)
+            await self._trigger_webhooks(
+                "task.deleted",
+                {
+                    "task_id": str(task_id),
+                    "deleted_by_id": str(user_id),
+                    "tenant_id": str(tenant_id),
+                },
+                tenant_id,
+            )
 
         return deleted
 
@@ -567,7 +591,11 @@ class TaskService:
             estimated_duration=task_data.get("estimated_duration"),
             tags=task_data.get("tags"),
             category=task_data.get("category"),
-            assigned_to_id=UUID(task_data["assigned_to_id"]) if task_data.get("assigned_to_id") else None,
+            assigned_to_id=(
+                UUID(task_data["assigned_to_id"])
+                if task_data.get("assigned_to_id")
+                else None
+            ),
             due_date=task_data.get("due_date"),
         )
 
@@ -590,5 +618,3 @@ class TaskService:
             await self.webhook_service.trigger_webhooks(event, data, tenant_id)
         except Exception:
             logger.error(f"Failed to trigger webhooks for {event}")
-
-

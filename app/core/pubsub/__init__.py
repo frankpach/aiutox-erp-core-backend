@@ -39,15 +39,7 @@ def get_event_publisher() -> EventPublisher:
     from app.core.pubsub.client import RedisStreamsClient
 
     settings = get_settings()
-    client = RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    client = RedisStreamsClient(
+        redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+    )
     return EventPublisher(client=client)
-
-
-
-
-
-
-
-
-
-

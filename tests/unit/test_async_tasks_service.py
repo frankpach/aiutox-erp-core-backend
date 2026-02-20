@@ -67,7 +67,9 @@ class TestAsyncTaskService:
         # Arrange
         tenant_id = uuid4()
         registry = service.registry
-        task = MockTask(module="test", name="manual_task", execute_result={"executed": True})
+        task = MockTask(
+            module="test", name="manual_task", execute_result={"executed": True}
+        )
         registry.register(task, {"type": "interval", "hours": 24})
 
         # Act
@@ -106,9 +108,3 @@ class TestAsyncTaskService:
 
         # Assert
         assert service.scheduler._running is False
-
-
-
-
-
-

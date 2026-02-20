@@ -21,7 +21,10 @@ router = APIRouter(tags=["task-statuses"])
 class TaskStatusBase(BaseModel):
     name: str = Field(..., max_length=50, description="Status name")
     color: str = Field(default="#6b7280", description="Hex color code")
-    type: str = Field(default="open", description="Status type: open, in_progress, on_hold, completed, canceled")
+    type: str = Field(
+        default="open",
+        description="Status type: open, in_progress, on_hold, completed, canceled",
+    )
     order: int = Field(default=0, description="Display order")
     is_system: bool = Field(default=False, description="System status (non-editable)")
 
@@ -47,7 +50,7 @@ class TaskStatusResponse(TaskStatusBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator('id', 'tenant_id', mode='before')
+    @field_validator("id", "tenant_id", mode="before")
     @classmethod
     def convert_uuid_to_str(cls, v):
         return str(v) if v else None
@@ -78,22 +81,26 @@ async def create_task_status(
 ):
     """Create a new task status"""
     # Check if status name already exists for this tenant
-    existing = db.query(TaskStatus).filter(
-        TaskStatus.tenant_id == current_user.tenant_id,
-        TaskStatus.name == status_data.name
-    ).first()
+    existing = (
+        db.query(TaskStatus)
+        .filter(
+            TaskStatus.tenant_id == current_user.tenant_id,
+            TaskStatus.name == status_data.name,
+        )
+        .first()
+    )
 
     if existing:
         raise APIException(
             code="STATUS_ALREADY_EXISTS",
             message=f"Status '{status_data.name}' already exists",
-            status_code=400
+            status_code=400,
         )
 
     status = TaskStatus(
         tenant_id=current_user.tenant_id,
         **status_data.model_dump(),
-        is_system=False  # User-created statuses are never system
+        is_system=False,  # User-created statuses are never system
     )
 
     db.add(status)
@@ -108,26 +115,27 @@ async def update_task_status(
     status_id: str,
     status_data: TaskStatusUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a task status"""
-    status = db.query(TaskStatus).filter(
-        TaskStatus.id == status_id,
-        TaskStatus.tenant_id == current_user.tenant_id
-    ).first()
+    status = (
+        db.query(TaskStatus)
+        .filter(
+            TaskStatus.id == status_id, TaskStatus.tenant_id == current_user.tenant_id
+        )
+        .first()
+    )
 
     if not status:
         raise APIException(
-            code="STATUS_NOT_FOUND",
-            message="Status not found",
-            status_code=404
+            code="STATUS_NOT_FOUND", message="Status not found", status_code=404
         )
 
     if status.is_system:
         raise APIException(
             code="SYSTEM_STATUS_READONLY",
             message="System statuses cannot be modified",
-            status_code=403
+            status_code=403,
         )
 
     # Update fields
@@ -144,40 +152,43 @@ async def update_task_status(
 async def delete_task_status(
     status_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a task status"""
-    status = db.query(TaskStatus).filter(
-        TaskStatus.id == status_id,
-        TaskStatus.tenant_id == current_user.tenant_id
-    ).first()
+    status = (
+        db.query(TaskStatus)
+        .filter(
+            TaskStatus.id == status_id, TaskStatus.tenant_id == current_user.tenant_id
+        )
+        .first()
+    )
 
     if not status:
         raise APIException(
-            code="STATUS_NOT_FOUND",
-            message="Status not found",
-            status_code=404
+            code="STATUS_NOT_FOUND", message="Status not found", status_code=404
         )
 
     if status.is_system:
         raise APIException(
             code="SYSTEM_STATUS_READONLY",
             message="System statuses cannot be deleted",
-            status_code=403
+            status_code=403,
         )
 
     # Check if status is being used by tasks
     from ...models.task import Task
-    tasks_using_status = db.query(Task).filter(
-        Task.status_id == status_id,
-        Task.tenant_id == current_user.tenant_id
-    ).count()
+
+    tasks_using_status = (
+        db.query(Task)
+        .filter(Task.status_id == status_id, Task.tenant_id == current_user.tenant_id)
+        .count()
+    )
 
     if tasks_using_status > 0:
         raise APIException(
             code="STATUS_IN_USE",
             detail=f"Cannot delete status: {tasks_using_status} tasks are using this status",
-            status_code=400
+            status_code=400,
         )
 
     # Hard delete (remove from database)
@@ -192,33 +203,39 @@ async def reorder_task_statuses(
     status_id: str,
     new_order: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Reorder task statuses"""
-    status = db.query(TaskStatus).filter(
-        TaskStatus.id == status_id,
-        TaskStatus.tenant_id == current_user.tenant_id
-    ).first()
+    status = (
+        db.query(TaskStatus)
+        .filter(
+            TaskStatus.id == status_id, TaskStatus.tenant_id == current_user.tenant_id
+        )
+        .first()
+    )
 
     if not status:
         raise APIException(
-            code="STATUS_NOT_FOUND",
-            message="Status not found",
-            status_code=404
+            code="STATUS_NOT_FOUND", message="Status not found", status_code=404
         )
 
     if status.is_system:
         raise APIException(
             code="SYSTEM_STATUS_READONLY",
             message="System statuses cannot be reordered",
-            status_code=403
+            status_code=403,
         )
 
     # Get all statuses for this tenant (excluding system)
-    all_statuses = db.query(TaskStatus).filter(
-        TaskStatus.tenant_id == current_user.tenant_id,
-        TaskStatus.is_system is False
-    ).order_by(TaskStatus.order).all()
+    all_statuses = (
+        db.query(TaskStatus)
+        .filter(
+            TaskStatus.tenant_id == current_user.tenant_id,
+            TaskStatus.is_system is False,
+        )
+        .order_by(TaskStatus.order)
+        .all()
+    )
 
     # Reorder logic
     if new_order < status.order:
@@ -249,49 +266,50 @@ async def initialize_system_statuses(db: Session, tenant_id: str):
             "color": "#6b7280",
             "type": "open",
             "order": 0,
-            "is_system": True
+            "is_system": True,
         },
         {
             "name": "En Progreso",
             "color": "#3b82f6",
             "type": "in_progress",
             "order": 1,
-            "is_system": True
+            "is_system": True,
         },
         {
             "name": "En Espera",
             "color": "#f59e0b",
             "type": "on_hold",
             "order": 2,
-            "is_system": True
+            "is_system": True,
         },
         {
             "name": "Completado",
             "color": "#22c55e",
             "type": "completed",
             "order": 3,
-            "is_system": True
+            "is_system": True,
         },
         {
             "name": "Cancelado",
             "color": "#ef4444",
             "type": "canceled",
             "order": 4,
-            "is_system": True
-        }
+            "is_system": True,
+        },
     ]
 
     for status_data in default_statuses:
-        existing = db.query(TaskStatus).filter(
-            TaskStatus.tenant_id == tenant_id,
-            TaskStatus.name == status_data["name"]
-        ).first()
+        existing = (
+            db.query(TaskStatus)
+            .filter(
+                TaskStatus.tenant_id == tenant_id,
+                TaskStatus.name == status_data["name"],
+            )
+            .first()
+        )
 
         if not existing:
-            status = TaskStatus(
-                tenant_id=tenant_id,
-                **status_data
-            )
+            status = TaskStatus(tenant_id=tenant_id, **status_data)
             db.add(status)
 
     db.commit()

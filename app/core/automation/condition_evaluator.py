@@ -30,9 +30,7 @@ class ConditionEvaluator:
 
         return True
 
-    def _evaluate_condition(
-        self, condition: dict[str, Any], event: Event
-    ) -> bool:
+    def _evaluate_condition(self, condition: dict[str, Any], event: Event) -> bool:
         """Evaluate a single condition.
 
         Args:
@@ -64,9 +62,11 @@ class ConditionEvaluator:
             elif operator == "<=":
                 return actual_value <= expected_value
             elif operator == "in":
-                return actual_value in expected_value if isinstance(
-                    expected_value, (list, tuple)
-                ) else False
+                return (
+                    actual_value in expected_value
+                    if isinstance(expected_value, (list, tuple))
+                    else False
+                )
             elif operator == "contains":
                 if isinstance(actual_value, str) and isinstance(expected_value, str):
                     return expected_value in actual_value
@@ -105,13 +105,3 @@ class ConditionEvaluator:
                 return None
 
         return value
-
-
-
-
-
-
-
-
-
-

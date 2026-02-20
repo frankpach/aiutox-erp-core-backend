@@ -17,7 +17,9 @@ class OrganizationBase(BaseModel):
     name: str = Field(..., description="Organization name")
     legal_name: str | None = Field(None, description="Legal name (razón social)")
     tax_id: str | None = Field(None, description="Tax ID (NIT, RUC, etc.)")
-    organization_type: str = Field(..., description="Type: customer, supplier, partner, other")
+    organization_type: str = Field(
+        ..., description="Type: customer, supplier, partner, other"
+    )
     industry: str | None = Field(None, description="Industry/sector")
     website: str | None = Field(None, description="Website URL")
     logo_url: str | None = Field(None, description="Logo URL")
@@ -52,10 +54,11 @@ class OrganizationResponse(OrganizationBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    contacts: list["ContactResponse"] = Field(default_factory=list, description="Organization contacts")
+    contacts: list["ContactResponse"] = Field(
+        default_factory=list, description="Organization contacts"
+    )
     contact_methods: list["ContactMethodResponse"] = Field(
         default_factory=list, description="Organization contact methods"
     )
 
     model_config = ConfigDict(from_attributes=True)
-

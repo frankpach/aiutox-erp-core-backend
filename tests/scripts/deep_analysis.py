@@ -11,6 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def analyze_import_chains():
     """Analiza las cadenas de imports para encontrar el problema raíz."""
     print("🔍 ANÁLISIS PROFUNDO DE CADENAS DE IMPORT")
@@ -79,6 +80,7 @@ def analyze_import_chains():
         else:
             print(f"   ❌ ERROR: {exception[0]}")
 
+
 def analyze_api_v1_imports():
     """Analiza específicamente los imports de app.api.v1."""
     print("   🔍 Análisis detallado de app.api.v1...")
@@ -87,11 +89,11 @@ def analyze_api_v1_imports():
     init_path = backend_path / "app" / "api" / "v1" / "__init__.py"
 
     try:
-        with open(init_path, encoding='utf-8') as f:
+        with open(init_path, encoding="utf-8") as f:
             content = f.read()
 
         print("   📄 Contenido de __init__.py:")
-        lines = content.split('\n')
+        lines = content.split("\n")
         for i, line in enumerate(lines[:20], 1):  # Primeras 20 líneas
             if line.strip():
                 print(f"      {i:2}: {line}")
@@ -114,6 +116,7 @@ def analyze_api_v1_imports():
     except Exception as e:
         print(f"   ❌ Error leyendo __init__.py: {e}")
 
+
 def analyze_session_imports():
     """Analiza específicamente los imports de session."""
     print("   🔍 Análisis detallado de app.core.db.session...")
@@ -121,22 +124,25 @@ def analyze_session_imports():
     session_path = backend_path / "app" / "core" / "db" / "session.py"
 
     try:
-        with open(session_path, encoding='utf-8') as f:
+        with open(session_path, encoding="utf-8") as f:
             content = f.read()
 
         print("   📄 Imports en session.py:")
-        lines = content.split('\n')
+        lines = content.split("\n")
         for line in lines:
-            if line.strip().startswith('from ') or line.strip().startswith('import '):
+            if line.strip().startswith("from ") or line.strip().startswith("import "):
                 print(f"      {line}")
 
         # Verificar si hay llamada a get_settings() que puede causar problemas
         if "get_settings()" in content:
-            print("   ⚠️ Se encuentra llamada a get_settings() - puede estar causando el problema")
+            print(
+                "   ⚠️ Se encuentra llamada a get_settings() - puede estar causando el problema"
+            )
 
             # Probar importar get_settings
             try:
                 from app.core.config_file import get_settings
+
                 print("   ✅ get_settings() se importa correctamente")
 
                 # Probar obtener settings
@@ -145,6 +151,7 @@ def analyze_session_imports():
                     return settings
 
                 result = [None]
+
                 def settings_thread():
                     try:
                         _settings = test_settings()
@@ -169,6 +176,7 @@ def analyze_session_imports():
     except Exception as e:
         print(f"   ❌ Error analizando session.py: {e}")
 
+
 def analyze_rate_limit_imports():
     """Analiza específicamente los imports de rate_limit."""
     print("   🔍 Análisis detallado de app.core.auth.rate_limit...")
@@ -176,13 +184,13 @@ def analyze_rate_limit_imports():
     rate_limit_path = backend_path / "app" / "core" / "auth" / "rate_limit.py"
 
     try:
-        with open(rate_limit_path, encoding='utf-8') as f:
+        with open(rate_limit_path, encoding="utf-8") as f:
             content = f.read()
 
         print("   📄 Imports en rate_limit.py:")
-        lines = content.split('\n')
+        lines = content.split("\n")
         for line in lines:
-            if line.strip().startswith('from ') or line.strip().startswith('import '):
+            if line.strip().startswith("from ") or line.strip().startswith("import "):
                 print(f"      {line}")
 
         # Buscar imports que puedan causar dependencias circulares
@@ -192,6 +200,7 @@ def analyze_rate_limit_imports():
     except Exception as e:
         print(f"   ❌ Error analizando rate_limit.py: {e}")
 
+
 def test_database_connection_directly():
     """Prueba la conexión a la base de datos directamente."""
     print("\n🔍 PRUEBA DIRECTA DE CONEXIÓN A BASE DE DATOS")
@@ -200,10 +209,12 @@ def test_database_connection_directly():
     try:
         # Probar importar psycopg2
         import psycopg2
+
         print("✅ psycopg2 importado")
 
         # Probar importar configuración
         from app.core.config_file import get_settings
+
         print("✅ get_settings importado")
 
         # Probar obtener settings
@@ -234,7 +245,9 @@ def test_database_connection_directly():
             return False
         elif result[0]:
             settings = result[0]
-            print(f"✅ Settings obtenidas: DB={settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}")
+            print(
+                f"✅ Settings obtenidas: DB={settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}"
+            )
 
             # Probar conexión a PostgreSQL
             def test_pg_connection():
@@ -244,11 +257,12 @@ def test_database_connection_directly():
                     user=settings.POSTGRES_USER,
                     password=settings.POSTGRES_PASSWORD,
                     database=settings.POSTGRES_DB,
-                    connect_timeout=5
+                    connect_timeout=5,
                 )
                 conn.close()
 
             conn_result = [None]
+
             def conn_thread():
                 try:
                     test_pg_connection()
@@ -263,7 +277,9 @@ def test_database_connection_directly():
             thread.join(timeout=5)
 
             if thread.is_alive():
-                print("⏰ TIMEOUT en conexión PostgreSQL - PROBLEMA DE RED/BASE DE DATOS")
+                print(
+                    "⏰ TIMEOUT en conexión PostgreSQL - PROBLEMA DE RED/BASE DE DATOS"
+                )
                 return False
             elif conn_result[0]:
                 print("✅ Conexión PostgreSQL exitosa")
@@ -275,6 +291,7 @@ def test_database_connection_directly():
     except Exception as e:
         print(f"❌ Error en prueba de base de datos: {e}")
         return False
+
 
 def check_environment_variables():
     """Verifica las variables de entorno."""
@@ -291,7 +308,7 @@ def check_environment_variables():
         "POSTGRES_PASSWORD",
         "POSTGRES_DB",
         "DEBUG",
-        "ENV"
+        "ENV",
     ]
 
     for var in env_vars:
@@ -305,6 +322,7 @@ def check_environment_variables():
             print(f"✅ {var}: {display_value}")
         else:
             print(f"❌ {var}: No definida")
+
 
 def main():
     """Función principal del análisis profundo."""
@@ -338,6 +356,7 @@ def main():
         print("2. Romper dependencias circulares")
         print("3. Simplificar la estructura de imports")
         print("4. Usar inyección de dependencias")
+
 
 if __name__ == "__main__":
     main()

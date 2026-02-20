@@ -1,4 +1,3 @@
-
 """Contact repository for data access operations."""
 
 from uuid import UUID

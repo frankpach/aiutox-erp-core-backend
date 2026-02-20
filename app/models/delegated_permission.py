@@ -30,7 +30,9 @@ class DelegatedPermission(Base):
         index=True,
     )
     module = Column(String(100), nullable=False)  # "inventory", "products", etc.
-    permission = Column(String(255), nullable=False)  # "inventory.edit", "products.view", etc.
+    permission = Column(
+        String(255), nullable=False
+    )  # "inventory.edit", "products.view", etc.
     expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(
         TIMESTAMP(timezone=True),
@@ -40,12 +42,18 @@ class DelegatedPermission(Base):
     revoked_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     # Relationships
-    user = relationship("User", back_populates="delegated_permissions", foreign_keys=[user_id])
+    user = relationship(
+        "User", back_populates="delegated_permissions", foreign_keys=[user_id]
+    )
     granter = relationship("User", foreign_keys=[granted_by])
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "module", "permission", "granted_by", name="uq_delegated_permissions_user_module_permission_granter"
+            "user_id",
+            "module",
+            "permission",
+            "granted_by",
+            name="uq_delegated_permissions_user_module_permission_granter",
         ),
         Index("idx_delegated_permissions_user_id", "user_id"),
         Index("idx_delegated_permissions_granted_by", "granted_by"),
@@ -75,4 +83,3 @@ class DelegatedPermission(Base):
             f"module={self.module}, permission={self.permission}, "
             f"granted_by={self.granted_by})>"
         )
-

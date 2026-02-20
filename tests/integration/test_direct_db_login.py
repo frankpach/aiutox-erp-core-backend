@@ -19,6 +19,7 @@ def test_login_with_direct_db():
     # Import the test database URL from conftest
     import os
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from conftest import TEST_DATABASE_URL
 
@@ -31,10 +32,7 @@ def test_login_with_direct_db():
     engine = create_engine(
         database_url,
         pool_pre_ping=True,
-        connect_args={
-            "connect_timeout": 5,
-            "options": "-c timezone=utc"
-        }
+        connect_args={"connect_timeout": 5, "options": "-c timezone=utc"},
     )
 
     # Run migrations to ensure tables exist

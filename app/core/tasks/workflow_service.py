@@ -74,7 +74,11 @@ class WorkflowService:
         return self.repository.get_workflow_by_id(workflow_id, tenant_id)
 
     def get_workflows(
-        self, tenant_id: UUID, enabled_only: bool = False, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        enabled_only: bool = False,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Workflow]:
         """Get workflows for a tenant.
 
@@ -152,7 +156,9 @@ class WorkflowService:
             }
         )
 
-    def get_workflow_steps(self, workflow_id: UUID, tenant_id: UUID) -> list[WorkflowStep]:
+    def get_workflow_steps(
+        self, workflow_id: UUID, tenant_id: UUID
+    ) -> list[WorkflowStep]:
         """Get all steps for a workflow.
 
         Args:
@@ -204,7 +210,9 @@ class WorkflowService:
             }
         )
 
-        logger.info(f"Workflow execution started: {execution.id} for workflow {workflow_id}")
+        logger.info(
+            f"Workflow execution started: {execution.id} for workflow {workflow_id}"
+        )
         return execution
 
     def update_execution(
@@ -220,17 +228,25 @@ class WorkflowService:
         Returns:
             Updated WorkflowExecution object or None if not found
         """
-        execution = self.repository.update_execution(execution_id, tenant_id, execution_data)
+        execution = self.repository.update_execution(
+            execution_id, tenant_id, execution_data
+        )
 
         # If status changed to completed or failed, set completed_at
-        if execution and execution_data.get("status") in ["completed", "failed", "cancelled"]:
+        if execution and execution_data.get("status") in [
+            "completed",
+            "failed",
+            "cancelled",
+        ]:
             execution.completed_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(execution)
 
         return execution
 
-    def get_execution(self, execution_id: UUID, tenant_id: UUID) -> WorkflowExecution | None:
+    def get_execution(
+        self, execution_id: UUID, tenant_id: UUID
+    ) -> WorkflowExecution | None:
         """Get a workflow execution by ID.
 
         Args:
@@ -313,14 +329,22 @@ class WorkflowService:
 
         if not execution.current_step_id:
             # If no current step, mark as completed
-            return self.update_execution(execution_id, tenant_id, {"status": "completed"})
+            return self.update_execution(
+                execution_id, tenant_id, {"status": "completed"}
+            )
 
         # Get current step
         steps = self.get_workflow_steps(execution.workflow_id, tenant_id)
-        current_step = next((s for s in steps if s.id == execution.current_step_id), None)
+        current_step = next(
+            (s for s in steps if s.id == execution.current_step_id), None
+        )
 
         if not current_step:
-             return self.update_execution(execution_id, tenant_id, {"status": "failed", "error_message": "Current step not found"})
+            return self.update_execution(
+                execution_id,
+                tenant_id,
+                {"status": "failed", "error_message": "Current step not found"},
+            )
 
         # Determine next step based on transitions
         # transitions is JSONB: list of { "action": "...", "next_step_order": N } or similar
@@ -329,21 +353,28 @@ class WorkflowService:
         if current_step.transitions:
             # Try to find transition by action
             if action:
-                match = next((t for t in current_step.transitions if t.get("action") == action), None)
+                match = next(
+                    (t for t in current_step.transitions if t.get("action") == action),
+                    None,
+                )
                 if match:
                     next_order = match.get("next_step_order")
                     next_step = next((s for s in steps if s.order == next_order), None)
 
             # If no action match or no action provided, try default transition
             if not next_step:
-                default_match = next((t for t in current_step.transitions if t.get("is_default")), None)
+                default_match = next(
+                    (t for t in current_step.transitions if t.get("is_default")), None
+                )
                 if default_match:
                     next_order = default_match.get("next_step_order")
                     next_step = next((s for s in steps if s.order == next_order), None)
 
         # Fallback: next order
         if not next_step:
-            next_step = next((s for s in steps if s.order == current_step.order + 1), None)
+            next_step = next(
+                (s for s in steps if s.order == current_step.order + 1), None
+            )
 
         if next_step:
             return self.update_execution(
@@ -351,12 +382,6 @@ class WorkflowService:
             )
         else:
             # No more steps
-            return self.update_execution(execution_id, tenant_id, {"status": "completed"})
-
-
-
-
-
-
-
-
+            return self.update_execution(
+                execution_id, tenant_id, {"status": "completed"}
+            )

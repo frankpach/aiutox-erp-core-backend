@@ -23,20 +23,32 @@ class TaskBase(BaseModel):
     description: str | None = Field(None, description="Task description")
     status: str = Field(default=TaskStatusEnum.TODO, description="Task status")
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority")
-    assigned_to_id: UUID | None = Field(None, description="Assigned user ID (legacy, use assignments)")
+    assigned_to_id: UUID | None = Field(
+        None, description="Assigned user ID (legacy, use assignments)"
+    )
     due_date: datetime | None = Field(None, description="Due date")
     start_at: datetime | None = Field(None, description="Start datetime")
     end_at: datetime | None = Field(None, description="End datetime")
     all_day: bool = Field(default=False, description="All day task")
     tag_ids: list[UUID] | None = Field(None, description="Core tag IDs")
     color_override: str | None = Field(None, description="Manual color override (hex)")
-    related_entity_type: str | None = Field(None, description="Related entity type (legacy)")
-    related_entity_id: UUID | None = Field(None, description="Related entity ID (legacy)")
-    source_module: str | None = Field(None, description="Source module (e.g., 'projects', 'workflows')")
+    related_entity_type: str | None = Field(
+        None, description="Related entity type (legacy)"
+    )
+    related_entity_id: UUID | None = Field(
+        None, description="Related entity ID (legacy)"
+    )
+    source_module: str | None = Field(
+        None, description="Source module (e.g., 'projects', 'workflows')"
+    )
     source_id: UUID | None = Field(None, description="Source entity ID")
-    source_context: dict[str, Any] | None = Field(None, description="Additional context from source module")
+    source_context: dict[str, Any] | None = Field(
+        None, description="Additional context from source module"
+    )
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
-    parent_task_id: UUID | None = Field(None, description="Parent task ID for subtask hierarchy")
+    parent_task_id: UUID | None = Field(
+        None, description="Parent task ID for subtask hierarchy"
+    )
 
 
 class TaskCreate(TaskBase):
@@ -60,7 +72,9 @@ class TaskUpdate(BaseModel):
     tag_ids: list[UUID] | None = Field(None, description="Core tag IDs")
     color_override: str | None = Field(None, description="Manual color override (hex)")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
-    parent_task_id: UUID | None = Field(None, description="Parent task ID for subtask hierarchy")
+    parent_task_id: UUID | None = Field(
+        None, description="Parent task ID for subtask hierarchy"
+    )
 
 
 class TaskResponse(TaskBase):
@@ -75,8 +89,12 @@ class TaskResponse(TaskBase):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="task_metadata", description="Additional metadata")
-    checklist: list[TaskChecklistItemResponse] | None = Field(default=[], description="Task checklist items")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="task_metadata", description="Additional metadata"
+    )
+    checklist: list[TaskChecklistItemResponse] | None = Field(
+        default=[], description="Task checklist items"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -84,21 +102,37 @@ class TaskResponse(TaskBase):
 class TaskModuleSettings(BaseModel):
     """Schema for Tasks module settings."""
 
-    calendar_enabled: bool = Field(default=True, description="Whether calendar is enabled")
-    board_enabled: bool = Field(default=True, description="Whether board view is enabled")
-    inbox_enabled: bool = Field(default=True, description="Whether inbox view is enabled")
+    calendar_enabled: bool = Field(
+        default=True, description="Whether calendar is enabled"
+    )
+    board_enabled: bool = Field(
+        default=True, description="Whether board view is enabled"
+    )
+    inbox_enabled: bool = Field(
+        default=True, description="Whether inbox view is enabled"
+    )
     list_enabled: bool = Field(default=True, description="Whether list view is enabled")
-    stats_enabled: bool = Field(default=True, description="Whether stats view is enabled")
+    stats_enabled: bool = Field(
+        default=True, description="Whether stats view is enabled"
+    )
 
 
 class TaskModuleSettingsUpdate(BaseModel):
     """Schema for updating Tasks module settings."""
 
-    calendar_enabled: bool | None = Field(None, description="Whether calendar is enabled")
-    board_enabled: bool | None = Field(None, description="Whether board view is enabled")
-    inbox_enabled: bool | None = Field(None, description="Whether inbox view is enabled")
+    calendar_enabled: bool | None = Field(
+        None, description="Whether calendar is enabled"
+    )
+    board_enabled: bool | None = Field(
+        None, description="Whether board view is enabled"
+    )
+    inbox_enabled: bool | None = Field(
+        None, description="Whether inbox view is enabled"
+    )
     list_enabled: bool | None = Field(None, description="Whether list view is enabled")
-    stats_enabled: bool | None = Field(None, description="Whether stats view is enabled")
+    stats_enabled: bool | None = Field(
+        None, description="Whether stats view is enabled"
+    )
 
 
 class TaskAssignmentBase(BaseModel):
@@ -107,16 +141,20 @@ class TaskAssignmentBase(BaseModel):
     task_id: UUID = Field(..., description="Task ID")
     assigned_to_id: UUID | None = Field(None, description="User ID to assign to")
     assigned_to_group_id: UUID | None = Field(None, description="Group ID to assign to")
-    role: str | None = Field(None, description="Assignment role (e.g., 'owner', 'reviewer')")
+    role: str | None = Field(
+        None, description="Assignment role (e.g., 'owner', 'reviewer')"
+    )
     notes: str | None = Field(None, description="Assignment notes")
     created_by_id: UUID = Field(..., description="User ID who created the assignment")
-    updated_by_id: UUID | None = Field(None, description="User ID who last updated the assignment")
+    updated_by_id: UUID | None = Field(
+        None, description="User ID who last updated the assignment"
+    )
 
 
 class TaskAssignmentCreate(TaskAssignmentBase):
     """Schema for creating a task assignment."""
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_exclusive_assignment(self) -> TaskAssignmentCreate:
         """Validar que solo se asigne a usuario O grupo, no ambos."""
         if not self.assigned_to_id and not self.assigned_to_group_id:
@@ -208,7 +246,9 @@ class WorkflowResponse(WorkflowBase):
     tenant_id: UUID
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="workflow_metadata", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="workflow_metadata", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -273,7 +313,9 @@ class WorkflowExecutionResponse(WorkflowExecutionBase):
 class TaskReminderBase(BaseModel):
     """Base schema for task reminder."""
 
-    reminder_type: str = Field(default=TaskReminderType.IN_APP, description="Reminder type")
+    reminder_type: str = Field(
+        default=TaskReminderType.IN_APP, description="Reminder type"
+    )
     reminder_time: datetime = Field(..., description="When to send reminder")
     message: str | None = Field(None, description="Reminder message")
 
@@ -310,14 +352,24 @@ class TaskReminderResponse(TaskReminderBase):
 class TaskRecurrenceBase(BaseModel):
     """Base schema for task recurrence."""
 
-    frequency: str = Field(default=TaskRecurrenceFrequency.WEEKLY, description="Recurrence frequency")
+    frequency: str = Field(
+        default=TaskRecurrenceFrequency.WEEKLY, description="Recurrence frequency"
+    )
     interval: int = Field(default=1, description="Interval (e.g., every 2 weeks)")
     start_date: datetime = Field(..., description="Start date of recurrence")
     end_date: datetime | None = Field(None, description="End date of recurrence")
-    max_occurrences: int | None = Field(None, description="Maximum number of occurrences")
-    days_of_week: list[int] | None = Field(None, description="Days of week for weekly recurrence (0=Monday)")
-    day_of_month: int | None = Field(None, description="Day of month for monthly recurrence (1-31)")
-    custom_config: dict[str, Any] | None = Field(None, description="Custom recurrence configuration")
+    max_occurrences: int | None = Field(
+        None, description="Maximum number of occurrences"
+    )
+    days_of_week: list[int] | None = Field(
+        None, description="Days of week for weekly recurrence (0=Monday)"
+    )
+    day_of_month: int | None = Field(
+        None, description="Day of month for monthly recurrence (1-31)"
+    )
+    custom_config: dict[str, Any] | None = Field(
+        None, description="Custom recurrence configuration"
+    )
     active: bool = Field(default=True, description="Whether recurrence is active")
 
 
@@ -334,11 +386,15 @@ class TaskRecurrenceUpdate(BaseModel):
     interval: int | None = Field(None, description="Interval")
     start_date: datetime | None = Field(None, description="Start date of recurrence")
     end_date: datetime | None = Field(None, description="End date of recurrence")
-    max_occurrences: int | None = Field(None, description="Maximum number of occurrences")
+    max_occurrences: int | None = Field(
+        None, description="Maximum number of occurrences"
+    )
     current_occurrence: int | None = Field(None, description="Current occurrence count")
     days_of_week: list[int] | None = Field(None, description="Days of week")
     day_of_month: int | None = Field(None, description="Day of month")
-    custom_config: dict[str, Any] | None = Field(None, description="Custom configuration")
+    custom_config: dict[str, Any] | None = Field(
+        None, description="Custom configuration"
+    )
     active: bool | None = Field(None, description="Whether recurrence is active")
 
 
@@ -353,7 +409,3 @@ class TaskRecurrenceResponse(TaskRecurrenceBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-

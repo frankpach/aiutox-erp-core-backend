@@ -59,10 +59,26 @@ class TaskTemplatesSeeder(Seeder):
                 "description": "Proceso estándar para gestionar llamadas y seguimiento con proveedores",
                 "estimated_hours": 2,
                 "checklist_items": [
-                    {"text": "Preparar lista de puntos a tratar", "order": 1, "completed": False},
-                    {"text": "Realizar llamada telefónica", "order": 2, "completed": False},
-                    {"text": "Documentar acuerdos y compromisos", "order": 3, "completed": False},
-                    {"text": "Enviar email de confirmación", "order": 4, "completed": False},
+                    {
+                        "text": "Preparar lista de puntos a tratar",
+                        "order": 1,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Realizar llamada telefónica",
+                        "order": 2,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Documentar acuerdos y compromisos",
+                        "order": 3,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Enviar email de confirmación",
+                        "order": 4,
+                        "completed": False,
+                    },
                     {"text": "Programar seguimiento", "order": 5, "completed": False},
                 ],
             },
@@ -71,12 +87,36 @@ class TaskTemplatesSeeder(Seeder):
                 "description": "Pasos para incorporar un nuevo cliente al sistema",
                 "estimated_hours": 4,
                 "checklist_items": [
-                    {"text": "Recopilar información del cliente", "order": 1, "completed": False},
-                    {"text": "Crear cuenta en el sistema", "order": 2, "completed": False},
-                    {"text": "Configurar permisos y accesos", "order": 3, "completed": False},
-                    {"text": "Realizar capacitación inicial", "order": 4, "completed": False},
-                    {"text": "Enviar documentación de bienvenida", "order": 5, "completed": False},
-                    {"text": "Programar seguimiento a 7 días", "order": 6, "completed": False},
+                    {
+                        "text": "Recopilar información del cliente",
+                        "order": 1,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Crear cuenta en el sistema",
+                        "order": 2,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Configurar permisos y accesos",
+                        "order": 3,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Realizar capacitación inicial",
+                        "order": 4,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Enviar documentación de bienvenida",
+                        "order": 5,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Programar seguimiento a 7 días",
+                        "order": 6,
+                        "completed": False,
+                    },
                 ],
             },
             {
@@ -84,11 +124,27 @@ class TaskTemplatesSeeder(Seeder):
                 "description": "Proceso mensual de revisión y ajuste de inventario",
                 "estimated_hours": 8,
                 "checklist_items": [
-                    {"text": "Exportar reporte de inventario actual", "order": 1, "completed": False},
+                    {
+                        "text": "Exportar reporte de inventario actual",
+                        "order": 1,
+                        "completed": False,
+                    },
                     {"text": "Realizar conteo físico", "order": 2, "completed": False},
-                    {"text": "Identificar discrepancias", "order": 3, "completed": False},
-                    {"text": "Ajustar cantidades en sistema", "order": 4, "completed": False},
-                    {"text": "Documentar causas de diferencias", "order": 5, "completed": False},
+                    {
+                        "text": "Identificar discrepancias",
+                        "order": 3,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Ajustar cantidades en sistema",
+                        "order": 4,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Documentar causas de diferencias",
+                        "order": 5,
+                        "completed": False,
+                    },
                     {"text": "Generar reporte final", "order": 6, "completed": False},
                 ],
             },
@@ -97,11 +153,31 @@ class TaskTemplatesSeeder(Seeder):
                 "description": "Proceso de seguimiento post-venta para asegurar satisfacción del cliente",
                 "estimated_hours": 1,
                 "checklist_items": [
-                    {"text": "Verificar entrega del producto/servicio", "order": 1, "completed": False},
-                    {"text": "Contactar al cliente para feedback", "order": 2, "completed": False},
-                    {"text": "Registrar comentarios y sugerencias", "order": 3, "completed": False},
-                    {"text": "Resolver cualquier inconveniente", "order": 4, "completed": False},
-                    {"text": "Solicitar testimonio o referencia", "order": 5, "completed": False},
+                    {
+                        "text": "Verificar entrega del producto/servicio",
+                        "order": 1,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Contactar al cliente para feedback",
+                        "order": 2,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Registrar comentarios y sugerencias",
+                        "order": 3,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Resolver cualquier inconveniente",
+                        "order": 4,
+                        "completed": False,
+                    },
+                    {
+                        "text": "Solicitar testimonio o referencia",
+                        "order": 5,
+                        "completed": False,
+                    },
                 ],
             },
         ]

@@ -75,9 +75,7 @@ class OrganizationRepository:
             .all()
         )
 
-    def get_organization_contacts(
-        self, organization_id: UUID, tenant_id: UUID
-    ) -> list:
+    def get_organization_contacts(self, organization_id: UUID, tenant_id: UUID) -> list:
         """Get all contacts for an organization."""
         from app.models.contact import Contact
 

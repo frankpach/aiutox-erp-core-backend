@@ -36,16 +36,18 @@ class TestTaskScheduler:
         """Verifica que check_due_soon_tasks encuentra tareas próximas a vencer."""
         # Crear tarea que vence en 12 horas
         task_repository = TaskRepository(db_session)
-        task = task_repository.create_task({
-            "tenant_id": test_tenant.id,
-            "title": "Tarea próxima a vencer",
-            "description": "Test task",
-            "status": TaskStatusEnum.TODO,
-            "priority": TaskPriority.HIGH,
-            "assigned_to_id": test_user.id,
-            "created_by_id": test_user.id,
-            "due_date": datetime.now(UTC) + timedelta(hours=12),
-        })
+        task = task_repository.create_task(
+            {
+                "tenant_id": test_tenant.id,
+                "title": "Tarea próxima a vencer",
+                "description": "Test task",
+                "status": TaskStatusEnum.TODO,
+                "priority": TaskPriority.HIGH,
+                "assigned_to_id": test_user.id,
+                "created_by_id": test_user.id,
+                "due_date": datetime.now(UTC) + timedelta(hours=12),
+            }
+        )
 
         scheduler = TaskScheduler()
 
@@ -60,16 +62,18 @@ class TestTaskScheduler:
         """Verifica que check_overdue_tasks encuentra tareas vencidas."""
         # Crear tarea vencida
         task_repository = TaskRepository(db_session)
-        task = task_repository.create_task({
-            "tenant_id": test_tenant.id,
-            "title": "Tarea vencida",
-            "description": "Test task",
-            "status": TaskStatusEnum.TODO,
-            "priority": TaskPriority.URGENT,
-            "assigned_to_id": test_user.id,
-            "created_by_id": test_user.id,
-            "due_date": datetime.now(UTC) - timedelta(days=2),
-        })
+        task = task_repository.create_task(
+            {
+                "tenant_id": test_tenant.id,
+                "title": "Tarea vencida",
+                "description": "Test task",
+                "status": TaskStatusEnum.TODO,
+                "priority": TaskPriority.URGENT,
+                "assigned_to_id": test_user.id,
+                "created_by_id": test_user.id,
+                "due_date": datetime.now(UTC) - timedelta(days=2),
+            }
+        )
 
         scheduler = TaskScheduler()
 
@@ -110,7 +114,7 @@ def test_tenant(db_session):
         id=uuid4(),
         name="Test Tenant",
         slug=f"test-tenant-{uuid4().hex[:8]}",
-        is_active=True
+        is_active=True,
     )
     db_session.add(tenant)
     db_session.commit()
@@ -126,7 +130,7 @@ def test_user(db_session, test_tenant):
         email="test@example.com",
         full_name="Test User",
         password_hash=hash_password("test_password_123"),
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()

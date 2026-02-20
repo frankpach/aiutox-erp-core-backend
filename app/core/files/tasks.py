@@ -66,4 +66,3 @@ class CleanupDeletedFilesTask(Task):
             raise
         finally:
             db.close()
-

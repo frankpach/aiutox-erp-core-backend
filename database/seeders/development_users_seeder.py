@@ -129,9 +129,7 @@ class DevelopmentUsersSeeder(Seeder):
         # Ensure supervisor has manager role (global)
         supervisor_manager_role = (
             db.query(UserRole)
-            .filter(
-                UserRole.user_id == supervisor_user.id, UserRole.role == "manager"
-            )
+            .filter(UserRole.user_id == supervisor_user.id, UserRole.role == "manager")
             .first()
         )
         if not supervisor_manager_role:
@@ -182,7 +180,3 @@ class DevelopmentUsersSeeder(Seeder):
             )
             db.add(basic_user)
             db.commit()
-
-
-
-

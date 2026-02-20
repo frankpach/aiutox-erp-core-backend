@@ -136,7 +136,9 @@ class PreferencesService:
         preference = self.repository.create_or_update_org_preference(
             tenant_id, preference_type, key, value
         )
-        logger.info(f"Set org preference {preference_type}.{key} for tenant {tenant_id}")
+        logger.info(
+            f"Set org preference {preference_type}.{key} for tenant {tenant_id}"
+        )
         return {
             "id": preference.id,
             "tenant_id": preference.tenant_id,
@@ -174,13 +176,3 @@ class PreferencesService:
             "key": preference.key,
             "value": preference.value,
         }
-
-
-
-
-
-
-
-
-
-

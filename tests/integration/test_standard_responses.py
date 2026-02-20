@@ -93,7 +93,11 @@ class TestStandardResponseFormat:
         assert "email" in data["data"]
 
     def test_create_user_returns_standard_response(
-        self, client_with_db: TestClient, db_session: Session, test_user: User, test_tenant
+        self,
+        client_with_db: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_tenant,
     ) -> None:
         """Test that POST /api/v1/users returns StandardResponse format."""
         # Arrange: Assign admin role
@@ -203,7 +207,11 @@ class TestAPIExceptionFormat:
         assert "User not found" in data["error"]["message"]
 
     def test_bad_request_error_format(
-        self, client_with_db: TestClient, db_session: Session, test_user: User, test_tenant
+        self,
+        client_with_db: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_tenant,
     ) -> None:
         """Test that 400 errors return correct format."""
         # Arrange: Assign admin role

@@ -25,10 +25,16 @@ class TestFileServiceSoftDelete:
         return AsyncMock()
 
     @pytest.fixture
-    def file_service(self, db_session, test_tenant, mock_storage_backend, mock_event_publisher):
+    def file_service(
+        self, db_session, test_tenant, mock_storage_backend, mock_event_publisher
+    ):
         """Create FileService instance."""
-        with patch("app.core.files.service.StorageConfigService") as mock_config_service:
-            mock_config_service.return_value.get_file_limits.return_value = {"retention_days": 30}
+        with patch(
+            "app.core.files.service.StorageConfigService"
+        ) as mock_config_service:
+            mock_config_service.return_value.get_file_limits.return_value = {
+                "retention_days": 30
+            }
             service = FileService(
                 db_session,
                 storage_backend=mock_storage_backend,
@@ -39,27 +45,38 @@ class TestFileServiceSoftDelete:
             return service
 
     @pytest.mark.asyncio
-    async def test_cleanup_deleted_files_success(self, file_service, db_session, test_tenant, mock_storage_backend, mock_event_publisher):
+    async def test_cleanup_deleted_files_success(
+        self,
+        file_service,
+        db_session,
+        test_tenant,
+        mock_storage_backend,
+        mock_event_publisher,
+    ):
         """Test cleanup of deleted files."""
         # Arrange
         from app.repositories.file_repository import FileRepository
+
         repo = FileRepository(db_session)
 
         retention_days = 30
-        old_deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "old_deleted.pdf",
-            "original_name": "old_deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 2048,
-            "storage_backend": "local",
-            "storage_path": "/test/old",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC) - timedelta(days=retention_days + 1),
-        })
+        old_deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "old_deleted.pdf",
+                "original_name": "old_deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 2048,
+                "storage_backend": "local",
+                "storage_path": "/test/old",
+                "is_current": False,
+                "deleted_at": datetime.now(UTC) - timedelta(days=retention_days + 1),
+            }
+        )
 
         # Create a version for the file
         from app.models.file import FileVersion
+
         version = FileVersion(
             id=uuid4(),
             file_id=old_deleted_file.id,
@@ -80,7 +97,9 @@ class TestFileServiceSoftDelete:
         file_service.repository.get_versions = MagicMock(return_value=[version])
 
         # Act
-        result = await file_service.cleanup_deleted_files(test_tenant.id, retention_days)
+        result = await file_service.cleanup_deleted_files(
+            test_tenant.id, retention_days
+        )
 
         # Assert
         assert result["files_count"] == 1
@@ -92,23 +111,29 @@ class TestFileServiceSoftDelete:
         mock_event_publisher.publish.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_cleanup_deleted_files_with_errors(self, file_service, db_session, test_tenant, mock_storage_backend):
+    async def test_cleanup_deleted_files_with_errors(
+        self, file_service, db_session, test_tenant, mock_storage_backend
+    ):
         """Test cleanup handles errors gracefully."""
         # Arrange
         from app.repositories.file_repository import FileRepository
+
         repo = FileRepository(db_session)
 
-        old_deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "old_deleted.pdf",
-            "original_name": "old_deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 2048,
-            "storage_backend": "local",
-            "storage_path": "/test/old",
-            "is_current": True,  # Initially current
-            "deleted_at": datetime.now(UTC) - timedelta(days=31),  # But marked as deleted long ago
-        })
+        old_deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "old_deleted.pdf",
+                "original_name": "old_deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 2048,
+                "storage_backend": "local",
+                "storage_path": "/test/old",
+                "is_current": True,  # Initially current
+                "deleted_at": datetime.now(UTC)
+                - timedelta(days=31),  # But marked as deleted long ago
+            }
+        )
 
         # Store the file ID before any potential deletion
         file_id = old_deleted_file.id
@@ -131,11 +156,17 @@ class TestFileServiceSoftDelete:
         assert result["errors"][0]["file_id"] == str(file_id)
 
     @pytest.mark.asyncio
-    async def test_cleanup_deleted_files_uses_config_retention(self, file_service, db_session, test_tenant):
+    async def test_cleanup_deleted_files_uses_config_retention(
+        self, file_service, db_session, test_tenant
+    ):
         """Test cleanup uses retention_days from config if not provided."""
         # Arrange
-        file_service._storage_config_service.get_file_limits.return_value = {"retention_days": 60}
-        file_service.repository.get_deleted_files_for_cleanup = MagicMock(return_value=[])
+        file_service._storage_config_service.get_file_limits.return_value = {
+            "retention_days": 60
+        }
+        file_service.repository.get_deleted_files_for_cleanup = MagicMock(
+            return_value=[]
+        )
 
         # Act
         await file_service.cleanup_deleted_files(test_tenant.id)
@@ -146,23 +177,28 @@ class TestFileServiceSoftDelete:
         )
 
     @pytest.mark.asyncio
-    async def test_restore_file_success(self, file_service, db_session, test_tenant, mock_event_publisher):
+    async def test_restore_file_success(
+        self, file_service, db_session, test_tenant, mock_event_publisher
+    ):
         """Test restoring a deleted file."""
         # Arrange
         from app.repositories.file_repository import FileRepository
+
         repo = FileRepository(db_session)
 
-        deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "deleted.pdf",
-            "original_name": "deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/deleted",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC),
-        })
+        deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "deleted.pdf",
+                "original_name": "deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/deleted",
+                "is_current": False,
+                "deleted_at": datetime.now(UTC),
+            }
+        )
 
         # Act
         result = await file_service.restore_file(
@@ -182,10 +218,7 @@ class TestFileServiceSoftDelete:
     async def test_restore_file_not_found(self, file_service, test_tenant):
         """Test restoring a non-existent file."""
         # Act
-        result = await file_service.restore_file(
-            uuid4(), test_tenant.id, uuid4()
-        )
+        result = await file_service.restore_file(uuid4(), test_tenant.id, uuid4())
 
         # Assert
         assert result is False
-

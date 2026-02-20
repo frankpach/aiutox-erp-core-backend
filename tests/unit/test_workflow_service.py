@@ -68,7 +68,9 @@ def test_get_workflows(workflow_service, test_tenant):
     assert len(workflows) >= 2
 
     # Get only enabled workflows
-    enabled_workflows = workflow_service.get_workflows(test_tenant.id, enabled_only=True)
+    enabled_workflows = workflow_service.get_workflows(
+        test_tenant.id, enabled_only=True
+    )
     assert any(w.id == workflow1.id for w in enabled_workflows)
     assert not any(w.id == workflow2.id for w in enabled_workflows)
 
@@ -259,11 +261,3 @@ def test_update_execution(workflow_service, test_tenant):
     assert updated_execution is not None
     assert updated_execution.status == "completed"
     assert updated_execution.completed_at is not None
-
-
-
-
-
-
-
-

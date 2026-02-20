@@ -13,11 +13,19 @@ class TemplateBase(BaseModel):
 
     name: str = Field(..., description="Template name", max_length=255)
     description: str | None = Field(None, description="Template description")
-    template_type: str = Field(..., description="Template type (document, email, sms, notification)", max_length=20)
-    template_format: str = Field(..., description="Template format (html, pdf, text, markdown)", max_length=20)
+    template_type: str = Field(
+        ...,
+        description="Template type (document, email, sms, notification)",
+        max_length=20,
+    )
+    template_format: str = Field(
+        ..., description="Template format (html, pdf, text, markdown)", max_length=20
+    )
     category: str | None = Field(None, description="Template category", max_length=50)
     content: str = Field(..., description="Template content")
-    variables: dict[str, Any] | None = Field(None, description="Available variables and their types")
+    variables: dict[str, Any] | None = Field(
+        None, description="Available variables and their types"
+    )
     is_active: bool = Field(True, description="Whether template is active")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
@@ -49,7 +57,9 @@ class TemplateResponse(TemplateBase):
     created_by: UUID | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="meta_data", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -61,7 +71,9 @@ class TemplateVersionBase(BaseModel):
     template_id: UUID = Field(..., description="Template ID")
     version_number: int = Field(..., description="Version number")
     content: str = Field(..., description="Template content for this version")
-    variables: dict[str, Any] | None = Field(None, description="Variables for this version")
+    variables: dict[str, Any] | None = Field(
+        None, description="Variables for this version"
+    )
     changelog: str | None = Field(None, description="What changed in this version")
     is_current: bool = Field(True, description="Whether this is the current version")
 
@@ -88,8 +100,12 @@ class TemplateRenderRequest(BaseModel):
     """Schema for rendering a template."""
 
     template_id: UUID = Field(..., description="Template ID")
-    variables: dict[str, Any] = Field(..., description="Variables to render template with")
-    format: str | None = Field(None, description="Output format (if different from template format)")
+    variables: dict[str, Any] = Field(
+        ..., description="Variables to render template with"
+    )
+    format: str | None = Field(
+        None, description="Output format (if different from template format)"
+    )
 
 
 class TemplateRenderResponse(BaseModel):
@@ -97,7 +113,9 @@ class TemplateRenderResponse(BaseModel):
 
     rendered_content: str = Field(..., description="Rendered template content")
     format: str = Field(..., description="Output format")
-    variables_used: dict[str, Any] = Field(..., description="Variables used in rendering")
+    variables_used: dict[str, Any] = Field(
+        ..., description="Variables used in rendering"
+    )
 
 
 # Template Category schemas
@@ -134,11 +152,3 @@ class TemplateCategoryResponse(TemplateCategoryBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
-
-
-
-

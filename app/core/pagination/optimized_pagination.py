@@ -13,13 +13,12 @@ class PaginationParams(BaseModel):
 
     page: int = Field(default=1, ge=1, description="Número de página (empezando en 1)")
     page_size: int = Field(
-        default=20,
-        ge=1,
-        le=100,
-        description="Elementos por página (1-100)"
+        default=20, ge=1, le=100, description="Elementos por página (1-100)"
     )
     sort_by: str | None = Field(default=None, description="Campo para ordenar")
-    sort_order: str = Field(default="desc", regex="^(asc|desc)$", description="Orden (asc/desc)")
+    sort_order: str = Field(
+        default="desc", regex="^(asc|desc)$", description="Orden (asc/desc)"
+    )
     search: str | None = Field(default=None, description="Término de búsqueda")
 
     @validator("page_size")
@@ -76,7 +75,9 @@ class PaginatedResponse[T](BaseModel):
 
     data: list[T] = Field(..., description="Datos de la página")
     meta: PaginationMeta = Field(..., description="Metadatos de paginación")
-    links: dict[str, str | None] = Field(default_factory=dict, description="Links de navegación")
+    links: dict[str, str | None] = Field(
+        default_factory=dict, description="Links de navegación"
+    )
 
     @classmethod
     def create(
@@ -107,7 +108,11 @@ class PaginatedResponse[T](BaseModel):
 
             # Link última página
             if meta.total_pages > 0:
-                last_params = {**params, "page": meta.total_pages, "page_size": page_size}
+                last_params = {
+                    **params,
+                    "page": meta.total_pages,
+                    "page_size": page_size,
+                }
                 links["last"] = f"{base_url}?{_build_query_string(last_params)}"
 
             # Link siguiente
@@ -160,7 +165,9 @@ class CursorPaginatedResponse[T](BaseModel):
 class OptimizedQueryBuilder:
     """Constructor de consultas optimizado para paginación."""
 
-    def __init__(self, query, default_sort: str = "created_at", default_order: str = "desc"):
+    def __init__(
+        self, query, default_sort: str = "created_at", default_order: str = "desc"
+    ):
         """Inicializar constructor de consultas."""
         self.query = query
         self.default_sort = default_sort
@@ -180,7 +187,9 @@ class OptimizedQueryBuilder:
             search_conditions = []
             for field in searchable_fields:
                 if hasattr(self.query.column_descriptions[0]["type"], field):
-                    field_attr = getattr(self.query.column_descriptions[0]["type"], field)
+                    field_attr = getattr(
+                        self.query.column_descriptions[0]["type"], field
+                    )
                     search_conditions.append(field_attr.ilike(f"%{params.search}%"))
 
             if search_conditions:
@@ -190,8 +199,12 @@ class OptimizedQueryBuilder:
         if filterable_fields:
             filter_conditions = []
             for field, value in filterable_fields.items():
-                if value is not None and hasattr(self.query.column_descriptions[0]["type"], field):
-                    field_attr = getattr(self.query.column_descriptions[0]["type"], field)
+                if value is not None and hasattr(
+                    self.query.column_descriptions[0]["type"], field
+                ):
+                    field_attr = getattr(
+                        self.query.column_descriptions[0]["type"], field
+                    )
                     if isinstance(value, list):
                         filter_conditions.append(field_attr.in_(value))
                     else:
@@ -254,7 +267,7 @@ class TaskQueryOptimizer:
                 exists().where(
                     TaskAssignment.task_id == Task.id,
                     TaskAssignment.tenant_id == tenant_id,
-                    TaskAssignment.assigned_to_id == user_id
+                    TaskAssignment.assigned_to_id == user_id,
                 ),
             ]
 
@@ -263,7 +276,7 @@ class TaskQueryOptimizer:
                     exists().where(
                         TaskAssignment.task_id == Task.id,
                         TaskAssignment.tenant_id == tenant_id,
-                        TaskAssignment.assigned_to_group_id.in_(user_group_ids)
+                        TaskAssignment.assigned_to_group_id.in_(user_group_ids),
                     )
                 )
 
@@ -360,6 +373,7 @@ def paginated_response(
     searchable_fields: list[str] | None = None,
 ):
     """Decorador para endpoints con respuesta paginada optimizada."""
+
     def decorator(func):
         async def wrapper(*args, **kwargs):
             # Extraer parámetros de paginación
@@ -384,6 +398,7 @@ def paginated_response(
             return result
 
         return wrapper
+
     return decorator
 
 

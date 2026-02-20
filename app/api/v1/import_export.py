@@ -99,7 +99,6 @@ async def upload_import_file(
     )
 
 
-
 @router.get(
     "/import/jobs",
     response_model=StandardListResponse[ImportJobResponse],
@@ -186,7 +185,7 @@ async def get_import_job_errors(
     """Get import job errors."""
     errors = await service.get_import_job_errors(job_id, current_user.tenant_id)
     if errors is None:  # Job not found
-         raise APIException(
+        raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
             code="IMPORT_JOB_NOT_FOUND",
             message=f"Import job with ID {job_id} not found",
@@ -196,7 +195,6 @@ async def get_import_job_errors(
         data=errors,
         message="Import job errors retrieved successfully",
     )
-
 
 
 # Import Template endpoints
@@ -280,7 +278,9 @@ async def download_import_template(
     """Download import template file."""
     import io
 
-    file_content = await service.generate_import_template_file(template_id, current_user.tenant_id)
+    file_content = await service.generate_import_template_file(
+        template_id, current_user.tenant_id
+    )
     if not file_content:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -291,9 +291,10 @@ async def download_import_template(
     return StreamingResponse(
         io.BytesIO(file_content),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=template_{template_id}.xlsx"},
+        headers={
+            "Content-Disposition": f"attachment; filename=template_{template_id}.xlsx"
+        },
     )
-
 
 
 # Export Job endpoints
@@ -431,9 +432,3 @@ async def download_export_file(
         media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-
-
-
-
-
-

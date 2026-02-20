@@ -94,13 +94,3 @@ class RuleParser:
         except (ValueError, KeyError, TypeError) as e:
             logger.warning(f"Invalid rule definition: {e}")
             return False
-
-
-
-
-
-
-
-
-
-

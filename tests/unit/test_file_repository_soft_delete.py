@@ -104,44 +104,52 @@ class TestFileRepositorySoftDelete:
         cutoff_date = datetime.now(UTC) - timedelta(days=retention_days)
 
         # Create files: one old deleted, one recent deleted, one not deleted
-        old_deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "old_deleted.pdf",
-            "original_name": "old_deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/old",
-            "is_current": False,
-            "deleted_at": cutoff_date - timedelta(days=1),  # Older than retention
-        })
+        old_deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "old_deleted.pdf",
+                "original_name": "old_deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/old",
+                "is_current": False,
+                "deleted_at": cutoff_date - timedelta(days=1),  # Older than retention
+            }
+        )
 
-        recent_deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "recent_deleted.pdf",
-            "original_name": "recent_deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/recent",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC) - timedelta(days=5),  # Recent
-        })
+        recent_deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "recent_deleted.pdf",
+                "original_name": "recent_deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/recent",
+                "is_current": False,
+                "deleted_at": datetime.now(UTC) - timedelta(days=5),  # Recent
+            }
+        )
 
-        current_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "current.pdf",
-            "original_name": "current.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/current",
-            "is_current": True,
-            "deleted_at": None,
-        })
+        current_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "current.pdf",
+                "original_name": "current.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/current",
+                "is_current": True,
+                "deleted_at": None,
+            }
+        )
 
         # Act
-        files_to_cleanup = repo.get_deleted_files_for_cleanup(test_tenant.id, retention_days)
+        files_to_cleanup = repo.get_deleted_files_for_cleanup(
+            test_tenant.id, retention_days
+        )
 
         # Assert
         assert len(files_to_cleanup) == 1
@@ -149,76 +157,96 @@ class TestFileRepositorySoftDelete:
         assert recent_deleted_file.id not in [f.id for f in files_to_cleanup]
         assert current_file.id not in [f.id for f in files_to_cleanup]
 
-    def test_get_by_id_excludes_deleted_when_current_only_true(self, db_session, test_tenant):
+    def test_get_by_id_excludes_deleted_when_current_only_true(
+        self, db_session, test_tenant
+    ):
         """Test that get_by_id excludes deleted files when current_only=True."""
         # Arrange
         repo = FileRepository(db_session)
-        deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "deleted.pdf",
-            "original_name": "deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/deleted",
-            "is_current": False,
-            "deleted_at": datetime.now(UTC),
-        })
+        deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "deleted.pdf",
+                "original_name": "deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/deleted",
+                "is_current": False,
+                "deleted_at": datetime.now(UTC),
+            }
+        )
 
-        current_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "current.pdf",
-            "original_name": "current.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/current",
-            "is_current": True,
-            "deleted_at": None,
-        })
+        current_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "current.pdf",
+                "original_name": "current.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/current",
+                "is_current": True,
+                "deleted_at": None,
+            }
+        )
 
         # Act
-        result_deleted = repo.get_by_id(deleted_file.id, test_tenant.id, current_only=True)
-        result_current = repo.get_by_id(current_file.id, test_tenant.id, current_only=True)
-        result_deleted_with_current_only_false = repo.get_by_id(deleted_file.id, test_tenant.id, current_only=False)
+        result_deleted = repo.get_by_id(
+            deleted_file.id, test_tenant.id, current_only=True
+        )
+        result_current = repo.get_by_id(
+            current_file.id, test_tenant.id, current_only=True
+        )
+        result_deleted_with_current_only_false = repo.get_by_id(
+            deleted_file.id, test_tenant.id, current_only=False
+        )
 
         # Assert
         assert result_deleted is None  # Deleted file excluded
         assert result_current is not None  # Current file found
-        assert result_deleted_with_current_only_false is not None  # Can find deleted when current_only=False
+        assert (
+            result_deleted_with_current_only_false is not None
+        )  # Can find deleted when current_only=False
 
-    def test_get_all_excludes_deleted_when_current_only_true(self, db_session, test_tenant):
+    def test_get_all_excludes_deleted_when_current_only_true(
+        self, db_session, test_tenant
+    ):
         """Test that get_all excludes deleted files when current_only=True."""
         # Arrange
         repo = FileRepository(db_session)
 
         # Create a file and then delete it (proper soft delete flow)
-        deleted_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "deleted.pdf",
-            "original_name": "deleted.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/deleted",
-            "is_current": True,  # Initially current
-            "deleted_at": None,
-        })
+        deleted_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "deleted.pdf",
+                "original_name": "deleted.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/deleted",
+                "is_current": True,  # Initially current
+                "deleted_at": None,
+            }
+        )
 
         # Properly soft delete the file
         repo.delete(deleted_file.id, test_tenant.id)
 
-        current_file = repo.create({
-            "tenant_id": test_tenant.id,
-            "name": "current.pdf",
-            "original_name": "current.pdf",
-            "mime_type": "application/pdf",
-            "size": 1024,
-            "storage_backend": "local",
-            "storage_path": "/test/current",
-            "is_current": True,
-            "deleted_at": None,
-        })
+        current_file = repo.create(
+            {
+                "tenant_id": test_tenant.id,
+                "name": "current.pdf",
+                "original_name": "current.pdf",
+                "mime_type": "application/pdf",
+                "size": 1024,
+                "storage_backend": "local",
+                "storage_path": "/test/current",
+                "is_current": True,
+                "deleted_at": None,
+            }
+        )
 
         # Act
         all_files_current = repo.get_all(test_tenant.id, current_only=True)
@@ -233,4 +261,3 @@ class TestFileRepositorySoftDelete:
         # (because is_current filter is not applied)
         assert deleted_file.id in [f.id for f in all_files_including_deleted]
         assert len(all_files_including_deleted) == 2
-

@@ -15,10 +15,14 @@ class CRMService:
         return self.repository.create_pipeline({**data, "tenant_id": tenant_id})
 
     def list_pipelines(self, tenant_id: UUID, skip: int = 0, limit: int = 100):
-        return self.repository.list_pipelines(tenant_id=tenant_id, skip=skip, limit=limit)
+        return self.repository.list_pipelines(
+            tenant_id=tenant_id, skip=skip, limit=limit
+        )
 
     def get_pipeline(self, tenant_id: UUID, pipeline_id: UUID):
-        pipeline = self.repository.get_pipeline(pipeline_id=pipeline_id, tenant_id=tenant_id)
+        pipeline = self.repository.get_pipeline(
+            pipeline_id=pipeline_id, tenant_id=tenant_id
+        )
         if not pipeline:
             raise_not_found("Pipeline", str(pipeline_id))
         return pipeline
@@ -33,7 +37,9 @@ class CRMService:
 
     # Leads
     def create_lead(self, tenant_id: UUID, user_id: UUID, data: dict):
-        return self.repository.create_lead({**data, "tenant_id": tenant_id, "created_by_id": user_id})
+        return self.repository.create_lead(
+            {**data, "tenant_id": tenant_id, "created_by_id": user_id}
+        )
 
     def list_leads(
         self,
@@ -67,7 +73,9 @@ class CRMService:
 
     # Opportunities
     def create_opportunity(self, tenant_id: UUID, user_id: UUID, data: dict):
-        return self.repository.create_opportunity({**data, "tenant_id": tenant_id, "created_by_id": user_id})
+        return self.repository.create_opportunity(
+            {**data, "tenant_id": tenant_id, "created_by_id": user_id}
+        )
 
     def list_opportunities(
         self,
@@ -86,7 +94,9 @@ class CRMService:
         )
 
     def get_opportunity(self, tenant_id: UUID, opportunity_id: UUID):
-        opp = self.repository.get_opportunity(opportunity_id=opportunity_id, tenant_id=tenant_id)
+        opp = self.repository.get_opportunity(
+            opportunity_id=opportunity_id, tenant_id=tenant_id
+        )
         if not opp:
             raise_not_found("Opportunity", str(opportunity_id))
         return opp

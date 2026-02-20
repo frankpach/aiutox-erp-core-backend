@@ -21,7 +21,9 @@ def test_modules_do_not_import_each_other_directly():
                 continue
 
             try:
-                tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+                tree = ast.parse(
+                    py_file.read_text(encoding="utf-8"), filename=str(py_file)
+                )
             except SyntaxError as e:
                 errors.append(f"SyntaxError parsing {py_file}: {e}")
                 continue

@@ -29,9 +29,16 @@ def mock_script_dir():
 @pytest.fixture
 def manager(mock_alembic_cfg, mock_script_dir):
     """Create MigrationManager with mocks."""
-    with patch("app.core.migrations.manager.config.Config", return_value=mock_alembic_cfg), patch(
-        "app.core.migrations.manager.script.ScriptDirectory.from_config", return_value=mock_script_dir
-    ), patch("app.core.migrations.manager.engine"):
+    with (
+        patch(
+            "app.core.migrations.manager.config.Config", return_value=mock_alembic_cfg
+        ),
+        patch(
+            "app.core.migrations.manager.script.ScriptDirectory.from_config",
+            return_value=mock_script_dir,
+        ),
+        patch("app.core.migrations.manager.engine"),
+    ):
         manager = MigrationManager()
         manager.alembic_cfg = mock_alembic_cfg
         manager.script_dir = mock_script_dir
@@ -104,8 +111,9 @@ def test_get_status(manager):
 
 def test_create_migration(manager):
     """Test creating a new migration."""
-    with patch("app.core.migrations.manager.command.revision") as mock_revision, patch(
-        "sys.stdout"
+    with (
+        patch("app.core.migrations.manager.command.revision") as mock_revision,
+        patch("sys.stdout"),
     ):
         mock_revision.return_value = None
         result = manager.create_migration("test migration", autogenerate=True)
@@ -123,9 +131,10 @@ def test_rollback_no_migrations(manager):
 
 def test_fresh(manager):
     """Test fresh command."""
-    with patch.object(manager, "apply_migrations") as mock_apply, patch.object(
-        manager, "engine"
-    ) as mock_engine:
+    with (
+        patch.object(manager, "apply_migrations") as mock_apply,
+        patch.object(manager, "engine") as mock_engine,
+    ):
         # Mock the engine connection context manager
         mock_connection = MagicMock()
         mock_context = MagicMock()
@@ -146,17 +155,15 @@ def test_fresh(manager):
 
 def test_refresh(manager):
     """Test refresh command."""
-    with patch("app.core.migrations.manager.MigrationManager.rollback") as mock_rollback, patch(
-        "app.core.migrations.manager.MigrationManager.apply_migrations"
-    ) as mock_apply:
+    with (
+        patch("app.core.migrations.manager.MigrationManager.rollback") as mock_rollback,
+        patch(
+            "app.core.migrations.manager.MigrationManager.apply_migrations"
+        ) as mock_apply,
+    ):
         mock_rollback.return_value = MigrationResult(success=True, applied_count=-2)
         mock_apply.return_value = MigrationResult(success=True, applied_count=2)
         result = manager.refresh()
         mock_rollback.assert_called_once()
         mock_apply.assert_called_once()
         assert result.success
-
-
-
-
-

@@ -108,13 +108,3 @@ async def test_retry_handler_backoff_timing():
     if len(call_times) >= 3:
         delay2 = call_times[2] - call_times[1]
         assert delay2 >= 1.9  # Should be ~2 seconds (with tolerance)
-
-
-
-
-
-
-
-
-
-

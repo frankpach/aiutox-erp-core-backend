@@ -43,18 +43,9 @@ class NotificationsCoreModule(ModuleInterface):
 def create_module(_db: object | None = None) -> NotificationsCoreModule:
     return NotificationsCoreModule()
 
+
 __all__ = [
     "NotificationService",
     "NotificationsCoreModule",
     "create_module",
 ]
-
-
-
-
-
-
-
-
-
-

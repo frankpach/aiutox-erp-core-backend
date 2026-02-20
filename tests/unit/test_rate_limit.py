@@ -71,7 +71,9 @@ def test_check_login_rate_limit_cleans_old_attempts():
     # Verify old attempts were cleaned (only the new attempt should remain)
     attempts = _login_attempts[ip_address]
     assert len(attempts) == 1  # Only the new attempt
-    assert all(attempt > datetime.now(UTC) - timedelta(minutes=1) for attempt in attempts)
+    assert all(
+        attempt > datetime.now(UTC) - timedelta(minutes=1) for attempt in attempts
+    )
 
 
 def test_check_login_rate_limit_per_ip():
@@ -200,7 +202,9 @@ def test_create_rate_limit_exception():
     assert exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS
     assert "error" in exc.detail
     assert exc.detail["error"]["code"] == "AUTH_RATE_LIMIT_EXCEEDED"
-    assert exc.detail["error"]["message"] == "Too many requests. Please try again later."
+    assert (
+        exc.detail["error"]["message"] == "Too many requests. Please try again later."
+    )
     assert exc.detail["error"]["details"] is None
 
 
@@ -223,4 +227,3 @@ def test_check_login_rate_limit_integration():
     record_login_attempt(ip_address)
     result = check_login_rate_limit(ip_address, max_attempts=5, window_minutes=1)
     assert result is False
-

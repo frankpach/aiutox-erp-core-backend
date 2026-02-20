@@ -309,4 +309,3 @@ async def create_category(
         data=TagCategoryResponse.model_validate(category),
         message="Tag category created successfully",
     )
-

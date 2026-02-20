@@ -181,11 +181,3 @@ def test_get_suggestions(search_engine, search_indexer, test_tenant):
     assert any(s["text"] == "Laptop Computer" for s in suggestions)
     assert all("entity_type" in s for s in suggestions)
     assert all("entity_id" in s for s in suggestions)
-
-
-
-
-
-
-
-

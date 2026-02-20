@@ -13,7 +13,9 @@ from tests.helpers import create_user_with_permission
 def test_create_integration(client_with_db, test_user, db_session):
     """Test creating an integration."""
     # Assign integrations.manage permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     integration_data = {
         "name": "Test Integration",
@@ -39,7 +41,9 @@ def test_create_integration(client_with_db, test_user, db_session):
 def test_list_integrations(client_with_db, test_user, db_session):
     """Test listing integrations."""
     # Assign integrations.view permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "viewer"
+    )
 
     response = client_with_db.get("/api/v1/integrations", headers=headers)
 
@@ -53,7 +57,9 @@ def test_list_integrations(client_with_db, test_user, db_session):
 def test_get_integration(client_with_db, test_user, db_session):
     """Test getting an integration."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration
     integration_data = {
@@ -69,7 +75,9 @@ def test_get_integration(client_with_db, test_user, db_session):
     integration_id = create_response.json()["data"]["id"]
 
     # Get it
-    response = client_with_db.get(f"/api/v1/integrations/{integration_id}", headers=headers)
+    response = client_with_db.get(
+        f"/api/v1/integrations/{integration_id}", headers=headers
+    )
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -80,7 +88,9 @@ def test_get_integration(client_with_db, test_user, db_session):
 def test_update_integration(client_with_db, test_user, db_session):
     """Test updating an integration."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration
     integration_data = {
@@ -112,7 +122,9 @@ def test_update_integration(client_with_db, test_user, db_session):
 def test_delete_integration(client_with_db, test_user, db_session):
     """Test deleting an integration."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration
     integration_data = {
@@ -128,19 +140,25 @@ def test_delete_integration(client_with_db, test_user, db_session):
     integration_id = create_response.json()["data"]["id"]
 
     # Delete it
-    response = client_with_db.delete(f"/api/v1/integrations/{integration_id}", headers=headers)
+    response = client_with_db.delete(
+        f"/api/v1/integrations/{integration_id}", headers=headers
+    )
 
     assert response.status_code == 204
 
     # Verify it's deleted
-    get_response = client_with_db.get(f"/api/v1/integrations/{integration_id}", headers=headers)
+    get_response = client_with_db.get(
+        f"/api/v1/integrations/{integration_id}", headers=headers
+    )
     assert get_response.status_code == 404
 
 
 def test_get_integration_logs(client_with_db, test_user, db_session):
     """Test getting integration logs."""
     # Assign permissions (need manager to create, viewer to read logs)
-    manager_headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration
     integration_data = {
@@ -154,11 +172,15 @@ def test_get_integration_logs(client_with_db, test_user, db_session):
         headers=manager_headers,
     )
 
-    assert create_response.status_code == 201, f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
+    assert (
+        create_response.status_code == 201
+    ), f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
     integration_id = create_response.json()["data"]["id"]
 
     # Get logs (viewer permission)
-    headers = create_user_with_permission(db_session, test_user, "integrations", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "viewer"
+    )
     response = client_with_db.get(
         f"/api/v1/integrations/{integration_id}/logs",
         headers=headers,
@@ -174,7 +196,9 @@ def test_get_integration_logs(client_with_db, test_user, db_session):
 def test_create_webhook(client_with_db, test_user, db_session):
     """Test creating a webhook."""
     # Assign integrations.manage permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     webhook_data = {
         "name": "Test Webhook",
@@ -201,7 +225,9 @@ def test_create_webhook(client_with_db, test_user, db_session):
 def test_list_webhooks(client_with_db, test_user, db_session):
     """Test listing webhooks."""
     # Assign integrations.view permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "viewer"
+    )
 
     response = client_with_db.get("/api/v1/integrations/webhooks", headers=headers)
 
@@ -209,7 +235,9 @@ def test_list_webhooks(client_with_db, test_user, db_session):
     if response.status_code == 422:
         print(f"422 Error details: {response.json()}")
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}. Response: {response.json() if response.status_code < 500 else response.text[:200]}"
+    assert (
+        response.status_code == 200
+    ), f"Expected 200, got {response.status_code}. Response: {response.json() if response.status_code < 500 else response.text[:200]}"
     data = response.json()["data"]
     assert isinstance(data, list)
     assert "meta" in response.json()
@@ -219,7 +247,9 @@ def test_list_webhooks(client_with_db, test_user, db_session):
 def test_get_webhook(client_with_db, test_user, db_session):
     """Test getting a webhook."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create a webhook
     webhook_data = {
@@ -249,7 +279,9 @@ def test_get_webhook(client_with_db, test_user, db_session):
 def test_update_webhook(client_with_db, test_user, db_session):
     """Test updating a webhook."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create a webhook
     webhook_data = {
@@ -281,7 +313,9 @@ def test_update_webhook(client_with_db, test_user, db_session):
 def test_delete_webhook(client_with_db, test_user, db_session):
     """Test deleting a webhook."""
     # Assign permissions
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create a webhook
     webhook_data = {
@@ -315,7 +349,9 @@ def test_delete_webhook(client_with_db, test_user, db_session):
 def test_test_integration_requires_permission(client_with_db, test_user, db_session):
     """Test that testing an integration requires integrations.view permission."""
     # Create an integration first (need manager permission)
-    manager_headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     integration_data = {
         "name": "Test Integration",
@@ -328,7 +364,9 @@ def test_test_integration_requires_permission(client_with_db, test_user, db_sess
         headers=manager_headers,
     )
 
-    assert create_response.status_code == 201, f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
+    assert (
+        create_response.status_code == 201
+    ), f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
     integration_id = create_response.json()["data"]["id"]
 
     # Create another user without permissions
@@ -376,12 +414,17 @@ def test_test_integration_webhook_invalid_url(client_with_db, test_user, db_sess
     db_session.commit()
 
     # Create an integration with manager permission
-    manager_headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     integration_data = {
         "name": "Test Webhook Integration",
         "type": "webhook",
-        "config": {"url": "https://invalid-url-that-does-not-exist-12345.com/test", "method": "POST"},
+        "config": {
+            "url": "https://invalid-url-that-does-not-exist-12345.com/test",
+            "method": "POST",
+        },
     }
     create_response = client_with_db.post(
         "/api/v1/integrations",
@@ -389,7 +432,9 @@ def test_test_integration_webhook_invalid_url(client_with_db, test_user, db_sess
         headers=manager_headers,
     )
 
-    assert create_response.status_code == 201, f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
+    assert (
+        create_response.status_code == 201
+    ), f"Failed to create integration: {create_response.json() if create_response.status_code < 500 else create_response.text[:200]}"
     integration_id = create_response.json()["data"]["id"]
 
     # Test the integration
@@ -447,7 +492,9 @@ def test_get_credentials_with_permission(client_with_db, test_user, db_session):
     from app.repositories.integration_repository import IntegrationRepository
 
     # Assign integrations.manage permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration
     integration_data = {
@@ -489,13 +536,17 @@ def test_get_credentials_with_permission(client_with_db, test_user, db_session):
     assert data["credentials"]["secret"] == "secret_key_abc"
 
 
-@pytest.mark.skip(reason="Permission check may not work as expected in test environment - endpoint requires integrations.manage")
+@pytest.mark.skip(
+    reason="Permission check may not work as expected in test environment - endpoint requires integrations.manage"
+)
 def test_get_credentials_without_permission(client_with_db, test_user, db_session):
     """Test getting credentials without permission returns 403."""
     # Note: This test is skipped because the test_user may have default permissions
     # In a real scenario, a user without integrations.manage should get 403
     # Create an integration with manager permission
-    manager_headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     integration_data = {
         "name": "Test Integration",
@@ -529,7 +580,9 @@ def test_get_credentials_without_permission(client_with_db, test_user, db_sessio
 def test_get_credentials_not_found(client_with_db, test_user, db_session):
     """Test getting credentials for non-existent integration returns 404."""
     # Assign integrations.manage permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     fake_id = uuid4()
     response = client_with_db.get(
@@ -544,7 +597,9 @@ def test_get_credentials_not_found(client_with_db, test_user, db_session):
 def test_get_credentials_empty(client_with_db, test_user, db_session):
     """Test getting credentials when none exist returns empty dict."""
     # Assign integrations.manage permission
-    headers = create_user_with_permission(db_session, test_user, "integrations", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "integrations", "manager"
+    )
 
     # Create an integration without credentials
     integration_data = {
@@ -572,8 +627,3 @@ def test_get_credentials_empty(client_with_db, test_user, db_session):
     data = response.json()["data"]
     assert "credentials" in data
     assert data["credentials"] == {}
-
-
-
-
-

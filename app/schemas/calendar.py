@@ -14,8 +14,12 @@ class CalendarBase(BaseModel):
     name: str = Field(..., description="Calendar name", max_length=255)
     description: str | None = Field(None, description="Calendar description")
     color: str | None = Field(None, description="Hex color code", max_length=7)
-    calendar_type: str = Field(..., description="Calendar type (user, organization, shared)")
-    organization_id: UUID | None = Field(None, description="Organization ID (for organization calendars)")
+    calendar_type: str = Field(
+        ..., description="Calendar type (user, organization, shared)"
+    )
+    organization_id: UUID | None = Field(
+        None, description="Organization ID (for organization calendars)"
+    )
     is_public: bool = Field(False, description="Whether calendar is public")
     is_default: bool = Field(False, description="Whether this is the default calendar")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
@@ -34,7 +38,9 @@ class CalendarUpdate(BaseModel):
     description: str | None = Field(None, description="Calendar description")
     color: str | None = Field(None, description="Hex color code", max_length=7)
     is_public: bool | None = Field(None, description="Whether calendar is public")
-    is_default: bool | None = Field(None, description="Whether this is the default calendar")
+    is_default: bool | None = Field(
+        None, description="Whether this is the default calendar"
+    )
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 
@@ -46,7 +52,9 @@ class CalendarResponse(CalendarBase):
     owner_id: UUID | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="meta_data", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -61,29 +69,51 @@ class CalendarEventBase(BaseModel):
     location: str | None = Field(None, description="Event location", max_length=500)
     start_time: datetime = Field(..., description="Event start time")
     end_time: datetime = Field(..., description="Event end time")
-    timezone: str | None = Field(None, description="Timezone (e.g., 'America/New_York')", max_length=50)
+    timezone: str | None = Field(
+        None, description="Timezone (e.g., 'America/New_York')", max_length=50
+    )
     all_day: bool = Field(False, description="Whether event is all-day")
     status: str = Field("scheduled", description="Event status")
 
     # Simple recurrence fields (backward compatibility)
-    recurrence_type: str = Field("none", description="Recurrence type (none, daily, weekly, monthly, yearly)")
-    recurrence_end_date: datetime | None = Field(None, description="Recurrence end date")
+    recurrence_type: str = Field(
+        "none", description="Recurrence type (none, daily, weekly, monthly, yearly)"
+    )
+    recurrence_end_date: datetime | None = Field(
+        None, description="Recurrence end date"
+    )
     recurrence_count: int | None = Field(None, description="Number of occurrences")
-    recurrence_interval: int = Field(1, description="Recurrence interval (every N days/weeks/months)")
-    recurrence_days_of_week: str | None = Field(None, description="Days of week for recurrence (e.g., '1,3,5')")
-    recurrence_day_of_month: int | None = Field(None, description="Day of month for monthly recurrence")
-    recurrence_month_of_year: int | None = Field(None, description="Month of year for yearly recurrence")
+    recurrence_interval: int = Field(
+        1, description="Recurrence interval (every N days/weeks/months)"
+    )
+    recurrence_days_of_week: str | None = Field(
+        None, description="Days of week for recurrence (e.g., '1,3,5')"
+    )
+    recurrence_day_of_month: int | None = Field(
+        None, description="Day of month for monthly recurrence"
+    )
+    recurrence_month_of_year: int | None = Field(
+        None, description="Month of year for yearly recurrence"
+    )
 
     # Advanced recurrence (RFC5545 RRULE)
-    recurrence_rule: str | None = Field(None, description="RRULE string (e.g., 'FREQ=WEEKLY;BYDAY=MO,WE,FR')")
-    recurrence_exdates: list[str] | None = Field(None, description="Array of exception dates (ISO format)")
+    recurrence_rule: str | None = Field(
+        None, description="RRULE string (e.g., 'FREQ=WEEKLY;BYDAY=MO,WE,FR')"
+    )
+    recurrence_exdates: list[str] | None = Field(
+        None, description="Array of exception dates (ISO format)"
+    )
 
     # Unified source fields
-    source_type: str | None = Field(None, description="Source type (task, approval, workflow, external)")
+    source_type: str | None = Field(
+        None, description="Source type (task, approval, workflow, external)"
+    )
     source_id: UUID | None = Field(None, description="Source entity ID")
 
     # External integration fields
-    provider: str | None = Field(None, description="External provider (google, outlook, ical, caldav)")
+    provider: str | None = Field(
+        None, description="External provider (google, outlook, ical, caldav)"
+    )
     external_id: str | None = Field(None, description="External event ID")
     read_only: bool = Field(False, description="Whether event is read-only")
 
@@ -110,16 +140,26 @@ class CalendarEventUpdate(BaseModel):
 
     # Simple recurrence fields
     recurrence_type: str | None = Field(None, description="Recurrence type")
-    recurrence_end_date: datetime | None = Field(None, description="Recurrence end date")
+    recurrence_end_date: datetime | None = Field(
+        None, description="Recurrence end date"
+    )
     recurrence_count: int | None = Field(None, description="Number of occurrences")
     recurrence_interval: int | None = Field(None, description="Recurrence interval")
-    recurrence_days_of_week: str | None = Field(None, description="Days of week for recurrence")
-    recurrence_day_of_month: int | None = Field(None, description="Day of month for monthly recurrence")
-    recurrence_month_of_year: int | None = Field(None, description="Month of year for yearly recurrence")
+    recurrence_days_of_week: str | None = Field(
+        None, description="Days of week for recurrence"
+    )
+    recurrence_day_of_month: int | None = Field(
+        None, description="Day of month for monthly recurrence"
+    )
+    recurrence_month_of_year: int | None = Field(
+        None, description="Month of year for yearly recurrence"
+    )
 
     # Advanced recurrence
     recurrence_rule: str | None = Field(None, description="RRULE string")
-    recurrence_exdates: list[str] | None = Field(None, description="Array of exception dates")
+    recurrence_exdates: list[str] | None = Field(
+        None, description="Array of exception dates"
+    )
 
     # Unified source fields (usually not updated manually)
     source_type: str | None = Field(None, description="Source type")
@@ -141,7 +181,9 @@ class CalendarEventResponse(CalendarEventBase):
     organizer_id: UUID | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="meta_data", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -152,9 +194,16 @@ class EventAttendeeBase(BaseModel):
 
     event_id: UUID = Field(..., description="Event ID")
     user_id: UUID | None = Field(None, description="User ID (for internal attendees)")
-    email: str | None = Field(None, description="Email (for external attendees)", max_length=255)
-    name: str | None = Field(None, description="Name (for external attendees)", max_length=255)
-    status: str = Field("pending", description="Attendee status (pending, accepted, declined, tentative)")
+    email: str | None = Field(
+        None, description="Email (for external attendees)", max_length=255
+    )
+    name: str | None = Field(
+        None, description="Name (for external attendees)", max_length=255
+    )
+    status: str = Field(
+        "pending",
+        description="Attendee status (pending, accepted, declined, tentative)",
+    )
     comment: str | None = Field(None, description="Optional comment with response")
 
 
@@ -195,26 +244,26 @@ class EventReminderBase(BaseModel):
 class EventReminderCreate(EventReminderBase):
     """Schema for creating an event reminder."""
 
-    @field_validator('reminder_type')
+    @field_validator("reminder_type")
     @classmethod
     def validate_reminder_type(cls, v):
         """Validate reminder type."""
-        valid_types = ['email', 'in_app', 'push']
+        valid_types = ["email", "in_app", "push"]
         if v not in valid_types:
             raise ValueError(f'Reminder type must be one of: {", ".join(valid_types)}')
         return v
 
-    @field_validator('minutes_before')
+    @field_validator("minutes_before")
     @classmethod
     def validate_minutes_before(cls, v):
         """Validate minutes before event."""
         if v < 0:
-            raise ValueError('Minutes before must be non-negative')
+            raise ValueError("Minutes before must be non-negative")
         if v > 525600:  # Maximum 1 year in minutes
-            raise ValueError('Minutes before cannot exceed 525600 (1 year)')
+            raise ValueError("Minutes before cannot exceed 525600 (1 year)")
         return v
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def validate_reminder_logic(cls, data):
         """Validate reminder logic constraints."""
@@ -241,7 +290,9 @@ class EventReminderResponse(EventReminderBase):
 class CalendarResourceBase(BaseModel):
     """Base schema for calendar resource."""
 
-    calendar_id: UUID | None = Field(None, description="Calendar ID (optional, can be shared)")
+    calendar_id: UUID | None = Field(
+        None, description="Calendar ID (optional, can be shared)"
+    )
     name: str = Field(..., description="Resource name", max_length=255)
     resource_type: str = Field(..., description="Resource type (room, equipment, user)")
     description: str | None = Field(None, description="Resource description")
@@ -276,7 +327,9 @@ class CalendarResourceResponse(CalendarResourceBase):
     tenant_id: UUID
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="meta_data", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -298,8 +351,3 @@ class EventResourceResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
-

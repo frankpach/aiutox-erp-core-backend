@@ -47,7 +47,9 @@ def test_comment_creates_activity(client_with_db, test_user, auth_headers, db_se
     assert any("comment" in a.title.lower() for a in activities)
 
 
-def test_comment_with_mentions_sends_notifications(client_with_db, test_user, auth_headers, db_session):
+def test_comment_with_mentions_sends_notifications(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that comments with @mentions trigger notifications."""
     # Assign permissions
     comment_role = ModuleRole(
@@ -66,7 +68,9 @@ def test_comment_with_mentions_sends_notifications(client_with_db, test_user, au
         "content": f"Hello @{test_user.email}, this is a mention",
     }
 
-    with patch("app.core.notifications.service.NotificationService.send") as mock_notify:
+    with patch(
+        "app.core.notifications.service.NotificationService.send"
+    ) as mock_notify:
         mock_notify.return_value = AsyncMock(return_value=[])
 
         response = client_with_db.post(
@@ -167,11 +171,3 @@ def test_comment_publishes_events(client_with_db, test_user, auth_headers, db_se
         assert response.status_code == 201
         # Event publishing is done via background task
         assert True  # Background task scheduled
-
-
-
-
-
-
-
-

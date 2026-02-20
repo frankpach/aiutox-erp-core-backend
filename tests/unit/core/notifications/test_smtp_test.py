@@ -77,12 +77,17 @@ class TestSMTPConnection:
             mock_smtp_instance.__exit__ = Mock(return_value=None)
             mock_smtp_class.return_value = mock_smtp_instance
             mock_server.starttls.return_value = None
-            mock_server.login.side_effect = SMTPAuthenticationError(535, b"Authentication failed")
+            mock_server.login.side_effect = SMTPAuthenticationError(
+                535, b"Authentication failed"
+            )
 
             result = check_smtp_connection(config)
 
             assert result.success is False
-            assert "authentication" in result.message.lower() or "auth" in result.message.lower()
+            assert (
+                "authentication" in result.message.lower()
+                or "auth" in result.message.lower()
+            )
             assert result.error is not None
             assert "535" in result.error or "authentication" in result.error.lower()
 
@@ -102,7 +107,10 @@ class TestSMTPConnection:
             result = check_smtp_connection(config)
 
             assert result.success is False
-            assert "connection" in result.message.lower() or "connect" in result.message.lower()
+            assert (
+                "connection" in result.message.lower()
+                or "connect" in result.message.lower()
+            )
             assert result.error is not None
             assert "421" in result.error or "refused" in result.error.lower()
 
@@ -122,7 +130,10 @@ class TestSMTPConnection:
             result = check_smtp_connection(config)
 
             assert result.success is False
-            assert "timeout" in result.message.lower() or "timed out" in result.message.lower()
+            assert (
+                "timeout" in result.message.lower()
+                or "timed out" in result.message.lower()
+            )
             assert result.error is not None
 
     def test_smtp_connection_server_disconnected(self):
@@ -141,12 +152,17 @@ class TestSMTPConnection:
             mock_smtp_instance.__enter__ = Mock(return_value=mock_server)
             mock_smtp_instance.__exit__ = Mock(return_value=None)
             mock_smtp_class.return_value = mock_smtp_instance
-            mock_server.starttls.side_effect = SMTPServerDisconnected("Server disconnected")
+            mock_server.starttls.side_effect = SMTPServerDisconnected(
+                "Server disconnected"
+            )
 
             result = check_smtp_connection(config)
 
             assert result.success is False
-            assert "disconnected" in result.message.lower() or "connection" in result.message.lower()
+            assert (
+                "disconnected" in result.message.lower()
+                or "connection" in result.message.lower()
+            )
             assert result.error is not None
 
     def test_smtp_connection_missing_required_fields(self):
@@ -228,4 +244,3 @@ class TestSMTPConnection:
             # Should succeed if server allows open relay
             assert result.success is True
             mock_server.login.assert_not_called()
-

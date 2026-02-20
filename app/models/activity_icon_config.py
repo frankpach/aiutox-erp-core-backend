@@ -21,17 +21,29 @@ class ActivityIconConfig(Base):
     __tablename__ = "activity_icon_configs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
-    activity_type = Column(String(50), nullable=False)  # "task", "meeting", "event", "project", "workflow"
+    tenant_id = Column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
+    )
+    activity_type = Column(
+        String(50), nullable=False
+    )  # "task", "meeting", "event", "project", "workflow"
     status = Column(String(50), nullable=False)  # "todo", "in_progress", "done", etc.
     icon = Column(String(10), nullable=False)  # Emoji or icon character
     class_name = Column(String(100), nullable=True)  # CSS classes for styling
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     __table_args__ = (
-        Index('idx_tenant_activity_status', 'tenant_id', 'activity_type', 'status', unique=True),
+        Index(
+            "idx_tenant_activity_status",
+            "tenant_id",
+            "activity_type",
+            "status",
+            unique=True,
+        ),
     )
 
     def __repr__(self) -> str:

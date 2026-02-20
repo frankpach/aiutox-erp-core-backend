@@ -12,6 +12,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def check_postgres_connection():
     """Verifica si PostgreSQL está disponible."""
     print("🔍 VERIFICANDO CONEXIÓN POSTGRESQL")
@@ -19,6 +20,7 @@ def check_postgres_connection():
 
     try:
         import psycopg2
+
         print("✅ psycopg2 instalado")
     except ImportError:
         print("❌ psycopg2 no instalado")
@@ -27,9 +29,12 @@ def check_postgres_connection():
     # Intentar conectar con la configuración actual
     try:
         from app.core.config_file import get_settings
+
         settings = get_settings()
 
-        print(f"📦 Intentando conectar a: {settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}")
+        print(
+            f"📦 Intentando conectar a: {settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}"
+        )
         print(f"📦 Base de datos: {settings.POSTGRES_DB}")
         print(f"📦 Usuario: {settings.POSTGRES_USER}")
 
@@ -42,7 +47,7 @@ def check_postgres_connection():
             user=settings.POSTGRES_USER,
             password=settings.POSTGRES_PASSWORD,
             database=settings.POSTGRES_DB,
-            connect_timeout=5
+            connect_timeout=5,
         )
 
         elapsed = time.time() - start_time
@@ -54,6 +59,7 @@ def check_postgres_connection():
     except Exception as e:
         print(f"❌ Error conectando a PostgreSQL: {e}")
         return False
+
 
 def create_sqlite_env():
     """Crea un archivo .env con configuración SQLite."""
@@ -99,6 +105,7 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
         print(f"❌ Error creando .env: {e}")
         return False
 
+
 def modify_session_py_for_sqlite():
     """Modifica session.py para funcionar bien con SQLite."""
     print("\n🔧 MODIFICANDO session.py PARA SQLITE")
@@ -117,7 +124,7 @@ def modify_session_py_for_sqlite():
             return True
 
         # Crear versión SQLite-compatible
-        sqlite_content = '''from sqlalchemy import create_engine
+        sqlite_content = """from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config_file import get_settings
@@ -156,7 +163,7 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
-'''
+"""
 
         # Guardar la versión modificada
         with open(session_path, "w", encoding="utf-8") as f:
@@ -168,6 +175,7 @@ Base = declarative_base()
     except Exception as e:
         print(f"❌ Error modificando session.py: {e}")
         return False
+
 
 def test_sqlite_connection():
     """Prueba la conexión SQLite."""
@@ -186,6 +194,7 @@ def test_sqlite_connection():
 
         # Probar una consulta simple
         from sqlalchemy import text
+
         result = session.execute(text("SELECT 1"))
         row = result.fetchone()
 
@@ -201,6 +210,7 @@ def test_sqlite_connection():
     except Exception as e:
         print(f"❌ Error probando SQLite: {e}")
         return False
+
 
 def main():
     """Función principal."""
@@ -241,6 +251,7 @@ def main():
     print("   y elimina el archivo .env")
 
     return True
+
 
 if __name__ == "__main__":
     success = main()

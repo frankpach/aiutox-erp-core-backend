@@ -63,14 +63,3 @@ class SystemConfig(Base):
             f"<SystemConfig(id={self.id}, tenant_id={self.tenant_id}, "
             f"module={self.module}, key={self.key})>"
         )
-
-
-
-
-
-
-
-
-
-
-

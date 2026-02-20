@@ -40,7 +40,10 @@ class AdminUserSeeder(Seeder):
         if len(owner_password) < 8:
             raise ValueError("INITIAL_OWNER_PASSWORD must be at least 8 characters")
 
-        if settings.ENV.lower() in ("prod", "production") and owner_password == "password":
+        if (
+            settings.ENV.lower() in ("prod", "production")
+            and owner_password == "password"
+        ):
             print(
                 "⚠️  AdminUserSeeder: Using default INITIAL_OWNER_PASSWORD in production. "
                 "Set INITIAL_OWNER_PASSWORD in environment variables."
@@ -87,25 +90,3 @@ class AdminUserSeeder(Seeder):
             )
             db.add(role)
             db.commit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

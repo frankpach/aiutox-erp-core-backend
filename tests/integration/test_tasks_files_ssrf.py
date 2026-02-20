@@ -49,7 +49,9 @@ def test_file_url_blocks_127_0_0_1(client_with_db, tasks_manager_headers, task_f
 
 
 @pytest.mark.security
-def test_file_url_blocks_private_ip_192_168(client_with_db, tasks_manager_headers, task_factory):
+def test_file_url_blocks_private_ip_192_168(
+    client_with_db, tasks_manager_headers, task_factory
+):
     """Ensure private IP 192.168.x.x are blocked."""
     task = task_factory()
 
@@ -69,7 +71,9 @@ def test_file_url_blocks_private_ip_192_168(client_with_db, tasks_manager_header
 
 
 @pytest.mark.security
-def test_file_url_blocks_private_ip_10(client_with_db, tasks_manager_headers, task_factory):
+def test_file_url_blocks_private_ip_10(
+    client_with_db, tasks_manager_headers, task_factory
+):
     """Ensure private IP 10.x.x.x are blocked."""
     task = task_factory()
 
@@ -89,7 +93,9 @@ def test_file_url_blocks_private_ip_10(client_with_db, tasks_manager_headers, ta
 
 
 @pytest.mark.security
-def test_file_url_blocks_private_ip_172(client_with_db, tasks_manager_headers, task_factory):
+def test_file_url_blocks_private_ip_172(
+    client_with_db, tasks_manager_headers, task_factory
+):
     """Ensure private IP 172.16.x.x are blocked."""
     task = task_factory()
 
@@ -151,11 +157,16 @@ def test_file_size_zero(client_with_db, tasks_manager_headers, task_factory):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     data = response.json()
     # La validación puede fallar por parámetros faltantes o por tamaño inválido
-    assert "required" in data["error"]["message"].lower() or "must be greater than 0" in data["error"]["message"].lower()
+    assert (
+        "required" in data["error"]["message"].lower()
+        or "must be greater than 0" in data["error"]["message"].lower()
+    )
 
 
 @pytest.mark.security
-def test_file_type_executable_blocked(client_with_db, tasks_manager_headers, task_factory):
+def test_file_type_executable_blocked(
+    client_with_db, tasks_manager_headers, task_factory
+):
     """Ensure executable file types are blocked."""
     task = task_factory()
 
@@ -198,7 +209,9 @@ def test_file_type_script_blocked(client_with_db, tasks_manager_headers, task_fa
 
 
 @pytest.mark.security
-def test_file_url_requires_http_or_https(client_with_db, tasks_manager_headers, task_factory):
+def test_file_url_requires_http_or_https(
+    client_with_db, tasks_manager_headers, task_factory
+):
     """Ensure only HTTP/HTTPS URLs are allowed."""
     task = task_factory()
 
@@ -238,4 +251,7 @@ def test_valid_file_url_allowed(client_with_db, tasks_manager_headers, task_fact
 
     # Should succeed (201) or fail for other reasons (404 task not found, etc.)
     # but NOT fail with 400 for URL validation
-    assert response.status_code != status.HTTP_400_BAD_REQUEST or "url" not in response.json()["error"]["message"].lower()
+    assert (
+        response.status_code != status.HTTP_400_BAD_REQUEST
+        or "url" not in response.json()["error"]["message"].lower()
+    )

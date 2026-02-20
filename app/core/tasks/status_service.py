@@ -207,7 +207,12 @@ class TaskStatusService:
         """
         default_statuses = [
             {"name": "todo", "type": "open", "color": "#9E9E9E", "order": 0},
-            {"name": "in_progress", "type": "in_progress", "color": "#2196F3", "order": 1},
+            {
+                "name": "in_progress",
+                "type": "in_progress",
+                "color": "#2196F3",
+                "order": 1,
+            },
             {"name": "on_hold", "type": "in_progress", "color": "#FF9800", "order": 2},
             {"name": "blocked", "type": "in_progress", "color": "#F44336", "order": 3},
             {"name": "review", "type": "in_progress", "color": "#9C27B0", "order": 4},
@@ -231,7 +236,9 @@ class TaskStatusService:
 
         self.db.commit()
 
-        logger.info(f"Initialized {len(statuses)} default statuses for tenant {tenant_id}")
+        logger.info(
+            f"Initialized {len(statuses)} default statuses for tenant {tenant_id}"
+        )
 
         return statuses
 

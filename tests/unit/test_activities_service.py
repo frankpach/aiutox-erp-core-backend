@@ -23,7 +23,9 @@ def activity_service(db_session, mock_event_publisher):
     return ActivityService(db=db_session, event_publisher=mock_event_publisher)
 
 
-def test_create_activity(activity_service, test_user, test_tenant, mock_event_publisher):
+def test_create_activity(
+    activity_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating an activity."""
     entity_id = uuid4()
     activity = activity_service.create_activity(
@@ -171,7 +173,9 @@ def test_delete_activity(activity_service, test_user, test_tenant):
     )
 
     # Delete it
-    deleted = activity_service.delete_activity(activity.id, test_tenant.id, test_user.id)
+    deleted = activity_service.delete_activity(
+        activity.id, test_tenant.id, test_user.id
+    )
 
     assert deleted is True
 
@@ -182,11 +186,3 @@ def test_delete_activity(activity_service, test_user, test_tenant):
         tenant_id=test_tenant.id,
     )
     assert not any(a.id == activity.id for a in activities)
-
-
-
-
-
-
-
-

@@ -18,10 +18,7 @@ class TeamService:
         self.db = db
 
     def get_group_members(
-        self,
-        tenant_id: UUID,
-        group_id: UUID,
-        include_nested: bool = False
+        self, tenant_id: UUID, group_id: UUID, include_nested: bool = False
     ) -> list[UUID]:
         """
         Obtiene IDs de todos los miembros de un grupo.
@@ -35,26 +32,29 @@ class TeamService:
             Lista de user_ids
         """
         # Obtener miembros directos
-        members = self.db.query(TeamMember.user_id).filter(
-            TeamMember.tenant_id == tenant_id,
-            TeamMember.team_id == group_id
-        ).all()
+        members = (
+            self.db.query(TeamMember.user_id)
+            .filter(TeamMember.tenant_id == tenant_id, TeamMember.team_id == group_id)
+            .all()
+        )
 
         user_ids = [member.user_id for member in members]
 
         # Si incluye anidados, obtener recursivamente
         if include_nested:
-            child_teams = self.db.query(Team.id).filter(
-                Team.tenant_id == tenant_id,
-                Team.parent_team_id == group_id,
-                Team.is_active.is_(True)
-            ).all()
+            child_teams = (
+                self.db.query(Team.id)
+                .filter(
+                    Team.tenant_id == tenant_id,
+                    Team.parent_team_id == group_id,
+                    Team.is_active.is_(True),
+                )
+                .all()
+            )
 
             for child_team in child_teams:
                 child_members = self.get_group_members(
-                    tenant_id,
-                    child_team.id,
-                    include_nested=True
+                    tenant_id, child_team.id, include_nested=True
                 )
                 user_ids.extend(child_members)
 
@@ -62,10 +62,7 @@ class TeamService:
         return list(set(user_ids))
 
     def get_user_groups(
-        self,
-        tenant_id: UUID,
-        user_id: UUID,
-        include_parent_groups: bool = False
+        self, tenant_id: UUID, user_id: UUID, include_parent_groups: bool = False
     ) -> list[UUID]:
         """
         Obtiene IDs de todos los grupos a los que pertenece un usuario.
@@ -79,10 +76,11 @@ class TeamService:
             Lista de group_ids
         """
         # Obtener grupos directos
-        memberships = self.db.query(TeamMember.team_id).filter(
-            TeamMember.tenant_id == tenant_id,
-            TeamMember.user_id == user_id
-        ).all()
+        memberships = (
+            self.db.query(TeamMember.team_id)
+            .filter(TeamMember.tenant_id == tenant_id, TeamMember.user_id == user_id)
+            .all()
+        )
 
         group_ids = [membership.team_id for membership in memberships]
 
@@ -106,18 +104,20 @@ class TeamService:
         Returns:
             Lista de equipos padres
         """
-        team = self.db.query(Team).filter(
-            Team.id == team_id,
-            Team.tenant_id == tenant_id
-        ).first()
+        team = (
+            self.db.query(Team)
+            .filter(Team.id == team_id, Team.tenant_id == tenant_id)
+            .first()
+        )
 
         if not team or not team.parent_team_id:
             return []
 
-        parent = self.db.query(Team).filter(
-            Team.id == team.parent_team_id,
-            Team.tenant_id == tenant_id
-        ).first()
+        parent = (
+            self.db.query(Team)
+            .filter(Team.id == team.parent_team_id, Team.tenant_id == tenant_id)
+            .first()
+        )
 
         if not parent:
             return []
@@ -137,17 +137,18 @@ class TeamService:
         Returns:
             Team o None si no existe
         """
-        return self.db.query(Team).filter(
-            Team.id == team_id,
-            Team.tenant_id == tenant_id
-        ).first()
+        return (
+            self.db.query(Team)
+            .filter(Team.id == team_id, Team.tenant_id == tenant_id)
+            .first()
+        )
 
     def is_user_in_group(
         self,
         tenant_id: UUID,
         user_id: UUID,
         group_id: UUID,
-        include_nested: bool = False
+        include_nested: bool = False,
     ) -> bool:
         """
         Verifica si un usuario pertenece a un grupo.
@@ -162,25 +163,35 @@ class TeamService:
             True si el usuario pertenece al grupo
         """
         # Verificar membresía directa
-        direct_member = self.db.query(TeamMember).filter(
-            TeamMember.tenant_id == tenant_id,
-            TeamMember.user_id == user_id,
-            TeamMember.team_id == group_id
-        ).first()
+        direct_member = (
+            self.db.query(TeamMember)
+            .filter(
+                TeamMember.tenant_id == tenant_id,
+                TeamMember.user_id == user_id,
+                TeamMember.team_id == group_id,
+            )
+            .first()
+        )
 
         if direct_member:
             return True
 
         # Si incluye anidados, verificar en subgrupos
         if include_nested:
-            child_teams = self.db.query(Team.id).filter(
-                Team.tenant_id == tenant_id,
-                Team.parent_team_id == group_id,
-                Team.is_active.is_(True)
-            ).all()
+            child_teams = (
+                self.db.query(Team.id)
+                .filter(
+                    Team.tenant_id == tenant_id,
+                    Team.parent_team_id == group_id,
+                    Team.is_active.is_(True),
+                )
+                .all()
+            )
 
             for child_team in child_teams:
-                if self.is_user_in_group(tenant_id, user_id, child_team.id, include_nested=True):
+                if self.is_user_in_group(
+                    tenant_id, user_id, child_team.id, include_nested=True
+                ):
                     return True
 
         return False
@@ -191,7 +202,7 @@ class TeamService:
         team_id: UUID,
         user_id: UUID,
         added_by: UUID,
-        role: str | None = None
+        role: str | None = None,
     ) -> TeamMember:
         """
         Agrega un miembro a un equipo.
@@ -207,11 +218,15 @@ class TeamService:
             TeamMember creado
         """
         # Verificar si ya existe
-        existing = self.db.query(TeamMember).filter(
-            TeamMember.tenant_id == tenant_id,
-            TeamMember.team_id == team_id,
-            TeamMember.user_id == user_id
-        ).first()
+        existing = (
+            self.db.query(TeamMember)
+            .filter(
+                TeamMember.tenant_id == tenant_id,
+                TeamMember.team_id == team_id,
+                TeamMember.user_id == user_id,
+            )
+            .first()
+        )
 
         if existing:
             logger.warning(f"User {user_id} already member of team {team_id}")
@@ -223,7 +238,7 @@ class TeamService:
             team_id=team_id,
             user_id=user_id,
             added_by=added_by,
-            role=role
+            role=role,
         )
 
         self.db.add(member)
@@ -233,12 +248,7 @@ class TeamService:
         logger.info(f"Added user {user_id} to team {team_id}")
         return member
 
-    def remove_team_member(
-        self,
-        tenant_id: UUID,
-        team_id: UUID,
-        user_id: UUID
-    ) -> bool:
+    def remove_team_member(self, tenant_id: UUID, team_id: UUID, user_id: UUID) -> bool:
         """
         Remueve un miembro de un equipo.
 
@@ -250,11 +260,15 @@ class TeamService:
         Returns:
             True si se removió, False si no existía
         """
-        member = self.db.query(TeamMember).filter(
-            TeamMember.tenant_id == tenant_id,
-            TeamMember.team_id == team_id,
-            TeamMember.user_id == user_id
-        ).first()
+        member = (
+            self.db.query(TeamMember)
+            .filter(
+                TeamMember.tenant_id == tenant_id,
+                TeamMember.team_id == team_id,
+                TeamMember.user_id == user_id,
+            )
+            .first()
+        )
 
         if not member:
             return False

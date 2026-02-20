@@ -14,11 +14,7 @@ class TestTasksNotificationsIntegration:
     """Tests de integración para flujo completo de notificaciones."""
 
     async def test_task_assignment_notification_flow(
-        self,
-        db_session,
-        test_user,
-        test_tenant,
-        mock_event_publisher
+        self, db_session, test_user, test_tenant, mock_event_publisher
     ):
         """Test flujo completo de notificación de asignación."""
         service = TaskService(db_session, event_publisher=mock_event_publisher)
@@ -29,7 +25,7 @@ class TestTasksNotificationsIntegration:
             tenant_id=test_tenant.id,
             created_by_id=test_user.id,
             assigned_to_id=test_user.id,
-            status=TaskStatusEnum.TODO
+            status=TaskStatusEnum.TODO,
         )
 
         assert task.id is not None
@@ -40,17 +36,13 @@ class TestTasksNotificationsIntegration:
 
         # Verificar que se publicó evento task.assigned
         calls = mock_event_publisher.publish.call_args_list
-        event_types = [call[1]['event_type'] for call in calls]
+        event_types = [call[1]["event_type"] for call in calls]
 
-        assert 'task.created' in event_types
-        assert 'task.assigned' in event_types
+        assert "task.created" in event_types
+        assert "task.assigned" in event_types
 
     async def test_task_status_change_notification_flow(
-        self,
-        db_session,
-        test_user,
-        test_tenant,
-        mock_event_publisher
+        self, db_session, test_user, test_tenant, mock_event_publisher
     ):
         """Test flujo completo de notificación de cambio de estado."""
         service = TaskService(db_session, event_publisher=mock_event_publisher)
@@ -60,7 +52,7 @@ class TestTasksNotificationsIntegration:
             title="Tarea para cambio de estado",
             tenant_id=test_tenant.id,
             created_by_id=test_user.id,
-            status=TaskStatusEnum.TODO
+            status=TaskStatusEnum.TODO,
         )
 
         mock_event_publisher.publish.reset_mock()
@@ -70,7 +62,7 @@ class TestTasksNotificationsIntegration:
             task_id=task.id,
             tenant_id=test_tenant.id,
             user_id=test_user.id,
-            task_data={"status": TaskStatusEnum.IN_PROGRESS}
+            task_data={"status": TaskStatusEnum.IN_PROGRESS},
         )
 
         assert updated_task.status == TaskStatusEnum.IN_PROGRESS
@@ -78,16 +70,12 @@ class TestTasksNotificationsIntegration:
         # Verificar que se publicó evento task.updated
         assert mock_event_publisher.publish.called
         calls = mock_event_publisher.publish.call_args_list
-        event_types = [call[1]['event_type'] for call in calls]
+        event_types = [call[1]["event_type"] for call in calls]
 
-        assert 'task.updated' in event_types
+        assert "task.updated" in event_types
 
     async def test_task_due_soon_notification_flow(
-        self,
-        db_session,
-        test_user,
-        test_tenant,
-        mock_event_publisher
+        self, db_session, test_user, test_tenant, mock_event_publisher
     ):
         """Test flujo completo de notificación de tarea próxima a vencer."""
         service = TaskService(db_session, event_publisher=mock_event_publisher)
@@ -100,7 +88,7 @@ class TestTasksNotificationsIntegration:
             tenant_id=test_tenant.id,
             created_by_id=test_user.id,
             assigned_to_id=test_user.id,
-            due_date=due_date
+            due_date=due_date,
         )
 
         assert task.due_date is not None
@@ -113,11 +101,7 @@ class TestTasksNotificationsIntegration:
         # (En un test real, verificaríamos que se envió la notificación)
 
     async def test_task_overdue_notification_flow(
-        self,
-        db_session,
-        test_user,
-        test_tenant,
-        mock_event_publisher
+        self, db_session, test_user, test_tenant, mock_event_publisher
     ):
         """Test flujo completo de notificación de tarea vencida."""
         service = TaskService(db_session, event_publisher=mock_event_publisher)
@@ -131,7 +115,7 @@ class TestTasksNotificationsIntegration:
             created_by_id=test_user.id,
             assigned_to_id=test_user.id,
             due_date=due_date,
-            status=TaskStatusEnum.TODO
+            status=TaskStatusEnum.TODO,
         )
 
         assert task.due_date < datetime.now(UTC)
@@ -144,11 +128,7 @@ class TestTasksNotificationsIntegration:
         # (En un test real, verificaríamos que se envió la notificación)
 
     async def test_task_from_template_with_notifications(
-        self,
-        db_session,
-        test_user,
-        test_tenant,
-        mock_event_publisher
+        self, db_session, test_user, test_tenant, mock_event_publisher
     ):
         """Test crear tarea desde template con notificaciones."""
         service = TaskService(db_session, event_publisher=mock_event_publisher)
@@ -160,8 +140,8 @@ class TestTasksNotificationsIntegration:
             created_by_id=test_user.id,
             overrides={
                 "title": "Reunión de equipo",
-                "assigned_to_id": str(test_user.id)
-            }
+                "assigned_to_id": str(test_user.id),
+            },
         )
 
         assert task.id is not None

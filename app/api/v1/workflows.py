@@ -70,7 +70,9 @@ async def list_workflows(
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    enabled_only: bool = Query(default=False, description="Only return enabled workflows"),
+    enabled_only: bool = Query(
+        default=False, description="Only return enabled workflows"
+    ),
 ) -> StandardListResponse[WorkflowResponse]:
     """List workflows."""
     skip = (page - 1) * page_size
@@ -356,7 +358,9 @@ async def advance_workflow_execution(
     execution_id: Annotated[UUID, Path(..., description="Execution ID")],
     current_user: Annotated[User, Depends(require_permission("workflows.manage"))],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    action: str | None = Query(default=None, description="Action to take (e.g., 'approve', 'reject')"),
+    action: str | None = Query(
+        default=None, description="Action to take (e.g., 'approve', 'reject')"
+    ),
 ) -> StandardResponse[WorkflowExecutionResponse]:
     """Advance a workflow execution."""
     execution = service.advance_execution(execution_id, current_user.tenant_id, action)
@@ -371,8 +375,3 @@ async def advance_workflow_execution(
         data=WorkflowExecutionResponse.model_validate(execution),
         message="Workflow execution advanced successfully",
     )
-
-
-
-
-

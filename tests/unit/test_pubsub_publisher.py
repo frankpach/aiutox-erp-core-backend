@@ -201,13 +201,3 @@ async def test_determine_stream_technical():
     for event_type in technical_events:
         stream = publisher._determine_stream(event_type)
         assert stream == settings.REDIS_STREAM_TECHNICAL
-
-
-
-
-
-
-
-
-
-

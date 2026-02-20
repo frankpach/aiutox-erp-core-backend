@@ -1,6 +1,5 @@
 """Integration tests for Import/Export API endpoints."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -84,11 +83,3 @@ def test_create_export_job(client_with_db, test_user, auth_headers, db_session):
     assert data["module"] == "products"
     assert data["export_format"] == "csv"
     assert "id" in data
-
-
-
-
-
-
-
-

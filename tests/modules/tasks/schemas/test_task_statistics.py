@@ -31,7 +31,7 @@ class TestTasksStatisticsResponse:
             "by_custom_state": {"Vendido": 15, "Llamado": 10},
             "completion_rate": 30.0,
             "completed_tasks": 30,
-            "overdue_tasks": 5
+            "overdue_tasks": 5,
         }
 
         response = TasksStatisticsResponse(**data)
@@ -60,7 +60,7 @@ class TestTasksStatisticsResponse:
             "by_custom_state": {"Vendido": 15, "Llamado": 10},
             "completion_rate": 30.0,
             "completed_tasks": 30,
-            "overdue_tasks": 5
+            "overdue_tasks": 5,
         }
 
         with pytest.raises(ValidationError):
@@ -75,7 +75,7 @@ class TestTasksStatisticsResponse:
             "by_custom_state": {},
             "completion_rate": 0.0,
             "completed_tasks": 0,
-            "overdue_tasks": 0
+            "overdue_tasks": 0,
         }
 
         response = TasksStatisticsResponse(**data)
@@ -90,11 +90,7 @@ class TestTrendDataPoint:
 
     def test_valid_trend_data_point(self):
         """Test creating a valid trend data point."""
-        data = {
-            "period": "2026-01-27",
-            "created": 5,
-            "completed": 3
-        }
+        data = {"period": "2026-01-27", "created": 5, "completed": 3}
 
         point = TrendDataPoint(**data)
 
@@ -117,7 +113,7 @@ class TestTrendDataPoint:
         data = {
             "period": "2026-01-27",
             "created": -1,  # Should be allowed (could represent deletions)
-            "completed": 3
+            "completed": 3,
         }
 
         point = TrendDataPoint(**data)
@@ -133,8 +129,8 @@ class TestTasksTrendsResponse:
             "period": "30d",
             "data_points": [
                 {"period": "2026-01-25", "created": 5, "completed": 3},
-                {"period": "2026-01-26", "created": 3, "completed": 4}
-            ]
+                {"period": "2026-01-26", "created": 3, "completed": 4},
+            ],
         }
 
         response = TasksTrendsResponse(**data)
@@ -145,10 +141,7 @@ class TestTasksTrendsResponse:
 
     def test_empty_data_points(self):
         """Test trends response with empty data points."""
-        data = {
-            "period": "7d",
-            "data_points": []
-        }
+        data = {"period": "7d", "data_points": []}
 
         response = TasksTrendsResponse(**data)
 
@@ -157,10 +150,7 @@ class TestTasksTrendsResponse:
 
     def test_invalid_period(self):
         """Test trends response with invalid period."""
-        data = {
-            "period": "",  # Empty string should be allowed
-            "data_points": []
-        }
+        data = {"period": "", "data_points": []}  # Empty string should be allowed
 
         response = TasksTrendsResponse(**data)
         assert response.period == ""
@@ -177,7 +167,7 @@ class TestCustomStateMetrics:
             "state_type": "closed",
             "state_color": "#FF5722",
             "task_count": 15,
-            "avg_time_in_state_hours": 24.5
+            "avg_time_in_state_hours": 24.5,
         }
 
         metrics = CustomStateMetrics(**data)
@@ -195,7 +185,7 @@ class TestCustomStateMetrics:
             "state_type": "in_progress",
             "state_color": "#2196F3",
             "task_count": 10,
-            "avg_time_in_state_hours": None
+            "avg_time_in_state_hours": None,
         }
 
         metrics = CustomStateMetrics(**data)
@@ -209,7 +199,7 @@ class TestCustomStateMetrics:
             "state_type": "closed",
             "state_color": "invalid_color",  # Should be allowed (validation not enforced)
             "task_count": 15,
-            "avg_time_in_state_hours": 24.5
+            "avg_time_in_state_hours": 24.5,
         }
 
         metrics = CustomStateMetrics(**data)
@@ -235,10 +225,7 @@ class TestTaskMetricsFilter:
         date_to = datetime(2026, 1, 31)
 
         filter_data = TaskMetricsFilter(
-            date_from=date_from,
-            date_to=date_to,
-            status="todo",
-            priority="high"
+            date_from=date_from, date_to=date_to, status="todo", priority="high"
         )
 
         assert filter_data.date_from == date_from
@@ -258,7 +245,7 @@ class TestProductivityKPI:
             "format": "number",
             "icon": "tasks",
             "color": "#3B82F6",
-            "trend": 5.2
+            "trend": 5.2,
         }
 
         kpi = ProductivityKPI(**data)
@@ -271,11 +258,7 @@ class TestProductivityKPI:
 
     def test_kpi_minimal_fields(self):
         """Test KPI with only required fields."""
-        data = {
-            "title": "Completion Rate",
-            "value": 85.5,
-            "format": "percentage"
-        }
+        data = {"title": "Completion Rate", "value": 85.5, "format": "percentage"}
 
         kpi = ProductivityKPI(**data)
 
@@ -295,7 +278,7 @@ class TestStandardResponse:
         data = {
             "data": {"key": "value"},
             "error": None,
-            "meta": {"timestamp": "2026-01-27T12:00:00Z"}
+            "meta": {"timestamp": "2026-01-27T12:00:00Z"},
         }
 
         response = StandardResponse(**data)
@@ -308,11 +291,8 @@ class TestStandardResponse:
         """Test standard response with error."""
         data = {
             "data": None,
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Invalid input data"
-            },
-            "meta": None
+            "error": {"code": "VALIDATION_ERROR", "message": "Invalid input data"},
+            "meta": None,
         }
 
         response = StandardResponse(**data)
@@ -323,11 +303,7 @@ class TestStandardResponse:
 
     def test_minimal_response(self):
         """Test minimal standard response."""
-        data = {
-            "data": "simple_data",
-            "error": None,
-            "meta": {}
-        }
+        data = {"data": "simple_data", "error": None, "meta": {}}
 
         response = StandardResponse(**data)
 
@@ -344,11 +320,7 @@ class TestStandardListResponse:
         data = {
             "data": [{"id": 1}, {"id": 2}],
             "error": None,
-            "meta": {
-                "total": 2,
-                "page": 1,
-                "page_size": 10
-            }
+            "meta": {"total": 2, "page": 1, "page_size": 10},
         }
 
         response = StandardListResponse(**data)
@@ -362,11 +334,7 @@ class TestStandardListResponse:
         data = {
             "data": [],
             "error": None,
-            "meta": {
-                "total": 0,
-                "page": 1,
-                "page_size": 10
-            }
+            "meta": {"total": 0, "page": 1, "page_size": 10},
         }
 
         response = StandardListResponse(**data)
@@ -382,8 +350,7 @@ class TestRequestSchemas:
         """Test StatisticsRequest schema."""
         filter_data = TaskMetricsFilter(status="todo")
         request_data = StatisticsRequest(
-            filters=filter_data,
-            include_custom_states=True
+            filters=filter_data, include_custom_states=True
         )
 
         assert request_data.filters.status == "todo"
@@ -392,10 +359,7 @@ class TestRequestSchemas:
     def test_trends_request(self):
         """Test TrendsRequest schema."""
         filter_data = TaskMetricsFilter(priority="high")
-        request_data = TrendsRequest(
-            period="7d",
-            filters=filter_data
-        )
+        request_data = TrendsRequest(period="7d", filters=filter_data)
 
         assert request_data.period == "7d"
         assert request_data.filters.priority == "high"
@@ -420,7 +384,7 @@ class TestSchemaFieldValidation:
             "by_custom_state": {},
             "completion_rate": 0.0,
             "completed_tasks": 0,
-            "overdue_tasks": 0
+            "overdue_tasks": 0,
         }
 
         # This should work fine as no max_length is defined for string fields
@@ -437,7 +401,7 @@ class TestSchemaFieldValidation:
             "by_custom_state": {},
             "completion_rate": 150.0,  # Over 100%
             "completed_tasks": 0,
-            "overdue_tasks": 0
+            "overdue_tasks": 0,
         }
 
         response = TasksStatisticsResponse(**data)
@@ -454,7 +418,7 @@ class TestSchemaFieldValidation:
             "by_custom_state": {},
             "completion_rate": 0.0,
             "completed_tasks": 0,
-            "overdue_tasks": 0
+            "overdue_tasks": 0,
         }
 
         response = TasksStatisticsResponse(**data)
@@ -464,10 +428,7 @@ class TestSchemaFieldValidation:
     def test_list_field_validation(self):
         """Test list field validation."""
         # Test with empty list
-        data = {
-            "period": "30d",
-            "data_points": []
-        }
+        data = {"period": "30d", "data_points": []}
 
         response = TasksTrendsResponse(**data)
         assert isinstance(response.data_points, list)

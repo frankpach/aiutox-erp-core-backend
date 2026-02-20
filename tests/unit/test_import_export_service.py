@@ -85,7 +85,9 @@ def test_validate_data(data_importer):
     assert invalid_rows[0]["errors"][0] == "name is required"
 
 
-def test_create_import_job(import_export_service, test_user, test_tenant, mock_event_publisher):
+def test_create_import_job(
+    import_export_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating an import job."""
     job = import_export_service.create_import_job(
         job_data={
@@ -104,11 +106,3 @@ def test_create_import_job(import_export_service, test_user, test_tenant, mock_e
 
     # Verify event was published
     assert mock_event_publisher.publish.called
-
-
-
-
-
-
-
-

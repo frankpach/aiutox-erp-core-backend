@@ -33,7 +33,9 @@ class SSEConnectionManager:
                 del self.connections[user_id]
         logger.info(f"SSE connection closed for user {user_id}")
 
-    async def send_to_user(self, user_id: UUID, event_type: str, data: dict[str, Any]) -> None:
+    async def send_to_user(
+        self, user_id: UUID, event_type: str, data: dict[str, Any]
+    ) -> None:
         """Envía evento a todas las conexiones de un usuario."""
         if user_id not in self.connections:
             return
@@ -41,7 +43,7 @@ class SSEConnectionManager:
         message = {
             "type": event_type,
             "data": data,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         dead_queues = set()
@@ -56,7 +58,9 @@ class SSEConnectionManager:
         for queue in dead_queues:
             self.connections[user_id].discard(queue)
 
-    async def send_to_tenant(self, tenant_id: UUID, event_type: str, data: dict[str, Any]) -> None:
+    async def send_to_tenant(
+        self, tenant_id: UUID, event_type: str, data: dict[str, Any]
+    ) -> None:
         """Envía evento a todos los usuarios de un tenant."""
         # Nota: Requeriría un mapeo de tenant_id a user_ids
         # Por ahora, solo implementamos send_to_user

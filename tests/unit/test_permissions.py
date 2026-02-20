@@ -1,6 +1,5 @@
 """Unit tests for permission verification utilities."""
 
-
 from app.core.auth.permissions import ROLE_PERMISSIONS, has_permission
 
 
@@ -165,4 +164,3 @@ def test_has_permission_with_viewer_role():
     # Viewer should NOT have edit permissions
     assert has_permission(viewer_permissions, "inventory.edit") is False
     assert has_permission(viewer_permissions, "auth.manage_users") is False
-

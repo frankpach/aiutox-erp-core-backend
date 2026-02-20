@@ -1,6 +1,5 @@
 """Integration tests for Workflows API endpoints."""
 
-
 from tests.helpers import create_user_with_permission
 
 
@@ -109,12 +108,16 @@ def test_delete_workflow(client_with_db, test_user, db_session):
     workflow_id = create_response.json()["data"]["id"]
 
     # Delete it
-    response = client_with_db.delete(f"/api/v1/workflows/{workflow_id}", headers=headers)
+    response = client_with_db.delete(
+        f"/api/v1/workflows/{workflow_id}", headers=headers
+    )
 
     assert response.status_code == 204
 
     # Verify it's deleted
-    get_response = client_with_db.get(f"/api/v1/workflows/{workflow_id}", headers=headers)
+    get_response = client_with_db.get(
+        f"/api/v1/workflows/{workflow_id}", headers=headers
+    )
     assert get_response.status_code == 404
 
 
@@ -159,7 +162,9 @@ def test_list_workflow_steps(client_with_db, test_user, db_session):
     headers = create_user_with_permission(db_session, test_user, "workflows", "viewer")
 
     # Create a workflow (need manager for creation)
-    manager_headers = create_user_with_permission(db_session, test_user, "workflows", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "workflows", "manager"
+    )
     workflow_data = {"name": "Test Workflow", "definition": {"steps": []}}
     create_response = client_with_db.post(
         "/api/v1/workflows",
@@ -169,7 +174,12 @@ def test_list_workflow_steps(client_with_db, test_user, db_session):
     workflow_id = create_response.json()["data"]["id"]
 
     # Create steps
-    step_data = {"workflow_id": workflow_id, "name": "Step 1", "step_type": "task", "order": 0}
+    step_data = {
+        "workflow_id": workflow_id,
+        "name": "Step 1",
+        "step_type": "task",
+        "order": 0,
+    }
     client_with_db.post(
         f"/api/v1/workflows/{workflow_id}/steps",
         json=step_data,
@@ -177,14 +187,11 @@ def test_list_workflow_steps(client_with_db, test_user, db_session):
     )
 
     # List steps
-    response = client_with_db.get(f"/api/v1/workflows/{workflow_id}/steps", headers=headers)
+    response = client_with_db.get(
+        f"/api/v1/workflows/{workflow_id}/steps", headers=headers
+    )
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert isinstance(data, list)
     assert len(data) >= 1
-
-
-
-
-

@@ -72,9 +72,3 @@ class AsyncTaskService:
     async def stop_scheduler(self) -> None:
         """Stop the task scheduler."""
         await self.scheduler.stop()
-
-
-
-
-
-

@@ -15,7 +15,7 @@ if database_url.startswith("sqlite"):
         echo=settings.DEBUG,
         future=True,
         pool_pre_ping=True,
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
     )
 else:
     # Configuración para PostgreSQL
@@ -26,10 +26,7 @@ else:
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
-        connect_args={
-            "connect_timeout": 10,
-            "options": "-c timezone=utc"
-        }
+        connect_args={"connect_timeout": 10, "options": "-c timezone=utc"},
     )
 
 SessionLocal = sessionmaker(

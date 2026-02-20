@@ -19,7 +19,9 @@ class CRMRepository:
         self.db.refresh(pipeline)
         return pipeline
 
-    def list_pipelines(self, tenant_id: UUID, skip: int = 0, limit: int = 100) -> list[Pipeline]:
+    def list_pipelines(
+        self, tenant_id: UUID, skip: int = 0, limit: int = 100
+    ) -> list[Pipeline]:
         return (
             self.db.query(Pipeline)
             .filter(Pipeline.tenant_id == tenant_id)
@@ -109,12 +111,21 @@ class CRMRepository:
             query = query.filter(Opportunity.status == status)
         if pipeline_id:
             query = query.filter(Opportunity.pipeline_id == pipeline_id)
-        return query.order_by(Opportunity.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Opportunity.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-    def get_opportunity(self, opportunity_id: UUID, tenant_id: UUID) -> Opportunity | None:
+    def get_opportunity(
+        self, opportunity_id: UUID, tenant_id: UUID
+    ) -> Opportunity | None:
         return (
             self.db.query(Opportunity)
-            .filter(Opportunity.id == opportunity_id, Opportunity.tenant_id == tenant_id)
+            .filter(
+                Opportunity.id == opportunity_id, Opportunity.tenant_id == tenant_id
+            )
             .first()
         )
 

@@ -1,6 +1,5 @@
 """Unit tests for BaseDataSource and ProductsDataSource."""
 
-
 import pytest
 
 from app.core.reporting.data_source import BaseDataSource
@@ -31,13 +30,3 @@ async def test_products_data_source_get_filters(db_session, test_tenant):
 
     assert len(filters) > 0
     assert all("name" in f and "type" in f and "label" in f for f in filters)
-
-
-
-
-
-
-
-
-
-

@@ -63,7 +63,9 @@ class WebhookHandler:
             List of WebhookDelivery objects
         """
         # Get all enabled webhooks for this event type
-        webhooks = self.repository.get_webhooks_by_event(tenant_id, event_type, enabled_only=True)
+        webhooks = self.repository.get_webhooks_by_event(
+            tenant_id, event_type, enabled_only=True
+        )
 
         deliveries = []
         for webhook in webhooks:
@@ -72,7 +74,9 @@ class WebhookHandler:
 
         return deliveries
 
-    async def _deliver_webhook(self, webhook: Webhook, payload: dict[str, Any]) -> WebhookDelivery:
+    async def _deliver_webhook(
+        self, webhook: Webhook, payload: dict[str, Any]
+    ) -> WebhookDelivery:
         """Deliver a webhook.
 
         Args:
@@ -121,7 +125,9 @@ class WebhookHandler:
             delivery.response_body = response.text[:1000]  # Limit response body size
 
             if not response.is_success:
-                delivery.error_message = f"HTTP {response.status_code}: {response.text[:500]}"
+                delivery.error_message = (
+                    f"HTTP {response.status_code}: {response.text[:500]}"
+                )
 
             from datetime import datetime
 
@@ -153,11 +159,3 @@ class WebhookHandler:
         # For now, return 0 as placeholder
         logger.info(f"Retrying failed webhook deliveries for tenant {tenant_id}")
         return 0
-
-
-
-
-
-
-
-

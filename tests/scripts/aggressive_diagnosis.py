@@ -11,6 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def test_individual_modules():
     """Prueba cada módulo individualmente para encontrar el culpable exacto."""
     print("🔍 DIAGNÓSTICO AGRESIVO - MÓDULOS INDIVIDUALES")
@@ -23,19 +24,16 @@ def test_individual_modules():
         "app.core.db.session",
         "app.core.exceptions",
         "app.core.auth.rate_limit",
-
         # API v1 modules
         "app.api.v1.config",
         "app.api.v1.auth",
         "app.api.v1.users",
-
         # Module APIs
         "app.modules.calendar.api",
         "app.modules.crm.api",
         "app.modules.inventory.api",
         "app.modules.products.api",
         "app.modules.tasks.api",
-
         # Feature modules
         "app.features.tasks.statuses",
     ]
@@ -107,6 +105,7 @@ def test_individual_modules():
 
     return problem_modules
 
+
 def analyze_problem_modules(problem_modules):
     """Analiza los módulos problemáticos en detalle."""
     print("\n🔍 ANÁLISIS DETALLADO DE MÓDULOS PROBLEMÁTICOS")
@@ -129,7 +128,14 @@ def analyze_problem_modules(problem_modules):
             file_path = backend_path / "app" / "modules" / parts[2] / "api.py"
         elif module.startswith("app.features"):
             parts = module.split(".")
-            file_path = backend_path / "app" / "features" / parts[1] / parts[2] / f"{parts[3]}.py"
+            file_path = (
+                backend_path
+                / "app"
+                / "features"
+                / parts[1]
+                / parts[2]
+                / f"{parts[3]}.py"
+            )
         else:
             print(f"   ❌ No se pudo determinar la ruta para {module}")
             continue
@@ -138,14 +144,16 @@ def analyze_problem_modules(problem_modules):
 
         if file_path.exists():
             try:
-                with open(file_path, encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
 
                 # Analizar imports
-                lines = content.split('\n')
+                lines = content.split("\n")
                 imports = []
                 for line in lines:
-                    if line.strip().startswith('from ') or line.strip().startswith('import '):
+                    if line.strip().startswith("from ") or line.strip().startswith(
+                        "import "
+                    ):
                         imports.append(line.strip())
 
                 print(f"   📦 Imports encontrados: {len(imports)}")
@@ -155,7 +163,7 @@ def analyze_problem_modules(problem_modules):
                     print(f"      ... y {len(imports) - 5} más")
 
                 # Buscar imports de app que puedan causar ciclos
-                app_imports = [imp for imp in imports if 'app.' in imp]
+                app_imports = [imp for imp in imports if "app." in imp]
                 if app_imports:
                     print(f"   ⚠️ Imports de app (posibles ciclos): {len(app_imports)}")
                     for imp in app_imports[:3]:
@@ -165,6 +173,7 @@ def analyze_problem_modules(problem_modules):
                 print(f"   ❌ Error leyendo archivo: {e}")
         else:
             print("   ❌ Archivo no existe")
+
 
 def create_emergency_server():
     """Crea un servidor de emergencia que no importa nada problemático."""
@@ -204,7 +213,7 @@ if __name__ == "__main__":
     emergency_path = backend_path / "app" / "emergency_server.py"
 
     try:
-        with open(emergency_path, 'w', encoding='utf-8') as f:
+        with open(emergency_path, "w", encoding="utf-8") as f:
             f.write(emergency_server_content)
 
         print(f"✅ Servidor de emergencia creado en: {emergency_path}")
@@ -213,6 +222,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error creando servidor de emergencia: {e}")
         return False
+
 
 def main():
     """Función principal."""
@@ -245,6 +255,7 @@ def main():
     else:
         print("✅ No se encontraron módulos problemáticos")
         print("💡 El problema puede estar en otro lugar - revisa el startup de FastAPI")
+
 
 if __name__ == "__main__":
     main()

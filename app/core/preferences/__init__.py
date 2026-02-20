@@ -5,13 +5,3 @@ from app.core.preferences.service import PreferencesService
 __all__ = [
     "PreferencesService",
 ]
-
-
-
-
-
-
-
-
-
-

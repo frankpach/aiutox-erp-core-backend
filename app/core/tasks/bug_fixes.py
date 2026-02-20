@@ -16,9 +16,7 @@ def ensure_timezone_aware(dt: datetime | None) -> datetime | None:
 
 
 def validate_task_dates(
-    start_at: datetime | None,
-    due_date: datetime | None,
-    end_at: datetime | None
+    start_at: datetime | None, due_date: datetime | None, end_at: datetime | None
 ) -> tuple[datetime | None, datetime | None, datetime | None]:
     """
     Valida y normaliza fechas de tareas.
@@ -36,10 +34,14 @@ def validate_task_dates(
 
     # Validar orden de fechas
     if start_at and due_date and start_at > due_date:
-        raise ValueError("La fecha de inicio no puede ser posterior a la fecha de vencimiento")
+        raise ValueError(
+            "La fecha de inicio no puede ser posterior a la fecha de vencimiento"
+        )
 
     if due_date and end_at and due_date > end_at:
-        raise ValueError("La fecha de vencimiento no puede ser posterior a la fecha de fin")
+        raise ValueError(
+            "La fecha de vencimiento no puede ser posterior a la fecha de fin"
+        )
 
     if start_at and end_at and start_at > end_at:
         raise ValueError("La fecha de inicio no puede ser posterior a la fecha de fin")
@@ -48,10 +50,7 @@ def validate_task_dates(
 
 
 def validate_circular_dependencies(
-    db,
-    task_id: UUID,
-    depends_on_id: UUID,
-    max_depth: int = 50
+    db, task_id: UUID, depends_on_id: UUID, max_depth: int = 50
 ) -> bool:
     """
     Verifica si agregar una dependencia crearía un ciclo.
@@ -77,7 +76,9 @@ def validate_circular_dependencies(
 
     def has_path(from_id: UUID, to_id: UUID, depth: int = 0) -> bool:
         if depth > max_depth:
-            raise ValueError(f"Profundidad máxima de dependencias excedida ({max_depth})")
+            raise ValueError(
+                f"Profundidad máxima de dependencias excedida ({max_depth})"
+            )
 
         if from_id == to_id:
             return True
@@ -87,9 +88,12 @@ def validate_circular_dependencies(
 
         visited.add(from_id)
 
-        dependencies = db.query(TaskDependency).filter(
-            TaskDependency.task_id == from_id
-        ).limit(20).all()
+        dependencies = (
+            db.query(TaskDependency)
+            .filter(TaskDependency.task_id == from_id)
+            .limit(20)
+            .all()
+        )
 
         for dep in dependencies:
             if has_path(dep.depends_on_id, to_id, depth + 1):
@@ -114,12 +118,24 @@ def validate_priority(priority: str) -> None:
     valid_priorities = ["low", "medium", "high", "urgent"]
 
     if priority not in valid_priorities:
-        raise ValueError(f"Prioridad inválida: {priority}. Debe ser una de: {', '.join(valid_priorities)}")
+        raise ValueError(
+            f"Prioridad inválida: {priority}. Debe ser una de: {', '.join(valid_priorities)}"
+        )
 
 
 def validate_status(status: str) -> None:
     """Valida que el estado sea válido."""
-    valid_statuses = ["todo", "in_progress", "on_hold", "blocked", "review", "done", "cancelled"]
+    valid_statuses = [
+        "todo",
+        "in_progress",
+        "on_hold",
+        "blocked",
+        "review",
+        "done",
+        "cancelled",
+    ]
 
     if status not in valid_statuses:
-        raise ValueError(f"Estado inválido: {status}. Debe ser uno de: {', '.join(valid_statuses)}")
+        raise ValueError(
+            f"Estado inválido: {status}. Debe ser uno de: {', '.join(valid_statuses)}"
+        )

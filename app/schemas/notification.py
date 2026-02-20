@@ -11,9 +11,15 @@ class NotificationTemplateBase(BaseModel):
     """Base schema for notification templates."""
 
     name: str = Field(..., description="Template name", min_length=1, max_length=255)
-    event_type: str = Field(..., description="Event type (e.g., 'product.created')", max_length=100)
-    channel: str = Field(..., description="Channel: 'email', 'sms', 'webhook', 'in-app'", max_length=50)
-    subject: str | None = Field(None, description="Email subject (for email channel)", max_length=500)
+    event_type: str = Field(
+        ..., description="Event type (e.g., 'product.created')", max_length=100
+    )
+    channel: str = Field(
+        ..., description="Channel: 'email', 'sms', 'webhook', 'in-app'", max_length=50
+    )
+    subject: str | None = Field(
+        None, description="Email subject (for email channel)", max_length=500
+    )
     body: str = Field(..., description="Template body with {{variables}}")
     is_active: bool = Field(default=True, description="Whether template is active")
 
@@ -27,7 +33,9 @@ class NotificationTemplateCreate(NotificationTemplateBase):
 class NotificationTemplateUpdate(BaseModel):
     """Schema for updating a notification template."""
 
-    name: str | None = Field(None, description="Template name", min_length=1, max_length=255)
+    name: str | None = Field(
+        None, description="Template name", min_length=1, max_length=255
+    )
     event_type: str | None = Field(None, description="Event type", max_length=100)
     channel: str | None = Field(None, description="Channel", max_length=50)
     subject: str | None = Field(None, description="Email subject", max_length=500)
@@ -49,10 +57,14 @@ class NotificationTemplateResponse(NotificationTemplateBase):
 class NotificationSendRequest(BaseModel):
     """Schema for sending a notification manually."""
 
-    event_type: str = Field(..., description="Event type that triggered the notification")
+    event_type: str = Field(
+        ..., description="Event type that triggered the notification"
+    )
     recipient_id: UUID = Field(..., description="User ID to send notification to")
     channels: list[str] = Field(..., description="List of channels", min_length=1)
-    data: dict[str, Any] | None = Field(None, description="Event data for template rendering")
+    data: dict[str, Any] | None = Field(
+        None, description="Event data for template rendering"
+    )
 
 
 class NotificationQueueResponse(BaseModel):
@@ -94,7 +106,9 @@ class SMTPConfigRequest(BaseModel):
     password: str = Field(..., description="SMTP password", max_length=255)
     use_tls: bool = Field(default=True, description="Use TLS encryption")
     from_email: str = Field(..., description="Default sender email", max_length=255)
-    from_name: str | None = Field(None, description="Default sender name", max_length=255)
+    from_name: str | None = Field(
+        None, description="Default sender name", max_length=255
+    )
 
 
 class SMTPConfigResponse(BaseModel):
@@ -115,9 +129,15 @@ class SMSConfigRequest(BaseModel):
 
     enabled: bool = Field(default=False, description="Whether SMS channel is enabled")
     provider: str = Field(default="twilio", description="SMS provider", max_length=50)
-    account_sid: str | None = Field(None, description="Provider account SID", max_length=255)
-    auth_token: str | None = Field(None, description="Provider auth token", max_length=255)
-    from_number: str | None = Field(None, description="Default sender number", max_length=20)
+    account_sid: str | None = Field(
+        None, description="Provider account SID", max_length=255
+    )
+    auth_token: str | None = Field(
+        None, description="Provider auth token", max_length=255
+    )
+    from_number: str | None = Field(
+        None, description="Default sender number", max_length=20
+    )
 
 
 class SMSConfigResponse(BaseModel):
@@ -133,10 +153,16 @@ class SMSConfigResponse(BaseModel):
 class WebhookConfigRequest(BaseModel):
     """Schema for webhook channel configuration."""
 
-    enabled: bool = Field(default=False, description="Whether webhook channel is enabled")
+    enabled: bool = Field(
+        default=False, description="Whether webhook channel is enabled"
+    )
     url: str = Field(..., description="Webhook URL", max_length=500)
-    secret: str | None = Field(None, description="Webhook secret for signing", max_length=255)
-    timeout: int = Field(default=30, description="Request timeout in seconds", ge=1, le=300)
+    secret: str | None = Field(
+        None, description="Webhook secret for signing", max_length=255
+    )
+    timeout: int = Field(
+        default=30, description="Request timeout in seconds", ge=1, le=300
+    )
 
 
 class WebhookConfigResponse(BaseModel):

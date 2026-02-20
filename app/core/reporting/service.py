@@ -121,7 +121,9 @@ class ReportingService:
         if config is not None:
             update_data["config"] = config
 
-        updated_report = self.repository.update_report(report_id, tenant_id, update_data)
+        updated_report = self.repository.update_report(
+            report_id, tenant_id, update_data
+        )
         if updated_report:
             logger.info(f"Updated report {report_id} for tenant {tenant_id}")
         return updated_report
@@ -167,13 +169,3 @@ class ReportingService:
             raise ValueError(f"Report with ID {report_id} not found")
 
         return await self.engine.execute(report, filters, pagination)
-
-
-
-
-
-
-
-
-
-

@@ -24,7 +24,9 @@ class ReportDefinition(Base):
     )
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    data_source_type = Column(String(100), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    data_source_type = Column(
+        String(100), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
     filters = Column(JSONB, nullable=True)  # Filter configuration
     visualization_type = Column(String(50), nullable=False)  # 'table', 'chart', 'kpi'
     config = Column(JSONB, nullable=True)  # Visualization-specific configuration
@@ -89,13 +91,3 @@ class DashboardWidget(Base):
         Index("idx_dashboard_widgets_dashboard", "dashboard_id"),
         Index("idx_dashboard_widgets_report", "report_definition_id"),
     )
-
-
-
-
-
-
-
-
-
-

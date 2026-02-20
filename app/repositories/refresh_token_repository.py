@@ -17,9 +17,7 @@ class RefreshTokenRepository:
         """Initialize repository with database session."""
         self.db = db
 
-    def create(
-        self, user_id: UUID, token: str, expires_at: datetime
-    ) -> RefreshToken:
+    def create(self, user_id: UUID, token: str, expires_at: datetime) -> RefreshToken:
         """Create a new refresh token with hashed token."""
         token_hash = hash_token(token)  # Using SHA256 + bcrypt for tokens > 72 bytes
         refresh_token = RefreshToken(
@@ -100,4 +98,3 @@ class RefreshTokenRepository:
         )
         self.db.commit()
         return count
-

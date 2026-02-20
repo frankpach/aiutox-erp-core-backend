@@ -50,6 +50,7 @@ def test_list_files(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -111,8 +112,11 @@ def test_delete_file(client_with_db, test_user, db_session):
     from uuid import UUID
 
     from app.repositories.file_repository import FileRepository
+
     repo = FileRepository(db_session)
-    deleted_file = repo.get_by_id(UUID(file_id), test_user.tenant_id, current_only=False)
+    deleted_file = repo.get_by_id(
+        UUID(file_id), test_user.tenant_id, current_only=False
+    )
     if deleted_file:
         assert deleted_file.is_current is False
         assert deleted_file.deleted_at is not None
@@ -250,7 +254,9 @@ def test_get_file_content_file_not_found(client_with_db, test_user, db_session):
 
     # Try to get content of non-existent file
     fake_file_id = str(uuid4())
-    response = client_with_db.get(f"/api/v1/files/{fake_file_id}/content", headers=headers)
+    response = client_with_db.get(
+        f"/api/v1/files/{fake_file_id}/content", headers=headers
+    )
 
     assert response.status_code == 404
     data = response.json()
@@ -263,6 +269,7 @@ def test_get_file_content_no_permission(client_with_db, test_user, db_session):
     # Create another user without files.view permission
     from app.core.auth import hash_password
     from app.models.user import User
+
     other_user = User(
         email="other@test.com",
         full_name="Other User",
@@ -286,12 +293,14 @@ def test_get_file_content_no_permission(client_with_db, test_user, db_session):
 
     # Try to get content with other user (no permission)
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     other_token = auth_service.create_access_token_for_user(other_user)
     other_headers = {"Authorization": f"Bearer {other_token}"}
 
-    response = client_with_db.get(f"/api/v1/files/{file_id}/content", headers=other_headers)
+    response = client_with_db.get(
+        f"/api/v1/files/{file_id}/content", headers=other_headers
+    )
 
     # Should return 403 or 404 depending on implementation
     assert response.status_code in [403, 404]
-

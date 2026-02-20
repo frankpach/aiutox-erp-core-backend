@@ -74,7 +74,9 @@ async def test_handle_event_sends_notification(
         call_args = mock_send.call_args
         assert call_args[1]["event_type"] == "product.created"
         assert call_args[1]["recipient_id"] == test_user.id
-        assert "email" in call_args[1]["channels"] or "in-app" in call_args[1]["channels"]
+        assert (
+            "email" in call_args[1]["channels"] or "in-app" in call_args[1]["channels"]
+        )
 
 
 @pytest.mark.asyncio
@@ -120,4 +122,3 @@ async def test_extract_notification_data(notification_consumer):
     assert data["entity_type"] == "product"
     assert data["product_name"] == "Test Product"
     assert data["sku"] == "TEST-001"
-

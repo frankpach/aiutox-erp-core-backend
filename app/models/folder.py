@@ -27,8 +27,12 @@ class Folder(Base):
     # Folder information
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    color = Column(String(7), nullable=True)  # Hex color for folder icon (e.g., #FF5733)
-    icon = Column(String(50), nullable=True)  # Icon name (e.g., "folder", "folder-documents")
+    color = Column(
+        String(7), nullable=True
+    )  # Hex color for folder icon (e.g., #FF5733)
+    icon = Column(
+        String(50), nullable=True
+    )  # Icon name (e.g., "folder", "folder-documents")
 
     # Hierarchical structure
     parent_id = Column(
@@ -39,11 +43,15 @@ class Folder(Base):
     )
 
     # Organization
-    entity_type = Column(String(50), nullable=True, index=True)  # e.g., 'product', 'order'
+    entity_type = Column(
+        String(50), nullable=True, index=True
+    )  # e.g., 'product', 'order'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
 
     # Metadata
-    folder_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
+    folder_metadata = Column(
+        "metadata", JSONB, nullable=True
+    )  # Additional metadata as JSON
 
     # Ownership
     created_by = Column(
@@ -75,7 +83,9 @@ class Folder(Base):
         Index("idx_folders_tenant_parent", "tenant_id", "parent_id"),
         Index("idx_folders_entity", "entity_type", "entity_id"),
         Index("idx_folders_tenant_entity", "tenant_id", "entity_type", "entity_id"),
-        Index("idx_folders_name", "tenant_id", "parent_id", "name"),  # For unique folder names per parent
+        Index(
+            "idx_folders_name", "tenant_id", "parent_id", "name"
+        ),  # For unique folder names per parent
     )
 
     def __repr__(self) -> str:
@@ -134,9 +144,15 @@ class FolderPermission(Base):
 
     # Permissions
     can_view = Column(Boolean, default=True, nullable=False)
-    can_create_files = Column(Boolean, default=False, nullable=False)  # Create files in folder
-    can_create_folders = Column(Boolean, default=False, nullable=False)  # Create subfolders
-    can_edit = Column(Boolean, default=False, nullable=False)  # Edit name, description, etc.
+    can_create_files = Column(
+        Boolean, default=False, nullable=False
+    )  # Create files in folder
+    can_create_folders = Column(
+        Boolean, default=False, nullable=False
+    )  # Create subfolders
+    can_edit = Column(
+        Boolean, default=False, nullable=False
+    )  # Edit name, description, etc.
     can_delete = Column(Boolean, default=False, nullable=False)  # Delete folder
 
     # Timestamps
@@ -160,5 +176,3 @@ class FolderPermission(Base):
 
     def __repr__(self) -> str:
         return f"<FolderPermission(id={self.id}, folder_id={self.folder_id}, target={self.target_type}:{self.target_id})>"
-
-

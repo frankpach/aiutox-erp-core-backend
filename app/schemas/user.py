@@ -20,7 +20,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for creating a new user."""
 
-    password: str = Field(..., min_length=8, description="User password (minimum 8 characters)")
+    password: str = Field(
+        ..., min_length=8, description="User password (minimum 8 characters)"
+    )
     tenant_id: UUID = Field(..., description="Tenant ID")
     # Información personal (opcional)
     first_name: str | None = None
@@ -62,8 +64,14 @@ class UserUpdate(BaseModel):
     avatar_url: str | None = None
     bio: str | None = None
     notes: str | None = None
-    is_active: bool | None = Field(None, description="Whether the user account is active. Setting to False performs a soft delete.")
-    two_factor_enabled: bool | None = Field(None, description="Whether two-factor authentication (2FA) is enabled for this user")
+    is_active: bool | None = Field(
+        None,
+        description="Whether the user account is active. Setting to False performs a soft delete.",
+    )
+    two_factor_enabled: bool | None = Field(
+        None,
+        description="Whether two-factor authentication (2FA) is enabled for this user",
+    )
 
 
 class UserResponse(UserBase):
@@ -91,9 +99,16 @@ class UserResponse(UserBase):
     notes: str | None = None
     # Autenticación
     last_login_at: datetime | None = None
-    email_verified_at: datetime | None = Field(None, description="Timestamp when the user's email address was verified")
-    phone_verified_at: datetime | None = Field(None, description="Timestamp when the user's phone number was verified")
-    two_factor_enabled: bool = Field(False, description="Whether two-factor authentication (2FA) is enabled for this user")
+    email_verified_at: datetime | None = Field(
+        None, description="Timestamp when the user's email address was verified"
+    )
+    phone_verified_at: datetime | None = Field(
+        None, description="Timestamp when the user's phone number was verified"
+    )
+    two_factor_enabled: bool = Field(
+        False,
+        description="Whether two-factor authentication (2FA) is enabled for this user",
+    )
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -109,7 +124,7 @@ class BulkUsersAction(BaseModel):
 
     action: str = Field(
         ...,
-        description="Action to perform: 'activate' (set active), 'deactivate' (soft delete), or 'delete' (hard delete with cascade)"
+        description="Action to perform: 'activate' (set active), 'deactivate' (soft delete), or 'delete' (hard delete with cascade)",
     )
     user_ids: list[UUID] = Field(
         ..., min_length=1, description="List of user IDs to apply action"
@@ -126,4 +141,3 @@ class BulkUsersAction(BaseModel):
             }
         }
     )
-

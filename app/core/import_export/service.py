@@ -93,7 +93,10 @@ class DataExporter:
             raise ValueError("Excel export requires openpyxl package")
 
     def export_to_pdf(
-        self, data: list[dict[str, Any]], columns: list[str] | None = None, title: str = "Export"
+        self,
+        data: list[dict[str, Any]],
+        columns: list[str] | None = None,
+        title: str = "Export",
     ) -> bytes:
         """Export data to PDF format.
 
@@ -320,14 +323,18 @@ class ImportExportService:
 
         return self.repository.create_export_job(job_data)
 
-    async def get_import_job_errors(self, job_id: UUID, tenant_id: UUID) -> list[dict] | None:
+    async def get_import_job_errors(
+        self, job_id: UUID, tenant_id: UUID
+    ) -> list[dict] | None:
         """Get errors for an import job."""
         job = self.repository.get_import_job_by_id(job_id, tenant_id)
         if not job:
             return None
         return job.errors
 
-    async def get_export_job_file(self, job_id: UUID, tenant_id: UUID) -> tuple[bytes, str] | None:
+    async def get_export_job_file(
+        self, job_id: UUID, tenant_id: UUID
+    ) -> tuple[bytes, str] | None:
         """Get export job file content and filename.
 
         Returns:
@@ -346,7 +353,9 @@ class ImportExportService:
             logger.error(f"Failed to download export file {job.file_path}: {e}")
             return None
 
-    async def generate_import_template_file(self, template_id: UUID, tenant_id: UUID) -> bytes | None:
+    async def generate_import_template_file(
+        self, template_id: UUID, tenant_id: UUID
+    ) -> bytes | None:
         """Generate import template file (Excel)."""
         template = self.repository.get_import_template_by_id(template_id, tenant_id)
         if not template:
@@ -387,7 +396,11 @@ class ImportExportService:
         return self.repository.get_import_template_by_id(template_id, tenant_id)
 
     def get_import_templates(
-        self, tenant_id: UUID, module: str | None = None, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        module: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Any]:
         """Get import templates."""
         return self.repository.get_import_templates(tenant_id, module, skip, limit)
@@ -417,8 +430,3 @@ class ImportExportService:
     ) -> int:
         """Count import templates with optional filters."""
         return self.repository.count_import_templates(tenant_id, module)
-
-
-
-
-

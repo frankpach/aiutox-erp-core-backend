@@ -76,10 +76,7 @@ def test_list_task_comments_with_data(
     task = task_factory()
 
     # First create a comment using the tasks endpoint
-    comment_data = {
-        "content": "Test comment for task",
-        "mentions": []
-    }
+    comment_data = {"content": "Test comment for task", "mentions": []}
 
     create_response = client_with_db.post(
         f"/api/v1/tasks/{task.id}/comments",
@@ -116,7 +113,9 @@ def test_list_task_comments_with_data(
     assert comment["mentions"] == []
 
 
-def test_list_task_comments_requires_permission(client_with_db, test_user, auth_headers, db_session):
+def test_list_task_comments_requires_permission(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that listing task comments requires tasks.view permission."""
     task_id = uuid4()
 
@@ -129,7 +128,9 @@ def test_list_task_comments_requires_permission(client_with_db, test_user, auth_
     assert "permission" in response.json()["error"]["code"].lower()
 
 
-def test_list_task_comments_wrong_task_id(client_with_db, test_user, auth_headers, db_session):
+def test_list_task_comments_wrong_task_id(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test listing comments for a non-existent task."""
     # Assign tasks.view permission
     headers = create_user_with_permission(db_session, test_user, "tasks", "viewer")
@@ -176,10 +177,7 @@ def test_list_task_comments_isolation_by_tenant(
     task = task_factory()
 
     # Create comment with first user
-    comment_data = {
-        "content": "Comment from user 1",
-        "mentions": []
-    }
+    comment_data = {"content": "Comment from user 1", "mentions": []}
 
     create_response = client_with_db.post(
         f"/api/v1/tasks/{task.id}/comments",
@@ -227,9 +225,7 @@ def test_add_task_comment_requires_permission(client_with_db, auth_headers):
 
 @pytest.mark.integration
 @pytest.mark.security
-def test_add_task_comment_rejects_empty_content(
-    client_with_db, tasks_viewer_headers
-):
+def test_add_task_comment_rejects_empty_content(client_with_db, tasks_viewer_headers):
     """Ensure empty content is rejected."""
     response = client_with_db.post(
         f"/api/v1/tasks/{uuid4()}/comments",

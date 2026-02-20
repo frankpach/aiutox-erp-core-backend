@@ -129,9 +129,7 @@ class CommentRepository:
         return mention
 
     # Comment Attachment methods
-    def create_comment_attachment(
-        self, attachment_data: dict
-    ) -> CommentAttachment:
+    def create_comment_attachment(self, attachment_data: dict) -> CommentAttachment:
         """Create a new comment attachment."""
         attachment = CommentAttachment(**attachment_data)
         self.db.add(attachment)
@@ -156,4 +154,3 @@ class CommentRepository:
         """Delete comment attachment."""
         self.db.delete(attachment)
         self.db.commit()
-

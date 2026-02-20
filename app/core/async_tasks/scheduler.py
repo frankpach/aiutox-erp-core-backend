@@ -52,9 +52,7 @@ class AsyncTaskScheduler:
             # Execute at regular intervals
             hours = schedule.get("hours", 24)
             seconds = schedule.get("seconds", hours * 3600)
-            task = asyncio.create_task(
-                self._interval_task(task_id, seconds, tenant_id)
-            )
+            task = asyncio.create_task(self._interval_task(task_id, seconds, tenant_id))
             self._tasks.append(task)
             self._scheduled_tasks[task_id] = {"schedule": schedule, "task": task}
         elif schedule_type == "cron":
@@ -165,9 +163,7 @@ class AsyncTaskScheduler:
                 finally:
                     db.close()
         except Exception as e:
-            logger.error(
-                f"Error executing task {task_id}: {e}", exc_info=True
-            )
+            logger.error(f"Error executing task {task_id}: {e}", exc_info=True)
 
     def cancel_task(self, task_id: str) -> None:
         """Cancel a scheduled task.
@@ -211,4 +207,3 @@ class AsyncTaskScheduler:
         self._tasks.clear()
         self._scheduled_tasks.clear()
         logger.info("AsyncTaskScheduler stopped")
-

@@ -46,7 +46,9 @@ class TaskRepository:
             .first()
         )
 
-    def get_task_by_id_with_checklist(self, task_id: UUID, tenant_id: UUID) -> Task | None:
+    def get_task_by_id_with_checklist(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> Task | None:
         """Get task by ID and tenant with checklist items loaded."""
         from sqlalchemy.orm import joinedload
 
@@ -115,7 +117,7 @@ class TaskRepository:
             Task.id.in_(  # Asignadas al usuario via TaskAssignment
                 self.db.query(TaskAssignment.task_id).filter(
                     TaskAssignment.tenant_id == tenant_id,
-                    TaskAssignment.assigned_to_id == user_id
+                    TaskAssignment.assigned_to_id == user_id,
                 )
             ),
         ]
@@ -126,7 +128,7 @@ class TaskRepository:
                 Task.id.in_(
                     self.db.query(TaskAssignment.task_id).filter(
                         TaskAssignment.tenant_id == tenant_id,
-                        TaskAssignment.assigned_to_group_id.in_(user_group_ids)
+                        TaskAssignment.assigned_to_group_id.in_(user_group_ids),
                     )
                 )
             )
@@ -156,7 +158,9 @@ class TaskRepository:
             .all()
         )
 
-    def update_task(self, task_id: UUID, tenant_id: UUID, task_data: dict) -> Task | None:
+    def update_task(
+        self, task_id: UUID, tenant_id: UUID, task_data: dict
+    ) -> Task | None:
         """Update a task."""
         task = self.get_task_by_id(task_id, tenant_id)
         if not task:
@@ -185,7 +189,9 @@ class TaskRepository:
         self.db.refresh(item)
         return item
 
-    def get_checklist_items(self, task_id: UUID, tenant_id: UUID) -> list[TaskChecklistItem]:
+    def get_checklist_items(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> list[TaskChecklistItem]:
         """Get all checklist items for a task."""
         return (
             self.db.query(TaskChecklistItem)
@@ -234,7 +240,9 @@ class TaskRepository:
         return True
 
     # TaskAssignment operations
-    def create_assignment(self, assignment_data: dict, created_by_id: UUID | None = None) -> TaskAssignment:
+    def create_assignment(
+        self, assignment_data: dict, created_by_id: UUID | None = None
+    ) -> TaskAssignment:
         """Create a new task assignment with audit fields."""
         # Add audit fields
         assignment_data_with_audit = {
@@ -249,7 +257,9 @@ class TaskRepository:
         self.db.refresh(assignment)
         return assignment
 
-    def get_assignments_by_task(self, task_id: UUID, tenant_id: UUID) -> list[TaskAssignment]:
+    def get_assignments_by_task(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> list[TaskAssignment]:
         """Get all assignments for a task."""
         return (
             self.db.query(TaskAssignment)
@@ -261,7 +271,9 @@ class TaskRepository:
             .all()
         )
 
-    def get_assignments_by_user(self, user_id: UUID, tenant_id: UUID) -> list[TaskAssignment]:
+    def get_assignments_by_user(
+        self, user_id: UUID, tenant_id: UUID
+    ) -> list[TaskAssignment]:
         """Get all assignments for a user."""
         return (
             self.db.query(TaskAssignment)
@@ -273,7 +285,9 @@ class TaskRepository:
             .all()
         )
 
-    def get_assignment_by_id(self, assignment_id: UUID, tenant_id: UUID) -> TaskAssignment | None:
+    def get_assignment_by_id(
+        self, assignment_id: UUID, tenant_id: UUID
+    ) -> TaskAssignment | None:
         """Get assignment by ID."""
         return (
             self.db.query(TaskAssignment)
@@ -298,7 +312,7 @@ class TaskRepository:
         assignment_id: UUID,
         tenant_id: UUID,
         assignment_data: dict,
-        updated_by_id: UUID | None = None
+        updated_by_id: UUID | None = None,
     ) -> TaskAssignment | None:
         """Update an assignment with audit fields."""
         assignment = self.get_assignment_by_id(assignment_id, tenant_id)
@@ -364,7 +378,7 @@ class TaskRepository:
                     task_assignment.task_id == Task.id,
                     task_assignment.tenant_id == tenant_id,
                     task_assignment.assigned_to_id == user_id,
-                )
+                ),
             )
             .filter(
                 or_(
@@ -384,12 +398,7 @@ class TaskRepository:
             query = query.filter(Task.priority == priority)
 
         # Execute query and cache results
-        tasks = (
-            query.order_by(Task.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        tasks = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
 
         # Cache disabled temporarily to avoid asyncio issues
         # TODO: Fix async cache implementation
@@ -448,6 +457,7 @@ class TaskRepository:
         try:
             # Intentar obtener desde Redis cache
             from app.core.cache.redis_client import get_redis_client
+
             redis_client = get_redis_client()
 
             cached_data = redis_client.get(cache_key)
@@ -480,7 +490,9 @@ class TaskRepository:
                 # Serializar tasks para cache
                 tasks_data = [self._task_to_dict(task) for task in tasks]
                 redis_client.setex(cache_key, 300, json.dumps(tasks_data))  # 5 min TTL
-                logger.debug(f"Cached {cache_key}: {len(tasks)} tasks (query took {query_time:.2f}s)")
+                logger.debug(
+                    f"Cached {cache_key}: {len(tasks)} tasks (query took {query_time:.2f}s)"
+                )
             except Exception as e:
                 # Error al guardar cache, no es crítico
                 logger.warning(f"Cache write failed for {cache_key}: {e}")
@@ -499,7 +511,9 @@ class TaskRepository:
             "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
             "due_date": task.due_date.isoformat() if task.due_date else None,
             "created_by_id": str(task.created_by_id),
-            "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+            "completed_at": (
+                task.completed_at.isoformat() if task.completed_at else None
+            ),
             "created_at": task.created_at.isoformat(),
             "updated_at": task.updated_at.isoformat(),
         }
@@ -515,10 +529,18 @@ class TaskRepository:
             description=data["description"],
             status=data["status"],
             priority=data["priority"],
-            assigned_to_id=UUID(data["assigned_to_id"]) if data["assigned_to_id"] else None,
-            due_date=datetime.fromisoformat(data["due_date"]) if data["due_date"] else None,
+            assigned_to_id=(
+                UUID(data["assigned_to_id"]) if data["assigned_to_id"] else None
+            ),
+            due_date=(
+                datetime.fromisoformat(data["due_date"]) if data["due_date"] else None
+            ),
             created_by_id=UUID(data["created_by_id"]),
-            completed_at=datetime.fromisoformat(data["completed_at"]) if data["completed_at"] else None,
+            completed_at=(
+                datetime.fromisoformat(data["completed_at"])
+                if data["completed_at"]
+                else None
+            ),
             created_at=datetime.fromisoformat(data["created_at"]),
             updated_at=datetime.fromisoformat(data["updated_at"]),
         )
@@ -547,7 +569,7 @@ class TaskRepository:
                     task_assignment.task_id == Task.id,
                     task_assignment.tenant_id == tenant_id,
                     task_assignment.assigned_to_id == user_id,
-                )
+                ),
             )
             .filter(
                 or_(
@@ -591,16 +613,22 @@ class TaskRepository:
         self.db.refresh(reminder)
         return reminder
 
-    def get_reminders_by_task(self, task_id: UUID, tenant_id: UUID) -> list[TaskReminder]:
+    def get_reminders_by_task(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> list[TaskReminder]:
         """Get all reminders for a task."""
         return (
             self.db.query(TaskReminder)
-            .filter(TaskReminder.task_id == task_id, TaskReminder.tenant_id == tenant_id)
+            .filter(
+                TaskReminder.task_id == task_id, TaskReminder.tenant_id == tenant_id
+            )
             .order_by(TaskReminder.reminder_time)
             .all()
         )
 
-    def get_reminder_by_id(self, reminder_id: UUID, tenant_id: UUID) -> TaskReminder | None:
+    def get_reminder_by_id(
+        self, reminder_id: UUID, tenant_id: UUID
+    ) -> TaskReminder | None:
         """Get reminder by ID and tenant."""
         return (
             self.db.query(TaskReminder)
@@ -631,6 +659,7 @@ class TaskRepository:
             reminder.sent = sent
             if sent:
                 from datetime import UTC, datetime
+
                 reminder.sent_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(reminder)
@@ -650,7 +679,7 @@ class TaskRepository:
         tenant_id: UUID,
         user_id: UUID | None = None,
         start_date: datetime | None = None,
-        end_date: datetime | None = None
+        end_date: datetime | None = None,
     ) -> list[TaskReminder]:
         """Get pending reminders for a tenant with optional user visibility and date filters."""
         from datetime import UTC, datetime
@@ -724,19 +753,28 @@ class TaskRepository:
         self.db.refresh(recurrence)
         return recurrence
 
-    def get_recurrence_by_task(self, task_id: UUID, tenant_id: UUID) -> TaskRecurrence | None:
+    def get_recurrence_by_task(
+        self, task_id: UUID, tenant_id: UUID
+    ) -> TaskRecurrence | None:
         """Get recurrence for a task."""
         return (
             self.db.query(TaskRecurrence)
-            .filter(TaskRecurrence.task_id == task_id, TaskRecurrence.tenant_id == tenant_id)
+            .filter(
+                TaskRecurrence.task_id == task_id, TaskRecurrence.tenant_id == tenant_id
+            )
             .first()
         )
 
-    def get_recurrence_by_id(self, recurrence_id: UUID, tenant_id: UUID) -> TaskRecurrence | None:
+    def get_recurrence_by_id(
+        self, recurrence_id: UUID, tenant_id: UUID
+    ) -> TaskRecurrence | None:
         """Get recurrence by ID and tenant."""
         return (
             self.db.query(TaskRecurrence)
-            .filter(TaskRecurrence.id == recurrence_id, TaskRecurrence.tenant_id == tenant_id)
+            .filter(
+                TaskRecurrence.id == recurrence_id,
+                TaskRecurrence.tenant_id == tenant_id,
+            )
             .first()
         )
 
@@ -808,7 +846,7 @@ class TaskRepository:
         tenant_id: UUID,
         filters: dict | None = None,
         page: int = 1,
-        page_size: int = 50
+        page_size: int = 50,
     ) -> tuple[list[Task], int]:
         """Obtiene tareas con queries optimizados usando índices y eager loading."""
         from sqlalchemy import func
@@ -843,7 +881,7 @@ class TaskRepository:
                 query = query.filter(
                     or_(
                         Task.title.ilike(f"%{search_term}%"),
-                        Task.description.ilike(f"%{search_term}%")
+                        Task.description.ilike(f"%{search_term}%"),
                     )
                 )
 
@@ -855,12 +893,15 @@ class TaskRepository:
 
         # Contar con query optimizado
         from sqlalchemy import select
+
         count_query = select(func.count()).select_from(query.statement.alias())
         total = self.db.execute(count_query).scalar()
 
         # Paginación eficiente
         offset = (page - 1) * page_size
-        tasks = query.order_by(Task.created_at.desc()).offset(offset).limit(page_size).all()
+        tasks = (
+            query.order_by(Task.created_at.desc()).offset(offset).limit(page_size).all()
+        )
 
         return tasks, total
 
@@ -890,13 +931,19 @@ class WorkflowRepository:
         )
 
     def get_all_workflows(
-        self, tenant_id: UUID, enabled_only: bool = False, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        enabled_only: bool = False,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Workflow]:
         """Get all workflows for a tenant."""
         query = self.db.query(Workflow).filter(Workflow.tenant_id == tenant_id)
         if enabled_only:
             query = query.filter(Workflow.enabled.is_(True))
-        return query.order_by(Workflow.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Workflow.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def update_workflow(
         self, workflow_id: UUID, tenant_id: UUID, workflow_data: dict
@@ -929,7 +976,9 @@ class WorkflowRepository:
         self.db.refresh(step)
         return step
 
-    def get_workflow_steps(self, workflow_id: UUID, tenant_id: UUID) -> list[WorkflowStep]:
+    def get_workflow_steps(
+        self, workflow_id: UUID, tenant_id: UUID
+    ) -> list[WorkflowStep]:
         """Get all steps for a workflow."""
         return (
             self.db.query(WorkflowStep)
@@ -987,7 +1036,9 @@ class WorkflowRepository:
         limit: int = 100,
     ) -> list[WorkflowExecution]:
         """Get workflow executions for a tenant with filters."""
-        query = self.db.query(WorkflowExecution).filter(WorkflowExecution.tenant_id == tenant_id)
+        query = self.db.query(WorkflowExecution).filter(
+            WorkflowExecution.tenant_id == tenant_id
+        )
         if workflow_id:
             query = query.filter(WorkflowExecution.workflow_id == workflow_id)
         if status:
@@ -996,7 +1047,12 @@ class WorkflowRepository:
             query = query.filter(WorkflowExecution.entity_type == entity_type)
         if entity_id:
             query = query.filter(WorkflowExecution.entity_id == entity_id)
-        return query.order_by(WorkflowExecution.started_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(WorkflowExecution.started_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count_executions(
         self,
@@ -1007,7 +1063,9 @@ class WorkflowRepository:
         entity_id: UUID | None = None,
     ) -> int:
         """Count workflow executions for a tenant with filters."""
-        query = self.db.query(WorkflowExecution).filter(WorkflowExecution.tenant_id == tenant_id)
+        query = self.db.query(WorkflowExecution).filter(
+            WorkflowExecution.tenant_id == tenant_id
+        )
         if workflow_id:
             query = query.filter(WorkflowExecution.workflow_id == workflow_id)
         if status:
@@ -1017,11 +1075,3 @@ class WorkflowRepository:
         if entity_id:
             query = query.filter(WorkflowExecution.entity_id == entity_id)
         return query.count()
-
-
-
-
-
-
-
-

@@ -7,7 +7,9 @@ from app.services.auth_service import AuthService
 
 
 class TestCRM:
-    def test_list_pipelines_requires_permission(self, client_with_db, db_session, test_user):
+    def test_list_pipelines_requires_permission(
+        self, client_with_db, db_session, test_user
+    ):
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
@@ -18,7 +20,9 @@ class TestCRM:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_create_and_list_pipeline_with_permission(self, client_with_db, db_session, test_user):
+    def test_create_and_list_pipeline_with_permission(
+        self, client_with_db, db_session, test_user
+    ):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,
@@ -35,7 +39,11 @@ class TestCRM:
         create_resp = client_with_db.post(
             "/api/v1/crm/pipelines",
             headers={"Authorization": f"Bearer {access_token}"},
-            json={"name": "Default", "description": "Main pipeline", "is_default": True},
+            json={
+                "name": "Default",
+                "description": "Main pipeline",
+                "is_default": True,
+            },
         )
         assert create_resp.status_code == status.HTTP_201_CREATED
 
@@ -70,7 +78,9 @@ class TestCRM:
         data = resp.json()["data"]
         assert data["title"] == "Inbound Lead"
 
-    def test_create_opportunity_with_permission(self, client_with_db, db_session, test_user):
+    def test_create_opportunity_with_permission(
+        self, client_with_db, db_session, test_user
+    ):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,

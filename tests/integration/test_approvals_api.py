@@ -77,11 +77,3 @@ def test_create_approval_request(client_with_db, test_user, auth_headers, db_ses
     assert data["title"] == "Test Request"
     assert data["status"] == "pending"
     assert "id" in data
-
-
-
-
-
-
-
-

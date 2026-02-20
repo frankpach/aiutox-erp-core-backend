@@ -111,34 +111,38 @@ class AnalyticsService:
         for up in team_points:
             # Burnout risk: very high activity (streak > 14 and high points)
             if up.current_streak > 14 and up.total_points > 500:
-                alerts.append({
-                    "type": "burnout_risk",
-                    "employee_id": str(up.user_id),
-                    "employee_name": "",
-                    "severity": "medium",
-                    "recommendation": "Consider encouraging a break or varied tasks",
-                    "data": {
-                        "streak": up.current_streak,
-                        "points": up.total_points,
-                    },
-                })
+                alerts.append(
+                    {
+                        "type": "burnout_risk",
+                        "employee_id": str(up.user_id),
+                        "employee_name": "",
+                        "severity": "medium",
+                        "recommendation": "Consider encouraging a break or varied tasks",
+                        "data": {
+                            "streak": up.current_streak,
+                            "points": up.total_points,
+                        },
+                    }
+                )
 
             # Disengagement: no activity for 3+ days
             if up.last_activity_date:
                 days_inactive = (datetime.now(UTC).date() - up.last_activity_date).days
                 if days_inactive >= 3:
                     severity = "high" if days_inactive >= 7 else "medium"
-                    alerts.append({
-                        "type": "disengagement",
-                        "employee_id": str(up.user_id),
-                        "employee_name": "",
-                        "severity": severity,
-                        "recommendation": "Check in with this team member",
-                        "data": {
-                            "days_inactive": days_inactive,
-                            "last_activity": str(up.last_activity_date),
-                        },
-                    })
+                    alerts.append(
+                        {
+                            "type": "disengagement",
+                            "employee_id": str(up.user_id),
+                            "employee_name": "",
+                            "severity": severity,
+                            "recommendation": "Check in with this team member",
+                            "data": {
+                                "days_inactive": days_inactive,
+                                "last_activity": str(up.last_activity_date),
+                            },
+                        }
+                    )
 
         return alerts
 

@@ -6,7 +6,9 @@ from typing import Any
 class TableVisualization:
     """Table visualization for reports."""
 
-    def render(self, data: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
+    def render(
+        self, data: list[dict[str, Any]], config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Render data as a table.
 
         Args:
@@ -26,7 +28,9 @@ class TableVisualization:
 class ChartVisualization:
     """Chart visualization for reports."""
 
-    def render(self, data: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
+    def render(
+        self, data: list[dict[str, Any]], config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Render data as a chart.
 
         Args:
@@ -48,7 +52,9 @@ class ChartVisualization:
 class KPIVisualization:
     """KPI visualization for reports."""
 
-    def render(self, data: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
+    def render(
+        self, data: list[dict[str, Any]], config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Render data as KPI metrics.
 
         Args:
@@ -66,13 +72,3 @@ class KPIVisualization:
             "value": value,
             "config": config,
         }
-
-
-
-
-
-
-
-
-
-

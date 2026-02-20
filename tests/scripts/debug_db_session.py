@@ -11,6 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def test_db_session_import():
     """Prueba detallada del import de session.py"""
     print("🔍 DIAGNÓSTICO ESPECÍFICO: app.core.db.session")
@@ -22,6 +23,7 @@ def test_db_session_import():
         print("   ✅ os")
 
         from sqlalchemy import create_engine
+
         print("   ✅ sqlalchemy.create_engine")
 
         print("   ✅ sqlalchemy.ext.declarative.declarative_base")
@@ -29,6 +31,7 @@ def test_db_session_import():
         print("   ✅ sqlalchemy.orm.sessionmaker")
 
         from sqlalchemy.pool import StaticPool
+
         print("   ✅ sqlalchemy.pool.StaticPool")
 
     except Exception as e:
@@ -39,6 +42,7 @@ def test_db_session_import():
     print("\n📦 Paso 2: Importando configuración...")
     try:
         from app.core.config_file import get_settings
+
         print("   ✅ app.core.config_file.get_settings")
 
         settings = get_settings()
@@ -58,7 +62,7 @@ def test_db_session_import():
             "sqlite:///:memory:",
             poolclass=StaticPool,
             connect_args={"check_same_thread": False},
-            echo=False
+            echo=False,
         )
         assert engine is not None
 
@@ -76,6 +80,7 @@ def test_db_session_import():
 
         # Importar con timeout manual
         import threading
+
         result = [None]
         exception = [None]
 
@@ -126,6 +131,7 @@ def test_db_session_import():
         print(f"   ❌ Error en prueba de import: {e}")
         return False
 
+
 def main():
     """Función principal."""
     success = test_db_session_import()
@@ -145,6 +151,7 @@ def main():
         print("   3. Conexión a la base de datos")
 
     return success
+
 
 if __name__ == "__main__":
     main()

@@ -83,4 +83,3 @@ class ThemePreset(Base):
             f"<ThemePreset(id={self.id}, tenant_id={self.tenant_id}, "
             f"name={self.name}, is_default={self.is_default}, is_system={self.is_system})>"
         )
-

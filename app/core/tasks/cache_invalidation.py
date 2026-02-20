@@ -12,7 +12,9 @@ class TaskCacheInvalidationService:
         """Initialize cache invalidation service."""
         self.cache_service = task_cache_service
 
-    async def invalidate_on_task_create(self, tenant_id: UUID, created_by_id: UUID) -> None:
+    async def invalidate_on_task_create(
+        self, tenant_id: UUID, created_by_id: UUID
+    ) -> None:
         """Invalidate cache when a task is created."""
         try:
             # Invalidate creator's cache
@@ -32,7 +34,7 @@ class TaskCacheInvalidationService:
         old_assigned_to_id: UUID | None,
         new_assigned_to_id: UUID | None,
         created_by_id: UUID,
-        updated_by_id: UUID
+        updated_by_id: UUID,
     ) -> None:
         """Invalidate cache when a task is updated."""
         try:
@@ -61,7 +63,7 @@ class TaskCacheInvalidationService:
         task_id: UUID,
         assigned_to_id: UUID | None,
         created_by_id: UUID,
-        deleted_by_id: UUID
+        deleted_by_id: UUID,
     ) -> None:
         """Invalidate cache when a task is deleted."""
         try:
@@ -88,7 +90,7 @@ class TaskCacheInvalidationService:
         old_assigned_to_id: UUID | None,
         new_assigned_to_id: UUID,
         assigned_by_id: UUID,
-        created_by_id: UUID
+        created_by_id: UUID,
     ) -> None:
         """Invalidate cache when a task is assigned."""
         try:
@@ -116,7 +118,7 @@ class TaskCacheInvalidationService:
         new_status: str,
         changed_by_id: UUID,
         assigned_to_id: UUID | None,
-        created_by_id: UUID
+        created_by_id: UUID,
     ) -> None:
         """Invalidate cache when task status changes."""
         try:
@@ -145,7 +147,7 @@ class TaskCacheInvalidationService:
         task_id: UUID,
         updated_by_id: UUID,
         assigned_to_id: UUID | None,
-        created_by_id: UUID
+        created_by_id: UUID,
     ) -> None:
         """Invalidate cache when checklist is updated."""
         try:
@@ -165,7 +167,9 @@ class TaskCacheInvalidationService:
         except Exception as e:
             print(f"Cache invalidation failed on checklist update: {e}")
 
-    async def invalidate_on_bulk_operations(self, tenant_id: UUID, user_ids: list[UUID]) -> None:
+    async def invalidate_on_bulk_operations(
+        self, tenant_id: UUID, user_ids: list[UUID]
+    ) -> None:
         """Invalidate cache when bulk operations are performed."""
         try:
             # Invalidate cache for all affected users
@@ -190,7 +194,9 @@ class TaskCacheInvalidationService:
         except Exception as e:
             print(f"Cache invalidation failed on agenda update: {e}")
 
-    async def invalidate_on_calendar_source_update(self, tenant_id: UUID, user_id: UUID) -> None:
+    async def invalidate_on_calendar_source_update(
+        self, tenant_id: UUID, user_id: UUID
+    ) -> None:
         """Invalidate cache when calendar sources are updated."""
         try:
             # Invalidate user's calendar sources cache

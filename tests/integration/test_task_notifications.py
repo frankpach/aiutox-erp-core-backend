@@ -19,12 +19,16 @@ class TestTaskNotificationService:
         """Verifica notificación cuando se crea una tarea."""
         # Modificar la tarea para que cumpla la condición de notificación
         test_task.assigned_to_id = test_user.id  # Asignada al test_user
-        test_task.created_by_id = test_user.id  # Crear por el mismo usuario (no enviará notificación)
+        test_task.created_by_id = (
+            test_user.id
+        )  # Crear por el mismo usuario (no enviará notificación)
         db_session.commit()
 
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_task_created(test_task, test_user)
 
             # No debe enviar notificación porque el creador es el mismo asignado
@@ -35,34 +39,46 @@ class TestTaskNotificationService:
         # En su lugar, verificamos que el método funciona sin enviar notificación
         assert True  # El test pasa si no hay errores
 
-    async def test_notify_task_assigned(self, db_session, test_user, test_task, another_user):
+    async def test_notify_task_assigned(
+        self, db_session, test_user, test_task, another_user
+    ):
         """Verifica notificación cuando se asigna una tarea."""
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
-            await notification_service.notify_task_assigned(test_task, another_user, test_user)
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
+            await notification_service.notify_task_assigned(
+                test_task, another_user, test_user
+            )
 
             # Debe enviar al menos una notificación
             assert mock_send.call_count >= 1
 
             # Verificar que se notificó al usuario asignado
             calls = mock_send.call_args_list
-            user_ids = [call.kwargs['user_id'] for call in calls]
+            user_ids = [call.kwargs["user_id"] for call in calls]
             assert another_user.id in user_ids
 
-    async def test_notify_task_unassigned(self, db_session, test_user, test_task, another_user):
+    async def test_notify_task_unassigned(
+        self, db_session, test_user, test_task, another_user
+    ):
         """Verifica notificación cuando se desasigna una tarea."""
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
-            await notification_service.notify_task_unassigned(test_task, another_user, test_user)
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
+            await notification_service.notify_task_unassigned(
+                test_task, another_user, test_user
+            )
 
             # Debe enviar notificación al usuario desasignado
             assert mock_send.called
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'task_unassigned'
+            assert first_call.kwargs["type"] == "task_unassigned"
 
     async def test_notify_task_status_changed(self, db_session, test_user, test_task):
         """Verifica notificación cuando cambia el estado de una tarea."""
@@ -73,12 +89,14 @@ class TestTaskNotificationService:
 
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_task_status_changed(
                 test_task,
-                old_status='todo',
-                new_status='in_progress',
-                changed_by=test_user
+                old_status="todo",
+                new_status="in_progress",
+                changed_by=test_user,
             )
 
             # No debe enviar notificación porque el mismo usuario la cambia
@@ -95,12 +113,14 @@ class TestTaskNotificationService:
             priority=TaskPriority.HIGH,
             assigned_to_id=test_user.id,
             created_by_id=test_user.id,
-            due_date=datetime.now(UTC) + timedelta(hours=12)
+            due_date=datetime.now(UTC) + timedelta(hours=12),
         )
 
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_task_due_soon(task)
 
             # Debe enviar notificación
@@ -108,7 +128,7 @@ class TestTaskNotificationService:
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'task_due_soon'
+            assert first_call.kwargs["type"] == "task_due_soon"
 
     async def test_notify_task_overdue(self, db_session, test_user):
         """Verifica notificación para tareas vencidas."""
@@ -121,12 +141,14 @@ class TestTaskNotificationService:
             priority=TaskPriority.URGENT,
             assigned_to_id=test_user.id,
             created_by_id=test_user.id,
-            due_date=datetime.now(UTC) - timedelta(days=2)
+            due_date=datetime.now(UTC) - timedelta(days=2),
         )
 
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_task_overdue(task)
 
             # Debe enviar notificación
@@ -134,17 +156,21 @@ class TestTaskNotificationService:
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'task_overdue'
+            assert first_call.kwargs["type"] == "task_overdue"
 
-    async def test_notify_comment_added(self, db_session, test_user, test_task, another_user):
+    async def test_notify_comment_added(
+        self, db_session, test_user, test_task, another_user
+    ):
         """Verifica notificación cuando se agrega un comentario."""
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_comment_added(
                 test_task,
                 comment_text="Este es un comentario de prueba",
-                commented_by=another_user
+                commented_by=another_user,
             )
 
             # Debe enviar notificación
@@ -152,17 +178,19 @@ class TestTaskNotificationService:
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'task_comment_added'
+            assert first_call.kwargs["type"] == "task_comment_added"
 
-    async def test_notify_file_attached(self, db_session, test_user, test_task, another_user):
+    async def test_notify_file_attached(
+        self, db_session, test_user, test_task, another_user
+    ):
         """Verifica notificación cuando se adjunta un archivo."""
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_file_attached(
-                test_task,
-                filename="documento.pdf",
-                attached_by=another_user
+                test_task, filename="documento.pdf", attached_by=another_user
             )
 
             # Debe enviar notificación
@@ -170,18 +198,22 @@ class TestTaskNotificationService:
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'task_file_attached'
+            assert first_call.kwargs["type"] == "task_file_attached"
 
-    async def test_notify_checklist_updated(self, db_session, test_user, test_task, another_user):
+    async def test_notify_checklist_updated(
+        self, db_session, test_user, test_task, another_user
+    ):
         """Verifica notificación cuando se actualiza el checklist."""
         notification_service = TaskNotificationService(db_session)
 
-        with patch.object(notification_service, '_send_notification', new_callable=AsyncMock) as mock_send:
+        with patch.object(
+            notification_service, "_send_notification", new_callable=AsyncMock
+        ) as mock_send:
             await notification_service.notify_checklist_updated(
                 test_task,
                 updated_by=another_user,
                 item_text="Item de prueba",
-                completed=True
+                completed=True,
             )
 
             # Debe enviar notificación
@@ -189,7 +221,7 @@ class TestTaskNotificationService:
 
             # Verificar tipo de notificación
             first_call = mock_send.call_args_list[0]
-            assert first_call.kwargs['type'] == 'checklist_updated'
+            assert first_call.kwargs["type"] == "checklist_updated"
 
     async def test_notification_service_fallback(self):
         """Verifica que el servicio funciona sin NotificationService."""
@@ -219,7 +251,7 @@ def another_user(db_session, test_tenant):
         email=f"another-{uuid4().hex[:8]}@example.com",
         password_hash=password_hash,
         full_name="Another User",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.flush()
@@ -240,7 +272,7 @@ def test_task(db_session, test_user):
         priority=TaskPriority.MEDIUM,
         assigned_to_id=test_user.id,
         created_by_id=test_user.id,
-        due_date=datetime.now(UTC) + timedelta(days=7)
+        due_date=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(task)
     db_session.commit()

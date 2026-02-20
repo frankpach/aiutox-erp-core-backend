@@ -13,18 +13,21 @@ def test_restore_file_success(client_with_db, test_user, db_session):
 
     # Create a deleted file
     from app.repositories.file_repository import FileRepository
+
     repo = FileRepository(db_session)
-    deleted_file = repo.create({
-        "tenant_id": test_user.tenant_id,
-        "name": "deleted.pdf",
-        "original_name": "deleted.pdf",
-        "mime_type": "application/pdf",
-        "size": 1024,
-        "storage_backend": "local",
-        "storage_path": "/test/deleted",
-        "is_current": False,
-        "deleted_at": datetime.now(UTC),
-    })
+    deleted_file = repo.create(
+        {
+            "tenant_id": test_user.tenant_id,
+            "name": "deleted.pdf",
+            "original_name": "deleted.pdf",
+            "mime_type": "application/pdf",
+            "size": 1024,
+            "storage_backend": "local",
+            "storage_path": "/test/deleted",
+            "is_current": False,
+            "deleted_at": datetime.now(UTC),
+        }
+    )
 
     # Restore the file
     response = client_with_db.post(
@@ -70,18 +73,21 @@ def test_restore_file_already_restored(client_with_db, test_user, db_session):
 
     # Create a current (not deleted) file
     from app.repositories.file_repository import FileRepository
+
     repo = FileRepository(db_session)
-    current_file = repo.create({
-        "tenant_id": test_user.tenant_id,
-        "name": "current.pdf",
-        "original_name": "current.pdf",
-        "mime_type": "application/pdf",
-        "size": 1024,
-        "storage_backend": "local",
-        "storage_path": "/test/current",
-        "is_current": True,
-        "deleted_at": None,
-    })
+    current_file = repo.create(
+        {
+            "tenant_id": test_user.tenant_id,
+            "name": "current.pdf",
+            "original_name": "current.pdf",
+            "mime_type": "application/pdf",
+            "size": 1024,
+            "storage_backend": "local",
+            "storage_path": "/test/current",
+            "is_current": True,
+            "deleted_at": None,
+        }
+    )
 
     # Try to restore
     response = client_with_db.post(
@@ -100,21 +106,25 @@ def test_restore_file_requires_permission(client_with_db, test_user, db_session)
     """Test that restore requires files.manage permission."""
     # Create a deleted file
     from app.repositories.file_repository import FileRepository
+
     repo = FileRepository(db_session)
-    deleted_file = repo.create({
-        "tenant_id": test_user.tenant_id,
-        "name": "deleted.pdf",
-        "original_name": "deleted.pdf",
-        "mime_type": "application/pdf",
-        "size": 1024,
-        "storage_backend": "local",
-        "storage_path": "/test/deleted",
-        "is_current": False,
-        "deleted_at": datetime.now(UTC),
-    })
+    deleted_file = repo.create(
+        {
+            "tenant_id": test_user.tenant_id,
+            "name": "deleted.pdf",
+            "original_name": "deleted.pdf",
+            "mime_type": "application/pdf",
+            "size": 1024,
+            "storage_backend": "local",
+            "storage_path": "/test/deleted",
+            "is_current": False,
+            "deleted_at": datetime.now(UTC),
+        }
+    )
 
     # Try to restore without permission
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {token}"}
@@ -128,9 +138,3 @@ def test_restore_file_requires_permission(client_with_db, test_user, db_session)
     assert response.status_code == 403
     data = response.json()
     assert "error" in data
-
-
-
-
-
-

@@ -70,4 +70,6 @@ class TimeEntry(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<TimeEntry(id={self.id}, task_id={self.task_id}, user_id={self.user_id})>"
+        return (
+            f"<TimeEntry(id={self.id}, task_id={self.task_id}, user_id={self.user_id})>"
+        )

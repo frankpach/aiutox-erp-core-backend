@@ -37,9 +37,7 @@ def test_create_audit_log(db_session: Session, test_user: User) -> None:
     assert audit_log.created_at is not None
 
 
-def test_get_audit_logs_with_filters(
-    db_session: Session, test_user: User
-) -> None:
+def test_get_audit_logs_with_filters(db_session: Session, test_user: User) -> None:
     """Test getting audit logs with various filters."""
     from uuid import uuid4
 
@@ -105,9 +103,7 @@ def test_get_audit_logs_with_filters(
     assert logs[0].resource_type == "permission"
 
 
-def test_get_audit_logs_with_date_filters(
-    db_session: Session, test_user: User
-) -> None:
+def test_get_audit_logs_with_date_filters(db_session: Session, test_user: User) -> None:
     """Test getting audit logs with date filters."""
     repo = AuditRepository(db_session)
 
@@ -129,9 +125,7 @@ def test_get_audit_logs_with_date_filters(
     assert total >= 1
 
     # Filter by date_to
-    logs, total = repo.get_audit_logs(
-        tenant_id=test_user.tenant_id, date_to=tomorrow
-    )
+    logs, total = repo.get_audit_logs(tenant_id=test_user.tenant_id, date_to=tomorrow)
     assert total >= 1
 
     # Filter by date range
@@ -141,9 +135,7 @@ def test_get_audit_logs_with_date_filters(
     assert total >= 1
 
 
-def test_get_audit_logs_pagination(
-    db_session: Session, test_user: User
-) -> None:
+def test_get_audit_logs_pagination(db_session: Session, test_user: User) -> None:
     """Test pagination for audit logs."""
     repo = AuditRepository(db_session)
 
@@ -156,16 +148,12 @@ def test_get_audit_logs_pagination(
         )
 
     # Get first page
-    logs, total = repo.get_audit_logs(
-        tenant_id=test_user.tenant_id, skip=0, limit=2
-    )
+    logs, total = repo.get_audit_logs(tenant_id=test_user.tenant_id, skip=0, limit=2)
     assert total >= 5
     assert len(logs) == 2
 
     # Get second page
-    logs, total = repo.get_audit_logs(
-        tenant_id=test_user.tenant_id, skip=2, limit=2
-    )
+    logs, total = repo.get_audit_logs(tenant_id=test_user.tenant_id, skip=2, limit=2)
     assert total >= 5
     assert len(logs) == 2
 
@@ -433,8 +421,7 @@ def test_audit_log_created_on_permission_grant(
     grant_logs = [
         log
         for log in logs
-        if log.action == "grant_delegated_permission"
-        and log.user_id == test_user.id
+        if log.action == "grant_delegated_permission" and log.user_id == test_user.id
     ]
     assert len(grant_logs) > 0
 
@@ -565,4 +552,3 @@ def test_audit_log_created_on_user_creation(
         if log.action == "create_user" and log.user_id == admin_user.id
     ]
     assert len(create_logs) > 0
-

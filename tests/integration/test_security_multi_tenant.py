@@ -44,12 +44,10 @@ def test_calendar_tenant_isolation(client_with_db, test_user, second_user, db_se
     """Test that calendars are isolated by tenant."""
     # Clean up any existing roles for these users and modules
     db_session.query(ModuleRole).filter(
-        ModuleRole.user_id == test_user.id,
-        ModuleRole.module == "calendar"
+        ModuleRole.user_id == test_user.id, ModuleRole.module == "calendar"
     ).delete()
     db_session.query(ModuleRole).filter(
-        ModuleRole.user_id == second_user.id,
-        ModuleRole.module == "calendar"
+        ModuleRole.user_id == second_user.id, ModuleRole.module == "calendar"
     ).delete()
     db_session.flush()
 
@@ -72,6 +70,7 @@ def test_calendar_tenant_isolation(client_with_db, test_user, second_user, db_se
 
     # Create calendar for first user
     from app.core.calendar.service import CalendarService
+
     calendar_service = CalendarService(db_session)
 
     calendar1 = calendar_service.create_calendar(
@@ -89,12 +88,10 @@ def test_comments_tenant_isolation(client_with_db, test_user, second_user, db_se
     """Test that comments are isolated by tenant."""
     # Clean up any existing roles for these users and modules
     db_session.query(ModuleRole).filter(
-        ModuleRole.user_id == test_user.id,
-        ModuleRole.module == "comments"
+        ModuleRole.user_id == test_user.id, ModuleRole.module == "comments"
     ).delete()
     db_session.query(ModuleRole).filter(
-        ModuleRole.user_id == second_user.id,
-        ModuleRole.module == "comments"
+        ModuleRole.user_id == second_user.id, ModuleRole.module == "comments"
     ).delete()
     db_session.flush()
 
@@ -119,6 +116,7 @@ def test_comments_tenant_isolation(client_with_db, test_user, second_user, db_se
 
     # Create comment in first tenant
     from app.core.comments.service import CommentService
+
     comment_service = CommentService(db_session)
 
     comment1 = comment_service.create_comment(
@@ -162,6 +160,7 @@ def test_approvals_tenant_isolation(client_with_db, test_user, second_user, db_s
 
     # Create flow in first tenant
     from app.core.approvals.service import ApprovalService
+
     approval_service = ApprovalService(db_session)
 
     flow1 = approval_service.create_approval_flow(
@@ -179,7 +178,9 @@ def test_approvals_tenant_isolation(client_with_db, test_user, second_user, db_s
     assert flow2 is None  # Should not be accessible from different tenant
 
 
-def test_permission_required_for_operations(client_with_db, test_user, auth_headers, db_session):
+def test_permission_required_for_operations(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that operations require proper permissions."""
     # Try to create calendar without permission
     calendar_data = {"name": "Test Calendar", "calendar_type": "user"}
@@ -195,8 +196,7 @@ def test_permission_required_for_operations(client_with_db, test_user, auth_head
 
     # Clean up any existing calendar role for test_user
     db_session.query(ModuleRole).filter(
-        ModuleRole.user_id == test_user.id,
-        ModuleRole.module == "calendar"
+        ModuleRole.user_id == test_user.id, ModuleRole.module == "calendar"
     ).delete()
     db_session.flush()
 
@@ -218,8 +218,3 @@ def test_permission_required_for_operations(client_with_db, test_user, auth_head
     )
 
     assert response.status_code == 201
-
-
-
-
-

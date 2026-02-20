@@ -35,7 +35,11 @@ async def rbac_test_permission_endpoint(
             message="Insufficient permissions",
             details={"required_permission": permission},
         )
-    return {"message": "Access granted", "permission": permission, "user_id": str(current_user.id)}
+    return {
+        "message": "Access granted",
+        "permission": permission,
+        "user_id": str(current_user.id),
+    }
 
 
 @rbac_test_router.get("/test/roles")
@@ -60,9 +64,7 @@ def setup_test_router():
     from app.main import app
 
     # Check if router is already included
-    router_included = any(
-        route.path.startswith("/test/") for route in app.routes
-    )
+    router_included = any(route.path.startswith("/test/") for route in app.routes)
 
     if not router_included:
         app.include_router(rbac_test_router)
@@ -166,7 +168,9 @@ def test_owner_role_has_all_permissions(db_session, test_user):
     assert "*" in permissions
 
 
-def test_require_permission_allows_access_with_permission(client_with_db, db_session, test_user):
+def test_require_permission_allows_access_with_permission(
+    client_with_db, db_session, test_user
+):
     """Test that require_permission allows access when user has permission."""
     # Arrange: Assign admin role (has auth.manage_users)
     role = UserRole(
@@ -203,7 +207,9 @@ def test_require_permission_allows_access_with_permission(client_with_db, db_ses
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_permission_denies_access_without_permission(client_with_db, db_session, test_user):
+def test_require_permission_denies_access_without_permission(
+    client_with_db, db_session, test_user
+):
     """Test that require_permission denies access when user lacks permission."""
     # Arrange: Assign viewer role (doesn't have auth.manage_users)
     role = UserRole(
@@ -339,7 +345,9 @@ def test_require_roles_allows_access_with_role(client_with_db, db_session, test_
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_roles_denies_access_without_role(client_with_db, db_session, test_user):
+def test_require_roles_denies_access_without_role(
+    client_with_db, db_session, test_user
+):
     """Test that require_roles denies access when user lacks required role."""
     # Arrange: Assign viewer role (not admin or owner)
     role = UserRole(
@@ -377,7 +385,9 @@ def test_require_roles_denies_access_without_role(client_with_db, db_session, te
     assert "required_roles" in data["error"]["details"]
 
 
-def test_require_any_permission_allows_access_with_any_permission(client_with_db, db_session, test_user):
+def test_require_any_permission_allows_access_with_any_permission(
+    client_with_db, db_session, test_user
+):
     """Test that require_any_permission allows access with any of the permissions."""
     # Arrange: Assign viewer role (has *.*.view which matches inventory.view)
     role = UserRole(
@@ -411,7 +421,9 @@ def test_require_any_permission_allows_access_with_any_permission(client_with_db
     assert data["user_id"] == str(test_user.id)
 
 
-def test_require_any_permission_denies_access_without_any_permission(client_with_db, db_session, test_user):
+def test_require_any_permission_denies_access_without_any_permission(
+    client_with_db, db_session, test_user
+):
     """Test that require_any_permission denies access without any of the permissions."""
     # Arrange: Assign staff role (has minimal permissions, no inventory.view or products.view)
     role = UserRole(
@@ -449,7 +461,9 @@ def test_require_any_permission_denies_access_without_any_permission(client_with
     assert "required_permissions" in data["error"]["details"]
 
 
-def test_rbac_multi_tenant_isolation(client_with_db, db_session, test_user, test_tenant):
+def test_rbac_multi_tenant_isolation(
+    client_with_db, db_session, test_user, test_tenant
+):
     """Test that RBAC permissions are isolated per tenant."""
 
     from app.core.auth import hash_password
@@ -506,4 +520,3 @@ def test_rbac_multi_tenant_isolation(client_with_db, db_session, test_user, test
 
     # But test_user should NOT have admin permissions even though other_user does
     assert "auth.manage_users" not in test_user_permissions
-

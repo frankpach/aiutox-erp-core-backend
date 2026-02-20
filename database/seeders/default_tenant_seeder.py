@@ -38,12 +38,6 @@ class DefaultTenantSeeder(Seeder):
             db.refresh(tenant)
             print(f"✅ DefaultTenantSeeder: Created default tenant (ID: {tenant.id})")
         else:
-            print(f"✅ DefaultTenantSeeder: Default tenant already exists (ID: {tenant.id})")
-
-
-
-
-
-
-
-
+            print(
+                f"✅ DefaultTenantSeeder: Default tenant already exists (ID: {tenant.id})"
+            )

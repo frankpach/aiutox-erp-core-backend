@@ -79,7 +79,9 @@ async def update_preferences(
     preference_data: PreferenceSetRequest,
     current_user: Annotated[User, Depends(require_permission("preferences.manage"))],
     service: Annotated[PreferencesService, Depends(get_preferences_service)],
-    preference_type: str = Query(..., description="Preference type (e.g., 'basic', 'notification')"),
+    preference_type: str = Query(
+        ..., description="Preference type (e.g., 'basic', 'notification')"
+    ),
 ) -> StandardResponse[dict[str, Any]]:
     """Update preferences for the current user."""
     updated = {}
@@ -328,4 +330,3 @@ async def create_dashboard(
         data=DashboardResponse(**dashboard),
         message="Dashboard created successfully",
     )
-

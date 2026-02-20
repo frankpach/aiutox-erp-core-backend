@@ -51,7 +51,11 @@ class FolderRepository:
         )
 
     def get_by_parent(
-        self, parent_id: UUID | None, tenant_id: UUID, entity_type: str | None = None, entity_id: UUID | None = None
+        self,
+        parent_id: UUID | None,
+        tenant_id: UUID,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
     ) -> list[Folder]:
         """Get folders by parent ID.
 
@@ -78,7 +82,13 @@ class FolderRepository:
 
         return query.order_by(Folder.name).all()
 
-    def get_tree(self, tenant_id: UUID, parent_id: UUID | None = None, entity_type: str | None = None, entity_id: UUID | None = None) -> list[Folder]:
+    def get_tree(
+        self,
+        tenant_id: UUID,
+        parent_id: UUID | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+    ) -> list[Folder]:
         """Get folder tree starting from a parent.
 
         Args:
@@ -105,7 +115,9 @@ class FolderRepository:
         # Use selectinload for recursive loading of children
         return query.options(selectinload(Folder.children)).order_by(Folder.name).all()
 
-    def update(self, folder_id: UUID, tenant_id: UUID, folder_data: dict) -> Folder | None:
+    def update(
+        self, folder_id: UUID, tenant_id: UUID, folder_data: dict
+    ) -> Folder | None:
         """Update a folder.
 
         Args:
@@ -143,17 +155,23 @@ class FolderRepository:
             return False
 
         # Check if folder has children or files
-        children_count = self.db.query(Folder).filter(Folder.parent_id == folder_id).count()
+        children_count = (
+            self.db.query(Folder).filter(Folder.parent_id == folder_id).count()
+        )
         files_count = folder.files.count()
 
         if children_count > 0 or files_count > 0:
-            raise ValueError("Cannot delete folder with children or files. Move or delete them first.")
+            raise ValueError(
+                "Cannot delete folder with children or files. Move or delete them first."
+            )
 
         self.db.delete(folder)
         self.db.commit()
         return True
 
-    def move(self, folder_id: UUID, tenant_id: UUID, new_parent_id: UUID | None) -> Folder | None:
+    def move(
+        self, folder_id: UUID, tenant_id: UUID, new_parent_id: UUID | None
+    ) -> Folder | None:
         """Move a folder to a new parent.
 
         Args:
@@ -186,7 +204,9 @@ class FolderRepository:
         self.db.refresh(folder)
         return folder
 
-    def search(self, tenant_id: UUID, query: str, entity_type: str | None = None) -> list[Folder]:
+    def search(
+        self, tenant_id: UUID, query: str, entity_type: str | None = None
+    ) -> list[Folder]:
         """Search folders by name.
 
         Args:
@@ -249,7 +269,9 @@ class FolderRepository:
         self.db.refresh(permission)
         return permission
 
-    def get_permissions(self, folder_id: UUID, tenant_id: UUID) -> list[FolderPermission]:
+    def get_permissions(
+        self, folder_id: UUID, tenant_id: UUID
+    ) -> list[FolderPermission]:
         """Get all permissions for a folder.
 
         Args:
@@ -324,5 +346,3 @@ class FolderRepository:
         self.db.delete(permission)
         self.db.commit()
         return True
-
-

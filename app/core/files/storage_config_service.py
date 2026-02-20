@@ -16,16 +16,35 @@ logger = logging.getLogger(__name__)
 
 # AWS S3 valid regions
 AWS_VALID_REGIONS = [
-    "us-east-1", "us-east-2", "us-west-1", "us-west-2",
-    "eu-west-1", "eu-west-2", "eu-west-3", "eu-central-1",
-    "ap-southeast-1", "ap-southeast-2", "ap-northeast-1", "ap-northeast-2",
-    "ap-south-1", "sa-east-1", "ca-central-1", "eu-north-1",
-    "ap-east-1", "me-south-1", "af-south-1", "eu-south-1",
-    "ap-northeast-3", "us-gov-east-1", "us-gov-west-1",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "eu-central-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ap-south-1",
+    "sa-east-1",
+    "ca-central-1",
+    "eu-north-1",
+    "ap-east-1",
+    "me-south-1",
+    "af-south-1",
+    "eu-south-1",
+    "ap-northeast-3",
+    "us-gov-east-1",
+    "us-gov-west-1",
 ]
 
 # MIME type pattern validation
-MIME_TYPE_PATTERN = re.compile(r"^[a-z]+/[a-z0-9][a-z0-9!#$&\-\^_.]*$|^\*/\*$|^[a-z]+/\*$")
+MIME_TYPE_PATTERN = re.compile(
+    r"^[a-z]+/[a-z0-9][a-z0-9!#$&\-\^_.]*$|^\*/\*$|^[a-z]+/\*$"
+)
 
 
 class StorageConfigService:
@@ -50,7 +69,9 @@ class StorageConfigService:
         Returns:
             Dictionary with storage configuration
         """
-        backend = self.config_service.get(tenant_id, self.module, "storage.backend", "local")
+        backend = self.config_service.get(
+            tenant_id, self.module, "storage.backend", "local"
+        )
         config: dict[str, Any] = {
             "backend": backend,
         }
@@ -58,15 +79,23 @@ class StorageConfigService:
         if backend in ("s3", "hybrid"):
             # Get S3 configuration (credentials are encrypted)
             config["s3"] = {
-                "bucket_name": self.config_service.get(tenant_id, self.module, "storage.s3.bucket_name", ""),
-                "access_key_id": self.config_service.get(tenant_id, self.module, "storage.s3.access_key_id", ""),
+                "bucket_name": self.config_service.get(
+                    tenant_id, self.module, "storage.s3.bucket_name", ""
+                ),
+                "access_key_id": self.config_service.get(
+                    tenant_id, self.module, "storage.s3.access_key_id", ""
+                ),
                 "secret_access_key": "***",  # Never return actual secret
-                "region": self.config_service.get(tenant_id, self.module, "storage.s3.region", "us-east-1"),
+                "region": self.config_service.get(
+                    tenant_id, self.module, "storage.s3.region", "us-east-1"
+                ),
             }
 
         if backend in ("local", "hybrid"):
             config["local"] = {
-                "base_path": self.config_service.get(tenant_id, self.module, "storage.local.base_path", "./storage"),
+                "base_path": self.config_service.get(
+                    tenant_id, self.module, "storage.local.base_path", "./storage"
+                ),
             }
 
         return config
@@ -131,7 +160,11 @@ class StorageConfigService:
             # Validate bucket name format (AWS S3 rules)
             # Bucket names must be 3-63 characters, lowercase, alphanumeric and hyphens only
             bucket_pattern = re.compile(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$")
-            if not bucket_pattern.match(bucket_name) or len(bucket_name) < 3 or len(bucket_name) > 63:
+            if (
+                not bucket_pattern.match(bucket_name)
+                or len(bucket_name) < 3
+                or len(bucket_name) > 63
+            ):
                 raise APIException(
                     status_code=400,
                     code="INVALID_BUCKET_NAME",
@@ -210,7 +243,9 @@ class StorageConfigService:
 
         return self.get_storage_config(tenant_id)
 
-    async def test_s3_connection(self, tenant_id: UUID, config: dict[str, Any]) -> dict[str, Any]:
+    async def test_s3_connection(
+        self, tenant_id: UUID, config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Test S3 connection with provided credentials.
 
         Args:
@@ -309,7 +344,9 @@ class StorageConfigService:
             .all()
         )
 
-        entity_distribution = {entity_type: count for entity_type, count in entity_stats}
+        entity_distribution = {
+            entity_type: count for entity_type, count in entity_stats
+        }
 
         # Count total versions
         total_versions = (
@@ -320,9 +357,7 @@ class StorageConfigService:
 
         # Count total folders
         total_folders = (
-            self.db.query(Folder)
-            .filter(Folder.tenant_id == tenant_id)
-            .count()
+            self.db.query(Folder).filter(Folder.tenant_id == tenant_id).count()
         )
 
         # Check if file_permissions table exists and get stats
@@ -331,8 +366,9 @@ class StorageConfigService:
         try:
             # Check if table exists
             from sqlalchemy import inspect
+
             inspector = inspect(self.db.bind)
-            if 'file_permissions' in inspector.get_table_names():
+            if "file_permissions" in inspector.get_table_names():
                 files_with_permissions = (
                     self.db.query(func.count(distinct(FilePermission.file_id)))
                     .filter(FilePermission.tenant_id == tenant_id)
@@ -342,13 +378,15 @@ class StorageConfigService:
                 file_permission_targets = (
                     self.db.query(
                         FilePermission.target_type,
-                        func.count(FilePermission.id).label("count")
+                        func.count(FilePermission.id).label("count"),
                     )
                     .filter(FilePermission.tenant_id == tenant_id)
                     .group_by(FilePermission.target_type)
                     .all()
                 )
-                file_permission_distribution = {target_type: count for target_type, count in file_permission_targets}
+                file_permission_distribution = {
+                    target_type: count for target_type, count in file_permission_targets
+                }
         except Exception:
             # Any error, default to 0/empty
             files_with_permissions = 0
@@ -359,8 +397,9 @@ class StorageConfigService:
         folder_permission_distribution = {}
         try:
             from sqlalchemy import inspect
+
             inspector = inspect(self.db.bind)
-            if 'folder_permissions' in inspector.get_table_names():
+            if "folder_permissions" in inspector.get_table_names():
                 folders_with_permissions = (
                     self.db.query(func.count(distinct(FolderPermission.folder_id)))
                     .filter(FolderPermission.tenant_id == tenant_id)
@@ -370,13 +409,16 @@ class StorageConfigService:
                 folder_permission_targets = (
                     self.db.query(
                         FolderPermission.target_type,
-                        func.count(FolderPermission.id).label("count")
+                        func.count(FolderPermission.id).label("count"),
                     )
                     .filter(FolderPermission.tenant_id == tenant_id)
                     .group_by(FolderPermission.target_type)
                     .all()
                 )
-                folder_permission_distribution = {target_type: count for target_type, count in folder_permission_targets}
+                folder_permission_distribution = {
+                    target_type: count
+                    for target_type, count in folder_permission_targets
+                }
         except Exception:
             # Any error, default to 0/empty
             folders_with_permissions = 0
@@ -389,11 +431,27 @@ class StorageConfigService:
             "total_versions": int(total_versions) if total_versions is not None else 0,
             "total_folders": int(total_folders) if total_folders is not None else 0,
             "mime_distribution": dict(mime_distribution) if mime_distribution else {},
-            "entity_distribution": dict(entity_distribution) if entity_distribution else {},
-            "files_with_permissions": int(files_with_permissions) if files_with_permissions is not None else 0,
-            "folders_with_permissions": int(folders_with_permissions) if folders_with_permissions is not None else 0,
-            "file_permission_distribution": dict(file_permission_distribution) if file_permission_distribution else {},
-            "folder_permission_distribution": dict(folder_permission_distribution) if folder_permission_distribution else {},
+            "entity_distribution": (
+                dict(entity_distribution) if entity_distribution else {}
+            ),
+            "files_with_permissions": (
+                int(files_with_permissions) if files_with_permissions is not None else 0
+            ),
+            "folders_with_permissions": (
+                int(folders_with_permissions)
+                if folders_with_permissions is not None
+                else 0
+            ),
+            "file_permission_distribution": (
+                dict(file_permission_distribution)
+                if file_permission_distribution
+                else {}
+            ),
+            "folder_permission_distribution": (
+                dict(folder_permission_distribution)
+                if folder_permission_distribution
+                else {}
+            ),
         }
 
     def get_file_limits(self, tenant_id: UUID) -> dict[str, Any]:
@@ -406,11 +464,21 @@ class StorageConfigService:
             Dictionary with file limits
         """
         return {
-            "max_file_size": self.config_service.get(tenant_id, self.module, "limits.max_file_size", 100 * 1024 * 1024),  # 100MB default
-            "allowed_mime_types": self.config_service.get(tenant_id, self.module, "limits.allowed_mime_types", []),
-            "blocked_mime_types": self.config_service.get(tenant_id, self.module, "limits.blocked_mime_types", []),
-            "max_versions_per_file": self.config_service.get(tenant_id, self.module, "limits.max_versions_per_file", 10),
-            "retention_days": self.config_service.get(tenant_id, self.module, "limits.retention_days", None),
+            "max_file_size": self.config_service.get(
+                tenant_id, self.module, "limits.max_file_size", 100 * 1024 * 1024
+            ),  # 100MB default
+            "allowed_mime_types": self.config_service.get(
+                tenant_id, self.module, "limits.allowed_mime_types", []
+            ),
+            "blocked_mime_types": self.config_service.get(
+                tenant_id, self.module, "limits.blocked_mime_types", []
+            ),
+            "max_versions_per_file": self.config_service.get(
+                tenant_id, self.module, "limits.max_versions_per_file", 10
+            ),
+            "retention_days": self.config_service.get(
+                tenant_id, self.module, "limits.retention_days", None
+            ),
         }
 
     def update_file_limits(
@@ -470,7 +538,9 @@ class StorageConfigService:
                 )
             # Validate MIME type format
             for mime_type in allowed_mime_types:
-                if not isinstance(mime_type, str) or not MIME_TYPE_PATTERN.match(mime_type):
+                if not isinstance(mime_type, str) or not MIME_TYPE_PATTERN.match(
+                    mime_type
+                ):
                     raise APIException(
                         status_code=400,
                         code="INVALID_MIME_TYPE_FORMAT",
@@ -496,7 +566,9 @@ class StorageConfigService:
                 )
             # Validate MIME type format
             for mime_type in blocked_mime_types:
-                if not isinstance(mime_type, str) or not MIME_TYPE_PATTERN.match(mime_type):
+                if not isinstance(mime_type, str) or not MIME_TYPE_PATTERN.match(
+                    mime_type
+                ):
                     raise APIException(
                         status_code=400,
                         code="INVALID_MIME_TYPE_FORMAT",
@@ -560,11 +632,21 @@ class StorageConfigService:
             Dictionary with thumbnail configuration
         """
         return {
-            "default_width": self.config_service.get(tenant_id, self.module, "thumbnails.default_width", 300),
-            "default_height": self.config_service.get(tenant_id, self.module, "thumbnails.default_height", 300),
-            "quality": self.config_service.get(tenant_id, self.module, "thumbnails.quality", 85),
-            "cache_enabled": self.config_service.get(tenant_id, self.module, "thumbnails.cache_enabled", True),
-            "max_cache_size": self.config_service.get(tenant_id, self.module, "thumbnails.max_cache_size", 1024 * 1024 * 1024),  # 1GB default
+            "default_width": self.config_service.get(
+                tenant_id, self.module, "thumbnails.default_width", 300
+            ),
+            "default_height": self.config_service.get(
+                tenant_id, self.module, "thumbnails.default_height", 300
+            ),
+            "quality": self.config_service.get(
+                tenant_id, self.module, "thumbnails.quality", 85
+            ),
+            "cache_enabled": self.config_service.get(
+                tenant_id, self.module, "thumbnails.cache_enabled", True
+            ),
+            "max_cache_size": self.config_service.get(
+                tenant_id, self.module, "thumbnails.max_cache_size", 1024 * 1024 * 1024
+            ),  # 1GB default
         }
 
     def update_thumbnail_config(
@@ -675,4 +757,3 @@ class StorageConfigService:
             )
 
         return self.get_thumbnail_config(tenant_id)
-

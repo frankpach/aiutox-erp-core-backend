@@ -37,13 +37,3 @@ __all__ = [
     "ProductBarcodeUpdate",
     "ProductBarcodeResponse",
 ]
-
-
-
-
-
-
-
-
-
-

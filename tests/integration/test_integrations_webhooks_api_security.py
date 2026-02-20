@@ -30,9 +30,7 @@ def test_webhooks_list_requires_auth(client_with_db):
 
 @pytest.mark.integration
 @pytest.mark.security
-def test_webhooks_list_requires_view_permission(
-    client_with_db, auth_headers
-):
+def test_webhooks_list_requires_view_permission(client_with_db, auth_headers):
     """Ensure integrations.view permission is required to list webhooks."""
     response = client_with_db.get(
         "/api/v1/integrations/webhooks",
@@ -44,9 +42,7 @@ def test_webhooks_list_requires_view_permission(
 
 @pytest.mark.integration
 @pytest.mark.security
-def test_webhooks_events_requires_view_permission(
-    client_with_db, auth_headers
-):
+def test_webhooks_events_requires_view_permission(client_with_db, auth_headers):
     """Ensure integrations.view permission is required to list webhook events."""
     response = client_with_db.get(
         "/api/v1/integrations/webhooks/events",
@@ -115,7 +111,10 @@ def test_webhooks_update_and_delete_require_manage_permission(
         f"/api/v1/integrations/webhooks/{webhook_id}",
         json={
             "name": "Webhook Update",
-            "config": {"url": "https://example.com/updated", "event_type": "task.updated"},
+            "config": {
+                "url": "https://example.com/updated",
+                "event_type": "task.updated",
+            },
             "status": "active",
         },
         headers=viewer_headers,

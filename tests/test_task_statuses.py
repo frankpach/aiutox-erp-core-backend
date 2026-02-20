@@ -40,12 +40,7 @@ class TestTaskStatusesAPI:
     @pytest.fixture
     def sample_status_data(self):
         """Sample status data for testing"""
-        return {
-            "name": "Test Status",
-            "color": "#ff0000",
-            "type": "open",
-            "order": 1
-        }
+        return {"name": "Test Status", "color": "#ff0000", "type": "open", "order": 1}
 
     @pytest.fixture
     def system_status(self, db_session: Session):
@@ -56,7 +51,7 @@ class TestTaskStatusesAPI:
             color="#6b7280",
             type="open",
             order=0,
-            is_system=True
+            is_system=True,
         )
         db_session.add(status)
         db_session.commit()
@@ -72,7 +67,7 @@ class TestTaskStatusesAPI:
             color="#3b82f6",
             type="in_progress",
             order=1,
-            is_system=False
+            is_system=False,
         )
         db_session.add(status)
         db_session.commit()
@@ -138,7 +133,9 @@ class TestCreateStatus:
         assert "id" in data
         assert "created_at" in data
 
-    def test_create_status_duplicate_name(self, client, custom_status, sample_status_data):
+    def test_create_status_duplicate_name(
+        self, client, custom_status, sample_status_data
+    ):
         """Test creating status with duplicate name"""
         sample_status_data["name"] = "Custom Status"  # Same as existing
 
@@ -178,10 +175,7 @@ class TestUpdateStatus:
 
     def test_update_status_success(self, client, custom_status):
         """Test successful status update"""
-        update_data = {
-            "name": "Updated Status",
-            "color": "#00ff00"
-        }
+        update_data = {"name": "Updated Status", "color": "#00ff00"}
 
         response = client.put(f"/task-statuses/{custom_status.id}", json=update_data)
 
@@ -211,7 +205,9 @@ class TestUpdateStatus:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    def test_update_status_duplicate_name(self, client, custom_status, sample_status_data):
+    def test_update_status_duplicate_name(
+        self, client, custom_status, sample_status_data
+    ):
         """Test updating status with duplicate name"""
         # Create another status first
         create_response = client.post("/task-statuses", json=sample_status_data)
@@ -250,7 +246,7 @@ class TestDeleteStatus:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    @patch('app.features.tasks.statuses.Task')
+    @patch("app.features.tasks.statuses.Task")
     def test_delete_status_with_tasks(self, mock_task_model, client, custom_status):
         """Test deleting status that is being used by tasks"""
         # Mock task query to return count > 0
@@ -270,7 +266,9 @@ class TestReorderStatus:
         """Test successful status reordering"""
         reorder_data = {"new_order": 5}
 
-        response = client.post(f"/task-statuses/{custom_status.id}/reorder", json=reorder_data)
+        response = client.post(
+            f"/task-statuses/{custom_status.id}/reorder", json=reorder_data
+        )
 
         assert response.status_code == 200
         assert "reordered successfully" in response.json()["message"]
@@ -279,7 +277,9 @@ class TestReorderStatus:
         """Test that system statuses cannot be reordered"""
         reorder_data = {"new_order": 5}
 
-        response = client.post(f"/task-statuses/{system_status.id}/reorder", json=reorder_data)
+        response = client.post(
+            f"/task-statuses/{system_status.id}/reorder", json=reorder_data
+        )
 
         assert response.status_code == 403
         assert "cannot be reordered" in response.json()["detail"]
@@ -288,7 +288,9 @@ class TestReorderStatus:
         """Test reordering non-existent status"""
         reorder_data = {"new_order": 5}
 
-        response = client.post("/task-statuses/nonexistent-id/reorder", json=reorder_data)
+        response = client.post(
+            "/task-statuses/nonexistent-id/reorder", json=reorder_data
+        )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
@@ -305,7 +307,7 @@ class TestTaskStatusModel:
             color="#ff0000",
             type="open",
             order=1,
-            is_system=False
+            is_system=False,
         )
 
         db_session.add(status)
@@ -322,10 +324,11 @@ class TestTaskStatusModel:
         asyncio.run(initialize_system_statuses(db_session, tenant_id))
 
         # Check that system statuses were created
-        statuses = db_session.query(TaskStatus).filter(
-            TaskStatus.tenant_id == tenant_id,
-            TaskStatus.is_system.is_(True)
-        ).all()
+        statuses = (
+            db_session.query(TaskStatus)
+            .filter(TaskStatus.tenant_id == tenant_id, TaskStatus.is_system.is_(True))
+            .all()
+        )
 
         assert len(statuses) == 5  # Default system statuses
         status_names = [s.name for s in statuses]
@@ -347,9 +350,27 @@ class TestTaskStatusModel:
         """Test status ordering functionality"""
         # Create multiple statuses
         statuses = [
-            TaskStatus(tenant_id=test_tenant.id, name="Status 1", type="open", color="#ff0000", order=3),
-            TaskStatus(tenant_id=test_tenant.id, name="Status 2", type="open", color="#00ff00", order=1),
-            TaskStatus(tenant_id=test_tenant.id, name="Status 3", type="open", color="#0000ff", order=2),
+            TaskStatus(
+                tenant_id=test_tenant.id,
+                name="Status 1",
+                type="open",
+                color="#ff0000",
+                order=3,
+            ),
+            TaskStatus(
+                tenant_id=test_tenant.id,
+                name="Status 2",
+                type="open",
+                color="#00ff00",
+                order=1,
+            ),
+            TaskStatus(
+                tenant_id=test_tenant.id,
+                name="Status 3",
+                type="open",
+                color="#0000ff",
+                order=2,
+            ),
         ]
 
         for status in statuses:
@@ -357,9 +378,12 @@ class TestTaskStatusModel:
         db_session.commit()
 
         # Query ordered by order
-        ordered_statuses = db_session.query(TaskStatus).filter(
-            TaskStatus.tenant_id == test_tenant.id
-        ).order_by(TaskStatus.order).all()
+        ordered_statuses = (
+            db_session.query(TaskStatus)
+            .filter(TaskStatus.tenant_id == test_tenant.id)
+            .order_by(TaskStatus.order)
+            .all()
+        )
 
         assert ordered_statuses[0].name == "Status 2"
         assert ordered_statuses[1].name == "Status 3"
@@ -375,10 +399,7 @@ class TestStatusValidation:
 
         # Create first status
         status1 = TaskStatus(
-            tenant_id=tenant_id,
-            name="Unique Name",
-            color="#ff0000",
-            type="open"
+            tenant_id=tenant_id, name="Unique Name", color="#ff0000", type="open"
         )
         db_session.add(status1)
         db_session.commit()
@@ -388,7 +409,7 @@ class TestStatusValidation:
             tenant_id=tenant_id,
             name="Unique Name",  # Same name
             color="#00ff00",
-            type="in_progress"
+            type="in_progress",
         )
         db_session.add(status2)
 
@@ -422,7 +443,7 @@ class TestStatusIntegration:
             "name": "Integration Test Status",
             "color": "#ff6600",
             "type": "in_progress",
-            "order": 10
+            "order": 10,
         }
 
         create_response = client.post("/task-statuses", json=create_data)
@@ -456,11 +477,7 @@ class TestStatusIntegration:
         """Test that statuses are isolated by tenant"""
         # This would require mocking different tenants
         # For now, just test that tenant_id is properly set
-        create_data = {
-            "name": "Tenant Test Status",
-            "color": "#0066ff",
-            "type": "open"
-        }
+        create_data = {"name": "Tenant Test Status", "color": "#0066ff", "type": "open"}
 
         response = client.post("/task-statuses", json=create_data)
         assert response.status_code == 200

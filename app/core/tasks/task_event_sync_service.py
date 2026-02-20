@@ -81,9 +81,7 @@ class TaskEventSyncService:
         current_metadata.update(sync_metadata)
 
         self.repository.update_task(
-            task_id,
-            tenant_id,
-            {"task_metadata": current_metadata}
+            task_id, tenant_id, {"task_metadata": current_metadata}
         )
 
         # Publicar evento de sincronización
@@ -140,14 +138,18 @@ class TaskEventSyncService:
 
         # Remover metadata de sincronización
         current_metadata = task.task_metadata or {}
-        sync_keys = ["calendar_synced", "calendar_provider", "calendar_id", "synced_at", "synced_by"]
+        sync_keys = [
+            "calendar_synced",
+            "calendar_provider",
+            "calendar_id",
+            "synced_at",
+            "synced_by",
+        ]
         for key in sync_keys:
             current_metadata.pop(key, None)
 
         self.repository.update_task(
-            task_id,
-            tenant_id,
-            {"task_metadata": current_metadata}
+            task_id, tenant_id, {"task_metadata": current_metadata}
         )
 
         # Publicar evento de desincronización
@@ -204,11 +206,7 @@ class TaskEventSyncService:
         metadata["synced_at"] = datetime.now(UTC).isoformat()
         metadata["last_updated_by"] = str(user_id)
 
-        self.repository.update_task(
-            task_id,
-            tenant_id,
-            {"task_metadata": metadata}
-        )
+        self.repository.update_task(task_id, tenant_id, {"task_metadata": metadata})
 
         # Publicar evento de actualización
         from app.core.pubsub.event_helpers import safe_publish_event
@@ -278,16 +276,20 @@ class TaskEventSyncService:
                 results["synced"].append(result)
             except ValueError as e:
                 logger.warning(f"Skipped task {task_id}: {e}")
-                results["skipped"].append({
-                    "task_id": str(task_id),
-                    "reason": str(e),
-                })
+                results["skipped"].append(
+                    {
+                        "task_id": str(task_id),
+                        "reason": str(e),
+                    }
+                )
             except Exception as e:
                 logger.error(f"Failed to sync task {task_id}: {e}")
-                results["failed"].append({
-                    "task_id": str(task_id),
-                    "error": str(e),
-                })
+                results["failed"].append(
+                    {
+                        "task_id": str(task_id),
+                        "error": str(e),
+                    }
+                )
 
         logger.info(
             f"Batch sync completed: {len(results['synced'])} synced, "

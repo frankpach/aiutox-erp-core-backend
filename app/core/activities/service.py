@@ -76,21 +76,21 @@ class ActivityService:
 
         safe_publish_event(
             event_publisher=self.event_publisher,
-                        event_type="activity.created",
-                        entity_type="activity",
-                        entity_id=activity.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="activity_service",
-                            version="1.0",
-                            additional_data={
-                                "activity_type": activity_type,
-                                "entity_type": entity_type,
-                                "entity_id": str(entity_id),
-                            },
-                        ),
-                    )
+            event_type="activity.created",
+            entity_type="activity",
+            entity_id=activity.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="activity_service",
+                version="1.0",
+                additional_data={
+                    "activity_type": activity_type,
+                    "entity_type": entity_type,
+                    "entity_id": str(entity_id),
+                },
+            ),
+        )
 
         logger.info(f"Activity created: {activity.id} ({activity_type})")
         return activity
@@ -177,7 +177,9 @@ class ActivityService:
         Returns:
             Count of matching activities
         """
-        return self.repository.count_search(tenant_id, query_text, entity_type, activity_type)
+        return self.repository.count_search(
+            tenant_id, query_text, entity_type, activity_type
+        )
 
     def update_activity(
         self,
@@ -207,7 +209,9 @@ class ActivityService:
         if description is not None:
             update_data["description"] = description
         if metadata is not None:
-            update_data["activity_metadata"] = metadata  # Model uses activity_metadata as attribute name
+            update_data["activity_metadata"] = (
+                metadata  # Model uses activity_metadata as attribute name
+            )
 
         activity = self.repository.update(activity_id, tenant_id, update_data)
 
@@ -345,4 +349,3 @@ class ActivityService:
         return self.repository.search(
             tenant_id, query, entity_type, activity_type, skip, limit
         )
-

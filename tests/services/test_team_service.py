@@ -70,7 +70,9 @@ def sample_users(db_session, sample_tenant):
 class TestTeamService:
     """Test TeamService methods."""
 
-    def test_add_team_member(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_add_team_member(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test adding a member to a team."""
         user = sample_users[0]
 
@@ -87,7 +89,9 @@ class TestTeamService:
         assert member.user_id == user.id
         assert member.role == "member"
 
-    def test_add_duplicate_member(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_add_duplicate_member(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test adding a duplicate member returns existing member."""
         user = sample_users[0]
 
@@ -109,7 +113,9 @@ class TestTeamService:
 
         assert member1.id == member2.id
 
-    def test_get_group_members(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_get_group_members(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test getting all members of a group."""
         # Add multiple members
         for user in sample_users:
@@ -125,7 +131,9 @@ class TestTeamService:
         assert len(members) == 3
         assert all(user.id in members for user in sample_users)
 
-    def test_get_group_members_with_nested(self, team_service, db_session, sample_team, sample_users, sample_tenant):
+    def test_get_group_members_with_nested(
+        self, team_service, db_session, sample_team, sample_users, sample_tenant
+    ):
         """Test getting members including nested teams."""
         # Create child team
         child_team = Team(
@@ -155,14 +163,20 @@ class TestTeamService:
         )
 
         # Get without nested
-        members_flat = team_service.get_group_members(sample_tenant.id, sample_team.id, include_nested=False)
+        members_flat = team_service.get_group_members(
+            sample_tenant.id, sample_team.id, include_nested=False
+        )
         assert len(members_flat) == 1
 
         # Get with nested
-        members_nested = team_service.get_group_members(sample_tenant.id, sample_team.id, include_nested=True)
+        members_nested = team_service.get_group_members(
+            sample_tenant.id, sample_team.id, include_nested=True
+        )
         assert len(members_nested) == 2
 
-    def test_get_user_groups(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_get_user_groups(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test getting all groups a user belongs to."""
         user = sample_users[0]
 
@@ -179,12 +193,16 @@ class TestTeamService:
         assert len(groups) == 1
         assert sample_team.id in groups
 
-    def test_is_user_in_group(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_is_user_in_group(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test checking if user is in group."""
         user = sample_users[0]
 
         # User not in group yet
-        assert not team_service.is_user_in_group(sample_tenant.id, user.id, sample_team.id)
+        assert not team_service.is_user_in_group(
+            sample_tenant.id, user.id, sample_team.id
+        )
 
         # Add user to group
         team_service.add_team_member(
@@ -197,7 +215,9 @@ class TestTeamService:
         # User now in group
         assert team_service.is_user_in_group(sample_tenant.id, user.id, sample_team.id)
 
-    def test_remove_team_member(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_remove_team_member(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test removing a member from a team."""
         user = sample_users[0]
 
@@ -222,7 +242,9 @@ class TestTeamService:
         members = team_service.get_group_members(sample_tenant.id, sample_team.id)
         assert user.id not in members
 
-    def test_remove_nonexistent_member(self, team_service, sample_team, sample_users, sample_tenant):
+    def test_remove_nonexistent_member(
+        self, team_service, sample_team, sample_users, sample_tenant
+    ):
         """Test removing a member that doesn't exist."""
         user = sample_users[0]
 

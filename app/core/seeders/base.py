@@ -24,4 +24,3 @@ class Seeder(ABC):
             Seeder class name
         """
         return self.__class__.__name__
-

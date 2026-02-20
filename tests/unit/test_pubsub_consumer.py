@@ -225,6 +225,7 @@ async def test_claim_pending_messages_empty(event_consumer, mock_client):
 @pytest.mark.asyncio
 async def test_stop_consumer(event_consumer):
     """Test stopping the consumer."""
+
     # Create a real task that we can cancel
     async def dummy_task():
         try:
@@ -244,4 +245,3 @@ async def test_stop_consumer(event_consumer):
     assert len(event_consumer._tasks) == 0
     # Task should be done (either cancelled or completed)
     assert task.done()
-

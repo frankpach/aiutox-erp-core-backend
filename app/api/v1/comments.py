@@ -64,7 +64,9 @@ async def create_comment(
     description="List comments for an entity. Requires comments.view permission.",
 )
 async def list_comments(
-    entity_type: Annotated[str, Query(..., description="Entity type (e.g., 'product', 'order')")],
+    entity_type: Annotated[
+        str, Query(..., description="Entity type (e.g., 'product', 'order')")
+    ],
     entity_id: Annotated[UUID, Query(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("comments.view"))],
     service: Annotated[CommentService, Depends(get_comment_service)],
@@ -91,7 +93,9 @@ async def list_comments(
         meta={
             "total": total,
             "page": page,
-            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "page_size": (
+                max(page_size, 1) if total == 0 else page_size
+            ),  # Minimum page_size is 1
             "total_pages": total_pages,
         },
     )
@@ -260,7 +264,3 @@ async def get_attachments(
             "total_pages": 1,
         },
     )
-
-
-
-

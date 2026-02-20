@@ -88,6 +88,7 @@ async def login(
         HTTPException: If credentials are invalid or rate limit exceeded.
     """
     import logging
+
     logger = logging.getLogger("app")
     logger.debug(f"[LOGIN] Endpoint called for email={login_data.email}")
 
@@ -117,7 +118,9 @@ async def login(
             message="Invalid credentials",
         )
 
-    logger.debug(f"[LOGIN] Step 0.2: User authenticated successfully, user_id={user.id}")
+    logger.debug(
+        f"[LOGIN] Step 0.2: User authenticated successfully, user_id={user.id}"
+    )
 
     # Successful login - DO NOT record attempt
     # Successful logins should not count towards rate limiting
@@ -129,8 +132,11 @@ async def login(
         logger.debug("[LOGIN] Step 0.3: Auth success logged")
     except Exception as e:
         import logging
+
         logger = logging.getLogger("app")
-        logger.warning(f"Failed to log auth success for user {user.id}: {e}", exc_info=True)
+        logger.warning(
+            f"Failed to log auth success for user {user.id}: {e}", exc_info=True
+        )
         # Continue even if logging fails
 
     logger.debug("[LOGIN] Step 0.4: About to create tokens")
@@ -138,17 +144,24 @@ async def login(
     # Create tokens
     try:
         import logging
+
         # Use the configured app logger from app.core.logging
         logger = logging.getLogger("app")
-        logger.debug(f"[LOGIN] Creating tokens for user {user.id}, email={login_data.email}")
+        logger.debug(
+            f"[LOGIN] Creating tokens for user {user.id}, email={login_data.email}"
+        )
 
         logger.debug(f"[LOGIN] Step 1: Creating access token for user {user.id}")
         logger.debug(f"[LOGIN] Step 1.1: Getting user roles for user {user.id}")
         access_token = auth_service.create_access_token_for_user(user)
         logger.debug("[LOGIN] Step 1: Access token created successfully")
 
-        logger.debug(f"[LOGIN] Step 2: Creating refresh token for user {user.id}, remember_me={login_data.remember_me}")
-        refresh_token = auth_service.create_refresh_token_for_user(user, remember_me=login_data.remember_me)
+        logger.debug(
+            f"[LOGIN] Step 2: Creating refresh token for user {user.id}, remember_me={login_data.remember_me}"
+        )
+        refresh_token = auth_service.create_refresh_token_for_user(
+            user, remember_me=login_data.remember_me
+        )
         logger.debug("[LOGIN] Step 2: Refresh token created successfully")
 
         logger.debug(f"[LOGIN] Tokens created successfully for user {user.id}")
@@ -157,9 +170,12 @@ async def login(
         import logging
 
         from app.core.config_file import get_settings
+
         logger = logging.getLogger("app")
         settings = get_settings()
-        logger.error(f"[LOGIN] Error creating tokens for user {user.id}: {e}", exc_info=True)
+        logger.error(
+            f"[LOGIN] Error creating tokens for user {user.id}: {e}", exc_info=True
+        )
         raise_internal_server_error(
             code="TOKEN_CREATION_ERROR",
             message="Failed to create authentication tokens",
@@ -168,8 +184,13 @@ async def login(
 
     # Calculate cookie max_age based on remember_me
     from app.core.config_file import get_settings
+
     settings = get_settings()
-    max_age_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if login_data.remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+    max_age_days = (
+        settings.REFRESH_TOKEN_REMEMBER_ME_DAYS
+        if login_data.remember_me
+        else settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
     max_age_seconds = max_age_days * 24 * 60 * 60
 
     # Set httpOnly cookie for refresh token
@@ -245,6 +266,7 @@ async def refresh_token(
 
     # Update cookie with same settings (refresh token rotation could be added here)
     from app.core.config_file import get_settings
+
     settings = get_settings()
     cookie_secure = settings.COOKIE_SECURE if settings.ENV == "prod" else False
 
@@ -269,7 +291,11 @@ async def refresh_token(
     )
 
 
-@router.post("/logout", response_model=StandardResponse[dict[str, str]], status_code=status.HTTP_200_OK)
+@router.post(
+    "/logout",
+    response_model=StandardResponse[dict[str, str]],
+    status_code=status.HTTP_200_OK,
+)
 async def logout(
     request: Request,
     response: Response,
@@ -308,9 +334,7 @@ async def logout(
         refresh_token = refresh_data.refresh_token
 
     auth_service = AuthService(db)
-    success = auth_service.revoke_refresh_token(
-        refresh_token, current_user.id
-    )
+    success = auth_service.revoke_refresh_token(refresh_token, current_user.id)
 
     if not success:
         raise_unauthorized(
@@ -320,6 +344,7 @@ async def logout(
 
     # Delete cookie
     from app.core.config_file import get_settings
+
     settings = get_settings()
     response.delete_cookie(
         key="refresh_token",
@@ -334,7 +359,11 @@ async def logout(
     return StandardResponse(data={"message": "Logged out successfully"})
 
 
-@router.get("/me", response_model=StandardResponse[UserMeResponse], status_code=status.HTTP_200_OK)
+@router.get(
+    "/me",
+    response_model=StandardResponse[UserMeResponse],
+    status_code=status.HTTP_200_OK,
+)
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -419,9 +448,7 @@ async def get_encryption_secret(
     # Generate a deterministic but secure secret using HMAC
     # This ensures the same tenant always gets the same secret (until expiration)
     secret_hash = hmac.new(
-        secret_key.encode(),
-        tenant_secret_key.encode(),
-        hashlib.sha256
+        secret_key.encode(), tenant_secret_key.encode(), hashlib.sha256
     ).hexdigest()
 
     # Use first 32 characters as secret (sufficient for encryption)
@@ -533,15 +560,15 @@ async def grant_permission(
 
     return StandardResponse(
         data=DelegatedPermissionResponse(
-        id=delegated_permission.id,
-        user_id=delegated_permission.user_id,
-        granted_by=delegated_permission.granted_by,
-        module=delegated_permission.module,
-        permission=delegated_permission.permission,
-        expires_at=delegated_permission.expires_at,
-        created_at=delegated_permission.created_at,
-        revoked_at=delegated_permission.revoked_at,
-        is_active=delegated_permission.is_active,
+            id=delegated_permission.id,
+            user_id=delegated_permission.user_id,
+            granted_by=delegated_permission.granted_by,
+            module=delegated_permission.module,
+            permission=delegated_permission.permission,
+            expires_at=delegated_permission.expires_at,
+            created_at=delegated_permission.created_at,
+            revoked_at=delegated_permission.revoked_at,
+            is_active=delegated_permission.is_active,
         ),
         message="Permission granted successfully",
     )
@@ -695,8 +722,8 @@ async def revoke_all_user_permissions(
 
     return StandardResponse(
         data=RevokePermissionResponse(
-        message=f"Revoked {revoked_count} permission(s) successfully",
-        revoked_count=revoked_count,
+            message=f"Revoked {revoked_count} permission(s) successfully",
+            revoked_count=revoked_count,
         ),
         message="Permissions revoked successfully",
     )
@@ -796,8 +823,8 @@ async def revoke_user_permission(
 
     return StandardResponse(
         data=RevokePermissionResponse(
-        message="Permission revoked successfully",
-        revoked_count=1,
+            message="Permission revoked successfully",
+            revoked_count=1,
         ),
         message="Permission revoked successfully",
     )
@@ -1096,6 +1123,7 @@ async def assign_role(
     )
     if existing_role:
         from app.core.exceptions import raise_conflict
+
         raise_conflict(
             code="ROLE_ALREADY_ASSIGNED",
             message=f"Role '{role_data.role}' is already assigned to this user",
@@ -1252,7 +1280,9 @@ async def remove_role(
         target_user_id=str(user_id),
         details={
             "role": role,
-            "original_granted_by": str(original_granted_by) if original_granted_by else None,
+            "original_granted_by": (
+                str(original_granted_by) if original_granted_by else None
+            ),
         },
     )
 
@@ -1267,7 +1297,9 @@ async def remove_role(
         details={
             "role": role,
             "target_user_id": str(user_id),
-            "original_granted_by": str(original_granted_by) if original_granted_by else None,
+            "original_granted_by": (
+                str(original_granted_by) if original_granted_by else None
+            ),
         },
         ip_address=ip_address,
         user_agent=user_agent,
@@ -1306,11 +1338,21 @@ async def get_audit_logs(
     user_id: UUID | None = Query(None, description="Filter by user ID"),
     action: str | None = Query(None, description="Filter by action type"),
     resource_type: str | None = Query(None, description="Filter by resource type"),
-    date_from: datetime | None = Query(None, description="Filter by start date (ISO format)"),
-    date_to: datetime | None = Query(None, description="Filter by end date (ISO format)"),
-    ip_address: str | None = Query(None, description="Filter by IP address (partial match)"),
-    user_agent: str | None = Query(None, description="Filter by user agent (partial match)"),
-    details_search: str | None = Query(None, description="Search in details JSON (partial match)"),
+    date_from: datetime | None = Query(
+        None, description="Filter by start date (ISO format)"
+    ),
+    date_to: datetime | None = Query(
+        None, description="Filter by end date (ISO format)"
+    ),
+    ip_address: str | None = Query(
+        None, description="Filter by IP address (partial match)"
+    ),
+    user_agent: str | None = Query(
+        None, description="Filter by user agent (partial match)"
+    ),
+    details_search: str | None = Query(
+        None, description="Search in details JSON (partial match)"
+    ),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
 ) -> AuditLogListResponse:

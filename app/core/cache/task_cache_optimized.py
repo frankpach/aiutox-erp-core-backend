@@ -160,7 +160,9 @@ class TaskCacheOptimized:
             return False
 
     # Métodos especializados para caché de tareas
-    async def cache_task(self, task_id: UUID, tenant_id: UUID, task_data: dict, ttl: int = 300) -> None:
+    async def cache_task(
+        self, task_id: UUID, tenant_id: UUID, task_data: dict, ttl: int = 300
+    ) -> None:
         """Cachear una tarea individual."""
         key = f"task:{task_id}:{tenant_id}"
         await self.set(key, task_data, ttl)
@@ -215,7 +217,9 @@ class TaskCacheOptimized:
         ttl: int = 60,
     ) -> None:
         """Cachear tareas visibles para usuario."""
-        groups_str = ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
+        groups_str = (
+            ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
+        )
         key = f"visible_tasks:{tenant_id}:{user_id}:{groups_str}"
 
         await self.set(key, tasks, ttl)
@@ -227,13 +231,17 @@ class TaskCacheOptimized:
         group_ids: tuple,
     ) -> list[dict] | None:
         """Obtener tareas visibles cachéadas para usuario."""
-        groups_str = ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
+        groups_str = (
+            ",".join(sorted(str(gid) for gid in group_ids)) if group_ids else "none"
+        )
         key = f"visible_tasks:{tenant_id}:{user_id}:{groups_str}"
 
         result = await self.get(key)
         return result if isinstance(result, list) else None
 
-    async def cache_task_statistics(self, tenant_id: UUID, stats: dict, ttl: int = 600) -> None:
+    async def cache_task_statistics(
+        self, tenant_id: UUID, stats: dict, ttl: int = 600
+    ) -> None:
         """Cachear estadísticas de tareas."""
         key = f"task_stats:{tenant_id}"
         await self.set(key, stats, ttl)

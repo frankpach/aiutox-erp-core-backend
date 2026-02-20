@@ -50,7 +50,9 @@ class TemplateRepository:
         if is_active is not None:
             query = query.filter(Template.is_active == is_active)
 
-        return query.order_by(Template.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Template.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def update_template(self, template: Template, template_data: dict) -> Template:
         """Update template."""
@@ -141,7 +143,8 @@ class TemplateRepository:
         return (
             self.db.query(TemplateCategory)
             .filter(
-                TemplateCategory.id == category_id, TemplateCategory.tenant_id == tenant_id
+                TemplateCategory.id == category_id,
+                TemplateCategory.tenant_id == tenant_id,
             )
             .first()
         )
@@ -160,11 +163,3 @@ class TemplateRepository:
         """Delete template category."""
         self.db.delete(category)
         self.db.commit()
-
-
-
-
-
-
-
-

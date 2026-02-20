@@ -101,8 +101,7 @@ async def get_activity_icons(
 
     # Convert to response format
     response_data = [
-        ActivityIconConfigResponse.model_validate(config)
-        for config in configs
+        ActivityIconConfigResponse.model_validate(config) for config in configs
     ]
 
     return {"data": response_data}
@@ -199,7 +198,9 @@ async def bulk_update_activity_icons(
                     activity_type=activity_type,
                     status=status,
                     icon=icon,
-                    class_name=DEFAULT_ICONS.get(activity_type, {}).get(status, {}).get("class_name"),
+                    class_name=DEFAULT_ICONS.get(activity_type, {})
+                    .get(status, {})
+                    .get("class_name"),
                     is_active=True,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
@@ -214,8 +215,7 @@ async def bulk_update_activity_icons(
         db.refresh(config)
 
     response_data = [
-        ActivityIconConfigResponse.model_validate(config)
-        for config in updated_configs
+        ActivityIconConfigResponse.model_validate(config) for config in updated_configs
     ]
 
     return {"data": response_data}

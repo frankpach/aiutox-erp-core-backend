@@ -43,7 +43,7 @@ class TaskAuditServiceExtended:
             ip_address=ip_address,
             user_agent=user_agent,
             metadata=metadata or {},
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self.db.add(audit_log)
@@ -52,27 +52,27 @@ class TaskAuditServiceExtended:
         logger.info(f"Audit log created for task {task_id}: {action}")
 
     def get_task_audit_trail(
-        self,
-        task_id: UUID,
-        tenant_id: UUID,
-        limit: int = 100
+        self, task_id: UUID, tenant_id: UUID, limit: int = 100
     ) -> list:
         """Obtiene el historial de auditoría de una tarea."""
         from app.models.audit_log import AuditLog
 
-        logs = self.db.query(AuditLog).filter(
-            AuditLog.entity_type == "task",
-            AuditLog.entity_id == task_id,
-            AuditLog.tenant_id == tenant_id
-        ).order_by(AuditLog.created_at.desc()).limit(limit).all()
+        logs = (
+            self.db.query(AuditLog)
+            .filter(
+                AuditLog.entity_type == "task",
+                AuditLog.entity_id == task_id,
+                AuditLog.tenant_id == tenant_id,
+            )
+            .order_by(AuditLog.created_at.desc())
+            .limit(limit)
+            .all()
+        )
 
         return logs
 
     def export_audit_trail(
-        self,
-        task_id: UUID,
-        tenant_id: UUID,
-        format: str = "json"
+        self, task_id: UUID, tenant_id: UUID, format: str = "json"
     ) -> dict | str:
         """Exporta el historial de auditoría."""
         logs = self.get_task_audit_trail(task_id, tenant_id, limit=1000)
@@ -94,7 +94,7 @@ class TaskAuditServiceExtended:
                         "created_at": log.created_at.isoformat(),
                     }
                     for log in logs
-                ]
+                ],
             }
         elif format == "csv":
             # Implementar export CSV
@@ -103,18 +103,30 @@ class TaskAuditServiceExtended:
 
             output = io.StringIO()
             writer = csv.writer(output)
-            writer.writerow(["ID", "Action", "User ID", "Old Values", "New Values", "IP", "Created At"])
+            writer.writerow(
+                [
+                    "ID",
+                    "Action",
+                    "User ID",
+                    "Old Values",
+                    "New Values",
+                    "IP",
+                    "Created At",
+                ]
+            )
 
             for log in logs:
-                writer.writerow([
-                    str(log.id),
-                    log.action,
-                    str(log.user_id),
-                    str(log.old_values),
-                    str(log.new_values),
-                    log.ip_address or "",
-                    log.created_at.isoformat(),
-                ])
+                writer.writerow(
+                    [
+                        str(log.id),
+                        log.action,
+                        str(log.user_id),
+                        str(log.old_values),
+                        str(log.new_values),
+                        log.ip_address or "",
+                        log.created_at.isoformat(),
+                    ]
+                )
 
             return output.getvalue()
 

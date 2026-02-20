@@ -41,14 +41,17 @@ class ActionExecutor:
             except Exception as e:
                 logger.error(f"Failed to execute action {action}: {e}", exc_info=True)
                 results.append(
-                    {"action": action, "result": None, "success": False, "error": str(e)}
+                    {
+                        "action": action,
+                        "result": None,
+                        "success": False,
+                        "error": str(e),
+                    }
                 )
 
         return {"actions_executed": len(actions), "results": results}
 
-    async def _execute_action(
-        self, action: dict[str, Any], event: Event
-    ) -> Any:
+    async def _execute_action(self, action: dict[str, Any], event: Event) -> Any:
         """Execute a single action.
 
         Args:
@@ -131,19 +134,11 @@ class ActionExecutor:
             Result dictionary
         """
         # TODO: Implement API invocation
-        logger.info(f"Invoke API action: url={action.get('url')}, method={action.get('method')}")
+        logger.info(
+            f"Invoke API action: url={action.get('url')}, method={action.get('method')}"
+        )
         return {
             "type": "invoke_api",
             "status": "not_implemented",
             "message": "API invocation not yet implemented",
         }
-
-
-
-
-
-
-
-
-
-

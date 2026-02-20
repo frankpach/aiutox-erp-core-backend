@@ -70,7 +70,9 @@ class NotificationService:
             # For now, return empty list
             notifications = []
 
-            logger.info(f"Retrieved {len(notifications)} notifications for user {user_id}")
+            logger.info(
+                f"Retrieved {len(notifications)} notifications for user {user_id}"
+            )
             return notifications
 
         except Exception as e:
@@ -85,7 +87,9 @@ class NotificationService:
         """Mark notification as read."""
         try:
             # TODO: Implement database update
-            logger.info(f"Marked notification {notification_id} as read for user {user_id}")
+            logger.info(
+                f"Marked notification {notification_id} as read for user {user_id}"
+            )
             return True
 
         except Exception as e:

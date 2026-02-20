@@ -28,7 +28,10 @@ class TestStorageConfigService:
     @pytest.fixture
     def service(self, mock_db_session, mock_config_service):
         """Fixture para crear instancia del servicio."""
-        with patch("app.core.files.storage_config_service.ConfigService", return_value=mock_config_service):
+        with patch(
+            "app.core.files.storage_config_service.ConfigService",
+            return_value=mock_config_service,
+        ):
             service = StorageConfigService(mock_db_session)
             service.config_service = mock_config_service
             return service
@@ -315,4 +318,3 @@ class TestStorageConfigService:
         assert "total_files" in stats
         assert "total_folders" in stats
         assert "mime_distribution" in stats
-

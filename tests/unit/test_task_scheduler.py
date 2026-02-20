@@ -56,8 +56,8 @@ class TestTaskScheduler:
         jobs = scheduler.scheduler.get_jobs()
         job_ids = [job.id for job in jobs]
 
-        assert 'check_due_soon_tasks' in job_ids
-        assert 'check_overdue_tasks' in job_ids
+        assert "check_due_soon_tasks" in job_ids
+        assert "check_overdue_tasks" in job_ids
 
         await scheduler.stop()
 
@@ -73,18 +73,16 @@ class TestTaskScheduler:
 
         # Dar tiempo para que el scheduler se detenga completamente
         import asyncio
+
         await asyncio.sleep(0.1)
 
         assert not scheduler.scheduler.running
 
     @pytest.mark.asyncio
-    @patch('app.core.tasks.scheduler.TaskRepository')
-    @patch('app.core.tasks.scheduler.get_event_publisher')
+    @patch("app.core.tasks.scheduler.TaskRepository")
+    @patch("app.core.tasks.scheduler.get_event_publisher")
     async def test_check_due_soon_tasks(
-        self,
-        mock_event_publisher,
-        mock_repository_class,
-        mock_db
+        self, mock_event_publisher, mock_repository_class, mock_db
     ):
         """Test verificación de tareas próximas a vencer."""
         # Setup mocks
@@ -124,7 +122,7 @@ class TestTaskScheduler:
         scheduler._should_send_notification = MagicMock(return_value=True)
         scheduler._publish_due_soon_event = AsyncMock()
 
-        with patch('app.core.tasks.scheduler.SessionLocal') as mock_session_local:
+        with patch("app.core.tasks.scheduler.SessionLocal") as mock_session_local:
             mock_session_local.return_value = mock_db
 
             # Simplemente verificamos que se ejecute sin errores
@@ -134,13 +132,10 @@ class TestTaskScheduler:
         scheduler._get_tasks_in_window.assert_called()
 
     @pytest.mark.asyncio
-    @patch('app.core.tasks.scheduler.TaskRepository')
-    @patch('app.core.tasks.scheduler.get_event_publisher')
+    @patch("app.core.tasks.scheduler.TaskRepository")
+    @patch("app.core.tasks.scheduler.get_event_publisher")
     async def test_check_overdue_tasks(
-        self,
-        mock_event_publisher,
-        mock_repository_class,
-        mock_db
+        self, mock_event_publisher, mock_repository_class, mock_db
     ):
         """Test verificación de tareas vencidas."""
         # Setup mocks
@@ -168,7 +163,7 @@ class TestTaskScheduler:
         # Mockear el método privado _publish_overdue_event
         scheduler._publish_overdue_event = AsyncMock()
 
-        with patch('app.core.tasks.scheduler.SessionLocal') as mock_session_local:
+        with patch("app.core.tasks.scheduler.SessionLocal") as mock_session_local:
             mock_session_local.return_value = mock_db
 
             # Simplemente verificamos que se ejecute sin errores
@@ -194,7 +189,7 @@ class TestTaskScheduler:
         """Test que el scheduler maneja errores sin crashear."""
         scheduler = TaskScheduler()
 
-        with patch('app.core.tasks.scheduler.SessionLocal') as mock_session_local:
+        with patch("app.core.tasks.scheduler.SessionLocal") as mock_session_local:
             # Simular error en SessionLocal
             mock_session_local.side_effect = Exception("Database error")
 

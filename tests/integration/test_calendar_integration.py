@@ -7,7 +7,9 @@ from app.models.module_role import ModuleRole
 from tests.helpers import create_user_with_permission
 
 
-def test_calendar_event_publishes_event(client_with_db, test_user, auth_headers, db_session):
+def test_calendar_event_publishes_event(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that creating a calendar event publishes calendar.event.created event."""
     # Assign permissions
     module_role = ModuleRole(
@@ -52,7 +54,9 @@ def test_calendar_event_publishes_event(client_with_db, test_user, auth_headers,
         assert True  # Background task scheduled
 
 
-def test_calendar_event_with_reminders(client_with_db, test_user, auth_headers, db_session):
+def test_calendar_event_with_reminders(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test creating an event with reminders."""
     # Assign permissions
     module_role = ModuleRole(
@@ -143,7 +147,11 @@ def test_calendar_event_attendee_response(client_with_db, test_user, db_session)
     # First, add the user as an attendee
     # Note: EventAttendeeCreate requires event_id in the body, but it's also in the path
     # The schema expects event_id, user_id, and status
-    attendee_data = {"event_id": str(event_id), "user_id": str(test_user.id), "status": "pending"}
+    attendee_data = {
+        "event_id": str(event_id),
+        "user_id": str(test_user.id),
+        "status": "pending",
+    }
     add_response = client_with_db.post(
         f"/api/v1/calendar/events/{event_id}/attendees",
         json=attendee_data,
@@ -151,7 +159,9 @@ def test_calendar_event_attendee_response(client_with_db, test_user, db_session)
     )
     # If 422, check the error details
     if add_response.status_code != 201:
-        print(f"Add attendee failed: {add_response.status_code} - {add_response.json()}")
+        print(
+            f"Add attendee failed: {add_response.status_code} - {add_response.json()}"
+        )
     assert add_response.status_code == 201
 
     # Then update attendee response
@@ -165,7 +175,9 @@ def test_calendar_event_attendee_response(client_with_db, test_user, db_session)
     assert attendee["status"] == "accepted"
 
 
-def test_calendar_multi_tenant_isolation(client_with_db, test_user, test_tenant, db_session):
+def test_calendar_multi_tenant_isolation(
+    client_with_db, test_user, test_tenant, db_session
+):
     """Test that calendars are isolated by tenant."""
     # Assign permissions
     headers = create_user_with_permission(db_session, test_user, "calendar", "manager")
@@ -178,7 +190,9 @@ def test_calendar_multi_tenant_isolation(client_with_db, test_user, test_tenant,
         headers=headers,
     )
 
-    assert calendar_response.status_code == 201, f"Failed to create calendar: {calendar_response.text}"
+    assert (
+        calendar_response.status_code == 201
+    ), f"Failed to create calendar: {calendar_response.text}"
     calendar_id = calendar_response.json()["data"]["id"]
 
     # Try to access with different tenant (should fail or return empty)
@@ -191,4 +205,3 @@ def test_calendar_multi_tenant_isolation(client_with_db, test_user, test_tenant,
     # Should succeed for same tenant
     assert response.status_code == 200
     assert response.json()["data"]["tenant_id"] == str(test_tenant.id)
-

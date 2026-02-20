@@ -160,14 +160,3 @@ def check_smtp_connection(config: dict[str, Any]) -> SMTPTestResult:
             error=f"Unexpected error: {str(e)}",
             details={"host": host, "port": port},
         )
-
-
-
-
-
-
-
-
-
-
-

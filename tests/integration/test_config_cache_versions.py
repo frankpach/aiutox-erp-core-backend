@@ -52,6 +52,7 @@ class TestCacheAndVersions:
         # TODO: Reorganize routes in config.py to put /cache/* before /{module}
         if response.status_code == status.HTTP_404_NOT_FOUND:
             import pytest
+
             pytest.skip("Route ordering issue: /cache/stats captured by /{module}")
 
         assert response.status_code == status.HTTP_200_OK
@@ -255,4 +256,3 @@ class TestCacheAndVersions:
             data = response.json()
             assert "data" in data
             assert "message" in data["data"]
-

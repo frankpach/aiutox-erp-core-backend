@@ -29,13 +29,3 @@ class ConsumeError(PubSubError):
     """Raised when event consumption fails."""
 
     pass
-
-
-
-
-
-
-
-
-
-

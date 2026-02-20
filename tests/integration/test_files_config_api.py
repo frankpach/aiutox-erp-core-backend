@@ -1,6 +1,5 @@
 """Integration tests for Files configuration API endpoints."""
 
-
 from tests.helpers import create_user_with_system_permission
 
 
@@ -244,6 +243,7 @@ def test_config_endpoints_require_permission(client_with_db, test_user, db_sessi
     """Test that configuration endpoints require system.configure permission."""
     # Create user without system.configure permission
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {token}"}
@@ -252,6 +252,3 @@ def test_config_endpoints_require_permission(client_with_db, test_user, db_sessi
     response = client_with_db.get("/api/v1/config/files/storage", headers=headers)
 
     assert response.status_code == 403
-
-
-

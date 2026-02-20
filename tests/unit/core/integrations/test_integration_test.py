@@ -22,7 +22,9 @@ class TestRESTAPIIntegration:
             "auth_token": "test_token",
         }
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.content = b"OK"
@@ -54,7 +56,9 @@ class TestRESTAPIIntegration:
         """Test REST API connection timeout."""
         config = {"url": "https://api.example.com/test", "timeout": 5}
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = Mock(return_value=mock_client)
             mock_client.__exit__ = Mock(return_value=None)
@@ -64,29 +68,41 @@ class TestRESTAPIIntegration:
             result = integration_test.test_rest_api_integration(config)
 
             assert result.success is False
-            assert "timeout" in result.message.lower() or "timed out" in result.message.lower()
+            assert (
+                "timeout" in result.message.lower()
+                or "timed out" in result.message.lower()
+            )
 
     def test_rest_api_connection_error(self):
         """Test REST API connection error."""
         config = {"url": "https://invalid.example.com/test"}
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = Mock(return_value=mock_client)
             mock_client.__exit__ = Mock(return_value=None)
-            mock_client.request = Mock(side_effect=httpx.ConnectError("Connection refused"))
+            mock_client.request = Mock(
+                side_effect=httpx.ConnectError("Connection refused")
+            )
             mock_client_class.return_value = mock_client
 
             result = integration_test.test_rest_api_integration(config)
 
             assert result.success is False
-            assert "connection" in result.message.lower() or "connect" in result.message.lower()
+            assert (
+                "connection" in result.message.lower()
+                or "connect" in result.message.lower()
+            )
 
     def test_rest_api_error_status(self):
         """Test REST API with error status code."""
         config = {"url": "https://api.example.com/test"}
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_response = Mock()
             mock_response.status_code = 401
             mock_response.text = "Unauthorized"
@@ -110,7 +126,9 @@ class TestWebhookIntegration:
         """Test successful webhook connection."""
         config = {"url": "https://webhook.example.com/test", "method": "POST"}
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_response = Mock()
             mock_response.status_code = 200
 
@@ -138,7 +156,9 @@ class TestWebhookIntegration:
         """Test webhook connection timeout."""
         config = {"url": "https://webhook.example.com/test", "timeout": 5}
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = Mock(return_value=mock_client)
             mock_client.__exit__ = Mock(return_value=None)
@@ -148,7 +168,10 @@ class TestWebhookIntegration:
             result = integration_test.test_webhook_integration(config)
 
             assert result.success is False
-            assert "timeout" in result.message.lower() or "timed out" in result.message.lower()
+            assert (
+                "timeout" in result.message.lower()
+                or "timed out" in result.message.lower()
+            )
 
 
 class TestOAuthIntegration:
@@ -162,7 +185,9 @@ class TestOAuthIntegration:
             "validation_url": "https://api.example.com/validate",
         }
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_response = Mock()
             mock_response.status_code = 200
 
@@ -212,7 +237,9 @@ class TestOAuthIntegration:
             "validation_url": "https://api.example.com/validate",
         }
 
-        with patch("app.core.integrations.integration_test.httpx.Client") as mock_client_class:
+        with patch(
+            "app.core.integrations.integration_test.httpx.Client"
+        ) as mock_client_class:
             mock_response = Mock()
             mock_response.status_code = 401
 
@@ -250,18 +277,27 @@ class TestDatabaseIntegration:
         result = integration_test.test_database_integration(config)
 
         assert result.success is True
-        assert "postgresql" in result.message.lower() or "successful" in result.message.lower()
+        assert (
+            "postgresql" in result.message.lower()
+            or "successful" in result.message.lower()
+        )
         mock_connect.assert_called_once()
         mock_conn.close.assert_called_once()
 
     def test_database_missing_fields(self):
         """Test database connection with missing required fields."""
-        config = {"host": "localhost", "port": 5432}  # Missing database, username, password
+        config = {
+            "host": "localhost",
+            "port": 5432,
+        }  # Missing database, username, password
 
         result = integration_test.test_database_integration(config)
 
         assert result.success is False
-        assert "missing" in result.message.lower() or "incomplete" in result.message.lower()
+        assert (
+            "missing" in result.message.lower()
+            or "incomplete" in result.message.lower()
+        )
 
     @patch("psycopg2.connect")
     def test_postgresql_connection_error(self, mock_connect):
@@ -306,7 +342,9 @@ class TestIntegrationTest:
         """Test webhook integration type."""
         config = {"url": "https://webhook.example.com/test"}
 
-        with patch("app.core.integrations.integration_test.test_webhook_integration") as mock_test:
+        with patch(
+            "app.core.integrations.integration_test.test_webhook_integration"
+        ) as mock_test:
             mock_test.return_value = IntegrationTestResult(
                 success=True, message="Test successful"
             )
@@ -327,7 +365,9 @@ class TestIntegrationTest:
             IntegrationType.ZAPIER,
             IntegrationType.CUSTOM,
         ]:
-            with patch("app.core.integrations.integration_test.test_rest_api_integration") as mock_test:
+            with patch(
+                "app.core.integrations.integration_test.test_rest_api_integration"
+            ) as mock_test:
                 mock_test.return_value = IntegrationTestResult(
                     success=True, message="Test successful"
                 )
@@ -341,13 +381,16 @@ class TestIntegrationTest:
         """Test OAuth integration type (Google Calendar)."""
         config = {"token": "test_token"}
 
-        with patch("app.core.integrations.integration_test.test_oauth_integration") as mock_test:
+        with patch(
+            "app.core.integrations.integration_test.test_oauth_integration"
+        ) as mock_test:
             mock_test.return_value = IntegrationTestResult(
                 success=True, message="Test successful"
             )
 
-            result = integration_test.test_integration(IntegrationType.GOOGLE_CALENDAR, config)
+            result = integration_test.test_integration(
+                IntegrationType.GOOGLE_CALENDAR, config
+            )
 
             assert result.success is True
             mock_test.assert_called_once_with(config)
-

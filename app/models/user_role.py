@@ -39,8 +39,9 @@ class UserRole(Base):
     user = relationship("User", back_populates="global_roles", foreign_keys=[user_id])
     granter = relationship("User", foreign_keys=[granted_by])
 
-    __table_args__ = (UniqueConstraint("user_id", "role", name="uq_user_roles_user_role"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "role", name="uq_user_roles_user_role"),
+    )
 
     def __repr__(self) -> str:
         return f"<UserRole(id={self.id}, user_id={self.user_id}, role={self.role})>"
-

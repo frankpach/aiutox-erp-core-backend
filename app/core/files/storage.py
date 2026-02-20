@@ -289,4 +289,3 @@ class HybridStorageBackend(BaseStorageBackend):
     async def get_url(self, path: str) -> str | None:
         """Get file URL using selected backend."""
         return await self.backend.get_url(path)
-

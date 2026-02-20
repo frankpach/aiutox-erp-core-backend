@@ -132,13 +132,3 @@ def create_module(db: Session | None = None) -> ProductsModule:
         ProductsModule instance
     """
     return ProductsModule(db)
-
-
-
-
-
-
-
-
-
-

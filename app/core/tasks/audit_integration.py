@@ -17,6 +17,7 @@ class TaskAuditService:
         # Connect to existing audit service
         try:
             from app.services.audit_service import AuditService
+
             self.audit_service = AuditService(db)
             self.is_connected = True
             logger.info("TaskAuditService connected to AuditService")
@@ -36,7 +37,7 @@ class TaskAuditService:
         priority: str,
         created_by_id: UUID,
         tenant_id: UUID,
-        additional_data: dict | None = None
+        additional_data: dict | None = None,
     ) -> None:
         """Log task creation in audit system."""
         try:
@@ -50,8 +51,8 @@ class TaskAuditService:
                 "details": {
                     "title": title,
                     "priority": priority,
-                    **(additional_data or {})
-                }
+                    **(additional_data or {}),
+                },
             }
 
             if self.is_connected and self.audit_service:
@@ -71,7 +72,7 @@ class TaskAuditService:
         changes: dict,
         updated_by_id: UUID,
         tenant_id: UUID,
-        old_values: dict | None = None
+        old_values: dict | None = None,
     ) -> None:
         """Log task update in audit system."""
         try:
@@ -82,10 +83,7 @@ class TaskAuditService:
                 "user_id": str(updated_by_id),
                 "tenant_id": str(tenant_id),
                 "timestamp": datetime.utcnow().isoformat(),
-                "details": {
-                    "changes": changes,
-                    "old_values": old_values or {}
-                }
+                "details": {"changes": changes, "old_values": old_values or {}},
             }
 
             if self.is_connected and self.audit_service:
@@ -98,11 +96,7 @@ class TaskAuditService:
             logger.error(f"Failed to log task update audit: {e}")
 
     async def log_task_deleted(
-        self,
-        task_id: UUID,
-        title: str,
-        deleted_by_id: UUID,
-        tenant_id: UUID
+        self, task_id: UUID, title: str, deleted_by_id: UUID, tenant_id: UUID
     ) -> None:
         """Log task deletion in audit system."""
         try:
@@ -113,9 +107,7 @@ class TaskAuditService:
                 "user_id": str(deleted_by_id),
                 "tenant_id": str(tenant_id),
                 "timestamp": datetime.utcnow().isoformat(),
-                "details": {
-                    "title": title
-                }
+                "details": {"title": title},
             }
 
             if self.is_connected and self.audit_service:
@@ -134,7 +126,7 @@ class TaskAuditService:
         old_status: str,
         new_status: str,
         changed_by_id: UUID,
-        tenant_id: UUID
+        tenant_id: UUID,
     ) -> None:
         """Log task status change in audit system."""
         try:
@@ -148,8 +140,8 @@ class TaskAuditService:
                 "details": {
                     "title": title,
                     "old_status": old_status,
-                    "new_status": new_status
-                }
+                    "new_status": new_status,
+                },
             }
 
             if self.is_connected and self.audit_service:
@@ -168,7 +160,7 @@ class TaskAuditService:
         old_assigned_to_id: UUID | None,
         new_assigned_to_id: UUID,
         assigned_by_id: UUID,
-        tenant_id: UUID
+        tenant_id: UUID,
     ) -> None:
         """Log task assignment in audit system."""
         try:
@@ -181,9 +173,11 @@ class TaskAuditService:
                 "timestamp": datetime.utcnow().isoformat(),
                 "details": {
                     "title": title,
-                    "old_assigned_to_id": str(old_assigned_to_id) if old_assigned_to_id else None,
-                    "new_assigned_to_id": str(new_assigned_to_id)
-                }
+                    "old_assigned_to_id": (
+                        str(old_assigned_to_id) if old_assigned_to_id else None
+                    ),
+                    "new_assigned_to_id": str(new_assigned_to_id),
+                },
             }
 
             if self.is_connected and self.audit_service:
@@ -201,7 +195,7 @@ class TaskAuditService:
         task_ids: list[UUID],
         user_id: UUID,
         tenant_id: UUID,
-        results: dict
+        results: dict,
     ) -> None:
         """Log bulk operation in audit system."""
         try:
@@ -217,8 +211,8 @@ class TaskAuditService:
                     "task_count": len(task_ids),
                     "successful": results.get("successful", 0),
                     "failed": results.get("failed", 0),
-                    "success_rate": results.get("success_rate", 0)
-                }
+                    "success_rate": results.get("success_rate", 0),
+                },
             }
 
             if self.is_connected and self.audit_service:

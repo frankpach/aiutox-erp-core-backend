@@ -24,7 +24,9 @@ from app.schemas.common import StandardListResponse, StandardResponse
 router = APIRouter()
 
 
-def get_automation_service(db: Annotated[Session, Depends(get_db)]) -> AutomationService:
+def get_automation_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> AutomationService:
     """Dependency to get AutomationService."""
     return AutomationService(db)
 
@@ -87,7 +89,10 @@ async def list_rules(
     """List all automation rules."""
     skip = (page - 1) * page_size
     rules = service.get_all_rules(
-        tenant_id=current_user.tenant_id, enabled_only=enabled_only, skip=skip, limit=page_size
+        tenant_id=current_user.tenant_id,
+        enabled_only=enabled_only,
+        skip=skip,
+        limit=page_size,
     )
 
     total = service.count_all_rules(
@@ -153,7 +158,9 @@ async def update_rule(
     conditions_dict = (
         [c.model_dump() for c in rule_data.conditions] if rule_data.conditions else None
     )
-    actions_dict = [a.model_dump() for a in rule_data.actions] if rule_data.actions else None
+    actions_dict = (
+        [a.model_dump() for a in rule_data.actions] if rule_data.actions else None
+    )
 
     rule = service.update_rule(
         rule_id=rule_id,
@@ -289,10 +296,3 @@ async def get_rule_executions(
         total_pages=total_pages,
         message="Executions retrieved successfully",
     )
-
-
-
-
-
-
-

@@ -35,6 +35,7 @@ def get_approval_service(
 ) -> ApprovalService:
     """Dependency to get ApprovalService."""
     from app.core.flow_runs.service import FlowRunService
+
     flow_runs_service = FlowRunService(db)
     return ApprovalService(db, flow_runs_service=flow_runs_service)
 
@@ -126,7 +127,9 @@ async def get_approval_flow(
         )
 
     # Get steps for the flow
-    steps = service.repository.get_approval_steps_by_flow(flow_id, current_user.tenant_id)
+    steps = service.repository.get_approval_steps_by_flow(
+        flow_id, current_user.tenant_id
+    )
 
     # Create response with steps
     flow_dict = ApprovalFlowResponse.model_validate(flow).model_dump()
@@ -621,7 +624,9 @@ async def delegate_approval(
     current_user: Annotated[User, Depends(require_permission("approvals.delegate"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
     reason: str | None = Query(default=None, description="Delegation reason"),
-    expires_at: datetime | None = Query(default=None, description="Delegation expiration"),
+    expires_at: datetime | None = Query(
+        default=None, description="Delegation expiration"
+    ),
 ) -> StandardResponse[ApprovalDelegationResponse]:
     """Delegate an approval to another user."""
     delegation = service.delegate_approval(
@@ -718,11 +723,19 @@ async def get_request_timeline(
 async def get_or_create_request_by_entity(
     current_user: Annotated[User, Depends(require_permission("approvals.manage"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
-    entity_type: Annotated[str, Query(description="Entity type (e.g., 'order', 'invoice')")] = ...,
+    entity_type: Annotated[
+        str, Query(description="Entity type (e.g., 'order', 'invoice')")
+    ] = ...,
     entity_id: Annotated[UUID, Query(description="Entity ID")] = ...,
-    auto_create: Annotated[bool, Query(description="Auto-create request if none exists")] = False,
-    flow_id: Annotated[UUID | None, Query(description="Flow ID (required if auto_create=True)")] = None,
-    title: Annotated[str | None, Query(description="Request title (required if auto_create=True)")] = None,
+    auto_create: Annotated[
+        bool, Query(description="Auto-create request if none exists")
+    ] = False,
+    flow_id: Annotated[
+        UUID | None, Query(description="Flow ID (required if auto_create=True)")
+    ] = None,
+    title: Annotated[
+        str | None, Query(description="Request title (required if auto_create=True)")
+    ] = None,
     description: Annotated[str | None, Query(description="Request description")] = None,
 ) -> StandardResponse[ApprovalRequestResponse]:
     """Get or create approval request for an entity."""
@@ -795,7 +808,9 @@ async def get_request_widget_data(
     description="Get approval status for an entity without creating a request. Requires approvals.view permission.",
 )
 async def get_entity_approval_status(
-    entity_type: Annotated[str, Query(..., description="Entity type (e.g., 'order', 'invoice')")],
+    entity_type: Annotated[
+        str, Query(..., description="Entity type (e.g., 'order', 'invoice')")
+    ],
     entity_id: Annotated[UUID, Query(..., description="Entity ID")],
     current_user: Annotated[User, Depends(require_permission("approvals.view"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
@@ -855,8 +870,12 @@ async def bulk_approve_requests(
     current_user: Annotated[User, Depends(require_permission("approvals.manage"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
     request: Request,
-    request_ids: Annotated[list[UUID], Query(..., description="List of request IDs to approve")] = ...,
-    comment: Annotated[str | None, Query(description="Optional comment for all approvals")] = None,
+    request_ids: Annotated[
+        list[UUID], Query(..., description="List of request IDs to approve")
+    ] = ...,
+    comment: Annotated[
+        str | None, Query(description="Optional comment for all approvals")
+    ] = None,
 ) -> StandardListResponse[ApprovalRequestResponse]:
     """Bulk approve approval requests."""
     try:
@@ -897,8 +916,12 @@ async def bulk_reject_requests(
     current_user: Annotated[User, Depends(require_permission("approvals.manage"))],
     service: Annotated[ApprovalService, Depends(get_approval_service)],
     request: Request,
-    request_ids: Annotated[list[UUID], Query(..., description="List of request IDs to reject")] = ...,
-    comment: Annotated[str | None, Query(description="Optional comment for all rejections")] = None,
+    request_ids: Annotated[
+        list[UUID], Query(..., description="List of request IDs to reject")
+    ] = ...,
+    comment: Annotated[
+        str | None, Query(description="Optional comment for all rejections")
+    ] = None,
 ) -> StandardListResponse[ApprovalRequestResponse]:
     """Bulk reject approval requests."""
     try:
@@ -926,5 +949,3 @@ async def bulk_reject_requests(
             code="BULK_REJECT_FAILED",
             message=str(e),
         )
-
-

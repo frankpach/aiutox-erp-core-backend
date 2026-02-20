@@ -40,6 +40,7 @@ class TestAuditService:
         assert total == 3
         # Service converts to AuditLogResponse schemas
         from app.schemas.audit import AuditLogResponse
+
         assert all(isinstance(log, AuditLogResponse) for log in logs)
         service.repository.get_audit_logs.assert_called_once()
 
@@ -61,9 +62,7 @@ class TestAuditService:
 
         service.repository.get_audit_logs = Mock(return_value=(mock_logs, 10))
 
-        logs, total = service.get_audit_logs(
-            tenant_id=test_tenant.id, skip=0, limit=2
-        )
+        logs, total = service.get_audit_logs(tenant_id=test_tenant.id, skip=0, limit=2)
 
         assert len(logs) == 2
         assert total == 10
@@ -195,4 +194,3 @@ class TestAuditService:
             skip=0,
             limit=100,
         )
-

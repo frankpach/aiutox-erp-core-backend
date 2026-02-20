@@ -440,4 +440,3 @@ class TestRoleManagement:
         data = response.json()
         assert "error" in data
         assert data["error"]["code"] == "AUTH_TENANT_MISMATCH"
-

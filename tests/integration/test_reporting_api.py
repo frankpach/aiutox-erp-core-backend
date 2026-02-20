@@ -125,4 +125,3 @@ def test_get_data_source_filters(client_with_db, test_user, db_session):
     data = response.json()["data"]
     assert isinstance(data, list)
     assert len(data) > 0
-

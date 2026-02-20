@@ -50,7 +50,10 @@ def test_dependencies_add_and_remove_requires_edit_permission(
 
     create_response = client_with_db.post(
         f"/api/v1/tasks/{task.id}/dependencies",
-        json={"depends_on_id": str(depends_on.id), "dependency_type": "finish_to_start"},
+        json={
+            "depends_on_id": str(depends_on.id),
+            "dependency_type": "finish_to_start",
+        },
         headers=tasks_viewer_headers,
     )
     assert create_response.status_code == 403

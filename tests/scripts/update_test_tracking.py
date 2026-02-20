@@ -65,7 +65,9 @@ def parse_pytest_output(output: str) -> dict:
         if match := re.search(duration_pattern, line):
             stats["duration"] = float(match.group(1))
 
-    stats["total"] = stats["passed"] + stats["failed"] + stats["skipped"] + stats["errors"]
+    stats["total"] = (
+        stats["passed"] + stats["failed"] + stats["skipped"] + stats["errors"]
+    )
     return stats
 
 
@@ -173,7 +175,9 @@ def update_tracking_file(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Actualizar archivo de seguimiento de tests")
+    parser = argparse.ArgumentParser(
+        description="Actualizar archivo de seguimiento de tests"
+    )
     parser.add_argument("--module", required=True, help="Nombre del módulo")
     parser.add_argument("--test-file", required=True, help="Ruta del archivo de test")
     parser.add_argument("--output", help="Salida de pytest (o leer de stdin)")
@@ -197,5 +201,3 @@ if __name__ == "__main__":
         errors=args.errors,
         actions=args.actions,
     )
-
-

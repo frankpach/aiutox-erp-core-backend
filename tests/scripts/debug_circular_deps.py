@@ -13,6 +13,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 class DependencyAnalyzer(ast.NodeVisitor):
     """Analizador AST para encontrar imports."""
 
@@ -22,19 +23,20 @@ class DependencyAnalyzer(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
-            if alias.name.startswith('app.'):
+            if alias.name.startswith("app."):
                 self.imports.add(alias.name)
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
-        if node.module and node.module.startswith('app.'):
+        if node.module and node.module.startswith("app."):
             self.imports.add(node.module)
         self.generic_visit(node)
+
 
 def get_module_imports(module_path: Path, module_name: str) -> set[str]:
     """Extrae imports de un módulo usando AST."""
     try:
-        with open(module_path, encoding='utf-8') as f:
+        with open(module_path, encoding="utf-8") as f:
             content = f.read()
 
         tree = ast.parse(content)
@@ -45,6 +47,7 @@ def get_module_imports(module_path: Path, module_name: str) -> set[str]:
     except Exception as e:
         print(f"   ❌ Error analizando {module_path}: {e}")
         return set()
+
 
 def build_dependency_graph() -> dict[str, set[str]]:
     """Construye el grafo de dependencias de módulos app.*"""
@@ -58,9 +61,13 @@ def build_dependency_graph() -> dict[str, set[str]]:
     python_files = []
     for root, dirs, files in os.walk(app_dir):
         for file in files:
-            if file.endswith('.py') and not file.startswith('__'):
+            if file.endswith(".py") and not file.startswith("__"):
                 rel_path = Path(root).relative_to(app_dir)
-                module_name = f"app.{rel_path.stem}.{file[:-3]}" if rel_path != Path('.') else f"app.{file[:-3]}"
+                module_name = (
+                    f"app.{rel_path.stem}.{file[:-3]}"
+                    if rel_path != Path(".")
+                    else f"app.{file[:-3]}"
+                )
                 python_files.append((Path(root) / file, module_name))
 
     print(f"📦 Analizando {len(python_files)} archivos Python...")
@@ -72,7 +79,10 @@ def build_dependency_graph() -> dict[str, set[str]]:
 
     return dependency_graph
 
-def find_circular_dependencies(dependency_graph: dict[str, set[str]]) -> list[list[str]]:
+
+def find_circular_dependencies(
+    dependency_graph: dict[str, set[str]],
+) -> list[list[str]]:
     """Encuentra dependencias circulares usando DFS."""
     print("\n🔍 BUSCANDO DEPENDENCIAS CIRCULARES")
     print("=" * 50)
@@ -116,6 +126,7 @@ def find_circular_dependencies(dependency_graph: dict[str, set[str]]) -> list[li
             unique_cycles.append(cycle)
 
     return unique_cycles
+
 
 def test_problematic_imports():
     """Prueba imports que podrían causar problemas."""
@@ -164,6 +175,7 @@ def test_problematic_imports():
             print("   ✅ OK")
         else:
             print(f"   ❌ ERROR: {exception[0]}")
+
 
 def main():
     """Función principal."""
@@ -220,6 +232,8 @@ def main():
 
     return len(cycles) == 0
 
+
 if __name__ == "__main__":
     import os  # Import aquí para evitar problemas
+
     main()

@@ -1,4 +1,3 @@
-
 """Tenant repository for data access operations."""
 
 from uuid import UUID
@@ -25,27 +24,17 @@ class TenantRepository:
 
     def get_by_id(self, tenant_id: UUID) -> Tenant | None:
         """Get tenant by ID."""
-        return (
-            self.db.query(Tenant)
-            .filter(Tenant.id == tenant_id)
-            .first()
-        )
+        return self.db.query(Tenant).filter(Tenant.id == tenant_id).first()
 
     def get_by_slug(self, slug: str) -> Tenant | None:
         """Get tenant by slug."""
-        return (
-            self.db.query(Tenant)
-            .filter(Tenant.slug == slug)
-            .first()
-        )
+        return self.db.query(Tenant).filter(Tenant.slug == slug).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[Tenant]:
         """Get all tenants with pagination."""
         return self.db.query(Tenant).offset(skip).limit(limit).all()
 
-    def update(
-        self, tenant: Tenant, tenant_data: dict
-    ) -> Tenant:
+    def update(self, tenant: Tenant, tenant_data: dict) -> Tenant:
         """Update tenant data."""
         for key, value in tenant_data.items():
             if value is not None:

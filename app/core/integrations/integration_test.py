@@ -99,7 +99,9 @@ def test_rest_api_integration(config: dict[str, Any]) -> IntegrationTestResult:
                         "url": url,
                         "method": method,
                         "status_code": response.status_code,
-                        "response_preview": response.text[:200] if response.text else None,
+                        "response_preview": (
+                            response.text[:200] if response.text else None
+                        ),
                     },
                 )
 
@@ -160,7 +162,11 @@ def test_webhook_integration(config: dict[str, Any]) -> IntegrationTestResult:
         timeout = 10
 
     # Create test payload
-    test_payload = {"test": True, "event": "integration_test", "timestamp": "2024-01-01T00:00:00Z"}
+    test_payload = {
+        "test": True,
+        "event": "integration_test",
+        "timestamp": "2024-01-01T00:00:00Z",
+    }
 
     try:
         with httpx.Client(timeout=timeout) as client:
@@ -320,7 +326,17 @@ def test_database_integration(config: dict[str, Any]) -> IntegrationTestResult:
     db_type = config.get("db_type", "postgresql").lower()
 
     if not all([host, port, database, username, password]):
-        missing = [k for k, v in {"host": host, "port": port, "database": database, "username": username, "password": password}.items() if not v]
+        missing = [
+            k
+            for k, v in {
+                "host": host,
+                "port": port,
+                "database": database,
+                "username": username,
+                "password": password,
+            }.items()
+            if not v
+        ]
         return IntegrationTestResult(
             success=False,
             message=f"Database configuration incomplete. Missing: {', '.join(missing)}",
@@ -385,11 +401,18 @@ def test_database_integration(config: dict[str, Any]) -> IntegrationTestResult:
             success=False,
             message=f"Database connection failed: {str(e)}",
             error=f"Connection error: {str(e)}",
-            details={"host": host, "port": port, "database": database, "db_type": db_type},
+            details={
+                "host": host,
+                "port": port,
+                "database": database,
+                "db_type": db_type,
+            },
         )
 
 
-def test_integration(integration_type: IntegrationType, config: dict[str, Any]) -> IntegrationTestResult:
+def test_integration(
+    integration_type: IntegrationType, config: dict[str, Any]
+) -> IntegrationTestResult:
     """
     Test an integration based on its type.
 
@@ -403,7 +426,13 @@ def test_integration(integration_type: IntegrationType, config: dict[str, Any]) 
     if integration_type == IntegrationType.WEBHOOK:
         return test_webhook_integration(config)
 
-    elif integration_type in [IntegrationType.STRIPE, IntegrationType.TWILIO, IntegrationType.SLACK, IntegrationType.ZAPIER, IntegrationType.CUSTOM]:
+    elif integration_type in [
+        IntegrationType.STRIPE,
+        IntegrationType.TWILIO,
+        IntegrationType.SLACK,
+        IntegrationType.ZAPIER,
+        IntegrationType.CUSTOM,
+    ]:
         # These typically use REST API
         return test_rest_api_integration(config)
 
@@ -418,14 +447,3 @@ def test_integration(integration_type: IntegrationType, config: dict[str, Any]) 
             error="Unsupported type",
             details={"type": integration_type.value},
         )
-
-
-
-
-
-
-
-
-
-
-

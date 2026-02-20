@@ -1,6 +1,5 @@
 """Unit tests for ConfigSchema validation."""
 
-
 from app.core.config.schema import ConfigSchema
 
 
@@ -72,7 +71,7 @@ class TestConfigSchema:
         schema.register_schema(
             "app_theme",
             "primary_color",
-            {"type": "string", "pattern": r"^#[0-9A-Fa-f]{6}$"}
+            {"type": "string", "pattern": r"^#[0-9A-Fa-f]{6}$"},
         )
 
         # Valid colors
@@ -92,9 +91,7 @@ class TestConfigSchema:
         """Test enum validation."""
         schema = ConfigSchema()
         schema.register_schema(
-            "products",
-            "currency",
-            {"type": "string", "enum": ["USD", "EUR", "GBP"]}
+            "products", "currency", {"type": "string", "enum": ["USD", "EUR", "GBP"]}
         )
 
         assert schema.validate("products", "currency", "USD") is True
@@ -107,9 +104,7 @@ class TestConfigSchema:
         """Test min/max range validation for numbers."""
         schema = ConfigSchema()
         schema.register_schema(
-            "products",
-            "discount",
-            {"type": "float", "min": 0.0, "max": 100.0}
+            "products", "discount", {"type": "float", "min": 0.0, "max": 100.0}
         )
 
         # Valid values
@@ -124,11 +119,7 @@ class TestConfigSchema:
     def test_validate_min_length(self):
         """Test minLength validation for strings."""
         schema = ConfigSchema()
-        schema.register_schema(
-            "auth",
-            "password",
-            {"type": "string", "minLength": 8}
-        )
+        schema.register_schema("auth", "password", {"type": "string", "minLength": 8})
 
         assert schema.validate("auth", "password", "12345678") is True
         assert schema.validate("auth", "password", "verylongpassword") is True
@@ -138,11 +129,7 @@ class TestConfigSchema:
     def test_validate_max_length(self):
         """Test maxLength validation for strings."""
         schema = ConfigSchema()
-        schema.register_schema(
-            "users",
-            "username",
-            {"type": "string", "maxLength": 20}
-        )
+        schema.register_schema("users", "username", {"type": "string", "maxLength": 20})
 
         assert schema.validate("users", "username", "user") is True
         assert schema.validate("users", "username", "a" * 20) is True
@@ -158,8 +145,8 @@ class TestConfigSchema:
                 "type": "string",
                 "pattern": r"^[A-Z]{2}\d{6}$",
                 "minLength": 8,
-                "maxLength": 8
-            }
+                "maxLength": 8,
+            },
         )
 
         # Valid SKU
@@ -185,9 +172,7 @@ class TestConfigSchema:
         """Test getting default value from schema."""
         schema = ConfigSchema()
         schema.register_schema(
-            "products",
-            "min_price",
-            {"type": "float", "default": 0.0}
+            "products", "min_price", {"type": "float", "default": 0.0}
         )
 
         assert schema.get_default("products", "min_price") == 0.0
@@ -195,11 +180,7 @@ class TestConfigSchema:
     def test_get_default_no_default(self):
         """Test getting default when none is defined."""
         schema = ConfigSchema()
-        schema.register_schema(
-            "products",
-            "name",
-            {"type": "string"}
-        )
+        schema.register_schema("products", "name", {"type": "string"})
 
         assert schema.get_default("products", "name") is None
 
@@ -213,30 +194,12 @@ class TestConfigSchema:
         """Test wildcard pattern matching."""
         schema = ConfigSchema()
         schema.register_schema(
-            "system",
-            "modules.*.enabled",
-            {"type": "bool", "default": True}
+            "system", "modules.*.enabled", {"type": "bool", "default": True}
         )
 
         # Should match any module name
         assert schema.validate("system", "modules.products.enabled", True) is True
         assert schema.validate("system", "modules.inventory.enabled", False) is True
-        assert schema.validate("system", "modules.sales.enabled", "yes") is False  # wrong type
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        assert (
+            schema.validate("system", "modules.sales.enabled", "yes") is False
+        )  # wrong type

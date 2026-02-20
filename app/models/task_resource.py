@@ -20,20 +20,22 @@ class TaskResource(Base):
         PG_UUID(as_uuid=True),
         ForeignKey("tasks.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     tenant_id = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
 
     resource_type = Column(String(20), nullable=False)  # "user", "team"
     resource_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
     allocated_hours = Column(Integer, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
 
     # Relaciones
     task = relationship("Task", backref="resources")

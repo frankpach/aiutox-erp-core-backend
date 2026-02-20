@@ -66,7 +66,9 @@ class Organization(Base):
 
     # Relationships
     tenant = relationship("Tenant", backref="organizations")
-    contacts = relationship("Contact", back_populates="organization", cascade="all, delete-orphan")
+    contacts = relationship(
+        "Contact", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     # Indexes
     __table_args__ = (

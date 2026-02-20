@@ -49,6 +49,7 @@ class AuthService:
             User object if authentication succeeds, None otherwise.
         """
         import logging
+
         logger = logging.getLogger("app")
         logger.debug(f"[AUTH] Step 1: Getting user by email={email}")
 
@@ -68,7 +69,9 @@ class AuthService:
                 return user
             logger.debug("[AUTH] Step 3: Password verification failed")
         else:
-            logger.debug("[AUTH] Step 4: User does not exist, performing dummy verification")
+            logger.debug(
+                "[AUTH] Step 4: User does not exist, performing dummy verification"
+            )
             # Dummy verification to prevent timing attacks
             # This ensures similar response time whether user exists or not
             verify_password(password, hash_password("dummy"))
@@ -125,11 +128,7 @@ class AuthService:
         # Cache miss, query database
         from app.models.user_role import UserRole
 
-        roles = (
-            self.db.query(UserRole)
-            .filter(UserRole.user_id == user_id)
-            .all()
-        )
+        roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
         role_list = [role.role for role in roles]
 
         # Store in cache
@@ -158,7 +157,9 @@ class AuthService:
         }
         return create_access_token(token_data)
 
-    def create_refresh_token_for_user(self, user: User, remember_me: bool = False) -> str:
+    def create_refresh_token_for_user(
+        self, user: User, remember_me: bool = False
+    ) -> str:
         """
         Create a refresh token for a user and store it in the database.
 
@@ -173,7 +174,11 @@ class AuthService:
         refresh_token = create_refresh_token(user.id, remember_me)
 
         # Calculate expiration
-        expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        expire_days = (
+            settings.REFRESH_TOKEN_REMEMBER_ME_DAYS
+            if remember_me
+            else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
         expires_at = datetime.now(UTC) + timedelta(days=expire_days)
 
         # Store hashed token in database
@@ -224,10 +229,10 @@ class AuthService:
         log_refresh_token_used(str(user_id))
 
         # Rotate refresh token (reuse original expiry)
-        new_refresh_token = create_refresh_token(
-            user_id, expires_at=refresh_expires_at
+        new_refresh_token = create_refresh_token(user_id, expires_at=refresh_expires_at)
+        self.refresh_token_repository.create(
+            user_id, new_refresh_token, refresh_expires_at
         )
-        self.refresh_token_repository.create(user_id, new_refresh_token, refresh_expires_at)
         self.refresh_token_repository.revoke_token(stored_token)
 
         # Generate new access token

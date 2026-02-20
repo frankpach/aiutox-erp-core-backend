@@ -57,6 +57,7 @@ class GamificationEvent(Base):
     def __repr__(self) -> str:
         return f"<GamificationEvent(id={self.id}, type={self.event_type}, points={self.points_earned})>"
 
+
 class UserPoints(Base):
     """Accumulated points and level per user per tenant."""
 
@@ -108,7 +109,9 @@ class Badge(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     icon = Column(String(50), nullable=False, default="trophy")
-    criteria = Column(JSON, nullable=False)  # {"event_type": "task_completed", "count": 10}
+    criteria = Column(
+        JSON, nullable=False
+    )  # {"event_type": "task_completed", "count": 10}
     points_value = Column(Integer, nullable=False, default=0)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
@@ -119,9 +122,7 @@ class Badge(Base):
 
     user_badges = relationship("UserBadge", back_populates="badge")
 
-    __table_args__ = (
-        Index("idx_badges_tenant", "tenant_id", "is_active"),
-    )
+    __table_args__ = (Index("idx_badges_tenant", "tenant_id", "is_active"),)
 
     def __repr__(self) -> str:
         return f"<Badge(id={self.id}, name={self.name})>"
@@ -159,7 +160,9 @@ class UserBadge(Base):
 
     __table_args__ = (
         Index("idx_user_badges_user", "tenant_id", "user_id"),
-        Index("idx_user_badges_unique", "tenant_id", "user_id", "badge_id", unique=True),
+        Index(
+            "idx_user_badges_unique", "tenant_id", "user_id", "badge_id", unique=True
+        ),
     )
 
     def __repr__(self) -> str:
@@ -182,7 +185,9 @@ class LeaderboardEntry(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    period = Column(String(20), nullable=False)  # "daily", "weekly", "monthly", "all_time"
+    period = Column(
+        String(20), nullable=False
+    )  # "daily", "weekly", "monthly", "all_time"
     points = Column(Integer, nullable=False, default=0)
     rank = Column(Integer, nullable=True)
     updated_at = Column(

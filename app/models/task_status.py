@@ -20,15 +20,26 @@ class TaskStatus(Base):
     __tablename__ = "task_statuses"
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(50), nullable=False)  # "Vendido", "Llamado", "Por Iniciar"
-    type = Column(String(20), nullable=False, index=True)  # "open", "closed", "in_progress"
+    type = Column(
+        String(20), nullable=False, index=True
+    )  # "open", "closed", "in_progress"
     color = Column(String(7), nullable=False)  # "#FF5722"
-    is_system = Column(Boolean, default=False, nullable=False)  # Estados base no eliminables
+    is_system = Column(
+        Boolean, default=False, nullable=False
+    )  # Estados base no eliminables
     order = Column(Integer, default=0, nullable=False)
 
     # Relaciones
-    tasks = relationship("Task", back_populates="status_obj", foreign_keys="Task.status_id")
+    tasks = relationship(
+        "Task", back_populates="status_obj", foreign_keys="Task.status_id"
+    )
     templates_default = relationship("TaskTemplate", back_populates="default_status")
 
     def __repr__(self) -> str:

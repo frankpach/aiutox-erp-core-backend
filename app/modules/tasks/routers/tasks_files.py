@@ -40,8 +40,12 @@ async def attach_file_to_task(
     file_url: str = Query(..., description="File URL"),
 ) -> StandardResponse[dict]:
     """Attach file to task."""
-    logger.info("Attaching file to task: task_id=%s, user_id=%s, file_id=%s",
-                task_id, current_user.id, file_id)
+    logger.info(
+        "Attaching file to task: task_id=%s, user_id=%s, file_id=%s",
+        task_id,
+        current_user.id,
+        file_id,
+    )
 
     # Validar parámetros requeridos
     if not file_id or not file_name or not file_size or not file_type or not file_url:
@@ -66,7 +70,9 @@ async def attach_file_to_task(
             file_url=file_url,
         )
 
-        logger.info("File attached successfully: task_id=%s, file_id=%s", task_id, file_id)
+        logger.info(
+            "File attached successfully: task_id=%s, file_id=%s", task_id, file_id
+        )
 
         return StandardResponse(
             data=attachment,
@@ -94,8 +100,12 @@ async def detach_file_from_task(
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """Detach file from task."""
-    logger.info("Detaching file from task: task_id=%s, file_id=%s, user_id=%s",
-                task_id, file_id, current_user.id)
+    logger.info(
+        "Detaching file from task: task_id=%s, file_id=%s, user_id=%s",
+        task_id,
+        file_id,
+        current_user.id,
+    )
 
     file_service = get_task_file_service(db)
 
@@ -106,8 +116,12 @@ async def detach_file_from_task(
         file_id=file_id,
     )
 
-    logger.info("File detach result: task_id=%s, file_id=%s, success=%s",
-                task_id, file_id, success)
+    logger.info(
+        "File detach result: task_id=%s, file_id=%s, success=%s",
+        task_id,
+        file_id,
+        success,
+    )
 
     if not success:
         raise APIException(
@@ -130,7 +144,9 @@ async def list_task_files(
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardListResponse[dict]:
     """List task files."""
-    logger.info("Listing files for task: task_id=%s, user_id=%s", task_id, current_user.id)
+    logger.info(
+        "Listing files for task: task_id=%s, user_id=%s", task_id, current_user.id
+    )
 
     file_service = get_task_file_service(db)
 

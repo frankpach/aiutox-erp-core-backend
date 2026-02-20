@@ -9,7 +9,10 @@ def test_delete_approval_flow_soft_delete(client_with_db, test_user, db_session)
     """Test soft deleting an approval flow."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -39,7 +42,10 @@ def test_delete_flow_with_active_requests_fails(client_with_db, test_user, db_se
     """Test that deleting a flow with active requests fails."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -73,14 +79,19 @@ def test_delete_flow_with_active_requests_fails(client_with_db, test_user, db_se
     assert response.status_code == 400
     response_json = response.json()
     print(f"Response JSON: {response_json}")
-    assert "Cannot delete flow with active requests" in response_json["error"]["message"]
+    assert (
+        "Cannot delete flow with active requests" in response_json["error"]["message"]
+    )
 
 
 def test_update_approval_flow(client_with_db, test_user, db_session):
     """Test updating an approval flow."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -109,7 +120,10 @@ def test_get_approval_steps(client_with_db, test_user, db_session):
     """Test getting steps for a flow."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -152,7 +166,10 @@ def test_update_approval_step(client_with_db, test_user, db_session):
     """Test updating an approval step."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -205,7 +222,10 @@ def test_cancel_approval_request(client_with_db, test_user, db_session):
     """Test cancelling an approval request."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -246,7 +266,10 @@ def test_approve_request_with_audit_info(client_with_db, test_user, db_session):
     """Test approving a request with IP and user agent capture."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.manager"
+    )
 
     # Create a flow with a step
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}
@@ -303,7 +326,10 @@ def test_get_approval_stats(client_with_db, test_user, db_session):
     """Test getting approval statistics."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "internal.viewer")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "internal.viewer"
+    )
 
     # Get stats
     response = client_with_db.get(
@@ -321,7 +347,10 @@ def test_get_request_timeline(client_with_db, test_user, db_session):
     """Test getting request timeline."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "approvals", "manager")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "approvals", "manager"
+    )
 
     # Create a flow
     flow_data = {"name": "Test Flow", "flow_type": "sequential", "module": "orders"}

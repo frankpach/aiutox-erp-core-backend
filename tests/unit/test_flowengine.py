@@ -74,14 +74,7 @@ def conditional_flow(test_tenant, test_user, db_session):
         description="Conditional approval flow",
         flow_type="sequential",
         module="orders",
-        conditions={
-            "step_2": {
-                "amount": {
-                    "operator": "lt",
-                    "value": 1000
-                }
-            }
-        },
+        conditions={"step_2": {"amount": {"operator": "lt", "value": 1000}}},
         is_active=True,
         created_by=test_user.id,
         created_at=datetime.now(UTC),
@@ -136,7 +129,9 @@ def approval_steps(db_session, sequential_flow, test_user):
     return steps
 
 
-def test_get_next_step_sequential(flow_engine, sequential_flow, approval_steps, test_user):
+def test_get_next_step_sequential(
+    flow_engine, sequential_flow, approval_steps, test_user
+):
     """Test getting next step in sequential flow."""
     request = ApprovalRequest(
         id=uuid4(),
@@ -207,7 +202,9 @@ def test_get_current_step(flow_engine, sequential_flow, approval_steps, test_use
     assert current_step.step_order == 1
 
 
-def test_can_approve_user_approver(flow_engine, sequential_flow, approval_steps, test_user):
+def test_can_approve_user_approver(
+    flow_engine, sequential_flow, approval_steps, test_user
+):
     """Test can_approve with user approver."""
     request = ApprovalRequest(
         id=uuid4(),
@@ -230,7 +227,9 @@ def test_can_approve_user_approver(flow_engine, sequential_flow, approval_steps,
     assert can_approve is True
 
 
-def test_can_approve_wrong_user(flow_engine, sequential_flow, approval_steps, test_user):
+def test_can_approve_wrong_user(
+    flow_engine, sequential_flow, approval_steps, test_user
+):
     """Test can_approve with wrong user."""
     wrong_user_id = uuid4()
     request = ApprovalRequest(
@@ -254,7 +253,9 @@ def test_can_approve_wrong_user(flow_engine, sequential_flow, approval_steps, te
     assert can_approve is False
 
 
-def test_should_skip_step_no_conditions(flow_engine, sequential_flow, approval_steps, test_user):
+def test_should_skip_step_no_conditions(
+    flow_engine, sequential_flow, approval_steps, test_user
+):
     """Test _should_skip_step when no conditions exist."""
     request = ApprovalRequest(
         id=uuid4(),
@@ -272,12 +273,16 @@ def test_should_skip_step_no_conditions(flow_engine, sequential_flow, approval_s
         updated_at=datetime.now(UTC),
     )
 
-    should_skip = flow_engine._should_skip_step(approval_steps[0], request, sequential_flow)
+    should_skip = flow_engine._should_skip_step(
+        approval_steps[0], request, sequential_flow
+    )
 
     assert should_skip is False
 
 
-def test_should_skip_step_condition_met(flow_engine, conditional_flow, test_user, db_session):
+def test_should_skip_step_condition_met(
+    flow_engine, conditional_flow, test_user, db_session
+):
     """Test _should_skip_step when condition is met."""
     # Create steps for conditional flow
     step1 = ApprovalStep(
@@ -338,7 +343,9 @@ def test_should_skip_step_condition_met(flow_engine, conditional_flow, test_user
     assert should_skip is False
 
 
-def test_process_approval_sequential(flow_engine, sequential_flow, approval_steps, test_user, db_session):
+def test_process_approval_sequential(
+    flow_engine, sequential_flow, approval_steps, test_user, db_session
+):
     """Test processing approval in sequential flow."""
     request = ApprovalRequest(
         id=uuid4(),
@@ -366,16 +373,20 @@ def test_process_approval_sequential(flow_engine, sequential_flow, approval_step
     assert updated_request.status == "pending"
 
     # Verify action was created
-    actions = db_session.query(ApprovalAction).filter(
-        ApprovalAction.request_id == request.id
-    ).all()
+    actions = (
+        db_session.query(ApprovalAction)
+        .filter(ApprovalAction.request_id == request.id)
+        .all()
+    )
     assert len(actions) == 1
     assert actions[0].action_type == "approve"
     assert actions[0].ip_address == "192.168.1.1"
     assert actions[0].user_agent == "TestAgent/1.0"
 
 
-def test_process_approval_complete(flow_engine, sequential_flow, approval_steps, test_user, db_session):
+def test_process_approval_complete(
+    flow_engine, sequential_flow, approval_steps, test_user, db_session
+):
     """Test processing approval that completes the flow."""
     request = ApprovalRequest(
         id=uuid4(),
@@ -403,7 +414,9 @@ def test_process_approval_complete(flow_engine, sequential_flow, approval_steps,
     assert updated_request.completed_at is not None
 
 
-def test_process_approval_reject(flow_engine, sequential_flow, approval_steps, test_user, db_session):
+def test_process_approval_reject(
+    flow_engine, sequential_flow, approval_steps, test_user, db_session
+):
     """Test processing rejection."""
     request = ApprovalRequest(
         id=uuid4(),

@@ -239,7 +239,10 @@ async def test_get_current_user_tenant_mismatch(db_session, test_user, test_tena
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail["error"]["code"] == "AUTH_TENANT_MISMATCH"
-    assert exc_info.value.detail["error"]["message"] == "Token tenant does not match user tenant"
+    assert (
+        exc_info.value.detail["error"]["message"]
+        == "Token tenant does not match user tenant"
+    )
 
 
 @pytest.mark.asyncio
@@ -299,4 +302,3 @@ def test_verify_tenant_access_invalid(db_session, test_user):
     other_tenant_id = uuid4()
     result = verify_tenant_access(test_user, other_tenant_id)
     assert result is False
-

@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI):
     # Start TaskScheduler for task reminders and notifications
     try:
         from app.core.tasks.scheduler import get_task_scheduler
+
         task_scheduler = await get_task_scheduler()
         logger.info("TaskScheduler started successfully")
     except Exception as e:
@@ -72,6 +73,7 @@ async def lifespan(app: FastAPI):
     # Discover and register webhook events from active modules
     try:
         from app.core.integrations.autodiscovery import discover_and_register_events
+
         discover_and_register_events()
         logger.info("Webhook events autodiscovery completed")
     except Exception as e:
@@ -84,6 +86,7 @@ async def lifespan(app: FastAPI):
     if task_scheduler:
         try:
             from app.core.tasks.scheduler import stop_task_scheduler
+
             await stop_task_scheduler()
             logger.info("TaskScheduler stopped successfully")
         except Exception as e:
@@ -92,11 +95,12 @@ async def lifespan(app: FastAPI):
     if async_task_service:
         try:
             await async_task_service.stop_scheduler()
-            if hasattr(async_task_service, 'db'):
+            if hasattr(async_task_service, "db"):
                 async_task_service.db.close()
             logger.info("Async task scheduler stopped")
         except Exception as e:
             logger.error(f"Error stopping async task scheduler: {e}", exc_info=True)
+
 
 app = FastAPI(
     title="AiutoX ERP API",
@@ -114,25 +118,26 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 def add_security_headers(response: Response) -> None:
     """Add security headers to a response."""
+
     # Ensure all header values are properly encoded as UTF-8 strings
     def set_header_safely(key: str, value: str) -> None:
         """Set header with proper UTF-8 encoding."""
         if isinstance(value, bytes):
             try:
-                value = value.decode('utf-8')
+                value = value.decode("utf-8")
             except UnicodeDecodeError:
                 # If bytes can't be decoded, use a safe fallback
-                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+                value = str(value.encode("utf-8", errors="replace"), "utf-8")
         elif not isinstance(value, str):
             value = str(value)
 
         # Ensure the value can be encoded as UTF-8
         try:
-            value.encode('utf-8')
+            value.encode("utf-8")
             response.headers[key] = value
         except UnicodeEncodeError:
             # Replace problematic characters
-            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            safe_value = value.encode("utf-8", errors="replace").decode("utf-8")
             response.headers[key] = safe_value
 
     set_header_safely("X-Content-Type-Options", "nosniff")
@@ -144,20 +149,26 @@ def add_security_headers(response: Response) -> None:
     # HTTP Strict Transport Security (HSTS)
     # Only add HSTS in production (when not in DEBUG mode)
     if not settings.DEBUG:
-        set_header_safely("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        set_header_safely(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
 
     # Content Security Policy
     # Note: frame-ancestors must be in CSP header, not meta tag
     # Allow images from backend URL in debug mode only
     debug_mode = settings.DEBUG
-    logger.info(f"[SecurityHeadersMiddleware] DEBUG mode: {debug_mode}, type: {type(debug_mode)}")
+    logger.info(
+        f"[SecurityHeadersMiddleware] DEBUG mode: {debug_mode}, type: {type(debug_mode)}"
+    )
 
     img_src = "img-src 'self' data: https:;"
     logger.info(f"[SecurityHeadersMiddleware] img_src before if: {img_src}")
 
     if debug_mode:
         img_src = "img-src 'self' data: https: http://localhost:8000;"
-        logger.info("[SecurityHeadersMiddleware] CSP allows images from http://localhost:8000")
+        logger.info(
+            "[SecurityHeadersMiddleware] CSP allows images from http://localhost:8000"
+        )
 
     logger.info(f"[SecurityHeadersMiddleware] img_src after if: {img_src}")
 
@@ -189,17 +200,17 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
             """Set header with proper UTF-8 encoding."""
             if isinstance(value, bytes):
                 try:
-                    value = value.decode('utf-8')
+                    value = value.decode("utf-8")
                 except UnicodeDecodeError:
-                    value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+                    value = str(value.encode("utf-8", errors="replace"), "utf-8")
             elif not isinstance(value, str):
                 value = str(value)
 
             try:
-                value.encode('utf-8')
+                value.encode("utf-8")
                 response.headers[key] = value
             except UnicodeEncodeError:
-                safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+                safe_value = value.encode("utf-8", errors="replace").decode("utf-8")
                 response.headers[key] = safe_value
 
         try:
@@ -207,6 +218,7 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # Create error response with CORS headers
             from fastapi.responses import JSONResponse
+
             error_response = JSONResponse(
                 status_code=500,
                 content={
@@ -221,7 +233,9 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
             origin = request.headers.get("origin")
             if origin and origin in self.allowed_origins:
                 set_header_safely(error_response, "Access-Control-Allow-Origin", origin)
-                set_header_safely(error_response, "Access-Control-Allow-Credentials", "true")
+                set_header_safely(
+                    error_response, "Access-Control-Allow-Credentials", "true"
+                )
             add_security_headers(error_response)
             return error_response
 
@@ -241,6 +255,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Log para todas las solicitudes DELETE y POST
@@ -264,11 +279,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
-            logger.debug(f"SecurityHeadersMiddleware: response received from {request.url.path}, status: {response.status_code}")
+            logger.debug(
+                f"SecurityHeadersMiddleware: response received from {request.url.path}, status: {response.status_code}"
+            )
             add_security_headers(response)
             return response
         except Exception as e:
-            logger.error(f"Error in SecurityHeadersMiddleware for {request.url.path}: {e}", exc_info=True)
+            logger.error(
+                f"Error in SecurityHeadersMiddleware for {request.url.path}: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -292,6 +312,7 @@ app.add_middleware(CORSEnforcementMiddleware, allowed_origins=origins)
 # Add security headers middleware (after CORS)
 app.add_middleware(SecurityHeadersMiddleware)
 
+
 # Middleware to normalize request body encoding (must be FIRST middleware in execution order)
 # In FastAPI, middlewares are executed in reverse order of addition
 class RequestBodyEncodingMiddleware(BaseHTTPMiddleware):
@@ -299,6 +320,7 @@ class RequestBodyEncodingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Only process POST/PUT/PATCH requests with JSON content
@@ -313,7 +335,9 @@ class RequestBodyEncodingMiddleware(BaseHTTPMiddleware):
                         # Try to decode as UTF-8 first
                         try:
                             body_str = body_bytes.decode("utf-8")
-                            logger.debug(f"Request body decoded as UTF-8 for {request.url.path}")
+                            logger.debug(
+                                f"Request body decoded as UTF-8 for {request.url.path}"
+                            )
                         except UnicodeDecodeError:
                             # Fallback to Latin-1/Windows-1252 (common on Windows)
                             try:
@@ -345,7 +369,10 @@ class RequestBodyEncodingMiddleware(BaseHTTPMiddleware):
                         request._receive = receive
 
                 except Exception as e:
-                    logger.error(f"Error in RequestBodyEncodingMiddleware for {request.url.path}: {e}", exc_info=True)
+                    logger.error(
+                        f"Error in RequestBodyEncodingMiddleware for {request.url.path}: {e}",
+                        exc_info=True,
+                    )
                     # Continue with original request if middleware fails
 
         response = await call_next(request)
@@ -358,14 +385,19 @@ class HeaderEncodingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"HeaderEncodingMiddleware called for {request.url.path}")
 
         try:
             response = await call_next(request)
-            logger.debug(f"Response received from {request.url.path}, status: {response.status_code}")
+            logger.debug(
+                f"Response received from {request.url.path}, status: {response.status_code}"
+            )
         except Exception as e:
-            logger.error(f"Error in call_next for {request.url.path}: {e}", exc_info=True)
+            logger.error(
+                f"Error in call_next for {request.url.path}: {e}", exc_info=True
+            )
             raise
 
         # Clean up any problematic headers
@@ -373,30 +405,41 @@ class HeaderEncodingMiddleware(BaseHTTPMiddleware):
         headers_to_update = {}
 
         try:
-            logger.debug(f"Response headers type: {type(response.headers)}, value: {response.headers}")
+            logger.debug(
+                f"Response headers type: {type(response.headers)}, value: {response.headers}"
+            )
             for key, value in response.headers.items():
-                logger.debug(f"Processing header: key={key}, value={value}, value_type={type(value)}")
+                logger.debug(
+                    f"Processing header: key={key}, value={value}, value_type={type(value)}"
+                )
                 try:
                     # Try to encode as UTF-8 to check for issues
                     if isinstance(value, str):
-                        value.encode('utf-8')
+                        value.encode("utf-8")
                     elif isinstance(value, bytes):
-                        value.decode('utf-8')
+                        value.decode("utf-8")
                     else:
                         # Convert to string and check
-                        str(value).encode('utf-8')
+                        str(value).encode("utf-8")
                 except (UnicodeEncodeError, UnicodeDecodeError) as e:
                     logger.error(f"Encoding error for header {key}: {e}")
                     # This header has encoding issues, remove it or fix it
-                    if key.lower() not in ['content-type', 'content-length']:  # Keep essential headers
+                    if key.lower() not in [
+                        "content-type",
+                        "content-length",
+                    ]:  # Keep essential headers
                         headers_to_remove.append(key)
                     else:
                         # Try to fix essential headers
                         try:
                             if isinstance(value, bytes):
-                                fixed_value = value.decode('utf-8', errors='replace')
+                                fixed_value = value.decode("utf-8", errors="replace")
                             else:
-                                fixed_value = str(value).encode('utf-8', errors='replace').decode('utf-8')
+                                fixed_value = (
+                                    str(value)
+                                    .encode("utf-8", errors="replace")
+                                    .decode("utf-8")
+                                )
                             headers_to_update[key] = fixed_value
                         except Exception:
                             headers_to_remove.append(key)
@@ -421,21 +464,22 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
     This ensures all APIException instances return the standard error format
     defined in rules/api-contract.md.
     """
+
     def set_header_safely(response, key: str, value: str) -> None:
         """Set header with proper UTF-8 encoding."""
         if isinstance(value, bytes):
             try:
-                value = value.decode('utf-8')
+                value = value.decode("utf-8")
             except UnicodeDecodeError:
-                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+                value = str(value.encode("utf-8", errors="replace"), "utf-8")
         elif not isinstance(value, str):
             value = str(value)
 
         try:
-            value.encode('utf-8')
+            value.encode("utf-8")
             response.headers[key] = value
         except UnicodeEncodeError:
-            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            safe_value = value.encode("utf-8", errors="replace").decode("utf-8")
             response.headers[key] = safe_value
 
     # exc.detail already contains {"error": {...}}, add data: null for API contract compliance
@@ -471,7 +515,7 @@ async def validation_exception_handler(
     body_bytes = await request.body()
     print(f"[VALIDATION_ERROR] Body bytes: {body_bytes}")
     try:
-        body_str = body_bytes.decode('utf-8')
+        body_str = body_bytes.decode("utf-8")
         print(f"[VALIDATION_ERROR] Body string: {body_str}")
     except Exception as e:
         print(f"[VALIDATION_ERROR] Body: (could not decode) - {e}")
@@ -484,21 +528,22 @@ async def validation_exception_handler(
     logger.error(f"[VALIDATION_ERROR] Headers: {dict(request.headers)}")
     logger.error(f"[VALIDATION_ERROR] Body: {body_bytes}")
     logger.error(f"[VALIDATION_ERROR] Errors: {exc.errors()}")
+
     def set_header_safely(response, key: str, value: str) -> None:
         """Set header with proper UTF-8 encoding."""
         if isinstance(value, bytes):
             try:
-                value = value.decode('utf-8')
+                value = value.decode("utf-8")
             except UnicodeDecodeError:
-                value = str(value.encode('utf-8', errors='replace'), 'utf-8')
+                value = str(value.encode("utf-8", errors="replace"), "utf-8")
         elif not isinstance(value, str):
             value = str(value)
 
         try:
-            value.encode('utf-8')
+            value.encode("utf-8")
             response.headers[key] = value
         except UnicodeEncodeError:
-            safe_value = value.encode('utf-8', errors='replace').decode('utf-8')
+            safe_value = value.encode("utf-8", errors="replace").decode("utf-8")
             response.headers[key] = safe_value
 
     # Check if this is a color validation error
@@ -583,9 +628,32 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     """Handle all unhandled exceptions and ensure CORS headers are added."""
     # #region agent log
     import json
+
     try:
-        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"location": "main.py:160", "message": "Global exception handler called", "data": {"exception_type": type(exc).__name__, "exception_msg": str(exc), "path": str(request.url.path), "origin": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "A"}) + "\n")
+        with open(
+            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(
+                json.dumps(
+                    {
+                        "location": "main.py:160",
+                        "message": "Global exception handler called",
+                        "data": {
+                            "exception_type": type(exc).__name__,
+                            "exception_msg": str(exc),
+                            "path": str(request.url.path),
+                            "origin": request.headers.get("origin"),
+                        },
+                        "timestamp": int(__import__("time").time() * 1000),
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "A",
+                    }
+                )
+                + "\n"
+            )
     except Exception:
         pass
     # #endregion agent log
@@ -608,8 +676,29 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     # #region agent log
     try:
-        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"location": "main.py:178", "message": "Before adding CORS headers", "data": {"origins_defined": "origins" in globals(), "origins_value": globals().get("origins", "NOT_FOUND"), "origin_header": request.headers.get("origin")}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "B"}) + "\n")
+        with open(
+            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(
+                json.dumps(
+                    {
+                        "location": "main.py:178",
+                        "message": "Before adding CORS headers",
+                        "data": {
+                            "origins_defined": "origins" in globals(),
+                            "origins_value": globals().get("origins", "NOT_FOUND"),
+                            "origin_header": request.headers.get("origin"),
+                        },
+                        "timestamp": int(__import__("time").time() * 1000),
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "B",
+                    }
+                )
+                + "\n"
+            )
     except Exception:
         pass
     # #endregion agent log
@@ -622,8 +711,33 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     # #region agent log
     try:
-        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"location": "main.py:183", "message": "After adding CORS headers", "data": {"cors_origin": response.headers.get("Access-Control-Allow-Origin"), "cors_credentials": response.headers.get("Access-Control-Allow-Credentials"), "all_headers": dict(response.headers)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "C"}) + "\n")
+        with open(
+            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(
+                json.dumps(
+                    {
+                        "location": "main.py:183",
+                        "message": "After adding CORS headers",
+                        "data": {
+                            "cors_origin": response.headers.get(
+                                "Access-Control-Allow-Origin"
+                            ),
+                            "cors_credentials": response.headers.get(
+                                "Access-Control-Allow-Credentials"
+                            ),
+                            "all_headers": dict(response.headers),
+                        },
+                        "timestamp": int(__import__("time").time() * 1000),
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                    }
+                )
+                + "\n"
+            )
     except Exception:
         pass
     # #endregion agent log
@@ -644,12 +758,18 @@ if os.path.exists(storage_path):
     app.mount("/files", StaticFiles(directory=storage_path), name="files")
     logger.info(f"Mounted static files from {storage_path} at /files")
 else:
-    logger.warning(f"Storage directory {storage_path} does not exist, static files not mounted")
+    logger.warning(
+        f"Storage directory {storage_path} does not exist, static files not mounted"
+    )
 
 # Add encoding middlewares LAST (so they execute FIRST in the middleware chain)
 # In FastAPI, middlewares are executed in reverse order of addition
-app.add_middleware(RequestBodyEncodingMiddleware)  # Executes first (normalizes request body)
-app.add_middleware(HeaderEncodingMiddleware)      # Executes second (normalizes response headers)
+app.add_middleware(
+    RequestBodyEncodingMiddleware
+)  # Executes first (normalizes request body)
+app.add_middleware(
+    HeaderEncodingMiddleware
+)  # Executes second (normalizes response headers)
 
 
 if __name__ == "__main__":

@@ -27,4 +27,3 @@ class SeederRecord(Base):
 
     def __repr__(self) -> str:
         return f"<SeederRecord(seeder_name={self.seeder_name}, executed_at={self.executed_at})>"
-

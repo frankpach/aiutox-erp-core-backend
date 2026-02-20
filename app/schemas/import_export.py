@@ -11,10 +11,14 @@ from pydantic import BaseModel, ConfigDict, Field
 class ImportJobBase(BaseModel):
     """Base schema for import job."""
 
-    module: str = Field(..., description="Module name (e.g., 'products', 'inventory')", max_length=50)
+    module: str = Field(
+        ..., description="Module name (e.g., 'products', 'inventory')", max_length=50
+    )
     file_name: str = Field(..., description="File name", max_length=255)
     template_id: UUID | None = Field(None, description="Import template ID")
-    mapping: dict[str, Any] | None = Field(None, description="Field mapping configuration")
+    mapping: dict[str, Any] | None = Field(
+        None, description="Field mapping configuration"
+    )
     options: dict[str, Any] | None = Field(None, description="Import options")
 
 
@@ -56,10 +60,18 @@ class ImportTemplateBase(BaseModel):
     name: str = Field(..., description="Template name", max_length=255)
     description: str | None = Field(None, description="Template description")
     module: str = Field(..., description="Module name", max_length=50)
-    field_mapping: dict[str, Any] = Field(..., description="Field mapping configuration")
-    default_values: dict[str, Any] | None = Field(None, description="Default values for fields")
-    validation_rules: dict[str, Any] | None = Field(None, description="Validation rules")
-    transformations: dict[str, Any] | None = Field(None, description="Data transformations")
+    field_mapping: dict[str, Any] = Field(
+        ..., description="Field mapping configuration"
+    )
+    default_values: dict[str, Any] | None = Field(
+        None, description="Default values for fields"
+    )
+    validation_rules: dict[str, Any] | None = Field(
+        None, description="Validation rules"
+    )
+    transformations: dict[str, Any] | None = Field(
+        None, description="Data transformations"
+    )
     skip_header: bool = Field(True, description="Skip header row")
     delimiter: str = Field(",", description="CSV delimiter", max_length=1)
     encoding: str = Field("utf-8", description="File encoding", max_length=20)
@@ -76,10 +88,18 @@ class ImportTemplateUpdate(BaseModel):
 
     name: str | None = Field(None, description="Template name", max_length=255)
     description: str | None = Field(None, description="Template description")
-    field_mapping: dict[str, Any] | None = Field(None, description="Field mapping configuration")
-    default_values: dict[str, Any] | None = Field(None, description="Default values for fields")
-    validation_rules: dict[str, Any] | None = Field(None, description="Validation rules")
-    transformations: dict[str, Any] | None = Field(None, description="Data transformations")
+    field_mapping: dict[str, Any] | None = Field(
+        None, description="Field mapping configuration"
+    )
+    default_values: dict[str, Any] | None = Field(
+        None, description="Default values for fields"
+    )
+    validation_rules: dict[str, Any] | None = Field(
+        None, description="Validation rules"
+    )
+    transformations: dict[str, Any] | None = Field(
+        None, description="Data transformations"
+    )
     skip_header: bool | None = Field(None, description="Skip header row")
     delimiter: str | None = Field(None, description="CSV delimiter", max_length=1)
     encoding: str | None = Field(None, description="File encoding", max_length=20)
@@ -101,8 +121,12 @@ class ImportTemplateResponse(ImportTemplateBase):
 class ExportJobBase(BaseModel):
     """Base schema for export job."""
 
-    module: str = Field(..., description="Module name (e.g., 'products', 'inventory')", max_length=50)
-    export_format: str = Field(..., description="Export format (csv, excel, pdf)", max_length=20)
+    module: str = Field(
+        ..., description="Module name (e.g., 'products', 'inventory')", max_length=50
+    )
+    export_format: str = Field(
+        ..., description="Export format (csv, excel, pdf)", max_length=20
+    )
     filters: dict[str, Any] | None = Field(None, description="Export filters")
     columns: list[str] | None = Field(None, description="Columns to export")
     options: dict[str, Any] | None = Field(None, description="Export options")
@@ -132,11 +156,3 @@ class ExportJobResponse(ExportJobBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
-
-
-
-

@@ -5,7 +5,9 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_headers, db_session):
+def test_flow_run_created_with_approval_request(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that a flow run is automatically created when an approval request is created."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -77,10 +79,12 @@ def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_
 
     # Check directly in database
     from app.models.flow_run import FlowRun
-    flow_run_db = db_session.query(FlowRun).filter(
-        FlowRun.entity_type == "order",
-        FlowRun.entity_id == entity_id
-    ).first()
+
+    flow_run_db = (
+        db_session.query(FlowRun)
+        .filter(FlowRun.entity_type == "order", FlowRun.entity_id == entity_id)
+        .first()
+    )
 
     print(f"Flow run found in DB: {flow_run_db.id if flow_run_db else None}")
 
@@ -98,7 +102,9 @@ def test_flow_run_created_with_approval_request(client_with_db, test_user, auth_
     assert flow_run["run_metadata"]["approval_request_id"] == str(request_id)
 
 
-def test_flow_run_completed_on_approval(client_with_db, test_user, auth_headers, db_session):
+def test_flow_run_completed_on_approval(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that a flow run is completed when an approval request is approved."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -195,7 +201,9 @@ def test_flow_run_completed_on_approval(client_with_db, test_user, auth_headers,
     assert flow_run["run_metadata"]["approved_by"] == str(test_user.id)
 
 
-def test_flow_run_failed_on_rejection(client_with_db, test_user, auth_headers, db_session):
+def test_flow_run_failed_on_rejection(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that a flow run is failed when an approval request is rejected."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -297,7 +305,10 @@ def test_flow_runs_stats(client_with_db, test_user, db_session):
     """Test flow runs statistics endpoint."""
     # Use create_user_with_permission to get proper auth headers with permissions
     from tests.helpers import create_user_with_permission
-    auth_headers = create_user_with_permission(db_session, test_user, "flow_runs", "internal.viewer")
+
+    auth_headers = create_user_with_permission(
+        db_session, test_user, "flow_runs", "internal.viewer"
+    )
 
     # Get stats
     stats_response = client_with_db.get(

@@ -11,13 +11,18 @@ class LoginRequest(BaseModel):
 
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=1, description="User password")
-    remember_me: bool = Field(default=False, description="Keep session active for longer period")
+    remember_me: bool = Field(
+        default=False, description="Keep session active for longer period"
+    )
 
 
 class RefreshTokenRequest(BaseModel):
     """Schema for refresh token request."""
 
-    refresh_token: str | None = Field(None, description="Refresh token to exchange for new access token (optional, can be read from cookie)")
+    refresh_token: str | None = Field(
+        None,
+        description="Refresh token to exchange for new access token (optional, can be read from cookie)",
+    )
 
 
 class TokenResponse(BaseModel):
@@ -43,8 +48,13 @@ class UserMeResponse(BaseModel):
     full_name: str | None
     tenant_id: UUID = Field(..., description="Tenant ID for multi-tenancy isolation")
     tenant_name: str | None = Field(None, description="Tenant name")
-    roles: list[str] = Field(default_factory=list, description="Global roles assigned to the user")
-    permissions: list[str] = Field(default_factory=list, description="Effective permissions (from roles, module roles, and delegated permissions)")
+    roles: list[str] = Field(
+        default_factory=list, description="Global roles assigned to the user"
+    )
+    permissions: list[str] = Field(
+        default_factory=list,
+        description="Effective permissions (from roles, module roles, and delegated permissions)",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -52,7 +62,9 @@ class UserMeResponse(BaseModel):
 class RoleAssignRequest(BaseModel):
     """Schema for assigning a global role to a user."""
 
-    role: str = Field(..., description="Role name (owner, admin, manager, staff, viewer)")
+    role: str = Field(
+        ..., description="Role name (owner, admin, manager, staff, viewer)"
+    )
 
     @field_validator("role")
     @classmethod
@@ -68,7 +80,10 @@ class RoleResponse(BaseModel):
     """Schema for role response."""
 
     role: str
-    granted_by: UUID | None = Field(None, description="ID of the user who granted this role. None if granted by system.")
+    granted_by: UUID | None = Field(
+        None,
+        description="ID of the user who granted this role. None if granted by system.",
+    )
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

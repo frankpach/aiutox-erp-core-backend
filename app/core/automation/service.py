@@ -86,7 +86,11 @@ class AutomationService:
         return self.repository.get_rule_by_id(rule_id, tenant_id)
 
     def get_all_rules(
-        self, tenant_id: UUID, enabled_only: bool = False, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        enabled_only: bool = False,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Rule]:
         """Get all rules for a tenant.
 
@@ -101,9 +105,7 @@ class AutomationService:
         """
         return self.repository.get_all_rules(tenant_id, enabled_only, skip, limit)
 
-    def count_all_rules(
-        self, tenant_id: UUID, enabled_only: bool = False
-    ) -> int:
+    def count_all_rules(self, tenant_id: UUID, enabled_only: bool = False) -> int:
         """Count all rules for a tenant.
 
         Args:
@@ -222,13 +224,3 @@ class AutomationService:
             Count of executions
         """
         return self.repository.count_executions_by_rule(rule_id)
-
-
-
-
-
-
-
-
-
-

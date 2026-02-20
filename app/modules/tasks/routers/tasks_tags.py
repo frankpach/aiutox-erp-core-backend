@@ -31,7 +31,9 @@ async def search_tasks(
     db: Annotated[Session, Depends(get_db)],
     q: str = Query("", description="Search query"),
     tag_ids: list[UUID] | None = Query(None, description="Filter by tag IDs"),
-    status_filter: str | None = Query(None, alias="status", description="Filter by status"),
+    status_filter: str | None = Query(
+        None, alias="status", description="Filter by status"
+    ),
     priority: str | None = Query(None, description="Filter by priority"),
     limit: int = Query(50, description="Result limit"),
 ) -> StandardListResponse[TaskResponse]:

@@ -105,7 +105,9 @@ class FileService:
                 try:
                     secret_access_key = decrypt_credentials(encrypted_secret, tenant_id)
                 except Exception as e:
-                    logger.error(f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}")
+                    logger.error(
+                        f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}"
+                    )
                     return LocalStorageBackend()
 
                 return S3StorageBackend(
@@ -141,21 +143,34 @@ class FileService:
                 try:
                     secret_access_key = decrypt_credentials(encrypted_secret, tenant_id)
                 except Exception as e:
-                    logger.error(f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}")
+                    logger.error(
+                        f"Failed to decrypt S3 credentials for tenant {tenant_id}: {e}"
+                    )
                     return local_backend
 
                 # For hybrid mode, prefer S3 but fallback to local if S3 fails
                 # Create HybridStorageBackend with use_s3=True to use S3 as primary
                 # Note: This is a simplified implementation
                 # A full hybrid implementation would need routing logic based on file size, type, etc.
-                return HybridStorageBackend(use_s3=True, bucket_name=bucket_name, aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key, region=region)
+                return HybridStorageBackend(
+                    use_s3=True,
+                    bucket_name=bucket_name,
+                    aws_access_key_id=access_key_id,
+                    aws_secret_access_key=secret_access_key,
+                    region=region,
+                )
 
             else:
-                logger.warning(f"Unknown backend type: {backend_type}. Falling back to local storage.")
+                logger.warning(
+                    f"Unknown backend type: {backend_type}. Falling back to local storage."
+                )
                 return LocalStorageBackend()
 
         except Exception as e:
-            logger.error(f"Error reading storage configuration for tenant {tenant_id}: {e}", exc_info=True)
+            logger.error(
+                f"Error reading storage configuration for tenant {tenant_id}: {e}",
+                exc_info=True,
+            )
             # Fallback to local storage
             return LocalStorageBackend()
 
@@ -177,7 +192,10 @@ class FileService:
             logger.info(f"Storage backend reloaded for tenant {tenant_id}")
             return True
         except Exception as e:
-            logger.error(f"Failed to reload storage backend for tenant {tenant_id}: {e}", exc_info=True)
+            logger.error(
+                f"Failed to reload storage backend for tenant {tenant_id}: {e}",
+                exc_info=True,
+            )
             return False
 
     def _generate_storage_path(
@@ -263,9 +281,13 @@ class FileService:
         if isinstance(backend, S3StorageBackend):
             storage_backend_type = StorageBackend.S3.value  # Use .value to get string
         else:
-            storage_backend_type = StorageBackend.LOCAL.value  # Use .value to get string
+            storage_backend_type = (
+                StorageBackend.LOCAL.value
+            )  # Use .value to get string
 
-        logger.debug(f"Storage backend type: {storage_backend_type}, storage_path: {storage_path}")
+        logger.debug(
+            f"Storage backend type: {storage_backend_type}, storage_path: {storage_path}"
+        )
 
         # Get storage URL
         storage_url = await self.storage_backend.get_url(storage_path)
@@ -290,11 +312,15 @@ class FileService:
             "is_current": True,
             "uploaded_by": user_id,
         }
-        logger.info(f"Attempting to create file record in DB with data: tenant_id={tenant_id}, filename={filename}, size={file_size}")
+        logger.info(
+            f"Attempting to create file record in DB with data: tenant_id={tenant_id}, filename={filename}, size={file_size}"
+        )
 
         try:
             file = self.repository.create(file_data)
-            logger.info(f"File record created successfully in DB: {file.id} ({filename})")
+            logger.info(
+                f"File record created successfully in DB: {file.id} ({filename})"
+            )
 
             # Verify the file was actually saved
             verify_file = self.repository.get_by_id(file.id, tenant_id)
@@ -361,7 +387,10 @@ class FileService:
             )
             logger.info(f"Initial version (v1) created for file: {file.id}")
         except Exception as e:
-            logger.error(f"Failed to create initial version for file {file.id}: {e}", exc_info=True)
+            logger.error(
+                f"Failed to create initial version for file {file.id}: {e}",
+                exc_info=True,
+            )
             # This is critical - if version creation fails, we should rollback or at least log it
             # However, the file is already created, so we continue but log the error
 
@@ -378,7 +407,9 @@ class FileService:
         try:
             final_check = self.repository.get_by_id(file.id, tenant_id)
             if not final_check:
-                logger.error(f"CRITICAL: File {file.id} was created but is not in DB after all operations!")
+                logger.error(
+                    f"CRITICAL: File {file.id} was created but is not in DB after all operations!"
+                )
             else:
                 logger.info(f"Final verification: File {file.id} confirmed in DB")
         except Exception as e:
@@ -409,9 +440,7 @@ class FileService:
 
         return content, file
 
-    async def delete_file(
-        self, file_id: UUID, tenant_id: UUID, user_id: UUID
-    ) -> bool:
+    async def delete_file(self, file_id: UUID, tenant_id: UUID, user_id: UUID) -> bool:
         """Delete a file (soft delete).
 
         Args:
@@ -445,7 +474,9 @@ class FileService:
                     ),
                 )
             except Exception as e:
-                logger.warning(f"Failed to publish file.deleted event: {e}", exc_info=True)
+                logger.warning(
+                    f"Failed to publish file.deleted event: {e}", exc_info=True
+                )
 
             logger.info(f"File deleted: {file_id}")
 
@@ -598,7 +629,9 @@ class FileService:
 
         # Verify it's an image
         if not file.mime_type.startswith("image/"):
-            raise ValueError(f"File {file_id} is not an image (mime_type: {file.mime_type})")
+            raise ValueError(
+                f"File {file_id} is not an image (mime_type: {file.mime_type})"
+            )
 
         # Download original file
         original_content = await self.storage_backend.download(file.storage_path)
@@ -634,7 +667,11 @@ class FileService:
         return output.getvalue()
 
     def count_files_by_entity(
-        self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
+        self,
+        entity_type: str,
+        entity_id: UUID,
+        tenant_id: UUID,
+        current_only: bool = True,
     ) -> int:
         """Count files by entity.
 
@@ -647,11 +684,11 @@ class FileService:
         Returns:
             Count of files
         """
-        return self.repository.count_by_entity(entity_type, entity_id, tenant_id, current_only)
+        return self.repository.count_by_entity(
+            entity_type, entity_id, tenant_id, current_only
+        )
 
-    def count_all_files(
-        self, tenant_id: UUID, current_only: bool = True
-    ) -> int:
+    def count_all_files(self, tenant_id: UUID, current_only: bool = True) -> int:
         """Count all files for a tenant.
 
         Args:
@@ -693,7 +730,9 @@ class FileService:
             except FileNotFoundError:
                 continue
             except Exception as e:
-                logger.warning(f"Error checking permissions for file {file.id} in count: {e}")
+                logger.warning(
+                    f"Error checking permissions for file {file.id} in count: {e}"
+                )
                 continue
 
         return count
@@ -771,9 +810,7 @@ class FileService:
         # Get all permissions for the file
         try:
             permissions = self.repository.get_permissions(file_id, tenant_id)
-            logger.debug(
-                f"Found {len(permissions)} permissions for file {file_id}"
-            )
+            logger.debug(f"Found {len(permissions)} permissions for file {file_id}")
         except Exception as e:
             logger.error(
                 f"Error retrieving permissions for file {file_id}: {e}",
@@ -812,11 +849,7 @@ class FileService:
         # For now, we'll check if there's a direct UUID match (if roles were stored as UUIDs)
         from app.models.user_role import UserRole
 
-        user_roles = (
-            self.db.query(UserRole)
-            .filter(UserRole.user_id == user_id)
-            .all()
-        )
+        user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
 
         # Check if any permission matches a role UUID
         # This assumes role permissions use UUIDs that match some identifier
@@ -833,6 +866,7 @@ class FileService:
         # Check organization-based permissions (if user belongs to organization)
         try:
             from app.models.user import User
+
             user = self.db.query(User).filter(User.id == user_id).first()
             if user and user.organization_id:
                 logger.debug(
@@ -953,7 +987,9 @@ class FileService:
             except FileNotFoundError:
                 continue
             except Exception as e:
-                logger.warning(f"Error checking permissions for file {file.id} in count: {e}")
+                logger.warning(
+                    f"Error checking permissions for file {file.id} in count: {e}"
+                )
                 continue
 
         return count
@@ -1037,9 +1073,7 @@ class FileService:
             "errors": errors,
         }
 
-    async def restore_file(
-        self, file_id: UUID, tenant_id: UUID, user_id: UUID
-    ) -> bool:
+    async def restore_file(self, file_id: UUID, tenant_id: UUID, user_id: UUID) -> bool:
         """Restore a soft-deleted file.
 
         Args:
@@ -1067,7 +1101,9 @@ class FileService:
                     ),
                 )
             except Exception as e:
-                logger.warning(f"Failed to publish file.restored event: {e}", exc_info=True)
+                logger.warning(
+                    f"Failed to publish file.restored event: {e}", exc_info=True
+                )
             logger.info(f"File restored: {file_id}")
 
         return restored
@@ -1109,9 +1145,7 @@ class FileService:
                 if tag:
                     added_tags.append(tag)
             except ValueError as e:
-                logger.warning(
-                    f"Failed to add tag {tag_id} to file {file_id}: {e}"
-                )
+                logger.warning(f"Failed to add tag {tag_id} to file {file_id}: {e}")
                 # Continue with other tags instead of failing completely
                 continue
 

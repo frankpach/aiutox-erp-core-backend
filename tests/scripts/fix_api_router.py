@@ -10,6 +10,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def create_lazy_api_router():
     """Crea una versión del api_router con lazy loading."""
     print("🔧 CREANDO API ROUTER CON LAZY LOADING")
@@ -117,7 +118,7 @@ api_router = get_api_router()
     lazy_router_path = backend_path / "app" / "api" / "v1" / "lazy_router.py"
 
     try:
-        with open(lazy_router_path, 'w', encoding='utf-8') as f:
+        with open(lazy_router_path, "w", encoding="utf-8") as f:
             f.write(lazy_router_content)
 
         print(f"✅ Lazy router creado en: {lazy_router_path}")
@@ -127,6 +128,7 @@ api_router = get_api_router()
         print(f"❌ Error creando lazy router: {e}")
         return False
 
+
 def modify_main_to_use_lazy_router():
     """Modifica main.py para usar el lazy router."""
     print("\n🔧 MODIFICANDO main.py PARA USAR LAZY ROUTER")
@@ -135,7 +137,7 @@ def modify_main_to_use_lazy_router():
     main_path = backend_path / "app" / "main.py"
 
     try:
-        with open(main_path, encoding='utf-8') as f:
+        with open(main_path, encoding="utf-8") as f:
             content = f.read()
 
         # Reemplazar el import del api_router
@@ -149,8 +151,8 @@ def modify_main_to_use_lazy_router():
             print("   ⚠️ No se encontró el import original")
 
         # Reemplazar el uso del api_router
-        old_usage = "app.include_router(api_router, prefix=\"/api/v1\")"
-        new_usage = "app.include_router(get_api_router(), prefix=\"/api/v1\")"
+        old_usage = 'app.include_router(api_router, prefix="/api/v1")'
+        new_usage = 'app.include_router(get_api_router(), prefix="/api/v1")'
 
         if old_usage in content:
             content = content.replace(old_usage, new_usage)
@@ -159,7 +161,7 @@ def modify_main_to_use_lazy_router():
             print("   ⚠️ No se encontró el uso original")
 
         # Guardar el archivo modificado
-        with open(main_path, 'w', encoding='utf-8') as f:
+        with open(main_path, "w", encoding="utf-8") as f:
             f.write(content)
 
         print("✅ main.py modificado exitosamente")
@@ -168,6 +170,7 @@ def modify_main_to_use_lazy_router():
     except Exception as e:
         print(f"❌ Error modificando main.py: {e}")
         return False
+
 
 def create_backup_original():
     """Crea una copia de seguridad del archivo original."""
@@ -178,10 +181,10 @@ def create_backup_original():
     backup_path = backend_path / "app" / "api" / "v1" / "__init__.py.backup"
 
     try:
-        with open(original_path, encoding='utf-8') as f:
+        with open(original_path, encoding="utf-8") as f:
             content = f.read()
 
-        with open(backup_path, 'w', encoding='utf-8') as f:
+        with open(backup_path, "w", encoding="utf-8") as f:
             f.write(content)
 
         print(f"✅ Copia de seguridad creada en: {backup_path}")
@@ -190,6 +193,7 @@ def create_backup_original():
     except Exception as e:
         print(f"❌ Error creando copia de seguridad: {e}")
         return False
+
 
 def test_lazy_import():
     """Prueba el import del lazy router."""
@@ -239,6 +243,7 @@ def test_lazy_import():
         print(f"   ❌ Error importando lazy router: {e}")
         return False
 
+
 def main():
     """Función principal."""
     print("🔧 REPARACIÓN DEFINITIVA DEL API ROUTER")
@@ -280,6 +285,7 @@ def main():
         print("💡 Revisa los errores e intenta manualmente")
 
     return success_count == total_tasks
+
 
 if __name__ == "__main__":
     main()

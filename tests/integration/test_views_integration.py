@@ -40,6 +40,7 @@ def test_saved_filter_sharing(client_with_db, test_user, auth_headers, db_sessio
 
     # Create another user
     from app.models.user import User
+
     shared_user = User(
         id=uuid4(),
         email="shared@test.com",
@@ -106,11 +107,3 @@ def test_custom_view_with_filters(client_with_db, test_user, auth_headers, db_se
     view = view_response.json()["data"]
     assert view["name"] == "Active Products View"
     assert view["filters"] is not None
-
-
-
-
-
-
-
-

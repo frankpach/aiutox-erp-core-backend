@@ -104,8 +104,6 @@ def sample_product(db, sample_user):
     return product
 
 
-
-
 class TestTaskComments:
     """Test task comments CRUD operations."""
 
@@ -130,15 +128,18 @@ class TestTaskComments:
         assert "created_at" in result
 
         # Verify in database
-        comment = task_comment_service.db.query(Comment).filter(
-            Comment.entity_id == sample_task.id,
-            Comment.entity_type == "task"
-        ).first()
+        comment = (
+            task_comment_service.db.query(Comment)
+            .filter(Comment.entity_id == sample_task.id, Comment.entity_type == "task")
+            .first()
+        )
         assert comment is not None
         assert comment.content == content
         assert comment.created_by == sample_user.id
 
-    def test_add_comment_with_mentions(self, task_comment_service, sample_task, sample_user, db):
+    def test_add_comment_with_mentions(
+        self, task_comment_service, sample_task, sample_user, db
+    ):
         """Test adding a comment with mentions."""
         # Arrange
         password_hash = hashlib.sha256(b"test123").hexdigest()
@@ -171,13 +172,17 @@ class TestTaskComments:
         assert str(mentioned_user.id) in result["mentions"]
 
         # Verify mentions in database
-        mention = task_comment_service.db.query(CommentMention).filter(
-            CommentMention.comment_id == result["id"]
-        ).first()
+        mention = (
+            task_comment_service.db.query(CommentMention)
+            .filter(CommentMention.comment_id == result["id"])
+            .first()
+        )
         assert mention is not None
         assert mention.mentioned_user_id == mentioned_user.id
 
-    def test_update_comment_success(self, task_comment_service, sample_task, sample_user):
+    def test_update_comment_success(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test updating a comment."""
         # Arrange - Create comment first
         original_content = "Original comment"
@@ -204,17 +209,22 @@ class TestTaskComments:
         assert result["id"] == comment["id"]
 
         # Verify in database
-        db_comment = task_comment_service.db.query(Comment).filter(
-            Comment.id == comment["id"]
-        ).first()
+        db_comment = (
+            task_comment_service.db.query(Comment)
+            .filter(Comment.id == comment["id"])
+            .first()
+        )
         assert db_comment is not None
         assert db_comment.content == updated_content
         assert db_comment.is_edited is True
 
-    def test_update_comment_unauthorized(self, task_comment_service, sample_task, sample_user, db):
+    def test_update_comment_unauthorized(
+        self, task_comment_service, sample_task, sample_user, db
+    ):
         """Test updating a comment by non-author."""
         # Arrange
         import hashlib
+
         other_user = User(
             id=uuid4(),
             tenant_id=sample_user.tenant_id,
@@ -245,7 +255,9 @@ class TestTaskComments:
         # Assert
         assert result is None
 
-    def test_delete_comment_success(self, task_comment_service, sample_task, sample_user):
+    def test_delete_comment_success(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test deleting a comment."""
         # Arrange
         comment = task_comment_service.add_comment(
@@ -268,17 +280,22 @@ class TestTaskComments:
         assert result is True
 
         # Verify soft delete in database
-        db_comment = task_comment_service.db.query(Comment).filter(
-            Comment.id == comment_id
-        ).first()
+        db_comment = (
+            task_comment_service.db.query(Comment)
+            .filter(Comment.id == comment_id)
+            .first()
+        )
         assert db_comment is not None
         assert db_comment.is_deleted is True
         assert db_comment.deleted_at is not None
 
-    def test_delete_comment_unauthorized(self, task_comment_service, sample_task, sample_user, db):
+    def test_delete_comment_unauthorized(
+        self, task_comment_service, sample_task, sample_user, db
+    ):
         """Test deleting a comment by non-author."""
         # Arrange
         import hashlib
+
         other_user = User(
             id=uuid4(),
             tenant_id=sample_user.tenant_id,
@@ -338,7 +355,9 @@ class TestTaskComments:
         assert result[1]["content"] == "Second comment"
         assert result[2]["content"] == "First comment"
 
-    def test_list_comments_excludes_deleted(self, task_comment_service, sample_task, sample_user):
+    def test_list_comments_excludes_deleted(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test that deleted comments are not listed."""
         # Arrange
         _ = task_comment_service.add_comment(
@@ -401,7 +420,9 @@ class TestCrossEntityComments:
         assert comment.entity_type == "product"
         assert comment.entity_id == sample_product.id
 
-    def test_list_comments_by_entity_type(self, task_comment_service, db, sample_task, sample_product, sample_user):
+    def test_list_comments_by_entity_type(
+        self, task_comment_service, db, sample_task, sample_product, sample_user
+    ):
         """Test listing comments filtered by entity type."""
         # Create comments for different entities
         task_comment = Comment(
@@ -429,18 +450,26 @@ class TestCrossEntityComments:
         db.commit()
 
         # Query task comments
-        task_comments = db.query(Comment).filter(
-            Comment.entity_type == "task",
-            Comment.tenant_id == sample_task.tenant_id,
-            Comment.is_deleted.is_(False)
-        ).all()
+        task_comments = (
+            db.query(Comment)
+            .filter(
+                Comment.entity_type == "task",
+                Comment.tenant_id == sample_task.tenant_id,
+                Comment.is_deleted.is_(False),
+            )
+            .all()
+        )
 
         # Query product comments
-        product_comments = db.query(Comment).filter(
-            Comment.entity_type == "product",
-            Comment.tenant_id == sample_product.tenant_id,
-            Comment.is_deleted.is_(False)
-        ).all()
+        product_comments = (
+            db.query(Comment)
+            .filter(
+                Comment.entity_type == "product",
+                Comment.tenant_id == sample_product.tenant_id,
+                Comment.is_deleted.is_(False),
+            )
+            .all()
+        )
 
         # Assert
         assert len(task_comments) == 1
@@ -452,7 +481,9 @@ class TestCrossEntityComments:
 class TestCommentValidation:
     """Test comment validation and edge cases."""
 
-    def test_empty_content_validation(self, task_comment_service, sample_task, sample_user):
+    def test_empty_content_validation(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test validation for empty content."""
         # Act & Assert
         with pytest.raises(ValueError, match="Content cannot be empty"):
@@ -474,7 +505,9 @@ class TestCommentValidation:
                 content="Comment on non-existent task",
             )
 
-    def test_update_nonexistent_comment(self, task_comment_service, sample_task, sample_user):
+    def test_update_nonexistent_comment(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test updating non-existent comment."""
         # Act
         result = task_comment_service.update_comment(
@@ -488,7 +521,9 @@ class TestCommentValidation:
         # Assert
         assert result is None
 
-    def test_delete_nonexistent_comment(self, task_comment_service, sample_task, sample_user):
+    def test_delete_nonexistent_comment(
+        self, task_comment_service, sample_task, sample_user
+    ):
         """Test deleting non-existent comment."""
         # Act
         result = task_comment_service.delete_comment(
@@ -505,7 +540,9 @@ class TestCommentValidation:
 class TestCommentEvents:
     """Test comment-related events."""
 
-    def test_comment_added_event(self, task_comment_service, sample_task, sample_user, mock_event_publisher):
+    def test_comment_added_event(
+        self, task_comment_service, sample_task, sample_user, mock_event_publisher
+    ):
         """Test that comment_added event is published."""
         # Act
         task_comment_service.add_comment(
@@ -524,7 +561,9 @@ class TestCommentEvents:
         assert call_args.kwargs["tenant_id"] == sample_task.tenant_id
         assert call_args.kwargs["user_id"] == sample_user.id
 
-    def test_comment_updated_event(self, task_comment_service, sample_task, sample_user, mock_event_publisher):
+    def test_comment_updated_event(
+        self, task_comment_service, sample_task, sample_user, mock_event_publisher
+    ):
         """Test that comment_updated event is published."""
         # Arrange
         comment = task_comment_service.add_comment(
@@ -555,7 +594,9 @@ class TestCommentEvents:
         assert call_args.kwargs["tenant_id"] == sample_task.tenant_id
         assert call_args.kwargs["user_id"] == sample_user.id
 
-    def test_comment_deleted_event(self, task_comment_service, sample_task, sample_user, mock_event_publisher):
+    def test_comment_deleted_event(
+        self, task_comment_service, sample_task, sample_user, mock_event_publisher
+    ):
         """Test that comment_deleted event is published."""
         # Arrange
         comment = task_comment_service.add_comment(

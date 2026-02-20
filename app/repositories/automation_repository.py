@@ -32,7 +32,11 @@ class AutomationRepository:
         )
 
     def get_all_rules(
-        self, tenant_id: UUID, enabled_only: bool = False, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        enabled_only: bool = False,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Rule]:
         """Get all rules by tenant with pagination."""
         query = self.db.query(Rule).filter(Rule.tenant_id == tenant_id)
@@ -40,9 +44,7 @@ class AutomationRepository:
             query = query.filter(Rule.enabled)
         return query.offset(skip).limit(limit).all()
 
-    def count_all_rules(
-        self, tenant_id: UUID, enabled_only: bool = False
-    ) -> int:
+    def count_all_rules(self, tenant_id: UUID, enabled_only: bool = False) -> int:
         """Count all rules by tenant."""
         from sqlalchemy import func
 
@@ -51,7 +53,9 @@ class AutomationRepository:
             query = query.filter(Rule.enabled)
         return query.scalar() or 0
 
-    def update_rule(self, rule_id: UUID, tenant_id: UUID, rule_data: dict) -> Rule | None:
+    def update_rule(
+        self, rule_id: UUID, tenant_id: UUID, rule_data: dict
+    ) -> Rule | None:
         """Update a rule."""
         rule = self.get_rule_by_id(rule_id, tenant_id)
         if not rule:
@@ -135,15 +139,6 @@ class AutomationRepository:
         return (
             self.db.query(func.count(AutomationExecution.id))
             .filter(AutomationExecution.rule_id == rule_id)
-            .scalar() or 0
+            .scalar()
+            or 0
         )
-
-
-
-
-
-
-
-
-
-

@@ -36,7 +36,9 @@ def test_create_product_publishes_event(client_with_db, test_user, db_session):
         # Verify event was published (check if publish was called)
         # Note: Background tasks run after response, so we check the call was scheduled
         # In a real scenario, you'd wait for background tasks to complete
-        assert mock_publish.called or True  # Background task may not execute immediately
+        assert (
+            mock_publish.called or True
+        )  # Background task may not execute immediately
 
 
 def test_update_product_publishes_event(client_with_db, test_user, db_session):
@@ -108,4 +110,3 @@ def test_delete_product_publishes_event(client_with_db, test_user, db_session):
         assert response.status_code == 200
         # Event publishing is done via background task
         assert True  # Background task scheduled
-

@@ -131,9 +131,7 @@ class ViewService:
         is_shared: bool | None = None,
     ) -> int:
         """Count custom views with optional filters."""
-        return self.repository.count_custom_views(
-            tenant_id, module, user_id, is_shared
-        )
+        return self.repository.count_custom_views(tenant_id, module, user_id, is_shared)
 
     def update_custom_view(
         self, view_id: UUID, tenant_id: UUID, view_data: dict
@@ -196,11 +194,3 @@ class ViewService:
 
         self.repository.delete_view_share(share)
         return True
-
-
-
-
-
-
-
-

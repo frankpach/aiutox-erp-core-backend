@@ -48,11 +48,17 @@ async def upload_file(
     current_user: Annotated[User, Depends(require_permission("files.manage"))],
     service: Annotated[FileService, Depends(get_file_service)],
     file: UploadFile = FastAPIFile(..., description="File to upload"),
-    entity_type: str | None = Query(default=None, description="Entity type (e.g., 'product', 'order')"),
+    entity_type: str | None = Query(
+        default=None, description="Entity type (e.g., 'product', 'order')"
+    ),
     entity_id: UUID | None = Query(default=None, description="Entity ID"),
-    folder_id: UUID | None = Query(default=None, description="Folder ID (null for root)"),
+    folder_id: UUID | None = Query(
+        default=None, description="Folder ID (null for root)"
+    ),
     description: str | None = Query(default=None, description="File description"),
-    permissions: str | None = Query(default=None, description="JSON array of permissions to assign"),
+    permissions: str | None = Query(
+        default=None, description="JSON array of permissions to assign"
+    ),
 ) -> StandardResponse[FileResponse]:
     """Upload a new file."""
     import json
@@ -87,7 +93,9 @@ async def upload_file(
                 raise ValueError("Permissions must be a JSON array")
             for perm in permissions_data:
                 if not all(k in perm for k in ["target_type", "target_id"]):
-                    raise ValueError("Each permission must have target_type and target_id")
+                    raise ValueError(
+                        "Each permission must have target_type and target_id"
+                    )
         except json.JSONDecodeError:
             raise APIException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -124,6 +132,7 @@ async def upload_file(
 
     # Reload with user info (non-blocking - use uploaded_file if reload fails)
     from app.models.file import File
+
     try:
         file_with_user = (
             service.db.query(File)
@@ -132,7 +141,9 @@ async def upload_file(
             .first()
         )
     except Exception as e:
-        logger.warning(f"Failed to reload file with user info: {e}, using uploaded_file directly")
+        logger.warning(
+            f"Failed to reload file with user info: {e}, using uploaded_file directly"
+        )
         file_with_user = None
 
     try:
@@ -140,11 +151,17 @@ async def upload_file(
         uploaded_by_user_dict = None
         file_to_validate = file_with_user or uploaded_file
 
-        if file_to_validate and hasattr(file_to_validate, 'uploaded_by_user') and file_to_validate.uploaded_by_user:
+        if (
+            file_to_validate
+            and hasattr(file_to_validate, "uploaded_by_user")
+            and file_to_validate.uploaded_by_user
+        ):
             uploaded_by_user_dict = {
                 "id": str(file_to_validate.uploaded_by_user.id),
                 "email": file_to_validate.uploaded_by_user.email,
-                "full_name": file_to_validate.uploaded_by_user.full_name or f"{file_to_validate.uploaded_by_user.first_name or ''} {file_to_validate.uploaded_by_user.last_name or ''}".strip() or file_to_validate.uploaded_by_user.email,
+                "full_name": file_to_validate.uploaded_by_user.full_name
+                or f"{file_to_validate.uploaded_by_user.first_name or ''} {file_to_validate.uploaded_by_user.last_name or ''}".strip()
+                or file_to_validate.uploaded_by_user.email,
             }
 
         # Create response dict with transformed user data (similar to list_files)
@@ -243,7 +260,9 @@ async def get_file_info(
         uploaded_by_user_dict = {
             "id": str(file.uploaded_by_user.id),
             "email": file.uploaded_by_user.email,
-            "full_name": file.uploaded_by_user.full_name or f"{file.uploaded_by_user.first_name or ''} {file.uploaded_by_user.last_name or ''}".strip() or file.uploaded_by_user.email,
+            "full_name": file.uploaded_by_user.full_name
+            or f"{file.uploaded_by_user.first_name or ''} {file.uploaded_by_user.last_name or ''}".strip()
+            or file.uploaded_by_user.email,
         }
 
     # Create response dict with transformed user data
@@ -294,7 +313,10 @@ async def get_file_info(
     summary="Download file",
     description="Download file content. Requires files.view permission and specific file download permission.",
     responses={
-        200: {"description": "File content", "content": {"application/octet-stream": {}}},
+        200: {
+            "description": "File content",
+            "content": {"application/octet-stream": {}},
+        },
         403: {"description": "Access denied"},
         404: {"description": "File not found"},
     },
@@ -368,8 +390,12 @@ async def get_file_preview(
     file_id: Annotated[UUID, Path(..., description="File ID")],
     current_user: Annotated[User, Depends(require_permission("files.view"))],
     service: Annotated[FileService, Depends(get_file_service)],
-    width: int = Query(default=200, ge=1, le=2000, description="Preview width in pixels"),
-    height: int = Query(default=200, ge=1, le=2000, description="Preview height in pixels"),
+    width: int = Query(
+        default=200, ge=1, le=2000, description="Preview width in pixels"
+    ),
+    height: int = Query(
+        default=200, ge=1, le=2000, description="Preview height in pixels"
+    ),
     quality: int = Query(default=80, ge=1, le=100, description="JPEG quality (1-100)"),
 ) -> Response:
     """Get file preview/thumbnail."""
@@ -510,7 +536,9 @@ async def delete_file(
             message=f"File with ID {file_id} not found",
         )
 
-    deleted = await service.delete_file(file_id, current_user.tenant_id, current_user.id)
+    deleted = await service.delete_file(
+        file_id, current_user.tenant_id, current_user.id
+    )
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -542,10 +570,13 @@ async def restore_file(
         )
 
     # Get file info (allow deleted files for restore endpoint)
-    file = service.repository.get_by_id(file_id, current_user.tenant_id, current_only=False)
+    file = service.repository.get_by_id(
+        file_id, current_user.tenant_id, current_only=False
+    )
     if not file:
         # Try to get the file even if it's deleted
         from app.models.file import File
+
         file = (
             service.db.query(File)
             .filter(File.id == file_id, File.tenant_id == current_user.tenant_id)
@@ -679,7 +710,10 @@ async def list_file_versions(
                 }
                 versions_data.append(FileVersionResponse.model_validate(version_dict))
             except Exception as e:
-                logger.error(f"Error converting FileVersion {v.id} to response: {e}", exc_info=True)
+                logger.error(
+                    f"Error converting FileVersion {v.id} to response: {e}",
+                    exc_info=True,
+                )
                 # Skip this version but continue with others
                 continue
 
@@ -696,7 +730,9 @@ async def list_file_versions(
             message="File versions retrieved successfully",
         )
     except Exception as e:
-        logger.error(f"Error retrieving file versions for file {file_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error retrieving file versions for file {file_id}: {e}", exc_info=True
+        )
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="VERSIONS_RETRIEVAL_FAILED",
@@ -716,7 +752,9 @@ async def create_file_version(
     current_user: Annotated[User, Depends(require_permission("files.manage"))],
     service: Annotated[FileService, Depends(get_file_service)],
     file: UploadFile = FastAPIFile(..., description="New file version"),
-    change_description: str | None = Query(default=None, description="Description of changes"),
+    change_description: str | None = Query(
+        default=None, description="Description of changes"
+    ),
 ) -> StandardResponse[FileVersionResponse]:
     """Create a new version of a file."""
     # Check if user has permission to edit this specific file
@@ -888,7 +926,8 @@ async def restore_file_version(
         filename=file.original_name,
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
-        change_description=change_description or f"Restored from version {version.version_number}",
+        change_description=change_description
+        or f"Restored from version {version.version_number}",
     )
 
     return StandardResponse(
@@ -1161,7 +1200,9 @@ async def remove_tag_from_file(
             message=str(e),
         )
     except Exception as e:
-        logger.error(f"Error removing tag {tag_id} from file {file_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error removing tag {tag_id} from file {file_id}: {e}", exc_info=True
+        )
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="TAG_OPERATION_FAILED",
@@ -1368,8 +1409,13 @@ async def list_files(
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
     entity_type: str | None = Query(default=None, description="Filter by entity type"),
     entity_id: UUID | None = Query(default=None, description="Filter by entity ID"),
-    folder_id: UUID | None = Query(default=None, description="Filter by folder ID (null for root)"),
-    tags: str | None = Query(default=None, description="Comma-separated list of tag IDs to filter by (files must have ALL tags)"),
+    folder_id: UUID | None = Query(
+        default=None, description="Filter by folder ID (null for root)"
+    ),
+    tags: str | None = Query(
+        default=None,
+        description="Comma-separated list of tag IDs to filter by (files must have ALL tags)",
+    ),
 ) -> StandardListResponse[FileResponse]:
     """List files that the user can view."""
     # Validate tenant_id
@@ -1410,7 +1456,9 @@ async def list_files(
         tag_ids: list[UUID] | None = None
         if tags:
             try:
-                tag_ids = [UUID(tag_id.strip()) for tag_id in tags.split(",") if tag_id.strip()]
+                tag_ids = [
+                    UUID(tag_id.strip()) for tag_id in tags.split(",") if tag_id.strip()
+                ]
             except ValueError as e:
                 raise APIException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -1436,7 +1484,9 @@ async def list_files(
                 tag_ids=tag_ids,
             )
         except Exception as e:
-            logger.error(f"Error getting files for user {current_user.id}: {e}", exc_info=True)
+            logger.error(
+                f"Error getting files for user {current_user.id}: {e}", exc_info=True
+            )
             raise APIException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 code="FILES_LIST_ERROR",
@@ -1454,7 +1504,9 @@ async def list_files(
             uploaded_by_user_dict = {
                 "id": str(file.uploaded_by_user.id),
                 "email": file.uploaded_by_user.email,
-                "full_name": file.uploaded_by_user.full_name or f"{file.uploaded_by_user.first_name or ''} {file.uploaded_by_user.last_name or ''}".strip() or file.uploaded_by_user.email,
+                "full_name": file.uploaded_by_user.full_name
+                or f"{file.uploaded_by_user.first_name or ''} {file.uploaded_by_user.last_name or ''}".strip()
+                or file.uploaded_by_user.email,
             }
 
         # Get tags for the file
@@ -1500,8 +1552,9 @@ async def list_files(
         meta={
             "total": total,
             "page": page,
-            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "page_size": (
+                max(page_size, 1) if total == 0 else page_size
+            ),  # Minimum page_size is 1
             "total_pages": total_pages,
         },
     )
-

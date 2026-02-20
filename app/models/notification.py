@@ -32,7 +32,9 @@ class NotificationTemplate(Base):
         index=True,
     )
     name = Column(String(255), nullable=False)
-    event_type = Column(String(100), nullable=False, index=True)  # e.g., 'product.created'
+    event_type = Column(
+        String(100), nullable=False, index=True
+    )  # e.g., 'product.created'
     channel = Column(String(50), nullable=False)  # 'email', 'sms', 'webhook', 'in-app'
     subject = Column(String(500), nullable=True)  # For email
     body = Column(Text, nullable=False)  # Template body with {{variables}}
@@ -74,7 +76,9 @@ class NotificationQueue(Base):
         nullable=False,
         index=True,
     )
-    channel = Column(String(50), nullable=False, index=True)  # 'email', 'sms', 'webhook', 'in-app'
+    channel = Column(
+        String(50), nullable=False, index=True
+    )  # 'email', 'sms', 'webhook', 'in-app'
     template_id = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("notification_templates.id", ondelete="SET NULL"),
@@ -82,7 +86,9 @@ class NotificationQueue(Base):
         index=True,
     )
     data = Column(JSONB, nullable=True)  # Event data for template rendering
-    status = Column(String(20), nullable=False, default=NotificationStatus.PENDING, index=True)
+    status = Column(
+        String(20), nullable=False, default=NotificationStatus.PENDING, index=True
+    )
     sent_at = Column(TIMESTAMP(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(
@@ -96,13 +102,3 @@ class NotificationQueue(Base):
         Index("idx_notification_queue_status", "status"),
         Index("idx_notification_queue_created", "created_at"),
     )
-
-
-
-
-
-
-
-
-
-

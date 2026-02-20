@@ -46,7 +46,9 @@ class Template(Base):
     # Template information
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    template_type = Column(String(20), nullable=False)  # document, email, sms, notification
+    template_type = Column(
+        String(20), nullable=False
+    )  # document, email, sms, notification
     template_format = Column(String(20), nullable=False)  # html, pdf, text, markdown
     category = Column(String(50), nullable=True, index=True)  # Template category
 
@@ -56,7 +58,9 @@ class Template(Base):
 
     # Settings
     is_active = Column(Boolean, default=True, nullable=False)
-    is_system = Column(Boolean, default=False, nullable=False)  # System template (cannot be deleted)
+    is_system = Column(
+        Boolean, default=False, nullable=False
+    )  # System template (cannot be deleted)
 
     # Ownership
     created_by = Column(
@@ -83,7 +87,9 @@ class Template(Base):
     )
 
     # Relationships
-    versions = relationship("TemplateVersion", back_populates="template", cascade="all, delete-orphan")
+    versions = relationship(
+        "TemplateVersion", back_populates="template", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_templates_tenant_type", "tenant_id", "template_type"),
@@ -122,7 +128,9 @@ class TemplateVersion(Base):
     changelog = Column(Text, nullable=True)  # What changed in this version
 
     # Status
-    is_current = Column(Boolean, default=True, nullable=False, index=True)  # Current version
+    is_current = Column(
+        Boolean, default=True, nullable=False, index=True
+    )  # Current version
 
     # Created by
     created_by = Column(
@@ -189,17 +197,7 @@ class TemplateCategory(Base):
         nullable=False,
     )
 
-    __table_args__ = (
-        Index("idx_template_categories_tenant", "tenant_id", "name"),
-    )
+    __table_args__ = (Index("idx_template_categories_tenant", "tenant_id", "name"),)
 
     def __repr__(self) -> str:
         return f"<TemplateCategory(id={self.id}, name={self.name})>"
-
-
-
-
-
-
-
-

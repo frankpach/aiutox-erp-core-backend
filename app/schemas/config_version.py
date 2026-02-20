@@ -19,7 +19,9 @@ class ConfigVersionResponse(BaseModel):
     changed_by: UUID | None = Field(None, description="User who made the change")
     change_reason: str | None = Field(None, description="Reason for the change")
     created_at: datetime = Field(..., description="Timestamp of this version")
-    change_metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    change_metadata: dict[str, Any] | None = Field(
+        None, description="Additional metadata"
+    )
 
 
 class ConfigVersionListResponse(BaseModel):
@@ -47,4 +49,3 @@ class CacheStatsResponse(BaseModel):
     ttl: int | None = Field(None, description="TTL in seconds")
     memory_used: str | None = Field(None, description="Memory used by cache")
     error: str | None = Field(None, description="Error message if status is error")
-

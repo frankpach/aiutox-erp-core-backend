@@ -102,4 +102,3 @@ class ConfigVersion(Base):
             f"<ConfigVersion(id={self.id}, module={self.module}, "
             f"key={self.key}, version={self.version_number})>"
         )
-

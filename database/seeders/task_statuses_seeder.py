@@ -34,18 +34,66 @@ class TaskStatusesSeeder(Seeder):
 
         # Base system statuses (cannot be deleted)
         base_statuses = [
-            {"name": "Por Iniciar", "type": "open", "color": "#2196F3", "is_system": True, "order": 1},
-            {"name": "En Proceso", "type": "in_progress", "color": "#FF9800", "is_system": True, "order": 2},
-            {"name": "Pausado", "type": "in_progress", "color": "#FFC107", "is_system": True, "order": 3},
-            {"name": "Cancelado", "type": "closed", "color": "#F44336", "is_system": True, "order": 4},
-            {"name": "Completado", "type": "closed", "color": "#4CAF50", "is_system": True, "order": 5},
+            {
+                "name": "Por Iniciar",
+                "type": "open",
+                "color": "#2196F3",
+                "is_system": True,
+                "order": 1,
+            },
+            {
+                "name": "En Proceso",
+                "type": "in_progress",
+                "color": "#FF9800",
+                "is_system": True,
+                "order": 2,
+            },
+            {
+                "name": "Pausado",
+                "type": "in_progress",
+                "color": "#FFC107",
+                "is_system": True,
+                "order": 3,
+            },
+            {
+                "name": "Cancelado",
+                "type": "closed",
+                "color": "#F44336",
+                "is_system": True,
+                "order": 4,
+            },
+            {
+                "name": "Completado",
+                "type": "closed",
+                "color": "#4CAF50",
+                "is_system": True,
+                "order": 5,
+            },
         ]
 
         # Custom statuses for development (can be deleted)
         custom_statuses = [
-            {"name": "En Revisión", "type": "in_progress", "color": "#9C27B0", "is_system": False, "order": 6},
-            {"name": "Bloqueado", "type": "in_progress", "color": "#607D8B", "is_system": False, "order": 7},
-            {"name": "Aprobado", "type": "closed", "color": "#00BCD4", "is_system": False, "order": 8},
+            {
+                "name": "En Revisión",
+                "type": "in_progress",
+                "color": "#9C27B0",
+                "is_system": False,
+                "order": 6,
+            },
+            {
+                "name": "Bloqueado",
+                "type": "in_progress",
+                "color": "#607D8B",
+                "is_system": False,
+                "order": 7,
+            },
+            {
+                "name": "Aprobado",
+                "type": "closed",
+                "color": "#00BCD4",
+                "is_system": False,
+                "order": 8,
+            },
         ]
 
         for tenant in tenants:

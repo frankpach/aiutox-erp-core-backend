@@ -1,6 +1,5 @@
 """Unit tests for Pub-Sub errors."""
 
-
 from app.core.pubsub.errors import (
     ConsumeError,
     GroupNotFoundError,
@@ -52,13 +51,3 @@ def test_error_inheritance():
     assert issubclass(PublishError, PubSubError)
     assert issubclass(ConsumeError, PubSubError)
     assert issubclass(PubSubError, Exception)
-
-
-
-
-
-
-
-
-
-

@@ -69,13 +69,3 @@ class ReportingRepository:
         self.db.delete(report)
         self.db.commit()
         return True
-
-
-
-
-
-
-
-
-
-

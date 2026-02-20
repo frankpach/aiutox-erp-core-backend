@@ -19,6 +19,7 @@ class FileRepository:
     def create(self, file_data: dict) -> File:
         """Create a new file."""
         import logging
+
         logger = logging.getLogger(__name__)
 
         try:
@@ -34,22 +35,31 @@ class FileRepository:
             logger.debug(f"File flushed to DB: {file.id}")
 
             self.db.commit()
-            logger.info(f"File committed successfully in DB: {file.id} (name: {file_data.get('name', 'unknown')})")
+            logger.info(
+                f"File committed successfully in DB: {file.id} (name: {file_data.get('name', 'unknown')})"
+            )
 
             # Verificar inmediatamente después del commit que el archivo está en la BD
             try:
                 # Hacer una consulta directa para verificar que el commit funcionó
                 from sqlalchemy import text
+
                 result = self.db.execute(
                     text("SELECT id FROM files WHERE id = :file_id"),
-                    {"file_id": str(file.id)}
+                    {"file_id": str(file.id)},
                 ).fetchone()
                 if result:
-                    logger.info(f"File verified in DB immediately after commit: {file.id}")
+                    logger.info(
+                        f"File verified in DB immediately after commit: {file.id}"
+                    )
                 else:
-                    logger.error(f"CRITICAL: File {file.id} was committed but not found in DB!")
+                    logger.error(
+                        f"CRITICAL: File {file.id} was committed but not found in DB!"
+                    )
             except Exception as verify_error:
-                logger.warning(f"Could not verify file in DB (non-critical): {verify_error}")
+                logger.warning(
+                    f"Could not verify file in DB (non-critical): {verify_error}"
+                )
 
             self.db.refresh(file)
             logger.debug(f"File refreshed from DB: {file.id}")
@@ -65,9 +75,12 @@ class FileRepository:
                 logger.error(f"Error during rollback: {rollback_error}")
             raise
 
-    def get_by_id(self, file_id: UUID, tenant_id: UUID, current_only: bool = True) -> File | None:
+    def get_by_id(
+        self, file_id: UUID, tenant_id: UUID, current_only: bool = True
+    ) -> File | None:
         """Get file by ID and tenant."""
         from sqlalchemy.orm import joinedload
+
         query = (
             self.db.query(File)
             .options(joinedload(File.uploaded_by_user))
@@ -78,21 +91,34 @@ class FileRepository:
         return query.first()
 
     def get_by_entity(
-        self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
+        self,
+        entity_type: str,
+        entity_id: UUID,
+        tenant_id: UUID,
+        current_only: bool = True,
     ) -> list[File]:
         """Get files by entity."""
         from sqlalchemy.orm import joinedload
-        query = self.db.query(File).options(joinedload(File.uploaded_by_user)).filter(
-            File.entity_type == entity_type,
-            File.entity_id == entity_id,
-            File.tenant_id == tenant_id,
+
+        query = (
+            self.db.query(File)
+            .options(joinedload(File.uploaded_by_user))
+            .filter(
+                File.entity_type == entity_type,
+                File.entity_id == entity_id,
+                File.tenant_id == tenant_id,
+            )
         )
         if current_only:
             query = query.filter(File.is_current, File.deleted_at.is_(None))
         return query.order_by(File.created_at.desc()).all()
 
     def count_by_entity(
-        self, entity_type: str, entity_id: UUID, tenant_id: UUID, current_only: bool = True
+        self,
+        entity_type: str,
+        entity_id: UUID,
+        tenant_id: UUID,
+        current_only: bool = True,
     ) -> int:
         """Count files by entity."""
         from sqlalchemy import func

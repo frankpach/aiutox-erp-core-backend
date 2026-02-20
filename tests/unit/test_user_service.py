@@ -79,9 +79,10 @@ class TestUserService:
         service.repository.get_by_id = Mock(return_value=test_user)
         service.repository.create = Mock(return_value=mock_user)
 
-        with patch("app.services.user_service.log_user_action") as mock_log, patch(
-            "app.services.user_service.create_audit_log_entry"
-        ) as mock_audit:
+        with (
+            patch("app.services.user_service.log_user_action") as mock_log,
+            patch("app.services.user_service.create_audit_log_entry") as mock_audit,
+        ):
             service.create_user(
                 user_data,
                 created_by=test_user.id,
@@ -146,7 +147,9 @@ class TestUserService:
         service.repository.update = Mock(return_value=updated_user)
 
         # Mock refresh token repository
-        with patch("app.repositories.refresh_token_repository.RefreshTokenRepository") as mock_repo_class:
+        with patch(
+            "app.repositories.refresh_token_repository.RefreshTokenRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_repo.revoke_all_user_tokens = Mock(return_value=2)
             mock_repo_class.return_value = mock_repo
@@ -190,7 +193,9 @@ class TestUserService:
         with pytest.raises(ValueError, match="already exists"):
             service.update_user(test_user.id, update_data)
 
-    def test_update_user_is_active_true_no_token_revocation(self, db_session, test_user):
+    def test_update_user_is_active_true_no_token_revocation(
+        self, db_session, test_user
+    ):
         """Test that updating is_active to True does not revoke tokens."""
         service = UserService(db_session)
 
@@ -210,7 +215,9 @@ class TestUserService:
         service.repository.update = Mock(return_value=updated_user)
 
         # Mock refresh token repository
-        with patch("app.repositories.refresh_token_repository.RefreshTokenRepository") as mock_repo_class:
+        with patch(
+            "app.repositories.refresh_token_repository.RefreshTokenRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_repo.revoke_all_user_tokens = Mock(return_value=0)
             mock_repo_class.return_value = mock_repo
@@ -315,7 +322,9 @@ class TestUserService:
         service.repository.update = Mock(return_value=test_user)
 
         # Mock refresh token repository
-        with patch("app.repositories.refresh_token_repository.RefreshTokenRepository") as mock_repo_class:
+        with patch(
+            "app.repositories.refresh_token_repository.RefreshTokenRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_repo.revoke_all_user_tokens = Mock(return_value=2)
             mock_repo_class.return_value = mock_repo
@@ -361,8 +370,9 @@ class TestUserService:
         service.repository.get_by_id = Mock(side_effect=[user1, user2])
         service.repository.update = Mock(side_effect=[user1, user2])
 
-        with patch("app.services.user_service.log_user_action"), patch(
-            "app.services.user_service.create_audit_log_entry"
+        with (
+            patch("app.services.user_service.log_user_action"),
+            patch("app.services.user_service.create_audit_log_entry"),
         ):
             result = service.bulk_action(
                 user_ids=[user1.id, user2.id],
@@ -389,13 +399,16 @@ class TestUserService:
         service.repository.update = Mock(return_value=user1)
 
         # Mock refresh token repository
-        with patch("app.repositories.refresh_token_repository.RefreshTokenRepository") as mock_repo_class:
+        with patch(
+            "app.repositories.refresh_token_repository.RefreshTokenRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_repo.revoke_all_user_tokens = Mock(return_value=2)
             mock_repo_class.return_value = mock_repo
 
-            with patch("app.services.user_service.log_user_action"), patch(
-                "app.services.user_service.create_audit_log_entry"
+            with (
+                patch("app.services.user_service.log_user_action"),
+                patch("app.services.user_service.create_audit_log_entry"),
             ):
                 result = service.bulk_action(
                     user_ids=[user1.id],
@@ -423,13 +436,16 @@ class TestUserService:
         service.repository.update = Mock(return_value=user1)
 
         # Mock refresh token repository
-        with patch("app.repositories.refresh_token_repository.RefreshTokenRepository") as mock_repo_class:
+        with patch(
+            "app.repositories.refresh_token_repository.RefreshTokenRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_repo.revoke_all_user_tokens = Mock(return_value=2)
             mock_repo_class.return_value = mock_repo
 
-            with patch("app.services.user_service.log_user_action"), patch(
-                "app.services.user_service.create_audit_log_entry"
+            with (
+                patch("app.services.user_service.log_user_action"),
+                patch("app.services.user_service.create_audit_log_entry"),
             ):
                 result = service.bulk_action(
                     user_ids=[user1.id],
@@ -484,16 +500,3 @@ class TestUserService:
 
         assert result["success"] == 0
         assert result["failed"] == 1
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -64,6 +64,7 @@ class AuthCoreModule(ModuleInterface):
 def create_module(_db: object | None = None) -> AuthCoreModule:
     return AuthCoreModule()
 
+
 __all__ = [
     "get_current_user",
     "get_user_permissions",

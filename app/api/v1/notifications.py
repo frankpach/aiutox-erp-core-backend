@@ -109,7 +109,9 @@ async def list_templates(
     paginated_templates = templates[skip : skip + page_size]
 
     return StandardListResponse(
-        data=[NotificationTemplateResponse.model_validate(t) for t in paginated_templates],
+        data=[
+            NotificationTemplateResponse.model_validate(t) for t in paginated_templates
+        ],
         meta={
             "total": total,
             "page": page,
@@ -166,7 +168,9 @@ async def update_template(
     # Build update dict with only provided fields
     update_dict = template_data.model_dump(exclude_unset=True)
 
-    template = repository.update_template(template_id, current_user.tenant_id, update_dict)
+    template = repository.update_template(
+        template_id, current_user.tenant_id, update_dict
+    )
 
     if not template:
         raise APIException(
@@ -241,7 +245,9 @@ async def list_queue_entries(
     repository: Annotated[NotificationRepository, Depends(get_notification_repository)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    status: str | None = Query(default=None, description="Filter by status (pending, sent, failed)"),
+    status: str | None = Query(
+        default=None, description="Filter by status (pending, sent, failed)"
+    ),
 ) -> StandardListResponse[NotificationQueueResponse]:
     """List notification queue entries."""
     skip = (page - 1) * page_size
@@ -257,11 +263,15 @@ async def list_queue_entries(
     )
 
     return StandardListResponse(
-        data=[NotificationQueueResponse.model_validate(entry) for entry in queue_entries],
+        data=[
+            NotificationQueueResponse.model_validate(entry) for entry in queue_entries
+        ],
         meta={
             "total": total,
             "page": page,
-            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "page_size": (
+                max(page_size, 1) if total == 0 else page_size
+            ),  # Minimum page_size is 1
             "total_pages": total_pages,
         },
     )
@@ -328,6 +338,7 @@ async def stream_notifications(
             // Handle notification
         };
     """
+
     async def event_generator():
         """Generate SSE events for new notifications with adaptive polling interval."""
         import time
@@ -360,9 +371,11 @@ async def stream_notifications(
                     # Send each notification as an SSE event
                     for notification in new_notifications:
                         try:
-                            notification_data = NotificationQueueResponse.model_validate(
-                                notification
-                            ).model_dump(mode='json')  # Use mode='json' to serialize UUIDs as strings
+                            notification_data = (
+                                NotificationQueueResponse.model_validate(
+                                    notification
+                                ).model_dump(mode="json")
+                            )  # Use mode='json' to serialize UUIDs as strings
                             # Format as SSE: "data: {json}\n\n"
                             yield f"data: {json.dumps(notification_data)}\n\n"
                             last_id = notification.id
@@ -472,4 +485,3 @@ async def stream_notifications(
             "X-SSE-Timeout": str(sse_timeout),  # Hint for client about expected timeout
         },
     )
-

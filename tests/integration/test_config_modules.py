@@ -324,19 +324,28 @@ class TestConfigModules:
             for item in [*navigation_items, *settings_links]:
                 assert isinstance(item.get("id"), str) and item["id"]
                 assert isinstance(item.get("label"), str) and item["label"]
-                assert isinstance(item.get("path"), str) and item["path"].startswith("/")
+                assert isinstance(item.get("path"), str) and item["path"].startswith(
+                    "/"
+                )
                 assert isinstance(item.get("order"), int)
 
                 permission = item.get("permission")
-                assert permission is None or (isinstance(permission, str) and permission)
+                assert permission is None or (
+                    isinstance(permission, str) and permission
+                )
 
                 icon = item.get("icon")
                 assert icon is None or icon in MODULE_NAVIGATION_ICON_TOKENS
 
                 requirement = item.get("requires_module_setting")
                 if requirement is not None:
-                    assert isinstance(requirement.get("module"), str) and requirement["module"]
-                    assert isinstance(requirement.get("key"), str) and requirement["key"]
+                    assert (
+                        isinstance(requirement.get("module"), str)
+                        and requirement["module"]
+                    )
+                    assert (
+                        isinstance(requirement.get("key"), str) and requirement["key"]
+                    )
 
     def test_prioritized_modules_publish_dynamic_navigation(
         self, client_with_db, db_session, test_user, test_tenant
@@ -382,4 +391,3 @@ class TestConfigModules:
             navigation_count = len(module_data.get("navigation_items", []))
             settings_count = len(module_data.get("settings_links", []))
             assert navigation_count + settings_count > 0
-

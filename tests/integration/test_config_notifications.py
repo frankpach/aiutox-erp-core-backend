@@ -60,7 +60,10 @@ class TestNotificationChannels:
         # immediately after commit in test environment
         if response.status_code == status.HTTP_403_FORBIDDEN:
             import pytest
-            pytest.skip("Module role not immediately available after commit - needs investigation")
+
+            pytest.skip(
+                "Module role not immediately available after commit - needs investigation"
+            )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -370,4 +373,3 @@ class TestNotificationChannels:
         assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
         data = response.json()
         assert "data" in data or "error" in data
-

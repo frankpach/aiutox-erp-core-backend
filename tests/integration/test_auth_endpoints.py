@@ -218,6 +218,7 @@ def test_get_me_expired_token(client_with_db, test_user):
 
     # Wait to ensure expiration
     import time
+
     time.sleep(2)
 
     response = client_with_db.get(
@@ -255,7 +256,9 @@ def test_refresh_token_revoked_after_creation(client_with_db, db_session, test_u
     assert data["error"]["code"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
-def test_refresh_token_user_inactive_after_refresh(client_with_db, db_session, test_user):
+def test_refresh_token_user_inactive_after_refresh(
+    client_with_db, db_session, test_user
+):
     """Test that refresh fails if user becomes inactive after token creation."""
     auth_service = AuthService(db_session)
     refresh_token = auth_service.create_refresh_token_for_user(test_user)
@@ -380,7 +383,9 @@ def test_error_response_format(client):
     assert isinstance(data["error"]["code"], str)
     assert isinstance(data["error"]["message"], str)
     # details can be None or dict/string
-    assert data["error"]["details"] is None or isinstance(data["error"]["details"], (dict, str))
+    assert data["error"]["details"] is None or isinstance(
+        data["error"]["details"], (dict, str)
+    )
 
 
 def test_get_me_response_format(client_with_db, db_session, test_user):

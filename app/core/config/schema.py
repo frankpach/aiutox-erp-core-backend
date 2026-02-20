@@ -133,6 +133,7 @@ class ConfigSchema:
         # Check for wildcard patterns
         if module in self._schemas:
             import re
+
             for pattern_key, schema_def in self._schemas[module].items():
                 if "*" in pattern_key:
                     pattern = pattern_key.replace("*", ".*")
@@ -285,4 +286,3 @@ def register_tasks_settings_schemas() -> None:
 register_module_schemas()
 register_general_settings_schemas()
 register_tasks_settings_schemas()
-

@@ -12,6 +12,7 @@ def test_add_tags_to_file(client_with_db, test_user, db_session):
 
     # Create tags
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag1 = tag_service.create_tag(
         name="Tag 1",
@@ -61,6 +62,7 @@ def test_remove_tag_from_file(client_with_db, test_user, db_session):
 
     # Create tag
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag = tag_service.create_tag(
         name="Test Tag",
@@ -111,6 +113,7 @@ def test_get_file_tags(client_with_db, test_user, db_session):
 
     # Create tags
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag1 = tag_service.create_tag(
         name="Tag 1",
@@ -159,6 +162,7 @@ def test_list_files_filtered_by_tags(client_with_db, test_user, db_session):
 
     # Create tags
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag1 = tag_service.create_tag(
         name="Important",
@@ -252,6 +256,7 @@ def test_add_tags_to_file_no_permission(client_with_db, test_user, db_session):
     # Create another user to upload the file (so test_user is not the owner)
     from app.core.auth import hash_password
     from app.models.user import User
+
     other_user = User(
         email=f"other-tags-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
@@ -264,6 +269,7 @@ def test_add_tags_to_file_no_permission(client_with_db, test_user, db_session):
 
     # Create tag
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag = tag_service.create_tag(
         name="Test Tag",
@@ -271,7 +277,9 @@ def test_add_tags_to_file_no_permission(client_with_db, test_user, db_session):
     )
 
     # Upload a file with other_user (need manager permission)
-    other_manager_headers = create_user_with_permission(db_session, other_user, "files", "manager")
+    other_manager_headers = create_user_with_permission(
+        db_session, other_user, "files", "manager"
+    )
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
     upload_response = client_with_db.post(
@@ -298,6 +306,7 @@ def test_file_response_includes_tags(client_with_db, test_user, db_session):
 
     # Create tag
     from app.core.tags.service import TagService
+
     tag_service = TagService(db_session)
     tag = tag_service.create_tag(
         name="Test Tag",
@@ -331,4 +340,3 @@ def test_file_response_includes_tags(client_with_db, test_user, db_session):
     assert len(data["tags"]) == 1
     assert data["tags"][0]["id"] == str(tag.id)
     assert data["tags"][0]["name"] == "Test Tag"
-

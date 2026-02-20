@@ -39,11 +39,15 @@ class Activity(Base):
     )
 
     # Polymorphic relationship
-    entity_type = Column(String(50), nullable=False, index=True)  # e.g., 'product', 'order', 'contact'
+    entity_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'product', 'order', 'contact'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
     # Activity information
-    activity_type = Column(String(50), nullable=False, index=True)  # comment, call, email, etc.
+    activity_type = Column(
+        String(50), nullable=False, index=True
+    )  # comment, call, email, etc.
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
 
@@ -56,7 +60,9 @@ class Activity(Base):
     )
 
     # Metadata
-    activity_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
+    activity_metadata = Column(
+        "metadata", JSONB, nullable=True
+    )  # Additional metadata as JSON
 
     # Timestamps
     created_at = Column(
@@ -80,4 +86,3 @@ class Activity(Base):
 
     def __repr__(self) -> str:
         return f"<Activity(id={self.id}, type={self.activity_type}, entity={self.entity_type}:{self.entity_id})>"
-

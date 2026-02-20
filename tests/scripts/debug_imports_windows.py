@@ -14,7 +14,10 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
-def test_import_with_timeout(module_name: str, timeout: int = 5) -> tuple[bool, str, float]:
+
+def test_import_with_timeout(
+    module_name: str, timeout: int = 5
+) -> tuple[bool, str, float]:
     """Intenta importar un módulo con timeout usando threading."""
     result = [None]
     exception = [None]
@@ -36,13 +39,22 @@ def test_import_with_timeout(module_name: str, timeout: int = 5) -> tuple[bool, 
     elapsed = time.time() - start_time
 
     if thread.is_alive():
-        return False, f"TIMEOUT ({elapsed:.2f}s): El import tardó más de {timeout}s", elapsed
+        return (
+            False,
+            f"TIMEOUT ({elapsed:.2f}s): El import tardó más de {timeout}s",
+            elapsed,
+        )
     elif result[0] is None:
-        return False, f"ERROR ({elapsed:.2f}s): No se pudo determinar el resultado", elapsed
+        return (
+            False,
+            f"ERROR ({elapsed:.2f}s): No se pudo determinar el resultado",
+            elapsed,
+        )
     elif result[0]:
         return True, f"OK ({elapsed:.2f}s)", elapsed
     else:
         return False, f"ERROR ({elapsed:.2f}s): {exception[0]}", elapsed
+
 
 def main():
     """Diagnóstico detallado para Windows."""
@@ -56,22 +68,18 @@ def main():
         ("app.core.db.session", "Sesión DB"),
         ("app.core.exceptions", "Excepciones"),
         ("app.core.auth.rate_limit", "Rate limit"),
-
         # Módulos API v1 básicos
         ("app.api.v1.auth", "Auth API"),
         ("app.api.v1.users", "Users API"),
         ("app.api.v1.config", "Config API"),
-
         # Módulos de características (features)
         ("app.features.tasks.statuses", "Task Statuses"),
-
         # Módulos del sistema modular
         ("app.modules.calendar.api", "Calendar API"),
         ("app.modules.crm.api", "CRM API"),
         ("app.modules.inventory.api", "Inventory API"),
         ("app.modules.products.api", "Products API"),
         ("app.modules.tasks.api", "Tasks API"),
-
         # Resto de APIs v1
         ("app.api.v1.activities", "Activities"),
         ("app.api.v1.activity_icons", "Activity Icons"),
@@ -94,11 +102,9 @@ def main():
         ("app.api.v1.templates", "Templates"),
         ("app.api.v1.views", "Views"),
         ("app.api.v1.workflows", "Workflows"),
-
         # Import completo del router
         ("app.api.v1", "API v1 Router"),
         ("app.api.v1.api_router", "API Router Instance"),
-
         # Import del main
         ("app.main", "Main App"),
     ]
@@ -167,6 +173,7 @@ def main():
         print("   2. El problema puede estar en el startup del servidor")
 
     return len(timeout_modules) == 0 and len(failed_modules) == 0
+
 
 if __name__ == "__main__":
     try:

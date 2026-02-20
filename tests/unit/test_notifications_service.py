@@ -44,7 +44,12 @@ def test_template(db_session, test_tenant):
 
 @pytest.mark.asyncio
 async def test_send_notification(
-    notification_service, test_user, test_tenant, test_template, mock_event_publisher, db_session
+    notification_service,
+    test_user,
+    test_tenant,
+    test_template,
+    mock_event_publisher,
+    db_session,
 ):
     """Test sending a notification."""
     from app.core.preferences.service import PreferencesService
@@ -69,6 +74,7 @@ async def test_send_notification(
 
     with patch("app.core.config_file.get_settings", return_value=mock_settings):
         import aiosmtplib
+
         with patch.object(aiosmtplib, "send", new_callable=AsyncMock) as mock_send:
             # Mock email sending
             mock_send.return_value = None
@@ -138,7 +144,12 @@ async def test_render_template(notification_service):
 
 @pytest.mark.asyncio
 async def test_send_notification_publishes_failed_event(
-    notification_service, test_user, test_tenant, test_template, mock_event_publisher, db_session
+    notification_service,
+    test_user,
+    test_tenant,
+    test_template,
+    mock_event_publisher,
+    db_session,
 ):
     """Test that failed notifications publish notification.failed event."""
     from app.core.preferences.service import PreferencesService
@@ -163,6 +174,7 @@ async def test_send_notification_publishes_failed_event(
 
     with patch("app.core.config_file.get_settings", return_value=mock_settings):
         import aiosmtplib
+
         with patch.object(aiosmtplib, "send", new_callable=AsyncMock) as mock_send:
             # Mock email sending to fail
             mock_send.side_effect = Exception("SMTP Error")
@@ -180,7 +192,9 @@ async def test_send_notification_publishes_failed_event(
             assert result[0]["status"] == "failed"
 
             # Verify failed event was published
-            publish_calls = [call for call in mock_event_publisher.publish.call_args_list]
+            publish_calls = [
+                call for call in mock_event_publisher.publish.call_args_list
+            ]
             failed_calls = [
                 call
                 for call in publish_calls
@@ -262,7 +276,9 @@ async def test_send_sms(notification_service, test_user, test_tenant, db_session
 
 
 @pytest.mark.asyncio
-async def test_send_sms_no_phone(notification_service, test_user, test_tenant, db_session):
+async def test_send_sms_no_phone(
+    notification_service, test_user, test_tenant, db_session
+):
     """Test sending SMS when user has no phone number."""
     from app.core.config.service import ConfigService
 
@@ -293,7 +309,9 @@ async def test_send_webhook(notification_service):
         mock_client_class.return_value = mock_client
 
         payload = {"body": "Test webhook message", "event_type": "test.event"}
-        await notification_service._send_webhook("https://webhook.example.com/test", payload)
+        await notification_service._send_webhook(
+            "https://webhook.example.com/test", payload
+        )
 
         # Verify HTTP request was made
         assert mock_client.post.called
@@ -313,6 +331,7 @@ async def test_send_webhook_no_url(notification_service):
 async def test_send_webhook_timeout(notification_service):
     """Test webhook timeout handling."""
     import httpx
+
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -322,5 +341,6 @@ async def test_send_webhook_timeout(notification_service):
 
         payload = {"body": "Test webhook message"}
         with pytest.raises(Exception, match="timeout"):
-            await notification_service._send_webhook("https://webhook.example.com/test", payload)
-
+            await notification_service._send_webhook(
+                "https://webhook.example.com/test", payload
+            )

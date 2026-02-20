@@ -130,11 +130,7 @@ class TagRepository:
         if not tag_ids:
             return []
 
-        return (
-            self.db.query(Tag)
-            .filter(Tag.id.in_(tag_ids), Tag.is_active)
-            .all()
-        )
+        return self.db.query(Tag).filter(Tag.id.in_(tag_ids), Tag.is_active).all()
 
     def remove_entity_tag(
         self, tag_id: UUID, entity_type: str, entity_id: UUID, tenant_id: UUID
@@ -171,4 +167,3 @@ class TagRepository:
             .first()
             is not None
         )
-

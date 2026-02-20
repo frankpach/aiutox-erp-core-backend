@@ -14,6 +14,7 @@ from app.modules.products.models.product import Product
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
+
 @pytest.fixture(scope="session")
 def test_engine():
     """Create test database engine."""
@@ -27,9 +28,7 @@ def test_engine():
 def test_db(test_engine):
     """Create test database session."""
     testing_session_local = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=test_engine
+        autocommit=False, autoflush=False, bind=test_engine
     )
     session = testing_session_local()
     try:
@@ -88,5 +87,3 @@ def test_product(test_db, test_tenant, test_user):
     test_db.add(product)
     test_db.commit()
     return product
-
-

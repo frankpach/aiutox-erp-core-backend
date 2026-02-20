@@ -43,18 +43,24 @@ class ImportJob(Base):
     )
 
     # Job information
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
     file_name = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=True)  # Path to uploaded file
     file_size = Column(Integer, nullable=True)  # Size in bytes
 
     # Import configuration
-    template_id = Column(PG_UUID(as_uuid=True), nullable=True)  # Import template ID (future)
+    template_id = Column(
+        PG_UUID(as_uuid=True), nullable=True
+    )  # Import template ID (future)
     mapping = Column(JSONB, nullable=True)  # Field mapping configuration
     options = Column(JSONB, nullable=True)  # Import options (skip_errors, etc.)
 
     # Status and progress
-    status = Column(String(20), nullable=False, default=ImportStatus.PENDING, index=True)
+    status = Column(
+        String(20), nullable=False, default=ImportStatus.PENDING, index=True
+    )
     progress = Column(Integer, default=0, nullable=False)  # 0-100
     total_rows = Column(Integer, nullable=True)
     processed_rows = Column(Integer, default=0, nullable=False)
@@ -115,7 +121,9 @@ class ImportTemplate(Base):
     # Template information
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
 
     # Template configuration
     field_mapping = Column(JSONB, nullable=False)  # CSV column -> model field mapping
@@ -171,7 +179,9 @@ class ExportJob(Base):
     )
 
     # Job information
-    module = Column(String(50), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
     export_format = Column(String(20), nullable=False)  # csv, excel, pdf
     file_name = Column(String(255), nullable=True)  # Generated file name
     file_path = Column(String(500), nullable=True)  # Path to exported file
@@ -183,7 +193,9 @@ class ExportJob(Base):
     options = Column(JSONB, nullable=True)  # Export options
 
     # Status
-    status = Column(String(20), nullable=False, default=ImportStatus.PENDING, index=True)
+    status = Column(
+        String(20), nullable=False, default=ImportStatus.PENDING, index=True
+    )
     total_rows = Column(Integer, nullable=True)
     exported_rows = Column(Integer, default=0, nullable=False)
 
@@ -218,11 +230,3 @@ class ExportJob(Base):
 
     def __repr__(self) -> str:
         return f"<ExportJob(id={self.id}, module={self.module}, format={self.export_format})>"
-
-
-
-
-
-
-
-

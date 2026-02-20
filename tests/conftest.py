@@ -41,6 +41,7 @@ get_settings.cache_clear()
 # Get settings after loading .env files
 settings = get_settings()
 
+
 # Determine test database URL
 # Priority: Use environment variables > settings from .env > fallback defaults
 def get_test_database_url():
@@ -83,7 +84,9 @@ def get_test_database_url():
 
     return test_db_url
 
+
 test_db_url = get_test_database_url()
+
 
 # Support for pytest-xdist workers: use separate database per worker
 def get_test_database_name():
@@ -94,10 +97,13 @@ def get_test_database_name():
     if worker_id and worker_id != "master":
         # Use worker-specific database name
         db_name = f"{base_name}_{worker_id}"
-        print(f"[TEST CONFIG] Using worker-specific database: {db_name} (worker: {worker_id})")
+        print(
+            f"[TEST CONFIG] Using worker-specific database: {db_name} (worker: {worker_id})"
+        )
         return db_name
 
     return base_name
+
 
 TEST_DB_NAME = get_test_database_name()
 
@@ -110,6 +116,7 @@ else:
     # Fallback: try to replace common database names
     TEST_DATABASE_URL = test_db_url.replace("/aiutox_erp_dev", f"/{TEST_DB_NAME}")
     TEST_DATABASE_URL = TEST_DATABASE_URL.replace("/postgres", f"/{TEST_DB_NAME}")
+
 
 # Print connection info for debugging
 def mask_password_in_url(url: str) -> str:
@@ -124,6 +131,7 @@ def mask_password_in_url(url: str) -> str:
             user = user_pass.split(":")[0]
             return f"{protocol_user}{user}:***@{parts[1]}"
     return url
+
 
 print("\n[TEST CONFIG] Test Database Configuration:")
 print(f"   Source: .env files loaded from: {[str(f) for f in env_files if f.exists()]}")
@@ -140,7 +148,9 @@ print(f"   TEST_DATABASE_URL from env: {os.getenv('TEST_DATABASE_URL', 'Not set'
 # Extract connection info for admin database
 admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
 try:
-    admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+    admin_engine = create_engine(
+        admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5}
+    )
     with admin_engine.connect() as conn:
         # Check if test database exists
         result = conn.execute(
@@ -148,16 +158,20 @@ try:
         )
         if result.fetchone():
             # Database exists - drop it with FORCE to disconnect all sessions
-            print(f"   [DB] Test database '{TEST_DB_NAME}' already exists, dropping with FORCE...")
+            print(
+                f"   [DB] Test database '{TEST_DB_NAME}' already exists, dropping with FORCE..."
+            )
             try:
                 # Terminate all connections to the database first
                 conn.execute(
-                    text(f"""
+                    text(
+                        f"""
                     SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
                     WHERE pg_stat_activity.datname = '{TEST_DB_NAME}'
                     AND pid <> pg_backend_pid();
-                    """)
+                    """
+                    )
                 )
                 # Now drop the database
                 conn.execute(text(f"DROP DATABASE {TEST_DB_NAME}"))
@@ -171,11 +185,16 @@ try:
         print(f"   [DB] Created test database '{TEST_DB_NAME}'")
     admin_engine.dispose()
 except Exception as e:
-    print(f"   [DB WARNING] Could not create test database (may already exist or not accessible): {e}")
-    print(f"   [DB WARNING] Attempted connection to: {mask_password_in_url(admin_db_url)}")
+    print(
+        f"   [DB WARNING] Could not create test database (may already exist or not accessible): {e}"
+    )
+    print(
+        f"   [DB WARNING] Attempted connection to: {mask_password_in_url(admin_db_url)}"
+    )
 
 # Store original TEST_DATABASE_URL for use in fixtures
 _ORIGINAL_TEST_DATABASE_URL = TEST_DATABASE_URL
+
 
 # Create engine with proper connection settings for tests
 # This will be recreated per worker if needed
@@ -187,9 +206,10 @@ def create_test_engine(database_url: str = None):
         pool_pre_ping=True,  # Verify connections before using
         connect_args={
             "connect_timeout": 5,  # 5 second timeout
-            "options": "-c timezone=utc"
-        }
+            "options": "-c timezone=utc",
+        },
     )
+
 
 engine = create_test_engine()
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -256,8 +276,12 @@ def setup_database():
             print(f"   [ERROR] {error_msg}")
             raise RuntimeError(error_msg)
 
-        applied_count = len(result.applied) if hasattr(result, 'applied') else result.applied_count
-        print(f"   [SUCCESS] Database setup complete ({applied_count} migrations applied)")
+        applied_count = (
+            len(result.applied) if hasattr(result, "applied") else result.applied_count
+        )
+        print(
+            f"   [SUCCESS] Database setup complete ({applied_count} migrations applied)"
+        )
 
         yield
 
@@ -330,6 +354,7 @@ def client():
 @pytest.fixture(scope="function")
 def client_with_db(db_session):
     """Create a test client with database dependency override for tests that need it."""
+
     def override_get_db():
         try:
             yield db_session
@@ -420,6 +445,7 @@ def other_user(db_session, other_tenant):
 @pytest.fixture(scope="function")
 def task_factory(db_session, test_tenant, test_user):
     """Factory for creating tasks tied to the default tenant/user."""
+
     def _factory(**overrides):
         return create_task(
             db_session=db_session,
@@ -434,6 +460,7 @@ def task_factory(db_session, test_tenant, test_user):
 @pytest.fixture(scope="function")
 def module_role_headers(db_session, test_user):
     """Factory for module-role auth headers."""
+
     def _factory(module: str, role_name: str = "manager", user: User | None = None):
         target_user = user or test_user
         return create_user_with_permission(
@@ -543,42 +570,60 @@ def pytest_configure(config):
         # Create worker-specific database if it doesn't exist (drop first if exists)
         admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
         try:
-            admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+            admin_engine = create_engine(
+                admin_db_url,
+                isolation_level="AUTOCOMMIT",
+                connect_args={"connect_timeout": 5},
+            )
             with admin_engine.connect() as conn:
                 result = conn.execute(
                     text(f"SELECT 1 FROM pg_database WHERE datname = '{TEST_DB_NAME}'")
                 )
                 if result.fetchone():
                     # Database exists - drop it with FORCE
-                    print(f"[TEST CONFIG] Worker database '{TEST_DB_NAME}' already exists, dropping with FORCE...")
+                    print(
+                        f"[TEST CONFIG] Worker database '{TEST_DB_NAME}' already exists, dropping with FORCE..."
+                    )
                     try:
                         # Terminate all connections to the database first
                         conn.execute(
-                            text(f"""
+                            text(
+                                f"""
                             SELECT pg_terminate_backend(pg_stat_activity.pid)
                             FROM pg_stat_activity
                             WHERE pg_stat_activity.datname = '{TEST_DB_NAME}'
                             AND pid <> pg_backend_pid();
-                            """)
+                            """
+                            )
                         )
                         # Now drop the database
                         conn.execute(text(f"DROP DATABASE {TEST_DB_NAME}"))
-                        print(f"[TEST CONFIG] Dropped existing worker database '{TEST_DB_NAME}'")
+                        print(
+                            f"[TEST CONFIG] Dropped existing worker database '{TEST_DB_NAME}'"
+                        )
                     except Exception as drop_error:
-                        print(f"[TEST CONFIG] Warning: Could not drop existing worker database: {drop_error}")
+                        print(
+                            f"[TEST CONFIG] Warning: Could not drop existing worker database: {drop_error}"
+                        )
 
                 # Create worker database
                 conn.execute(text(f"CREATE DATABASE {TEST_DB_NAME}"))
-                print(f"[TEST CONFIG] Created worker database '{TEST_DB_NAME}' for worker {worker_id}")
+                print(
+                    f"[TEST CONFIG] Created worker database '{TEST_DB_NAME}' for worker {worker_id}"
+                )
             admin_engine.dispose()
         except Exception as e:
             print(f"[TEST CONFIG] Warning: Could not create worker database: {e}")
 
         # Recreate engine with worker-specific database
         engine = create_test_engine()
-        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        TestingSessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=engine
+        )
 
-        print(f"[TEST CONFIG] Worker {worker_id} configured with database: {TEST_DB_NAME}")
+        print(
+            f"[TEST CONFIG] Worker {worker_id} configured with database: {TEST_DB_NAME}"
+        )
 
 
 @pytest.fixture(scope="session")
@@ -587,7 +632,9 @@ def redis_available():
     import asyncio
 
     # Get Redis URL from environment or settings
-    redis_url = os.getenv("REDIS_URL") or os.getenv("TEST_REDIS_URL") or settings.REDIS_URL
+    redis_url = (
+        os.getenv("REDIS_URL") or os.getenv("TEST_REDIS_URL") or settings.REDIS_URL
+    )
     redis_password = os.getenv("REDIS_PASSWORD") or settings.REDIS_PASSWORD
 
     # Convert Docker hostname to localhost for tests
@@ -599,9 +646,7 @@ def redis_available():
         try:
             from app.core.pubsub.client import RedisStreamsClient
 
-            client = RedisStreamsClient(
-                redis_url=redis_url, password=redis_password
-            )
+            client = RedisStreamsClient(redis_url=redis_url, password=redis_password)
             # Try to connect with a short timeout
             try:
                 # Get client with timeout
@@ -631,7 +676,9 @@ def pytest_sessionfinish(session, exitstatus):
     cleanup_enabled = os.getenv("CLEANUP_TEST_DB", "false").lower() == "true"
 
     if not cleanup_enabled:
-        print("\n[TEST CLEANUP] Skipping database cleanup (set CLEANUP_TEST_DB=true to enable)")
+        print(
+            "\n[TEST CLEANUP] Skipping database cleanup (set CLEANUP_TEST_DB=true to enable)"
+        )
         return
 
     print("\n[TEST CLEANUP] Cleaning up test databases...")
@@ -648,10 +695,16 @@ def pytest_sessionfinish(session, exitstatus):
         # If not a worker, try to find all worker databases
         admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
         try:
-            admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+            admin_engine = create_engine(
+                admin_db_url,
+                isolation_level="AUTOCOMMIT",
+                connect_args={"connect_timeout": 5},
+            )
             with admin_engine.connect() as conn:
                 result = conn.execute(
-                    text(f"SELECT datname FROM pg_database WHERE datname LIKE '{base_name}_%'")
+                    text(
+                        f"SELECT datname FROM pg_database WHERE datname LIKE '{base_name}_%'"
+                    )
                 )
                 for row in result:
                     test_db_names.append(row[0])
@@ -662,24 +715,32 @@ def pytest_sessionfinish(session, exitstatus):
     # Drop all test databases
     admin_db_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
     try:
-        admin_engine = create_engine(admin_db_url, isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 5})
+        admin_engine = create_engine(
+            admin_db_url,
+            isolation_level="AUTOCOMMIT",
+            connect_args={"connect_timeout": 5},
+        )
         with admin_engine.connect() as conn:
             for db_name in test_db_names:
                 try:
                     # Terminate all connections first
                     conn.execute(
-                        text(f"""
+                        text(
+                            f"""
                         SELECT pg_terminate_backend(pg_stat_activity.pid)
                         FROM pg_stat_activity
                         WHERE pg_stat_activity.datname = '{db_name}'
                         AND pid <> pg_backend_pid();
-                        """)
+                        """
+                        )
                     )
                     # Drop database
                     conn.execute(text(f"DROP DATABASE IF EXISTS {db_name}"))
                     print(f"   [CLEANUP] Dropped test database '{db_name}'")
                 except Exception as e:
-                    print(f"   [CLEANUP WARNING] Could not drop database '{db_name}': {e}")
+                    print(
+                        f"   [CLEANUP WARNING] Could not drop database '{db_name}': {e}"
+                    )
         admin_engine.dispose()
         print("[TEST CLEANUP] Cleanup complete")
     except Exception as e:

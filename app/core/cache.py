@@ -20,6 +20,7 @@ class CacheService:
         """Initialize Redis connection."""
         try:
             import redis
+
             self.redis = redis.from_url(
                 settings.REDIS_URL,
                 password=settings.REDIS_PASSWORD if settings.REDIS_PASSWORD else None,

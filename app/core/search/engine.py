@@ -54,7 +54,9 @@ class SearchEngine:
                 {
                     "id": str(result.entity_id),
                     "title": result.title,
-                    "content": result.content[:200] if result.content else None,  # Preview
+                    "content": (
+                        result.content[:200] if result.content else None
+                    ),  # Preview
                     "entity_type": entity_type,
                     "entity_id": str(result.entity_id),
                 }
@@ -92,11 +94,3 @@ class SearchEngine:
             )
 
         return suggestions
-
-
-
-
-
-
-
-

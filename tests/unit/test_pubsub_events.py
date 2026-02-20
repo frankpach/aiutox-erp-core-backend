@@ -13,15 +13,25 @@ def test_task_service_publishes_events(monkeypatch, db_session, test_tenant, tes
 
     # Create a mock event publisher
     class MockEventPublisher:
-        def publish(self, event_type, entity_type, entity_id, tenant_id, user_id=None, metadata=None):
-            published.append({
-                "event_type": event_type,
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "tenant_id": tenant_id,
-                "user_id": user_id,
-                "metadata": metadata,
-            })
+        def publish(
+            self,
+            event_type,
+            entity_type,
+            entity_id,
+            tenant_id,
+            user_id=None,
+            metadata=None,
+        ):
+            published.append(
+                {
+                    "event_type": event_type,
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "metadata": metadata,
+                }
+            )
 
     service = TaskService(db_session, event_publisher=MockEventPublisher())
 
@@ -52,14 +62,18 @@ def test_task_service_publishes_events(monkeypatch, db_session, test_tenant, tes
     published.clear()
 
     async def delete_task_async():
-        return await service.delete_task(task_id=task.id, tenant_id=test_tenant.id, user_id=test_user.id)
+        return await service.delete_task(
+            task_id=task.id, tenant_id=test_tenant.id, user_id=test_user.id
+        )
 
     deleted = asyncio.run(delete_task_async())
     assert deleted is True
     assert any(call.get("event_type") == "task.deleted" for call in published)
 
 
-def test_calendar_service_publishes_events(monkeypatch, db_session, test_tenant, test_user):
+def test_calendar_service_publishes_events(
+    monkeypatch, db_session, test_tenant, test_user
+):
     published: list[dict[str, Any]] = []
 
     def fake_safe_publish_event(**kwargs):
@@ -71,7 +85,9 @@ def test_calendar_service_publishes_events(monkeypatch, db_session, test_tenant,
         raising=True,
     )
 
-    service = CalendarService(db_session, event_publisher=None, notification_service=None)
+    service = CalendarService(
+        db_session, event_publisher=None, notification_service=None
+    )
 
     calendar = service.create_calendar(
         calendar_data={"name": "Test Calendar"},

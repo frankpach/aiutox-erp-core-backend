@@ -31,21 +31,3 @@ class InvalidColorFormatException(APIException):
                 "expected_format": "#RRGGBB",
             },
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

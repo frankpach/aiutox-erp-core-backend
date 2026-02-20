@@ -45,7 +45,9 @@ def test_list_files_without_permissions(client_with_db, test_user, db_session):
     db_session.commit()
 
     # Upload file with other user (test_user won't have permission to view it)
-    other_headers = create_user_with_permission(db_session, other_user, "files", "manager")
+    other_headers = create_user_with_permission(
+        db_session, other_user, "files", "manager"
+    )
     file_content = b"test file content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
     upload_response = client_with_db.post(
@@ -91,8 +93,11 @@ def test_list_files_with_deleted_files(client_with_db, test_user, db_session):
     from uuid import UUID
 
     from app.repositories.file_repository import FileRepository
+
     repo = FileRepository(db_session)
-    deleted_file = repo.get_by_id(UUID(file_id), test_user.tenant_id, current_only=False)
+    deleted_file = repo.get_by_id(
+        UUID(file_id), test_user.tenant_id, current_only=False
+    )
     assert deleted_file is not None
     assert deleted_file.deleted_at is not None
     assert deleted_file.is_current is False
@@ -120,6 +125,7 @@ def test_list_files_different_folders(client_with_db, test_user, db_session):
 
     # Create folders
     from app.models.folder import Folder
+
     folder1 = Folder(
         id=uuid4(),
         tenant_id=test_user.tenant_id,
@@ -179,7 +185,9 @@ def test_list_files_different_folders(client_with_db, test_user, db_session):
     assert file_id3 in all_ids
 
     # List files in folder1 (should return only file1)
-    response = client_with_db.get(f"/api/v1/files?folder_id={folder1.id}", headers=headers)
+    response = client_with_db.get(
+        f"/api/v1/files?folder_id={folder1.id}", headers=headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 1
@@ -187,7 +195,9 @@ def test_list_files_different_folders(client_with_db, test_user, db_session):
     assert data["data"][0]["folder_id"] == str(folder1.id)
 
     # List files in folder2 (should return only file2)
-    response = client_with_db.get(f"/api/v1/files?folder_id={folder2.id}", headers=headers)
+    response = client_with_db.get(
+        f"/api/v1/files?folder_id={folder2.id}", headers=headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 1
@@ -244,4 +254,3 @@ def test_list_files_with_pagination(client_with_db, test_user, db_session):
     data = response.json()
     assert len(data["data"]) == 1  # Only 1 file remaining
     assert data["meta"]["page"] == 3
-

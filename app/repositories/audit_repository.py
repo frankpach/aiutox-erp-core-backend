@@ -120,7 +120,9 @@ class AuditRepository:
         total = query.count()
 
         # Apply pagination and ordering
-        logs = query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
+        logs = (
+            query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
         return logs, total
 
@@ -175,4 +177,3 @@ class AuditRepository:
             skip=skip,
             limit=limit,
         )
-

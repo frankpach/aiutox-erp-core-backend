@@ -1,6 +1,5 @@
 """Integration tests for Tasks API endpoints."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -19,6 +18,7 @@ def test_create_task(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -60,6 +60,7 @@ def test_list_tasks(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -89,6 +90,7 @@ def test_get_task(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -126,6 +128,7 @@ def test_update_task(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -199,6 +202,7 @@ def test_add_checklist_item(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -241,6 +245,7 @@ def test_list_checklist_items(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -272,8 +277,3 @@ def test_list_checklist_items(client_with_db, test_user, db_session):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) >= 2
-
-
-
-
-

@@ -190,21 +190,21 @@ class CommentService:
 
         safe_publish_event(
             event_publisher=self.event_publisher,
-                        event_type="comment.created",
-                        entity_type="comment",
-                        entity_id=comment.id,
-                        tenant_id=tenant_id,
-                        user_id=user_id,
-                        metadata=EventMetadata(
-                            source="comment_service",
-                            version="1.0",
-                            additional_data={
-                                "entity_type": comment.entity_type,
-                                "entity_id": str(comment.entity_id),
-                                "has_mentions": len(mentions) > 0,
-                            },
-                        ),
-                    )
+            event_type="comment.created",
+            entity_type="comment",
+            entity_id=comment.id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            metadata=EventMetadata(
+                source="comment_service",
+                version="1.0",
+                additional_data={
+                    "entity_type": comment.entity_type,
+                    "entity_id": str(comment.entity_id),
+                    "has_mentions": len(mentions) > 0,
+                },
+            ),
+        )
 
         return comment
 
@@ -315,9 +315,6 @@ class CommentService:
             }
         )
 
-    def get_attachments(
-        self, comment_id: UUID, tenant_id: UUID
-    ) -> list[Any]:
+    def get_attachments(self, comment_id: UUID, tenant_id: UUID) -> list[Any]:
         """Get attachments for a comment."""
         return self.repository.get_attachments_by_comment(comment_id, tenant_id)
-

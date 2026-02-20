@@ -5,4 +5,3 @@ from app.core.seeders.manager import SeederManager
 from app.core.seeders.models import SeederRecord
 
 __all__ = ["Seeder", "SeederManager", "SeederRecord"]
-

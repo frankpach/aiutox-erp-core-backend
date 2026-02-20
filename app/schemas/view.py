@@ -13,7 +13,9 @@ class SavedFilterBase(BaseModel):
 
     name: str = Field(..., description="Filter name", max_length=255)
     description: str | None = Field(None, description="Filter description")
-    module: str = Field(..., description="Module name (e.g., 'products', 'inventory')", max_length=50)
+    module: str = Field(
+        ..., description="Module name (e.g., 'products', 'inventory')", max_length=50
+    )
     filters: dict[str, Any] = Field(..., description="Filter conditions as JSON")
     is_default: bool = Field(False, description="Whether this is the default filter")
     is_shared: bool = Field(False, description="Whether filter is shared")
@@ -30,8 +32,12 @@ class SavedFilterUpdate(BaseModel):
 
     name: str | None = Field(None, description="Filter name", max_length=255)
     description: str | None = Field(None, description="Filter description")
-    filters: dict[str, Any] | None = Field(None, description="Filter conditions as JSON")
-    is_default: bool | None = Field(None, description="Whether this is the default filter")
+    filters: dict[str, Any] | None = Field(
+        None, description="Filter conditions as JSON"
+    )
+    is_default: bool | None = Field(
+        None, description="Whether this is the default filter"
+    )
     is_shared: bool | None = Field(None, description="Whether filter is shared")
 
 
@@ -53,7 +59,9 @@ class CustomViewBase(BaseModel):
 
     name: str = Field(..., description="View name", max_length=255)
     description: str | None = Field(None, description="View description")
-    module: str = Field(..., description="Module name (e.g., 'products', 'inventory')", max_length=50)
+    module: str = Field(
+        ..., description="Module name (e.g., 'products', 'inventory')", max_length=50
+    )
     columns: dict[str, Any] = Field(..., description="Column configuration")
     sorting: dict[str, Any] | None = Field(None, description="Sorting configuration")
     grouping: dict[str, Any] | None = Field(None, description="Grouping configuration")
@@ -77,7 +85,9 @@ class CustomViewUpdate(BaseModel):
     sorting: dict[str, Any] | None = Field(None, description="Sorting configuration")
     grouping: dict[str, Any] | None = Field(None, description="Grouping configuration")
     filters: dict[str, Any] | None = Field(None, description="Associated filters")
-    is_default: bool | None = Field(None, description="Whether this is the default view")
+    is_default: bool | None = Field(
+        None, description="Whether this is the default view"
+    )
     is_shared: bool | None = Field(None, description="Whether view is shared")
 
 
@@ -100,7 +110,9 @@ class ViewShareBase(BaseModel):
     filter_id: UUID | None = Field(None, description="Shared filter ID")
     view_id: UUID | None = Field(None, description="Shared view ID")
     shared_with_user_id: UUID | None = Field(None, description="User ID to share with")
-    shared_with_role: str | None = Field(None, description="Role to share with", max_length=50)
+    shared_with_role: str | None = Field(
+        None, description="Role to share with", max_length=50
+    )
 
 
 class ViewShareCreate(ViewShareBase):
@@ -117,11 +129,3 @@ class ViewShareResponse(ViewShareBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
-
-
-
-

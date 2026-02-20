@@ -25,7 +25,9 @@ class Comment(Base):
     )
 
     # Polymorphic relationship
-    entity_type = Column(String(50), nullable=False, index=True)  # e.g., 'product', 'order', 'task'
+    entity_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'product', 'order', 'task'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
     # Comment information
@@ -47,7 +49,9 @@ class Comment(Base):
 
     # Status
     is_edited = Column(Boolean, default=False, nullable=False)
-    is_deleted = Column(Boolean, default=False, nullable=False, index=True)  # Soft delete
+    is_deleted = Column(
+        Boolean, default=False, nullable=False, index=True
+    )  # Soft delete
 
     # Metadata
     meta_data = Column("metadata", JSONB, nullable=True)
@@ -70,8 +74,12 @@ class Comment(Base):
 
     # Relationships
     parent = relationship("Comment", remote_side=[id], backref="replies")
-    mentions = relationship("CommentMention", back_populates="comment", cascade="all, delete-orphan")
-    attachments = relationship("CommentAttachment", back_populates="comment", cascade="all, delete-orphan")
+    mentions = relationship(
+        "CommentMention", back_populates="comment", cascade="all, delete-orphan"
+    )
+    attachments = relationship(
+        "CommentAttachment", back_populates="comment", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_comments_entity", "entity_type", "entity_id"),
@@ -179,11 +187,3 @@ class CommentAttachment(Base):
 
     def __repr__(self) -> str:
         return f"<CommentAttachment(id={self.id}, comment_id={self.comment_id}, file_id={self.file_id})>"
-
-
-
-
-
-
-
-

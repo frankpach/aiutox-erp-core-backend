@@ -13,6 +13,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def test_import(module_name: str) -> tuple[bool, str]:
     """Intenta importar un módulo y devuelve el resultado."""
     try:
@@ -20,6 +21,7 @@ def test_import(module_name: str) -> tuple[bool, str]:
         return True, "OK"
     except Exception as e:
         return False, f"ERROR: {e}\n{traceback.format_exc()}"
+
 
 def main():
     """Diagnóstico completo de imports."""
@@ -125,6 +127,7 @@ def main():
             print(f"   {error}")
 
     return failed == 0
+
 
 if __name__ == "__main__":
     success = main()

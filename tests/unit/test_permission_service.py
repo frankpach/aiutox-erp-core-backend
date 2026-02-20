@@ -84,9 +84,13 @@ class TestPermissionService:
 
         # Mock global roles
         with patch.object(service, "get_user_global_roles", return_value=["admin"]):
-            with patch.object(service, "get_role_permissions", return_value={"auth.manage_users"}):
+            with patch.object(
+                service, "get_role_permissions", return_value={"auth.manage_users"}
+            ):
                 with patch.object(service, "get_user_module_roles", return_value=[]):
-                    with patch.object(service, "get_user_delegated_permissions", return_value=[]):
+                    with patch.object(
+                        service, "get_user_delegated_permissions", return_value=[]
+                    ):
                         permissions = service.get_effective_permissions(test_user.id)
 
                         assert "auth.manage_users" in permissions
@@ -97,7 +101,9 @@ class TestPermissionService:
 
         # Mock effective permissions (granter has permission)
         with patch.object(
-            service, "get_effective_permissions", return_value={"inventory.manage_users"}
+            service,
+            "get_effective_permissions",
+            return_value={"inventory.manage_users"},
         ):
             # Mock repository
             from app.models.delegated_permission import DelegatedPermission
@@ -109,14 +115,22 @@ class TestPermissionService:
             mock_permission.module = "inventory"
             mock_permission.permission = "inventory.edit"
 
-            with patch("app.services.permission_service.PermissionRepository") as mock_repo_class:
+            with patch(
+                "app.services.permission_service.PermissionRepository"
+            ) as mock_repo_class:
                 mock_repo = Mock()
-                mock_repo.create_delegated_permission = Mock(return_value=mock_permission)
+                mock_repo.create_delegated_permission = Mock(
+                    return_value=mock_permission
+                )
                 mock_repo_class.return_value = mock_repo
 
-                with patch("app.services.permission_service.log_permission_change"), patch(
-                    "app.services.permission_service.create_audit_log_entry"
-                ), patch("app.repositories.user_repository.UserRepository") as mock_user_repo_class:
+                with (
+                    patch("app.services.permission_service.log_permission_change"),
+                    patch("app.services.permission_service.create_audit_log_entry"),
+                    patch(
+                        "app.repositories.user_repository.UserRepository"
+                    ) as mock_user_repo_class,
+                ):
                     mock_user_repo = Mock()
                     mock_user = Mock()
                     mock_user.tenant_id = uuid4()
@@ -157,7 +171,9 @@ class TestPermissionService:
         service = PermissionService(db_session)
 
         with patch.object(
-            service, "get_effective_permissions", return_value={"inventory.manage_users"}
+            service,
+            "get_effective_permissions",
+            return_value={"inventory.manage_users"},
         ):
             with pytest.raises(APIException) as exc_info:
                 service.grant_permission(
@@ -196,19 +212,29 @@ class TestPermissionService:
 
         permission_id = uuid4()
 
-        with patch("app.services.permission_service.PermissionRepository") as mock_repo_class:
+        with patch(
+            "app.services.permission_service.PermissionRepository"
+        ) as mock_repo_class:
             mock_repo = Mock()
             mock_permission = Mock()
             mock_permission.id = permission_id
             mock_permission.revoked_at = None
-            mock_repo.get_delegated_permission_by_id = Mock(return_value=mock_permission)
+            mock_repo.get_delegated_permission_by_id = Mock(
+                return_value=mock_permission
+            )
             mock_repo.revoke_permission = Mock(return_value=True)
             mock_repo_class.return_value = mock_repo
 
-            with patch.object(service, "get_effective_permissions", return_value={"auth.manage_users"}):
-                with patch("app.services.permission_service.log_permission_change"), patch(
-                    "app.services.permission_service.create_audit_log_entry"
-                ), patch("app.repositories.user_repository.UserRepository") as mock_user_repo_class:
+            with patch.object(
+                service, "get_effective_permissions", return_value={"auth.manage_users"}
+            ):
+                with (
+                    patch("app.services.permission_service.log_permission_change"),
+                    patch("app.services.permission_service.create_audit_log_entry"),
+                    patch(
+                        "app.repositories.user_repository.UserRepository"
+                    ) as mock_user_repo_class,
+                ):
                     mock_user_repo = Mock()
                     mock_user = Mock()
                     mock_user.tenant_id = uuid4()
@@ -224,27 +250,42 @@ class TestPermissionService:
         """Test revoking all permissions for a user."""
         service = PermissionService(db_session)
 
-        with patch.object(service, "get_effective_permissions", return_value={"auth.manage_users"}):
+        with patch.object(
+            service, "get_effective_permissions", return_value={"auth.manage_users"}
+        ):
             with patch.object(service, "get_user_global_roles", return_value=[]):
-                with patch.object(service, "get_user_delegated_permissions", return_value=[]):
-                    with patch("app.services.permission_service.PermissionRepository") as mock_repo_class:
+                with patch.object(
+                    service, "get_user_delegated_permissions", return_value=[]
+                ):
+                    with patch(
+                        "app.services.permission_service.PermissionRepository"
+                    ) as mock_repo_class:
                         mock_repo = Mock()
                         mock_repo.revoke_all_user_permissions = Mock(return_value=3)
                         mock_repo_class.return_value = mock_repo
 
-                        with patch("app.services.permission_service.log_permission_change"), patch(
-                            "app.services.permission_service.create_audit_log_entry"
-                        ), patch("app.repositories.user_repository.UserRepository") as mock_user_repo_class:
+                        with (
+                            patch(
+                                "app.services.permission_service.log_permission_change"
+                            ),
+                            patch(
+                                "app.services.permission_service.create_audit_log_entry"
+                            ),
+                            patch(
+                                "app.repositories.user_repository.UserRepository"
+                            ) as mock_user_repo_class,
+                        ):
                             mock_user_repo = Mock()
                             mock_user = Mock()
                             mock_user.tenant_id = uuid4()
                             mock_user_repo.get_by_id = Mock(return_value=mock_user)
                             mock_user_repo_class.return_value = mock_user_repo
 
-                            count = service.revoke_all_user_permissions(test_user.id, test_user.id)
+                            count = service.revoke_all_user_permissions(
+                                test_user.id, test_user.id
+                            )
 
                             assert count == 3
                             mock_repo.revoke_all_user_permissions.assert_called_once_with(
                                 test_user.id, test_user.id
                             )
-

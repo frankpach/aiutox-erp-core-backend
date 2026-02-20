@@ -107,7 +107,9 @@ class TagCategory(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<TagCategory(id={self.id}, name={self.name}, tenant_id={self.tenant_id})>"
+        return (
+            f"<TagCategory(id={self.id}, name={self.name}, tenant_id={self.tenant_id})>"
+        )
 
 
 class EntityTag(Base):
@@ -132,7 +134,9 @@ class EntityTag(Base):
     )
 
     # Polymorphic relationship
-    entity_type = Column(String(50), nullable=False, index=True)  # e.g., 'product', 'order'
+    entity_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'product', 'order'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
     # Timestamps
@@ -146,9 +150,10 @@ class EntityTag(Base):
         Index("idx_entity_tags_entity", "entity_type", "entity_id"),
         Index("idx_entity_tags_tag", "tag_id"),
         Index("idx_entity_tags_tenant_entity", "tenant_id", "entity_type", "entity_id"),
-        Index("idx_entity_tags_unique", "tag_id", "entity_type", "entity_id", unique=True),
+        Index(
+            "idx_entity_tags_unique", "tag_id", "entity_type", "entity_id", unique=True
+        ),
     )
 
     def __repr__(self) -> str:
         return f"<EntityTag(id={self.id}, tag_id={self.tag_id}, entity={self.entity_type}:{self.entity_id})>"
-

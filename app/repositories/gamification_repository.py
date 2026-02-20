@@ -134,9 +134,7 @@ class GamificationRepository:
 
     # --- Badge ---
 
-    def list_badges(
-        self, tenant_id: UUID, active_only: bool = True
-    ) -> list[Badge]:
+    def list_badges(self, tenant_id: UUID, active_only: bool = True) -> list[Badge]:
         """List badges for a tenant."""
         query = self.db.query(Badge).filter(Badge.tenant_id == tenant_id)
         if active_only:
@@ -151,9 +149,7 @@ class GamificationRepository:
         self.db.refresh(badge)
         return badge
 
-    def get_user_badges(
-        self, user_id: UUID, tenant_id: UUID
-    ) -> list[UserBadge]:
+    def get_user_badges(self, user_id: UUID, tenant_id: UUID) -> list[UserBadge]:
         """Get badges earned by a user."""
         return (
             self.db.query(UserBadge)
@@ -165,9 +161,7 @@ class GamificationRepository:
             .all()
         )
 
-    def user_has_badge(
-        self, user_id: UUID, badge_id: UUID, tenant_id: UUID
-    ) -> bool:
+    def user_has_badge(self, user_id: UUID, badge_id: UUID, tenant_id: UUID) -> bool:
         """Check if user already has a specific badge."""
         return (
             self.db.query(UserBadge)
@@ -180,9 +174,7 @@ class GamificationRepository:
             is not None
         )
 
-    def award_badge(
-        self, user_id: UUID, badge_id: UUID, tenant_id: UUID
-    ) -> UserBadge:
+    def award_badge(self, user_id: UUID, badge_id: UUID, tenant_id: UUID) -> UserBadge:
         """Award a badge to a user."""
         user_badge = UserBadge(
             tenant_id=tenant_id,

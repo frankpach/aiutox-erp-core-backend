@@ -231,13 +231,3 @@ class ProductBarcodeResponse(ProductBarcodeBase):
     variant_id: UUID | None = Field(None, description="Variant ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-
-
-
-
-
-
-
-
-
-

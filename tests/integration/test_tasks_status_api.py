@@ -32,9 +32,7 @@ def test_list_status_definitions_success(
 
 
 @pytest.mark.integration
-def test_create_status_definition_success(
-    client_with_db, tasks_manager_headers
-):
+def test_create_status_definition_success(client_with_db, tasks_manager_headers):
     """Test successful creation of custom status definition."""
     response = client_with_db.post(
         "/api/v1/tasks/status-definitions",
@@ -42,7 +40,7 @@ def test_create_status_definition_success(
             "name": "custom_status",
             "type": "custom",
             "color": "#FF5722",
-            "order": 100
+            "order": 100,
         },
         headers=tasks_manager_headers,
     )
@@ -64,7 +62,7 @@ def test_create_status_definition_validation_error(
         "/api/v1/tasks/status-definitions",
         json={
             "type": "custom",
-            "color": "#FF5722"
+            "color": "#FF5722",
             # Missing "name" field
         },
         headers=tasks_manager_headers,
@@ -75,9 +73,7 @@ def test_create_status_definition_validation_error(
 
 
 @pytest.mark.integration
-def test_update_status_definition_success(
-    client_with_db, tasks_manager_headers
-):
+def test_update_status_definition_success(client_with_db, tasks_manager_headers):
     """Test successful update of custom status definition."""
     # First create a status
     create_response = client_with_db.post(
@@ -86,7 +82,7 @@ def test_update_status_definition_success(
             "name": "updatable_status",
             "type": "custom",
             "color": "#FF5722",
-            "order": 100
+            "order": 100,
         },
         headers=tasks_manager_headers,
     )
@@ -95,10 +91,7 @@ def test_update_status_definition_success(
     # Update the status
     response = client_with_db.put(
         f"/api/v1/tasks/status-definitions/{status_id}",
-        json={
-            "name": "updated_status",
-            "color": "#2196F3"
-        },
+        json={"name": "updated_status", "color": "#2196F3"},
         headers=tasks_manager_headers,
     )
 
@@ -109,29 +102,25 @@ def test_update_status_definition_success(
 
 
 @pytest.mark.integration
-def test_update_system_status_forbidden(
-    client_with_db, tasks_manager_headers
-):
+def test_update_system_status_forbidden(client_with_db, tasks_manager_headers):
     """Test that system statuses cannot be updated."""
     # Try to update a system status using an invalid UUID format (should return 422)
     response = client_with_db.put(
         "/api/v1/tasks/status-definitions/todo",
-        json={
-            "name": "modified_todo",
-            "color": "#FF0000"
-        },
+        json={"name": "modified_todo", "color": "#FF0000"},
         headers=tasks_manager_headers,
     )
 
     # Should return 422 for invalid UUID format, not 404
     assert response.status_code == 422
-    assert "uuid" in response.json()["error"]["message"].lower() or "validation" in response.json()["error"]["message"].lower()
+    assert (
+        "uuid" in response.json()["error"]["message"].lower()
+        or "validation" in response.json()["error"]["message"].lower()
+    )
 
 
 @pytest.mark.integration
-def test_delete_custom_status_success(
-    client_with_db, tasks_manager_headers
-):
+def test_delete_custom_status_success(client_with_db, tasks_manager_headers):
     """Test successful deletion of custom status definition."""
     # First create a status
     create_response = client_with_db.post(
@@ -140,7 +129,7 @@ def test_delete_custom_status_success(
             "name": "deletable_status",
             "type": "custom",
             "color": "#FF5722",
-            "order": 100
+            "order": 100,
         },
         headers=tasks_manager_headers,
     )
@@ -164,9 +153,7 @@ def test_delete_custom_status_success(
 
 
 @pytest.mark.integration
-def test_delete_system_status_forbidden(
-    client_with_db, tasks_manager_headers
-):
+def test_delete_system_status_forbidden(client_with_db, tasks_manager_headers):
     """Test that system statuses cannot be deleted."""
     # Try to delete a system status using invalid UUID format (should return 422)
     response = client_with_db.delete(
@@ -176,33 +163,24 @@ def test_delete_system_status_forbidden(
 
     # Should return 422 for invalid UUID format, not 400
     assert response.status_code == 422
-    assert "uuid" in response.json()["error"]["message"].lower() or "validation" in response.json()["error"]["message"].lower()
+    assert (
+        "uuid" in response.json()["error"]["message"].lower()
+        or "validation" in response.json()["error"]["message"].lower()
+    )
 
 
 @pytest.mark.integration
-def test_reorder_status_definitions_success(
-    client_with_db, tasks_manager_headers
-):
+def test_reorder_status_definitions_success(client_with_db, tasks_manager_headers):
     """Test successful reordering of status definitions."""
     # Create some custom statuses first
     status1_response = client_with_db.post(
         "/api/v1/tasks/status-definitions",
-        json={
-            "name": "status_one",
-            "type": "custom",
-            "color": "#FF5722",
-            "order": 100
-        },
+        json={"name": "status_one", "type": "custom", "color": "#FF5722", "order": 100},
         headers=tasks_manager_headers,
     )
     status2_response = client_with_db.post(
         "/api/v1/tasks/status-definitions",
-        json={
-            "name": "status_two",
-            "type": "custom",
-            "color": "#2196F3",
-            "order": 200
-        },
+        json={"name": "status_two", "type": "custom", "color": "#2196F3", "order": 200},
         headers=tasks_manager_headers,
     )
 
@@ -212,10 +190,7 @@ def test_reorder_status_definitions_success(
     # Reorder them
     response = client_with_db.post(
         "/api/v1/tasks/status-definitions/reorder",
-        json={
-            str(status1_id): 200,
-            str(status2_id): 100
-        },
+        json={str(status1_id): 200, str(status2_id): 100},
         headers=tasks_manager_headers,
     )
 
@@ -238,6 +213,7 @@ def test_status_definitions_tenant_isolation(
     """Test that status definitions are isolated by tenant."""
     # Initialize default statuses for other tenant
     from app.core.tasks.status_service import get_task_status_service
+
     status_service = get_task_status_service(db_session)
     status_service.initialize_default_statuses(other_tenant.id)
 
@@ -248,7 +224,7 @@ def test_status_definitions_tenant_isolation(
             "name": "main_tenant_status",
             "type": "custom",
             "color": "#FF5722",
-            "order": 100
+            "order": 100,
         },
         headers=tasks_manager_headers,
     )
@@ -256,7 +232,10 @@ def test_status_definitions_tenant_isolation(
 
     # Create headers for other tenant user with proper permissions
     from tests.helpers import create_user_with_permission
-    other_headers = create_user_with_permission(db_session=db_session, user=other_user, module="tasks", role_name="manager")
+
+    other_headers = create_user_with_permission(
+        db_session=db_session, user=other_user, module="tasks", role_name="manager"
+    )
 
     # List statuses for other tenant - should not include main tenant's status
     response = client_with_db.get(

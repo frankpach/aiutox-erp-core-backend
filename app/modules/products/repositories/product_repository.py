@@ -287,13 +287,3 @@ class ProductBarcodeRepository:
         """Delete a barcode (hard delete)."""
         self.db.delete(barcode)
         self.db.commit()
-
-
-
-
-
-
-
-
-
-

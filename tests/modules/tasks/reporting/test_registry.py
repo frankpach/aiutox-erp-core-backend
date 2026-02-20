@@ -51,11 +51,15 @@ class TestTasksReportingRegistry:
         register_tasks_data_sources(mock_engine)
 
         # Verify registration was called with correct arguments
-        mock_engine.register_data_source.assert_called_once_with("tasks", TasksDataSource)
+        mock_engine.register_data_source.assert_called_once_with(
+            "tasks", TasksDataSource
+        )
 
-    @patch('app.core.reporting.service.ReportingService')
-    @patch('app.modules.tasks.reporting.registry.ReportingEngine')
-    def test_create_default_reports_success(self, mock_engine_class, mock_service_class):
+    @patch("app.core.reporting.service.ReportingService")
+    @patch("app.modules.tasks.reporting.registry.ReportingEngine")
+    def test_create_default_reports_success(
+        self, mock_engine_class, mock_service_class
+    ):
         """Test successful creation of default reports."""
         # Setup mocks
         mock_db = Mock()
@@ -103,9 +107,11 @@ class TestTasksReportingRegistry:
         for name in expected_names:
             assert name in report_names
 
-    @patch('app.core.reporting.service.ReportingService')
-    @patch('app.modules.tasks.reporting.registry.ReportingEngine')
-    def test_create_default_reports_partial_failure(self, mock_engine_class, mock_service_class):
+    @patch("app.core.reporting.service.ReportingService")
+    @patch("app.modules.tasks.reporting.registry.ReportingEngine")
+    def test_create_default_reports_partial_failure(
+        self, mock_engine_class, mock_service_class
+    ):
         """Test creation of default reports with some failures."""
         # Setup mocks
         mock_db = Mock()
@@ -186,7 +192,7 @@ class TestTasksReportingRegistry:
         line_config = {
             "data_field": "data_points",
             "x_axis": "period",
-            "y_axis": ["created", "completed"]
+            "y_axis": ["created", "completed"],
         }
         assert validate_widget_config("tasks_trends", line_config) is True
 
@@ -194,24 +200,24 @@ class TestTasksReportingRegistry:
         bar_config = {
             "data_field": "task_count",
             "x_axis": "state_name",
-            "y_axis": "task_count"
+            "y_axis": "task_count",
         }
         assert validate_widget_config("custom_states_usage", bar_config) is True
 
         # Test KPI config
         kpi_config = {
-            "kpis": [
-                {"title": "Total Tasks", "value": 100, "format": "number"}
-            ]
+            "kpis": [{"title": "Total Tasks", "value": 100, "format": "number"}]
         }
         assert validate_widget_config("productivity_metrics", kpi_config) is True
 
         # Test timeline config
         timeline_config = {
             "data_field": "completed_tasks",
-            "time_field": "completed_at"
+            "time_field": "completed_at",
         }
-        assert validate_widget_config("task_completion_timeline", timeline_config) is True
+        assert (
+            validate_widget_config("task_completion_timeline", timeline_config) is True
+        )
 
     def test_validate_widget_config_invalid_widget_id(self):
         """Test validation with invalid widget ID."""
@@ -227,10 +233,7 @@ class TestTasksReportingRegistry:
     def test_validate_widget_config_invalid_config_line(self):
         """Test validation of invalid line chart configuration."""
         # Missing y_axis
-        config = {
-            "data_field": "data_points",
-            "x_axis": "period"
-        }
+        config = {"data_field": "data_points", "x_axis": "period"}
         assert validate_widget_config("tasks_trends", config) is False
 
     def test_validate_widget_config_invalid_config_kpi(self):

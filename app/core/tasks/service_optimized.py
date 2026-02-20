@@ -132,7 +132,9 @@ class TaskServiceOptimized:
     ) -> Task | None:
         """Obtener una tarea con eager loading optimizado."""
         # Intentar caché primero
-        cache_key = f"task:{task_id}:{tenant_id}:{'full' if include_relations else 'basic'}"
+        cache_key = (
+            f"task:{task_id}:{tenant_id}:{'full' if include_relations else 'basic'}"
+        )
         cached_task = self.cache.get(cache_key)
         if cached_task:
             return cached_task
@@ -200,7 +202,14 @@ class TaskServiceOptimized:
         """Obtener tareas visibles para un usuario con optimización de visibilidad."""
         # Generar clave de caché específica para visibilidad
         cache_key = self._generate_visibility_cache_key(
-            tenant_id, user_id, tuple(user_group_ids), status, priority, skip, limit, include_relations
+            tenant_id,
+            user_id,
+            tuple(user_group_ids),
+            status,
+            priority,
+            skip,
+            limit,
+            include_relations,
         )
 
         # Intentar caché
@@ -375,7 +384,9 @@ class TaskServiceOptimized:
     ) -> int:
         """Actualizar estado de múltiples tareas en batch."""
         # Actualizar en base de datos
-        updated_count = self.repository.bulk_update_task_status(task_ids, tenant_id, new_status)
+        updated_count = self.repository.bulk_update_task_status(
+            task_ids, tenant_id, new_status
+        )
 
         if updated_count > 0:
             # Invalidar caché para todas las tareas afectadas
@@ -445,7 +456,11 @@ class TaskServiceOptimized:
     ) -> str:
         """Genera clave de caché para tareas visibles."""
         # Convertir group_ids a string ordenado para consistencia
-        groups_str = ",".join(sorted(str(gid) for gid in user_group_ids)) if user_group_ids else "none"
+        groups_str = (
+            ",".join(sorted(str(gid) for gid in user_group_ids))
+            if user_group_ids
+            else "none"
+        )
 
         parts = [
             "visible_tasks",
@@ -486,6 +501,8 @@ class TaskServiceOptimized:
 
 
 # Factory function para compatibilidad
-def get_task_service_optimized(db: Session, event_publisher: Any | None = None) -> TaskServiceOptimized:
+def get_task_service_optimized(
+    db: Session, event_publisher: Any | None = None
+) -> TaskServiceOptimized:
     """Obtener instancia del servicio de tareas optimizado."""
     return TaskServiceOptimized(db, event_publisher)

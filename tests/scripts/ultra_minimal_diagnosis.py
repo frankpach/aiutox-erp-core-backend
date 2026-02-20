@@ -11,6 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def test_basic_python():
     """Prueba si Python básico funciona."""
     print("🔍 PRUEBA 1: Python básico")
@@ -23,18 +24,22 @@ def test_basic_python():
         print(f"❌ Error en Python básico: {e}")
         return False
 
+
 def test_fastapi_minimal():
     """Prueba FastAPI mínimo."""
     print("\n🔍 PRUEBA 2: FastAPI mínimo")
     print("-" * 40)
 
     try:
+
         def import_fastapi():
             from fastapi import FastAPI
+
             app = FastAPI()
             return app
 
         result = [None]
+
         def fastapi_thread():
             try:
                 _app = import_fastapi()
@@ -61,6 +66,7 @@ def test_fastapi_minimal():
         print(f"❌ Error en prueba FastAPI: {e}")
         return False
 
+
 def test_environment():
     """Prueba variables de entorno y configuración."""
     print("\n🔍 PRUEBA 3: Variables de entorno")
@@ -84,6 +90,7 @@ def test_environment():
     except Exception as e:
         print(f"❌ Error en variables de entorno: {e}")
         return False
+
 
 def test_path_issues():
     """Prueba problemas de PATH o directorios."""
@@ -119,6 +126,7 @@ def test_path_issues():
         print(f"❌ Error en PATH: {e}")
         return False
 
+
 def test_import_without_app():
     """Prueba importar algo que no esté en app."""
     print("\n🔍 PRUEBA 5: Import fuera de app")
@@ -130,6 +138,7 @@ def test_import_without_app():
             return True
 
         result = [None]
+
         def import_thread():
             try:
                 success = test_import()
@@ -155,6 +164,7 @@ def test_import_without_app():
     except Exception as e:
         print(f"❌ Error en prueba: {e}")
         return False
+
 
 def create_ultra_emergency_server():
     """Crea un servidor ultra-emergencia sin imports de app."""
@@ -197,7 +207,7 @@ if __name__ == "__main__":
     ultra_emergency_path = backend_path / "ultra_emergency_server.py"
 
     try:
-        with open(ultra_emergency_path, 'w', encoding='utf-8') as f:
+        with open(ultra_emergency_path, "w", encoding="utf-8") as f:
             f.write(ultra_emergency_content)
 
         print(f"✅ Ultra emergency server creado en: {ultra_emergency_path}")
@@ -206,6 +216,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error creando ultra emergency server: {e}")
         return False
+
 
 def main():
     """Función principal del diagnóstico ultra-minimalista."""
@@ -248,6 +259,7 @@ def main():
     print("   python ultra_emergency_server.py")
     print("2. Si esto funciona, el problema está en los imports de app")
     print("3. Si esto NO funciona, el problema está en FastAPI/uvicorn/entorno")
+
 
 if __name__ == "__main__":
     main()

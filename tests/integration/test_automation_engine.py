@@ -72,7 +72,9 @@ async def test_execute_rule_success(automation_engine, test_rule, test_tenant):
 
 
 @pytest.mark.asyncio
-async def test_execute_rule_conditions_not_met(automation_engine, test_rule, test_tenant):
+async def test_execute_rule_conditions_not_met(
+    automation_engine, test_rule, test_tenant
+):
     """Test executing a rule where conditions are not met."""
     event = Event(
         event_type="product.created",
@@ -191,13 +193,3 @@ async def test_process_event(automation_engine, db_session, test_tenant):
     executed_rule_ids = {ex.rule_id for ex in executions}
     assert executed_rule_ids == {rule1.id, rule2.id}
     assert all(ex.status == AutomationExecutionStatus.SUCCESS for ex in executions)
-
-
-
-
-
-
-
-
-
-

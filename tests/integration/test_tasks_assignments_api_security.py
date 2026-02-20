@@ -22,7 +22,9 @@ def _assert_api_error_code(response, expected_code: str) -> None:
 @pytest.mark.security
 def test_assignments_require_auth(client_with_db):
     """Ensure unauthenticated users cannot list assignments."""
-    response = client_with_db.get("/api/v1/tasks/00000000-0000-0000-0000-000000000000/assignments")
+    response = client_with_db.get(
+        "/api/v1/tasks/00000000-0000-0000-0000-000000000000/assignments"
+    )
     assert response.status_code == 401
 
 

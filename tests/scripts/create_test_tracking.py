@@ -32,7 +32,9 @@ def create_test_tracking_file() -> Path:
         with open(plan_file, encoding="utf-8") as f:
             plan_content = f.read()
     else:
-        plan_content = "# Plan de Tests\n\n[Plan no encontrado - ver PLAN_MEJORADO_TESTS.md]"
+        plan_content = (
+            "# Plan de Tests\n\n[Plan no encontrado - ver PLAN_MEJORADO_TESTS.md]"
+        )
 
     # Crear contenido del archivo de seguimiento
     content = f"""# Seguimiento de Tests - {timestamp}
@@ -95,5 +97,3 @@ def create_test_tracking_file() -> Path:
 
 if __name__ == "__main__":
     create_test_tracking_file()
-
-

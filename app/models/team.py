@@ -46,7 +46,9 @@ class Team(Base):
 
     # Metadata
     color = Column(String(7), nullable=True)  # Hex color
-    team_metadata = Column("metadata", JSONB, nullable=True)  # Usar alias para evitar conflicto
+    team_metadata = Column(
+        "metadata", JSONB, nullable=True
+    )  # Usar alias para evitar conflicto
     is_active = Column(Boolean, default=True, nullable=False, index=True)
 
     # Timestamps
@@ -64,7 +66,9 @@ class Team(Base):
     )
 
     # Relationships
-    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    members = relationship(
+        "TeamMember", back_populates="team", cascade="all, delete-orphan"
+    )
     parent_team = relationship("Team", remote_side=[id], back_populates="child_teams")
     child_teams = relationship("Team", back_populates="parent_team")
 

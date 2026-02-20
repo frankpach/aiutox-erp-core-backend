@@ -17,7 +17,9 @@ settings = get_settings()
 @pytest.fixture
 async def redis_client():
     """Create Redis client for testing."""
-    client = RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    client = RedisStreamsClient(
+        redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+    )
     yield client
     await client.close()
 
@@ -80,7 +82,9 @@ async def test_failed_event_moved_to_failed_stream(event_publisher, event_consum
             # If retries were exhausted, event should be in failed stream
             # Note: In full scenario, this would be verified after all retries
             # For now, we verify the mechanism exists
-            assert failed_length >= 0  # Stream exists (may be empty if retries not exhausted)
+            assert (
+                failed_length >= 0
+            )  # Stream exists (may be empty if retries not exhausted)
         except Exception:
             # Stream might not exist yet if no events failed
             pass
@@ -187,13 +191,3 @@ async def test_failed_event_preserves_original_data(event_publisher, event_consu
                         assert "original_stream" in data
         except Exception:
             pass
-
-
-
-
-
-
-
-
-
-

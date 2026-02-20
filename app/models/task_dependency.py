@@ -20,32 +20,36 @@ class TaskDependency(Base):
         PG_UUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
 
     task_id = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tasks.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     depends_on_id = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("tasks.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
 
     dependency_type = Column(String(20), nullable=False, default="finish_to_start")
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
 
     # Relaciones
     task = relationship("Task", foreign_keys=[task_id], backref="dependencies")
-    depends_on_task = relationship("Task", foreign_keys=[depends_on_id], backref="dependent_tasks")
+    depends_on_task = relationship(
+        "Task", foreign_keys=[depends_on_id], backref="dependent_tasks"
+    )
 
     __table_args__ = (
-        UniqueConstraint('task_id', 'depends_on_id', name='uq_task_dependency'),
+        UniqueConstraint("task_id", "depends_on_id", name="uq_task_dependency"),
     )
 
     def __repr__(self) -> str:

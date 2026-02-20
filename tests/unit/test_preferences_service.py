@@ -1,6 +1,5 @@
 """Unit tests for PreferencesService."""
 
-
 import pytest
 
 from app.core.preferences.service import PreferencesService
@@ -57,13 +56,3 @@ def test_set_org_preference(preferences_service, test_tenant):
     )
     assert result["key"] == "default_language"
     assert result["value"] == "es"
-
-
-
-
-
-
-
-
-
-

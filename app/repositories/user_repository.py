@@ -26,17 +26,23 @@ class UserRepository:
 
     def get_by_id(self, user_id: UUID) -> User | None:
         """Get user by ID."""
-        return self.db.query(User).options(
-            joinedload(User.tenant)
-        ).filter(User.id == user_id).first()
+        return (
+            self.db.query(User)
+            .options(joinedload(User.tenant))
+            .filter(User.id == user_id)
+            .first()
+        )
 
     def get_by_email(self, email: str) -> User | None:
         """Get user by email."""
         import logging
+
         logger = logging.getLogger("app")
         logger.debug(f"[DB] Starting query for email={email}")
         logger.debug(f"[DB] DB session type: {type(self.db)}")
-        logger.debug(f"[DB] DB session is active: {self.db.is_active if hasattr(self.db, 'is_active') else 'N/A'}")
+        logger.debug(
+            f"[DB] DB session is active: {self.db.is_active if hasattr(self.db, 'is_active') else 'N/A'}"
+        )
 
         try:
             query = self.db.query(User).filter(User.email == email)
@@ -48,9 +54,7 @@ class UserRepository:
             logger.error(f"[DB] Error in get_by_email: {e}", exc_info=True)
             raise
 
-    def get_by_email_and_tenant(
-        self, email: str, tenant_id: UUID
-    ) -> User | None:
+    def get_by_email_and_tenant(self, email: str, tenant_id: UUID) -> User | None:
         """Get user by email and tenant ID."""
         return (
             self.db.query(User)
@@ -127,4 +131,3 @@ class UserRepository:
         """Delete a user."""
         self.db.delete(user)
         self.db.commit()
-

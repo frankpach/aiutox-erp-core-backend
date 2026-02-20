@@ -38,7 +38,10 @@ class TestFolderServicePermissions:
     @pytest.fixture
     def service(self, mock_db_session, mock_event_publisher, mock_repository):
         """Fixture para crear instancia del servicio."""
-        with patch("app.core.files.folder_service.FolderRepository", return_value=mock_repository):
+        with patch(
+            "app.core.files.folder_service.FolderRepository",
+            return_value=mock_repository,
+        ):
             service = FolderService(mock_db_session, mock_event_publisher)
             service.repository = mock_repository
             return service
@@ -54,7 +57,9 @@ class TestFolderServicePermissions:
         )
         return folder
 
-    def test_set_folder_permissions_user_success(self, service, mock_db_session, test_folder, test_user, test_tenant):
+    def test_set_folder_permissions_user_success(
+        self, service, mock_db_session, test_folder, test_user, test_tenant
+    ):
         """Test: Establecer permisos de carpeta para usuario exitosamente."""
         # Arrange
         folder_id = test_folder.id
@@ -86,7 +91,9 @@ class TestFolderServicePermissions:
         service.repository.create_permission.return_value = mock_permission
 
         # Mock user query
-        mock_db_session.query.return_value.filter.return_value.first.return_value = test_user
+        mock_db_session.query.return_value.filter.return_value.first.return_value = (
+            test_user
+        )
 
         # Act
         result = service.set_folder_permissions(
@@ -102,7 +109,9 @@ class TestFolderServicePermissions:
         assert result[0].can_view is True
         service.repository.create_permission.assert_called_once()
 
-    def test_set_folder_permissions_user_not_found(self, service, mock_db_session, test_folder, test_tenant):
+    def test_set_folder_permissions_user_not_found(
+        self, service, mock_db_session, test_folder, test_tenant
+    ):
         """Test: Establecer permisos con usuario no encontrado."""
         # Arrange
         folder_id = test_folder.id
@@ -131,7 +140,9 @@ class TestFolderServicePermissions:
 
         assert "not found" in str(exc_info.value).lower()
 
-    def test_set_folder_permissions_role_success(self, service, mock_db_session, test_folder, test_tenant):
+    def test_set_folder_permissions_role_success(
+        self, service, mock_db_session, test_folder, test_tenant
+    ):
         """Test: Establecer permisos de carpeta para rol exitosamente."""
         # Arrange
         folder_id = test_folder.id
@@ -174,7 +185,9 @@ class TestFolderServicePermissions:
                 assert result[0].target_type == "role"
                 service.repository.create_permission.assert_called_once()
 
-    def test_set_folder_permissions_organization_success(self, service, mock_db_session, test_folder, test_tenant):
+    def test_set_folder_permissions_organization_success(
+        self, service, mock_db_session, test_folder, test_tenant
+    ):
         """Test: Establecer permisos de carpeta para organización exitosamente."""
         # Arrange
         folder_id = test_folder.id
@@ -221,7 +234,9 @@ class TestFolderServicePermissions:
         assert result[0].target_type == "organization"
         service.repository.create_permission.assert_called_once()
 
-    def test_set_folder_permissions_invalid_target_type(self, service, test_folder, test_tenant):
+    def test_set_folder_permissions_invalid_target_type(
+        self, service, test_folder, test_tenant
+    ):
         """Test: Establecer permisos con tipo de target inválido."""
         # Arrange
         folder_id = test_folder.id
@@ -265,14 +280,18 @@ class TestFolderServicePermissions:
         service.repository.get_permissions.return_value = mock_permissions
 
         # Act
-        result = service.get_folder_permissions(folder_id=folder_id, tenant_id=tenant_id)
+        result = service.get_folder_permissions(
+            folder_id=folder_id, tenant_id=tenant_id
+        )
 
         # Assert
         assert len(result) == 1
         assert result[0].target_type == "user"
         service.repository.get_permissions.assert_called_once_with(folder_id, tenant_id)
 
-    def test_check_folder_permissions_owner_has_access(self, service, test_folder, test_user, test_tenant):
+    def test_check_folder_permissions_owner_has_access(
+        self, service, test_folder, test_user, test_tenant
+    ):
         """Test: Verificar que el propietario de la carpeta tiene acceso completo."""
         # Arrange
         folder_id = test_folder.id
@@ -293,7 +312,9 @@ class TestFolderServicePermissions:
         # Assert
         assert result is True
 
-    def test_check_folder_permissions_user_specific_permission(self, service, test_folder, test_user, test_tenant):
+    def test_check_folder_permissions_user_specific_permission(
+        self, service, test_folder, test_user, test_tenant
+    ):
         """Test: Verificar permisos específicos de usuario."""
         # Arrange
         folder_id = test_folder.id
@@ -348,7 +369,9 @@ class TestFolderServicePermissions:
                 permission="view",
             )
 
-    def test_check_folder_permissions_invalid_permission(self, service, test_folder, test_user, test_tenant):
+    def test_check_folder_permissions_invalid_permission(
+        self, service, test_folder, test_user, test_tenant
+    ):
         """Test: Verificar permisos con permiso inválido."""
         # Arrange
         folder_id = test_folder.id
@@ -371,7 +394,9 @@ class TestFolderServicePermissions:
 
         assert "Invalid permission" in str(exc_info.value)
 
-    def test_check_inherited_permissions(self, service, test_folder, test_user, test_tenant):
+    def test_check_inherited_permissions(
+        self, service, test_folder, test_user, test_tenant
+    ):
         """Test: Verificar permisos heredados de carpetas padre."""
         # Arrange
         folder_id = test_folder.id
@@ -419,4 +444,3 @@ class TestFolderServicePermissions:
         # Assert
         assert result["can_view"] is True
         assert result["can_create_files"] is True
-

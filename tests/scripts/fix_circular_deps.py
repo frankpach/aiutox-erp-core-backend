@@ -10,6 +10,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def fix_contact_organization_circular_dep():
     """Repara la dependencia circular entre contact y organization schemas."""
     print("🔧 REPARANDO DEPENDENCIA CIRCULAR: contact ↔ organization")
@@ -20,11 +21,11 @@ def fix_contact_organization_circular_dep():
 
     try:
         # Leer contact.py
-        with open(contact_schema_path, encoding='utf-8') as f:
+        with open(contact_schema_path, encoding="utf-8") as f:
             contact_content = f.read()
 
         # Leer organization.py
-        with open(organization_schema_path, encoding='utf-8') as f:
+        with open(organization_schema_path, encoding="utf-8") as f:
             organization_content = f.read()
 
         print("📦 Analizando imports...")
@@ -47,7 +48,7 @@ def fix_contact_organization_circular_dep():
         # Reparar contact.py si es necesario
         if "from app.schemas.organization import" in contact_content:
             # Reemplazar import en nivel de módulo con import local
-            lines = contact_content.split('\n')
+            lines = contact_content.split("\n")
             new_lines = []
 
             for line in lines:
@@ -58,11 +59,11 @@ def fix_contact_organization_circular_dep():
                 else:
                     new_lines.append(line)
 
-            new_contact_content = '\n'.join(new_lines)
+            new_contact_content = "\n".join(new_lines)
 
         # Reparar organization.py si es necesario
         if "from app.schemas.contact import" in organization_content:
-            lines = organization_content.split('\n')
+            lines = organization_content.split("\n")
             new_lines = []
 
             for line in lines:
@@ -73,16 +74,16 @@ def fix_contact_organization_circular_dep():
                 else:
                     new_lines.append(line)
 
-            new_organization_content = '\n'.join(new_lines)
+            new_organization_content = "\n".join(new_lines)
 
         # Guardar archivos reparados
         if new_contact_content != contact_content:
-            with open(contact_schema_path, 'w', encoding='utf-8') as f:
+            with open(contact_schema_path, "w", encoding="utf-8") as f:
                 f.write(new_contact_content)
             print("   ✅ contact.py actualizado")
 
         if new_organization_content != organization_content:
-            with open(organization_schema_path, 'w', encoding='utf-8') as f:
+            with open(organization_schema_path, "w", encoding="utf-8") as f:
                 f.write(new_organization_content)
             print("   ✅ organization.py actualizado")
 
@@ -91,6 +92,7 @@ def fix_contact_organization_circular_dep():
     except Exception as e:
         print(f"   ❌ Error reparando dependencia circular: {e}")
         return False
+
 
 def create_lazy_import_wrapper():
     """Crea un wrapper para imports con lazy loading."""
@@ -122,7 +124,7 @@ def get_organization_schemas():
     wrapper_path = backend_path / "app" / "schemas" / "lazy_imports.py"
 
     try:
-        with open(wrapper_path, 'w', encoding='utf-8') as f:
+        with open(wrapper_path, "w", encoding="utf-8") as f:
             f.write(wrapper_content)
 
         print(f"✅ Wrapper creado en: {wrapper_path}")
@@ -132,6 +134,7 @@ def get_organization_schemas():
         print(f"❌ Error creando wrapper: {e}")
         return False
 
+
 def optimize_session_imports():
     """Optimiza los imports de session para reducir carga."""
     print("\n🔧 OPTIMIZANDO IMPORTS DE SESSION")
@@ -140,7 +143,7 @@ def optimize_session_imports():
     session_path = backend_path / "app" / "core" / "db" / "session.py"
 
     try:
-        with open(session_path, encoding='utf-8') as f:
+        with open(session_path, encoding="utf-8") as f:
             content = f.read()
 
         # Verificar si ya está optimizado
@@ -149,7 +152,7 @@ def optimize_session_imports():
             return True
 
         # Crear versión optimizada
-        optimized_content = '''from sqlalchemy import create_engine
+        optimized_content = """from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config_file import get_settings
@@ -190,9 +193,9 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
-'''
+"""
 
-        with open(session_path, 'w', encoding='utf-8') as f:
+        with open(session_path, "w", encoding="utf-8") as f:
             f.write(optimized_content)
 
         print("✅ session.py optimizado")
@@ -201,6 +204,7 @@ Base = declarative_base()
     except Exception as e:
         print(f"❌ Error optimizando session.py: {e}")
         return False
+
 
 def create_minimal_main():
     """Crea una versión minimal de main.py para pruebas."""
@@ -246,7 +250,7 @@ if __name__ == "__main__":
     minimal_main_path = backend_path / "app" / "main_minimal.py"
 
     try:
-        with open(minimal_main_path, 'w', encoding='utf-8') as f:
+        with open(minimal_main_path, "w", encoding="utf-8") as f:
             f.write(minimal_main_content)
 
         print("✅ main_minimal.py creado")
@@ -255,6 +259,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error creando main_minimal.py: {e}")
         return False
+
 
 def main():
     """Función principal."""
@@ -295,6 +300,7 @@ def main():
         print("❌ Algunas reparaciones fallaron")
 
     return success_count == total_tasks
+
 
 if __name__ == "__main__":
     main()

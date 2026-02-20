@@ -59,7 +59,7 @@ class TestTaskCommentServiceBasic:
         mock_db.refresh.return_value = None
 
         # Mock Comment constructor
-        with patch('app.models.comment.Comment') as mock_comment_class:
+        with patch("app.models.comment.Comment") as mock_comment_class:
             mock_comment_class.return_value = mock_comment
 
             # Act
@@ -150,7 +150,9 @@ class TestTaskCommentServiceBasic:
         # Mock mentions relationship - this is the key fix
         mock_mention_obj = Mock()
         mock_mention_obj.mentioned_user_id = mentioned_user_id
-        mock_comment.mentions = [mock_mention_obj]  # This must return the mention object
+        mock_comment.mentions = [
+            mock_mention_obj
+        ]  # This must return the mention object
 
         mock_db.add.return_value = None
         mock_db.flush.return_value = None
@@ -158,8 +160,10 @@ class TestTaskCommentServiceBasic:
         mock_db.refresh.return_value = None
 
         # Mock Comment and CommentMention
-        with patch('app.models.comment.Comment') as mock_comment_class, \
-             patch('app.models.comment.CommentMention') as mock_comment_mention_class:
+        with (
+            patch("app.models.comment.Comment") as mock_comment_class,
+            patch("app.models.comment.CommentMention") as mock_comment_mention_class,
+        ):
 
             mock_comment_class.return_value = mock_comment
             mock_mention = Mock()
@@ -183,7 +187,9 @@ class TestTaskCommentServiceBasic:
         mock_comment_mention_class.assert_called_once_with(
             tenant_id=tenant_id,
             comment_id=mock_comment.id,
-            mentioned_user_id=str(mentioned_user_id),  # Convert to string to match service behavior
+            mentioned_user_id=str(
+                mentioned_user_id
+            ),  # Convert to string to match service behavior
             notification_sent=False,
         )
         mock_db.add.assert_called_with(mock_mention)
@@ -355,7 +361,10 @@ class TestTaskCommentServiceBasic:
 
         # Configure the filter chain to return our lists
         mock_filter = Mock()
-        mock_filter.order_by.return_value.all.return_value = [mock_comment2, mock_comment1]  # Task comments
+        mock_filter.order_by.return_value.all.return_value = [
+            mock_comment2,
+            mock_comment1,
+        ]  # Task comments
         mock_query.filter.return_value = mock_filter
 
         # For the tenant query (first call), return empty list to avoid len() error
@@ -364,6 +373,7 @@ class TestTaskCommentServiceBasic:
 
         # Track which call is which
         calls = []
+
         def filter_side_effect(*args, **kwargs):
             calls.append(args)
             if len(calls) == 1:
@@ -407,6 +417,7 @@ class TestTaskCommentServiceBasic:
 
         # Track which call is which
         calls = []
+
         def filter_side_effect(*args, **kwargs):
             calls.append(args)
             if len(calls) == 1:

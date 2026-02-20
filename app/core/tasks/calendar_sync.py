@@ -36,7 +36,9 @@ class CalendarProvider:
         """Delete a calendar event."""
         raise NotImplementedError
 
-    async def get_events(self, calendar_id: str, start_time: datetime, end_time: datetime) -> list[dict]:
+    async def get_events(
+        self, calendar_id: str, start_time: datetime, end_time: datetime
+    ) -> list[dict]:
         """Get events from calendar."""
         raise NotImplementedError
 
@@ -85,7 +87,7 @@ class GoogleCalendarProvider(CalendarProvider):
                 "description": "Calendario de trabajo",
                 "access_role": "owner",
                 "primary": False,
-            }
+            },
         ]
 
     async def create_event(self, calendar_id: str, event_data: dict) -> dict:
@@ -134,7 +136,9 @@ class GoogleCalendarProvider(CalendarProvider):
             logger.error(f"Failed to delete Google Calendar event: {e}")
             return False
 
-    async def get_events(self, calendar_id: str, start_time: datetime, end_time: datetime) -> list[dict]:
+    async def get_events(
+        self, calendar_id: str, start_time: datetime, end_time: datetime
+    ) -> list[dict]:
         """Get events from Google Calendar."""
         try:
             # TODO: Implement Google Calendar API call
@@ -228,7 +232,9 @@ class OutlookCalendarProvider(CalendarProvider):
             logger.error(f"Failed to delete Outlook Calendar event: {e}")
             return False
 
-    async def get_events(self, calendar_id: str, start_time: datetime, end_time: datetime) -> list[dict]:
+    async def get_events(
+        self, calendar_id: str, start_time: datetime, end_time: datetime
+    ) -> list[dict]:
         """Get events from Outlook Calendar."""
         try:
             # TODO: Implement Microsoft Graph API call
@@ -271,7 +277,7 @@ class CalendarSyncService:
         tenant_id: UUID,
         user_id: UUID,
         credentials: dict,
-        calendar_mappings: dict | None = None
+        calendar_mappings: dict | None = None,
     ) -> dict:
         """Connect to a calendar provider."""
         provider = self._providers.get(provider_type)
@@ -305,7 +311,9 @@ class CalendarSyncService:
             "connection_id": connection_id,
             "provider_type": provider_type,
             "calendars": calendars,
-            "connected_at": self._connections[connection_id]["connected_at"].isoformat(),
+            "connected_at": self._connections[connection_id][
+                "connected_at"
+            ].isoformat(),
         }
 
     async def disconnect_provider(self, connection_id: str, tenant_id: UUID) -> bool:
@@ -323,7 +331,7 @@ class CalendarSyncService:
         task_id: UUID,
         task_data: dict,
         connection_id: str,
-        calendar_id: str | None = None
+        calendar_id: str | None = None,
     ) -> dict | None:
         """Sync a task to external calendar."""
         connection = self._connections.get(connection_id)
@@ -361,11 +369,7 @@ class CalendarSyncService:
             return None
 
     async def update_calendar_event(
-        self,
-        task_id: UUID,
-        task_data: dict,
-        connection_id: str,
-        event_id: str
+        self, task_id: UUID, task_data: dict, connection_id: str, event_id: str
     ) -> dict | None:
         """Update calendar event for a task."""
         connection = self._connections.get(connection_id)
@@ -397,10 +401,7 @@ class CalendarSyncService:
             return None
 
     async def delete_calendar_event(
-        self,
-        task_id: UUID,
-        connection_id: str,
-        event_id: str
+        self, task_id: UUID, connection_id: str, event_id: str
     ) -> bool:
         """Delete calendar event for a task."""
         connection = self._connections.get(connection_id)
@@ -480,19 +481,22 @@ class CalendarSyncService:
 
         for conn_id, conn_data in self._connections.items():
             if conn_data["tenant_id"] == str(tenant_id):
-                connections.append({
-                    "connection_id": conn_id,
-                    "provider_type": conn_data["provider_type"],
-                    "calendars": conn_data["calendars"],
-                    "connected_at": conn_data["connected_at"].isoformat(),
-                    "last_sync": conn_data["last_sync"],
-                })
+                connections.append(
+                    {
+                        "connection_id": conn_id,
+                        "provider_type": conn_data["provider_type"],
+                        "calendars": conn_data["calendars"],
+                        "connected_at": conn_data["connected_at"].isoformat(),
+                        "last_sync": conn_data["last_sync"],
+                    }
+                )
 
         return connections
 
 
 # Global calendar sync service instance
 calendar_sync_service = None
+
 
 def get_calendar_sync_service(db) -> CalendarSyncService:
     """Get calendar sync service instance."""

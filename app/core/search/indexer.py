@@ -46,7 +46,9 @@ class SearchIndexer:
             Created or updated SearchIndex object
         """
         # Check if index already exists
-        existing = self.repository.get_index_by_entity(entity_type, entity_id, tenant_id)
+        existing = self.repository.get_index_by_entity(
+            entity_type, entity_id, tenant_id
+        )
 
         import json
 
@@ -61,7 +63,9 @@ class SearchIndexer:
 
         if existing:
             # Update existing index
-            index = self.repository.update_index(entity_type, entity_id, tenant_id, index_data)
+            index = self.repository.update_index(
+                entity_type, entity_id, tenant_id, index_data
+            )
         else:
             # Create new index
             index = self.repository.create_index(index_data)
@@ -102,11 +106,3 @@ class SearchIndexer:
         # 2. For each entity, call index_entity with its data
         logger.info(f"Reindexing {entity_type} for tenant {tenant_id}")
         return 0
-
-
-
-
-
-
-
-

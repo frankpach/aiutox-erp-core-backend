@@ -19,19 +19,25 @@ def mock_redis_client():
     return client
 
 
-@pytest.mark.xfail(reason="PubSub API tests have database session isolation issues - API works in production")
+@pytest.mark.xfail(
+    reason="PubSub API tests have database session isolation issues - API works in production"
+)
 def test_get_stats_endpoint(client, test_user, db_session, mock_redis_client):
     """Test GET /api/v1/pubsub/stats endpoint."""
     import logging
+
     logger = logging.getLogger(__name__)
 
     # Debug: Check user permissions before creating headers
     from app.services.permission_service import PermissionService
+
     perm_service = PermissionService(db_session)
     user_perms = perm_service.get_effective_permissions(test_user.id)
     logger.info(f"User {test_user.id} permissions before: {user_perms}")
 
-    headers = create_user_with_permission(db_session, test_user, "pubsub", "internal.viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "pubsub", "internal.viewer"
+    )
     logger.info(f"Headers created: {headers}")
 
     # Debug: Check permissions after creating headers
@@ -43,6 +49,7 @@ def test_get_stats_endpoint(client, test_user, db_session, mock_redis_client):
     if "Authorization" in headers:
         token = headers["Authorization"].split(" ")[1]
         from app.core.auth.jwt import decode_token
+
         payload = decode_token(token)
         print(f"Token payload: {payload}")
         print(f"Token user_id: {payload.get('sub')}")
@@ -51,6 +58,7 @@ def test_get_stats_endpoint(client, test_user, db_session, mock_redis_client):
 
         # Verify user exists in database
         from app.models.user import User
+
         user_in_db = db_session.query(User).filter(User.id == test_user.id).first()
         print(f"User exists in DB: {user_in_db is not None}")
         if user_in_db:
@@ -72,8 +80,12 @@ def test_get_stats_endpoint(client, test_user, db_session, mock_redis_client):
         # Mock connection context manager
         mock_conn = AsyncMock()
         mock_conn.xinfo_groups = AsyncMock(return_value=[])
-        mock_redis_client.connection.return_value.__aenter__ = AsyncMock(return_value=mock_conn)
-        mock_redis_client.connection.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_redis_client.connection.return_value.__aenter__ = AsyncMock(
+            return_value=mock_conn
+        )
+        mock_redis_client.connection.return_value.__aexit__ = AsyncMock(
+            return_value=False
+        )
 
         response = client.get("/api/v1/pubsub/stats", headers=headers)
 
@@ -87,10 +99,14 @@ def test_get_stats_endpoint(client, test_user, db_session, mock_redis_client):
         assert "streams" in data["data"]
 
 
-@pytest.mark.xfail(reason="PubSub API tests have database session isolation issues - API works in production")
+@pytest.mark.xfail(
+    reason="PubSub API tests have database session isolation issues - API works in production"
+)
 def test_list_failed_events_endpoint(client, test_user, db_session, mock_redis_client):
     """Test GET /api/v1/pubsub/failed endpoint."""
-    headers = create_user_with_permission(db_session, test_user, "pubsub", "internal.viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "pubsub", "internal.viewer"
+    )
 
     with patch("app.api.v1.pubsub.get_redis_client", return_value=mock_redis_client):
         # Mock connection context manager properly
@@ -111,10 +127,14 @@ def test_list_failed_events_endpoint(client, test_user, db_session, mock_redis_c
         assert isinstance(data["data"], list)
 
 
-@pytest.mark.xfail(reason="PubSub API tests have database session isolation issues - API works in production")
+@pytest.mark.xfail(
+    reason="PubSub API tests have database session isolation issues - API works in production"
+)
 def test_get_stream_info_endpoint(client, test_user, db_session, mock_redis_client):
     """Test GET /api/v1/pubsub/streams/{stream_name}/info endpoint."""
-    headers = create_user_with_permission(db_session, test_user, "pubsub", "internal.viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "pubsub", "internal.viewer"
+    )
 
     with patch("app.api.v1.pubsub.get_redis_client", return_value=mock_redis_client):
         mock_redis_client.get_stream_info.return_value = {
@@ -125,8 +145,12 @@ def test_get_stream_info_endpoint(client, test_user, db_session, mock_redis_clie
 
         mock_conn = AsyncMock()
         mock_conn.xinfo_groups = AsyncMock(return_value=[])
-        mock_redis_client.connection.return_value.__aenter__ = AsyncMock(return_value=mock_conn)
-        mock_redis_client.connection.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_redis_client.connection.return_value.__aenter__ = AsyncMock(
+            return_value=mock_conn
+        )
+        mock_redis_client.connection.return_value.__aexit__ = AsyncMock(
+            return_value=False
+        )
 
         response = client.get(
             "/api/v1/pubsub/streams/events:domain/info",
@@ -141,13 +165,3 @@ def test_get_stream_info_endpoint(client, test_user, db_session, mock_redis_clie
         data = response.json()
         assert "data" in data
         assert data["data"]["stream_name"] == "events:domain"
-
-
-
-
-
-
-
-
-
-

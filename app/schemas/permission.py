@@ -10,7 +10,12 @@ class DelegatedPermissionCreate(BaseModel):
     """Schema for creating a delegated permission."""
 
     user_id: UUID = Field(..., description="ID of the user receiving the permission")
-    module: str = Field(..., min_length=1, max_length=100, description="Module name (e.g., 'inventory', 'products')")
+    module: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Module name (e.g., 'inventory', 'products')",
+    )
     permission: str = Field(
         ...,
         min_length=1,
@@ -39,7 +44,9 @@ class DelegatedPermissionCreate(BaseModel):
         """
         parts = v.split(".")
         if len(parts) != 2:
-            raise ValueError("Permission must be in format 'module.action' (e.g., 'inventory.edit')")
+            raise ValueError(
+                "Permission must be in format 'module.action' (e.g., 'inventory.edit')"
+            )
         return v
 
     @field_validator("expires_at")
@@ -76,7 +83,9 @@ class DelegatedPermissionResponse(BaseModel):
     expires_at: datetime | None
     created_at: datetime
     revoked_at: datetime | None
-    is_active: bool = Field(..., description="Whether the permission is currently active")
+    is_active: bool = Field(
+        ..., description="Whether the permission is currently active"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -127,7 +136,9 @@ class PermissionGrantRequest(BaseModel):
         """
         parts = v.split(".")
         if len(parts) != 2:
-            raise ValueError("Permission must be in format 'module.action' (e.g., 'inventory.edit')")
+            raise ValueError(
+                "Permission must be in format 'module.action' (e.g., 'inventory.edit')"
+            )
         return v
 
     @field_validator("expires_at")
@@ -151,4 +162,3 @@ class PermissionGrantRequest(BaseModel):
             if v <= now:
                 raise ValueError("expires_at must be in the future")
         return v
-

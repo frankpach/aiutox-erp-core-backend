@@ -33,7 +33,9 @@ class IntegrationRepository:
             .first()
         )
 
-    def get_all(self, tenant_id: UUID, type: IntegrationType | None = None) -> list[Integration]:
+    def get_all(
+        self, tenant_id: UUID, type: IntegrationType | None = None
+    ) -> list[Integration]:
         """Get all integrations for a tenant, optionally filtered by type."""
         query = self.db.query(Integration).filter(Integration.tenant_id == tenant_id)
         if type:
@@ -140,9 +142,8 @@ class IntegrationRepository:
         Returns:
             List of Webhook objects
         """
-        query = (
-            self.db.query(Webhook)
-            .filter(Webhook.tenant_id == tenant_id, Webhook.event_type == event_type)
+        query = self.db.query(Webhook).filter(
+            Webhook.tenant_id == tenant_id, Webhook.event_type == event_type
         )
         if enabled_only:
             query = query.filter(Webhook.enabled)

@@ -30,7 +30,12 @@ class AuditLog(Base):
         index=True,
         comment="Tenant ID for multi-tenancy isolation",
     )
-    action = Column(String(100), nullable=False, index=True, comment="Action type (e.g., 'grant_permission', 'create_user')")
+    action = Column(
+        String(100),
+        nullable=False,
+        index=True,
+        comment="Action type (e.g., 'grant_permission', 'create_user')",
+    )
     resource_type = Column(
         String(50),
         nullable=True,
@@ -43,7 +48,9 @@ class AuditLog(Base):
         comment="ID of the resource affected",
     )
     details = Column(JSONB, nullable=True, comment="Additional details as JSON")
-    ip_address = Column(String(45), nullable=True, comment="Client IP address (supports IPv6)")
+    ip_address = Column(
+        String(45), nullable=True, comment="Client IP address (supports IPv6)"
+    )
     user_agent = Column(String(500), nullable=True, comment="Client user agent string")
     created_at = Column(
         TIMESTAMP(timezone=True),
@@ -66,4 +73,3 @@ class AuditLog(Base):
             f"action={self.action}, resource_type={self.resource_type}, "
             f"created_at={self.created_at})>"
         )
-

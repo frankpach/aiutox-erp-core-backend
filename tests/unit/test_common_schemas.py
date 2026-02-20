@@ -135,15 +135,3 @@ class TestErrorResponse:
         serialized = response.model_dump()
         assert serialized["error"]["code"] == "TEST_ERROR"
         assert serialized["data"] is None
-
-
-
-
-
-
-
-
-
-
-
-

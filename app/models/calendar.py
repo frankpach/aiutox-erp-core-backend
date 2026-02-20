@@ -120,7 +120,9 @@ class Calendar(Base):
     )
 
     # Relationships
-    events = relationship("CalendarEvent", back_populates="calendar", cascade="all, delete-orphan")
+    events = relationship(
+        "CalendarEvent", back_populates="calendar", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_calendars_tenant_owner", "tenant_id", "owner_id"),
@@ -164,29 +166,45 @@ class CalendarEvent(Base):
     all_day = Column(Boolean, default=False, nullable=False)
 
     # Status
-    status = Column(String(20), nullable=False, default=EventStatus.SCHEDULED, index=True)
+    status = Column(
+        String(20), nullable=False, default=EventStatus.SCHEDULED, index=True
+    )
 
     # Recurrence (simple fields for backward compatibility)
     recurrence_type = Column(String(20), nullable=False, default=RecurrenceType.NONE)
     recurrence_end_date = Column(TIMESTAMP(timezone=True), nullable=True)
     recurrence_count = Column(Integer, nullable=True)  # Number of occurrences
-    recurrence_interval = Column(Integer, default=1, nullable=False)  # Every N days/weeks/months
-    recurrence_days_of_week = Column(String(20), nullable=True)  # e.g., "1,3,5" for Mon,Wed,Fri
+    recurrence_interval = Column(
+        Integer, default=1, nullable=False
+    )  # Every N days/weeks/months
+    recurrence_days_of_week = Column(
+        String(20), nullable=True
+    )  # e.g., "1,3,5" for Mon,Wed,Fri
     recurrence_day_of_month = Column(Integer, nullable=True)  # For monthly recurrence
     recurrence_month_of_year = Column(Integer, nullable=True)  # For yearly recurrence
 
     # Advanced recurrence (RFC5545 RRULE)
-    recurrence_rule = Column(Text, nullable=True)  # RRULE string (e.g., "FREQ=WEEKLY;BYDAY=MO,WE,FR")
+    recurrence_rule = Column(
+        Text, nullable=True
+    )  # RRULE string (e.g., "FREQ=WEEKLY;BYDAY=MO,WE,FR")
     recurrence_exdates = Column(JSONB, nullable=True)  # Array of exception dates
 
     # Unified source (for event aggregation)
-    source_type = Column(String(50), nullable=True, index=True)  # 'task', 'approval', 'workflow', 'external'
-    source_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)  # ID of source entity
+    source_type = Column(
+        String(50), nullable=True, index=True
+    )  # 'task', 'approval', 'workflow', 'external'
+    source_id = Column(
+        PG_UUID(as_uuid=True), nullable=True, index=True
+    )  # ID of source entity
 
     # External integration
-    provider = Column(String(50), nullable=True, index=True)  # 'google', 'outlook', 'ical', 'caldav'
+    provider = Column(
+        String(50), nullable=True, index=True
+    )  # 'google', 'outlook', 'ical', 'caldav'
     external_id = Column(String(255), nullable=True, index=True)  # External event ID
-    read_only = Column(Boolean, default=False, nullable=False)  # If event is read-only (from external source)
+    read_only = Column(
+        Boolean, default=False, nullable=False
+    )  # If event is read-only (from external source)
 
     # Organizer
     organizer_id = Column(
@@ -214,8 +232,12 @@ class CalendarEvent(Base):
 
     # Relationships
     calendar = relationship("Calendar", back_populates="events")
-    attendees = relationship("EventAttendee", back_populates="event", cascade="all, delete-orphan")
-    reminders = relationship("EventReminder", back_populates="event", cascade="all, delete-orphan")
+    attendees = relationship(
+        "EventAttendee", back_populates="event", cascade="all, delete-orphan"
+    )
+    reminders = relationship(
+        "EventReminder", back_populates="event", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_events_calendar_time", "calendar_id", "start_time"),
@@ -261,7 +283,9 @@ class EventAttendee(Base):
     name = Column(String(255), nullable=True)  # For external attendees
 
     # Response
-    status = Column(String(20), nullable=False, default=AttendeeStatus.PENDING, index=True)
+    status = Column(
+        String(20), nullable=False, default=AttendeeStatus.PENDING, index=True
+    )
     response_at = Column(TIMESTAMP(timezone=True), nullable=True)
     comment = Column(Text, nullable=True)  # Optional comment with response
 
@@ -364,7 +388,9 @@ class CalendarResource(Base):
 
     # Resource information
     name = Column(String(255), nullable=False)
-    resource_type = Column(String(50), nullable=False, index=True)  # room, equipment, user
+    resource_type = Column(
+        String(50), nullable=False, index=True
+    )  # room, equipment, user
     description = Column(Text, nullable=True)
     color = Column(String(7), nullable=True)  # Hex color code
 
@@ -389,11 +415,11 @@ class CalendarResource(Base):
     )
 
     # Relationships
-    event_resources = relationship("EventResource", back_populates="resource", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        Index("idx_resources_tenant_type", "tenant_id", "resource_type"),
+    event_resources = relationship(
+        "EventResource", back_populates="resource", cascade="all, delete-orphan"
     )
+
+    __table_args__ = (Index("idx_resources_tenant_type", "tenant_id", "resource_type"),)
 
     def __repr__(self) -> str:
         return f"<CalendarResource(id={self.id}, name={self.name}, type={self.resource_type})>"
@@ -444,12 +470,6 @@ class EventResource(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<EventResource(event_id={self.event_id}, resource_id={self.resource_id})>"
-
-
-
-
-
-
-
-
+        return (
+            f"<EventResource(event_id={self.event_id}, resource_id={self.resource_id})>"
+        )

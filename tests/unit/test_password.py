@@ -1,6 +1,5 @@
 """Unit tests for password hashing and verification utilities."""
 
-
 from app.core.auth.password import hash_password, verify_password
 
 
@@ -74,6 +73,3 @@ def test_hash_password_special_characters():
 
     assert verify_password(password, hashed) is True
     assert verify_password("wrong", hashed) is False
-
-
-

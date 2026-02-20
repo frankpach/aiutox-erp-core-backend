@@ -55,7 +55,9 @@ class TestThemePresets:
         # TODO: Reorganize routes in config.py to put /app_theme/presets before /{module}/{key}
         if response.status_code == status.HTTP_404_NOT_FOUND:
             # Route ordering issue - skip this test for now
-            pytest.skip("Route ordering issue: /app_theme/presets captured by /{module}/{key}")
+            pytest.skip(
+                "Route ordering issue: /app_theme/presets captured by /{module}/{key}"
+            )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -467,4 +469,3 @@ class TestThemePresets:
             headers={"Authorization": f"Bearer {access_token}"},
         )
         assert get_response.json()["data"]["is_default"] is False
-

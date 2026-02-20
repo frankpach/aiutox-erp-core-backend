@@ -30,7 +30,9 @@ def test_get_me_authenticated(client_with_db, db_session, test_user):
     assert user_data["full_name"] == test_user.full_name
 
 
-def test_get_me_includes_roles_and_permissions(client_with_db, db_session, test_user_with_roles):
+def test_get_me_includes_roles_and_permissions(
+    client_with_db, db_session, test_user_with_roles
+):
     """Test that /me response includes roles and permissions."""
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user_with_roles)
@@ -148,6 +150,3 @@ def test_get_me_wrong_token_type(client_with_db, db_session, test_user):
     data = response.json()
     assert "error" in data
     assert data["error"]["code"] == "AUTH_INVALID_TOKEN"
-
-
-

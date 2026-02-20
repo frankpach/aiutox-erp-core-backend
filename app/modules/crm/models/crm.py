@@ -125,9 +125,7 @@ class Lead(Base):
 
     pipeline = relationship("Pipeline", back_populates="leads")
 
-    __table_args__ = (
-        Index("idx_crm_leads_tenant_status", "tenant_id", "status"),
-    )
+    __table_args__ = (Index("idx_crm_leads_tenant_status", "tenant_id", "status"),)
 
 
 class Opportunity(Base):

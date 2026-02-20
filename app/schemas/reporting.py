@@ -12,7 +12,9 @@ class ReportDefinitionCreate(BaseModel):
 
     name: str = Field(..., description="Report name", min_length=1, max_length=255)
     description: str | None = Field(None, description="Report description")
-    data_source_type: str = Field(..., description="Data source type (e.g., 'products')")
+    data_source_type: str = Field(
+        ..., description="Data source type (e.g., 'products')"
+    )
     visualization_type: str = Field(
         ..., description="Visualization type: 'table', 'chart', 'kpi'"
     )
@@ -25,7 +27,9 @@ class ReportDefinitionCreate(BaseModel):
 class ReportDefinitionUpdate(BaseModel):
     """Schema for updating a report definition."""
 
-    name: str | None = Field(None, description="Report name", min_length=1, max_length=255)
+    name: str | None = Field(
+        None, description="Report name", min_length=1, max_length=255
+    )
     description: str | None = Field(None, description="Report description")
     filters: dict[str, Any] | None = Field(None, description="Filter configuration")
     config: dict[str, Any] | None = Field(
@@ -67,13 +71,3 @@ class ReportExecutionResponse(BaseModel):
     total: int = Field(..., description="Total number of records")
     visualization: dict[str, Any] = Field(..., description="Visualization data")
     columns: list[dict[str, Any]] = Field(..., description="Available columns")
-
-
-
-
-
-
-
-
-
-

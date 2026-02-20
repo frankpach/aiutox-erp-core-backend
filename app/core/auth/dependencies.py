@@ -162,14 +162,18 @@ def require_permission(permission: str):
     Returns:
         Dependency function that raises APIException if user lacks permission.
     """
+
     async def permission_check(
         current_user: Annotated[User, Depends(get_current_user)],
         user_permissions: Annotated[set[str], Depends(get_user_permissions)],
     ) -> User:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"require_permission called for permission: {permission}")
-        logger.info(f"user_permissions type: {type(user_permissions)}, value: {user_permissions}")
+        logger.info(
+            f"user_permissions type: {type(user_permissions)}, value: {user_permissions}"
+        )
 
         from app.core.auth.permissions import has_permission
 
@@ -205,6 +209,7 @@ def require_roles(*roles: str):
     Returns:
         Dependency function that raises APIException if user lacks all roles.
     """
+
     async def roles_check(
         current_user: Annotated[User, Depends(get_current_user)],
         db: Annotated[Session, Depends(get_db)],
@@ -243,6 +248,7 @@ def require_any_permission(*permissions: str):
     Returns:
         Dependency function that raises APIException if user lacks all permissions.
     """
+
     async def any_permission_check(
         current_user: Annotated[User, Depends(get_current_user)],
         user_permissions: Annotated[set[str], Depends(get_user_permissions)],

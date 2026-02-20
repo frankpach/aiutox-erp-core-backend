@@ -14,7 +14,9 @@ class TestRefreshTokenRepository:
         token = "test_refresh_token_12345"
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
-        refresh_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        refresh_token = repo.create(
+            user_id=test_user.id, token=token, expires_at=expires_at
+        )
 
         assert refresh_token.id is not None
         assert refresh_token.user_id == test_user.id
@@ -31,7 +33,9 @@ class TestRefreshTokenRepository:
         token_hash = hash_token(token)
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
-        created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        created_token = repo.create(
+            user_id=test_user.id, token=token, expires_at=expires_at
+        )
         assert created_token.token_hash == token_hash
 
         found_token = repo.get_by_token_hash(created_token.token_hash)
@@ -56,7 +60,9 @@ class TestRefreshTokenRepository:
         token = "test_refresh_token_12345"
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
-        created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        created_token = repo.create(
+            user_id=test_user.id, token=token, expires_at=expires_at
+        )
 
         found_token = repo.find_valid_token(test_user.id, token)
 
@@ -93,7 +99,9 @@ class TestRefreshTokenRepository:
         token = "test_refresh_token_12345"
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
-        created_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        created_token = repo.create(
+            user_id=test_user.id, token=token, expires_at=expires_at
+        )
         repo.revoke_token(created_token)
 
         found_token = repo.find_valid_token(test_user.id, token)
@@ -106,7 +114,9 @@ class TestRefreshTokenRepository:
         token = "test_refresh_token_12345"
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
-        refresh_token = repo.create(user_id=test_user.id, token=token, expires_at=expires_at)
+        refresh_token = repo.create(
+            user_id=test_user.id, token=token, expires_at=expires_at
+        )
         assert refresh_token.revoked_at is None
 
         repo.revoke_token(refresh_token)
@@ -224,4 +234,3 @@ class TestRefreshTokenRepository:
         # Verify active token still exists
         found_token = repo.get_by_token_hash(active_token_hash)
         assert found_token is not None
-

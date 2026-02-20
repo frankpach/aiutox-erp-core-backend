@@ -51,9 +51,13 @@ async def list_users(
     db: Annotated[Session, Depends(get_db)],
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
-    search: str | None = Query(default=None, description="Search by email, first name, or last name"),
+    search: str | None = Query(
+        default=None, description="Search by email, first name, or last name"
+    ),
     is_active: bool | None = Query(default=None, description="Filter by active status"),
-    saved_filter_id: UUID | None = Query(default=None, description="Apply saved filter"),
+    saved_filter_id: UUID | None = Query(
+        default=None, description="Apply saved filter"
+    ),
 ) -> StandardListResponse[dict]:
     """
     List all users in the current tenant with optional filters.
@@ -92,26 +96,34 @@ async def list_users(
     if saved_filter_id:
         try:
             from app.core.views.service import ViewService
+
             view_service = ViewService(db)
-            saved_filter = view_service.get_saved_filter(saved_filter_id, current_user.tenant_id)
+            saved_filter = view_service.get_saved_filter(
+                saved_filter_id, current_user.tenant_id
+            )
             if saved_filter:
                 # Parse filter conditions from saved filter
                 # Saved filters store conditions in a JSON field
                 import json
-                if hasattr(saved_filter, 'conditions') and saved_filter.conditions:
+
+                if hasattr(saved_filter, "conditions") and saved_filter.conditions:
                     try:
                         if isinstance(saved_filter.conditions, str):
-                            filter_conditions.update(json.loads(saved_filter.conditions))
+                            filter_conditions.update(
+                                json.loads(saved_filter.conditions)
+                            )
                         elif isinstance(saved_filter.conditions, dict):
                             filter_conditions.update(saved_filter.conditions)
                     except (json.JSONDecodeError, ValueError) as e:
                         # Log error but don't fail the request
                         import logging
+
                         logger = logging.getLogger(__name__)
                         logger.warning(f"Failed to parse saved filter conditions: {e}")
         except Exception as e:
             # Log error but don't fail the request - saved filter is optional
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning(f"Failed to load saved filter {saved_filter_id}: {e}")
 
@@ -366,13 +378,22 @@ async def update_own_profile(
         APIException: If validation fails.
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
-    logger.info(f"[update_own_profile] Received PATCH request for current user: {current_user.id}")
-    logger.debug(f"[update_own_profile] Update data: {user_data.model_dump(exclude_none=True)}")
-    logger.debug(f"[update_own_profile] Update data includes avatar_url: {'avatar_url' in user_data.model_dump(exclude_none=True)}")
-    if 'avatar_url' in user_data.model_dump(exclude_none=True):
-        logger.debug(f"[update_own_profile] avatar_url value: {user_data.model_dump(exclude_none=True).get('avatar_url')}")
+    logger.info(
+        f"[update_own_profile] Received PATCH request for current user: {current_user.id}"
+    )
+    logger.debug(
+        f"[update_own_profile] Update data: {user_data.model_dump(exclude_none=True)}"
+    )
+    logger.debug(
+        f"[update_own_profile] Update data includes avatar_url: {'avatar_url' in user_data.model_dump(exclude_none=True)}"
+    )
+    if "avatar_url" in user_data.model_dump(exclude_none=True):
+        logger.debug(
+            f"[update_own_profile] avatar_url value: {user_data.model_dump(exclude_none=True).get('avatar_url')}"
+        )
 
     # Forbidden fields that users cannot change in their own profile
     forbidden_fields = [
@@ -389,13 +410,16 @@ async def update_own_profile(
     update_dict = user_data.model_dump(exclude_none=True)
     for field in forbidden_fields:
         if field in update_dict:
-            logger.warning(f"[update_own_profile] Forbidden field '{field}' removed from request")
+            logger.warning(
+                f"[update_own_profile] Forbidden field '{field}' removed from request"
+            )
             del update_dict[field]
 
     logger.debug(f"[update_own_profile] Sanitized update data: {update_dict}")
 
     # Create a new UserUpdate object with only allowed fields
     from pydantic import ValidationError
+
     try:
         sanitized_user_data = UserUpdate(**update_dict)
     except ValidationError as e:
@@ -406,7 +430,9 @@ async def update_own_profile(
     ip_address, user_agent = get_client_info(request)
 
     try:
-        logger.info(f"[update_own_profile] Calling user_service.update_user for user_id={current_user.id}")
+        logger.info(
+            f"[update_own_profile] Calling user_service.update_user for user_id={current_user.id}"
+        )
         updated_user = user_service.update_user(
             current_user.id,
             sanitized_user_data,
@@ -415,16 +441,23 @@ async def update_own_profile(
             user_agent=user_agent,
         )
         if not updated_user:
-            logger.error(f"[update_own_profile] user_service.update_user returned None for user_id={current_user.id}")
+            logger.error(
+                f"[update_own_profile] user_service.update_user returned None for user_id={current_user.id}"
+            )
             raise_not_found("User", str(current_user.id))
-        logger.info(f"[update_own_profile] Profile updated successfully: {current_user.id}")
+        logger.info(
+            f"[update_own_profile] Profile updated successfully: {current_user.id}"
+        )
         logger.debug(f"[update_own_profile] Updated user data: {updated_user}")
         return StandardResponse(data=updated_user)
     except ValueError as e:
         logger.error(f"[update_own_profile] ValueError during update: {str(e)}")
         raise_bad_request(code="USER_ALREADY_EXISTS", message=str(e))
     except Exception as e:
-        logger.error(f"[update_own_profile] Unexpected error during update: {str(e)}", exc_info=True)
+        logger.error(
+            f"[update_own_profile] Unexpected error during update: {str(e)}",
+            exc_info=True,
+        )
         raise
 
 
@@ -505,11 +538,16 @@ async def update_user(
         APIException: If user not found, validation fails, or lacks permission.
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     logger.info(f"[update_user] Received PATCH request for user_id={user_id}")
-    logger.debug(f"[update_user] Update data: {user_data.model_dump(exclude_none=True)}")
-    logger.debug(f"[update_user] Current user: {current_user.id}, tenant: {current_user.tenant_id}")
+    logger.debug(
+        f"[update_user] Update data: {user_data.model_dump(exclude_none=True)}"
+    )
+    logger.debug(
+        f"[update_user] Current user: {current_user.id}, tenant: {current_user.tenant_id}"
+    )
 
     try:
         user_uuid = UUID(user_id)
@@ -537,7 +575,9 @@ async def update_user(
 
     ip_address, user_agent = get_client_info(request)
     try:
-        logger.info(f"[update_user] Calling user_service.update_user for user_id={user_uuid}")
+        logger.info(
+            f"[update_user] Calling user_service.update_user for user_id={user_uuid}"
+        )
         updated_user = user_service.update_user(
             user_uuid,
             user_data,
@@ -546,7 +586,9 @@ async def update_user(
             user_agent=user_agent,
         )
         if not updated_user:
-            logger.error(f"[update_user] user_service.update_user returned None for user_id={user_uuid}")
+            logger.error(
+                f"[update_user] user_service.update_user returned None for user_id={user_uuid}"
+            )
             raise_not_found("User", user_id)
         logger.info(f"[update_user] User updated successfully: {user_id}")
         logger.debug(f"[update_user] Updated user data: {updated_user}")
@@ -555,7 +597,9 @@ async def update_user(
         logger.error(f"[update_user] ValueError during update: {str(e)}")
         raise_bad_request(code="USER_ALREADY_EXISTS", message=str(e))
     except Exception as e:
-        logger.error(f"[update_user] Unexpected error during update: {str(e)}", exc_info=True)
+        logger.error(
+            f"[update_user] Unexpected error during update: {str(e)}", exc_info=True
+        )
         raise
 
 

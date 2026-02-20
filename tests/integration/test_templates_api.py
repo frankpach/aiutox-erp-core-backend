@@ -1,6 +1,5 @@
 """Integration tests for Templates API endpoints."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -78,11 +77,3 @@ def test_render_template(client_with_db, test_user, auth_headers, db_session):
     data = response.json()["data"]
     assert "rendered_content" in data
     assert "Hello John, your order 12345 is ready!" in data["rendered_content"]
-
-
-
-
-
-
-
-

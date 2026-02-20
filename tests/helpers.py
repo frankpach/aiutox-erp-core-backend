@@ -184,4 +184,3 @@ def parse_sse_events(lines: Iterable[str]) -> list[dict[str, Any]]:
         events.append(current)
 
     return events
-

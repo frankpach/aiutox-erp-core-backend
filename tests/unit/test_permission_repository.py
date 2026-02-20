@@ -84,7 +84,9 @@ class TestPermissionRepository:
         assert active_permissions[0].id == active_permission.id
         assert active_permissions[0].is_active is True
 
-    def test_get_active_delegated_permissions_excludes_expired(self, db_session, test_user):
+    def test_get_active_delegated_permissions_excludes_expired(
+        self, db_session, test_user
+    ):
         """Test that expired permissions are excluded from active permissions."""
         repo = PermissionRepository(db_session)
 
@@ -101,7 +103,9 @@ class TestPermissionRepository:
         active_permissions = repo.get_active_delegated_permissions(test_user.id)
         assert len(active_permissions) == 0
 
-    def test_get_active_delegated_permissions_excludes_revoked(self, db_session, test_user):
+    def test_get_active_delegated_permissions_excludes_revoked(
+        self, db_session, test_user
+    ):
         """Test that revoked permissions are excluded from active permissions."""
         repo = PermissionRepository(db_session)
 
@@ -166,7 +170,9 @@ class TestPermissionRepository:
         )
 
         # Get inventory permissions
-        inventory_permissions = repo.get_user_module_permissions(test_user.id, "inventory")
+        inventory_permissions = repo.get_user_module_permissions(
+            test_user.id, "inventory"
+        )
 
         assert len(inventory_permissions) == 2
         permission_ids = {p.id for p in inventory_permissions}
@@ -298,16 +304,3 @@ class TestPermissionRepository:
         permission_ids = {p.id for p in granted_permissions}
         assert permission1.id in permission_ids
         assert permission2.id in permission_ids
-
-
-
-
-
-
-
-
-
-
-
-
-

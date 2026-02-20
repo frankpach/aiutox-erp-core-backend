@@ -9,7 +9,9 @@ from app.core.pubsub.models import Event, EventMetadata
 
 def test_event_metadata_creation():
     """Test EventMetadata creation."""
-    metadata = EventMetadata(source="test_service", version="1.0", additional_data={"key": "value"})
+    metadata = EventMetadata(
+        source="test_service", version="1.0", additional_data={"key": "value"}
+    )
     assert metadata.source == "test_service"
     assert metadata.version == "1.0"
     assert metadata.additional_data == {"key": "value"}
@@ -69,7 +71,12 @@ def test_event_type_validation_valid():
     entity_id = uuid4()
     metadata = EventMetadata(source="test_service")
 
-    valid_types = ["product.created", "inventory.stock_low", "system.error", "user_activity.logged"]
+    valid_types = [
+        "product.created",
+        "inventory.stock_low",
+        "system.error",
+        "user_activity.logged",
+    ]
 
     for event_type in valid_types:
         event = Event(
@@ -196,7 +203,9 @@ def test_event_round_trip():
     tenant_id = uuid4()
     entity_id = uuid4()
     user_id = uuid4()
-    metadata = EventMetadata(source="test_service", additional_data={"key": "value", "number": 42})
+    metadata = EventMetadata(
+        source="test_service", additional_data={"key": "value", "number": 42}
+    )
 
     original_event = Event(
         event_type="product.created",
@@ -217,14 +226,7 @@ def test_event_round_trip():
     assert restored_event.tenant_id == original_event.tenant_id
     assert restored_event.user_id == original_event.user_id
     assert restored_event.metadata.source == original_event.metadata.source
-    assert restored_event.metadata.additional_data == original_event.metadata.additional_data
-
-
-
-
-
-
-
-
-
-
+    assert (
+        restored_event.metadata.additional_data
+        == original_event.metadata.additional_data
+    )

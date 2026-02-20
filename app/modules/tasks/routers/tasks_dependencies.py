@@ -52,12 +52,10 @@ async def list_task_dependencies(
         )
 
     dependencies = dependency_service.get_dependencies(
-        task_id=task_id,
-        tenant_id=current_user.tenant_id
+        task_id=task_id, tenant_id=current_user.tenant_id
     )
     dependents = dependency_service.get_dependents(
-        task_id=task_id,
-        tenant_id=current_user.tenant_id
+        task_id=task_id, tenant_id=current_user.tenant_id
     )
 
     return StandardResponse(
@@ -68,7 +66,9 @@ async def list_task_dependencies(
                     "task_id": str(dep.task_id),
                     "depends_on_id": str(dep.depends_on_id),
                     "dependency_type": dep.dependency_type,
-                    "created_at": dep.created_at.isoformat() if dep.created_at else None,
+                    "created_at": (
+                        dep.created_at.isoformat() if dep.created_at else None
+                    ),
                 }
                 for dep in dependencies
             ],
@@ -78,10 +78,12 @@ async def list_task_dependencies(
                     "task_id": str(dep.task_id),
                     "depends_on_id": str(dep.depends_on_id),
                     "dependency_type": dep.dependency_type,
-                    "created_at": dep.created_at.isoformat() if dep.created_at else None,
+                    "created_at": (
+                        dep.created_at.isoformat() if dep.created_at else None
+                    ),
                 }
                 for dep in dependents
-            ]
+            ],
         },
         message="Task dependencies retrieved successfully",
     )
@@ -130,7 +132,7 @@ async def add_task_dependency(
             task_id=task_id,
             depends_on_id=UUID(depends_on_id),
             tenant_id=current_user.tenant_id,
-            dependency_type=dependency_type
+            dependency_type=dependency_type,
         )
 
         return StandardResponse(
@@ -139,7 +141,9 @@ async def add_task_dependency(
                 "task_id": str(dependency.task_id),
                 "depends_on_id": str(dependency.depends_on_id),
                 "dependency_type": dependency.dependency_type,
-                "created_at": dependency.created_at.isoformat() if dependency.created_at else None,
+                "created_at": (
+                    dependency.created_at.isoformat() if dependency.created_at else None
+                ),
             },
             message="Task dependency added successfully",
         )
@@ -177,8 +181,7 @@ async def remove_task_dependency(
         )
 
     success = dependency_service.remove_dependency(
-        dependency_id=dependency_id,
-        tenant_id=current_user.tenant_id
+        dependency_id=dependency_id, tenant_id=current_user.tenant_id
     )
 
     if not success:

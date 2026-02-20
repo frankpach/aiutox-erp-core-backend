@@ -32,9 +32,36 @@ logger = logging.getLogger(__name__)
 SKU_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{3,100}$")
 CURRENCY_PATTERN = re.compile(r"^[A-Z]{3}$")
 VALID_CURRENCIES = {
-    "USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "CNY", "INR", "BRL",
-    "MXN", "RUB", "ZAR", "KRW", "SGD", "HKD", "NZD", "SEK", "NOK", "DKK",
-    "PLN", "CZK", "HUF", "TRY", "ILS", "CLP", "ARS", "COP", "PEN", "UYU",
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "AUD",
+    "CAD",
+    "CHF",
+    "CNY",
+    "INR",
+    "BRL",
+    "MXN",
+    "RUB",
+    "ZAR",
+    "KRW",
+    "SGD",
+    "HKD",
+    "NZD",
+    "SEK",
+    "NOK",
+    "DKK",
+    "PLN",
+    "CZK",
+    "HUF",
+    "TRY",
+    "ILS",
+    "CLP",
+    "ARS",
+    "COP",
+    "PEN",
+    "UYU",
 }
 EAN13_PATTERN = re.compile(r"^\d{13}$")
 UPC_PATTERN = re.compile(r"^\d{12}$")
@@ -1068,13 +1095,3 @@ class ProductService:
             "created_at": barcode.created_at,
             "updated_at": barcode.updated_at,
         }
-
-
-
-
-
-
-
-
-
-

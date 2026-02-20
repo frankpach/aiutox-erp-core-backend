@@ -203,7 +203,9 @@ async def delete_calendar(
 )
 async def create_event(
     event_data: CalendarEventCreate,
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarEventResponse]:
     """Create a new calendar event."""
@@ -278,7 +280,9 @@ async def list_events(
         meta={
             "total": total,
             "page": page,
-            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "page_size": (
+                max(page_size, 1) if total == 0 else page_size
+            ),  # Minimum page_size is 1
             "total_pages": total_pages,
         },
     )
@@ -320,7 +324,9 @@ async def get_event(
 )
 async def update_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
     event_data: CalendarEventUpdate,
 ) -> StandardResponse[CalendarEventResponse]:
@@ -353,7 +359,9 @@ async def update_event(
 )
 async def cancel_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[CalendarEventResponse]:
     """Cancel a calendar event."""
@@ -379,7 +387,9 @@ async def cancel_event(
 )
 async def delete_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> None:
     """Delete a calendar event."""
@@ -402,7 +412,9 @@ async def delete_event(
 )
 async def move_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
     start_time: datetime = Query(..., description="New start time"),
     preserve_duration: bool = Query(True, description="Preserve event duration"),
@@ -439,7 +451,9 @@ async def move_event(
 )
 async def resize_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
     end_time: datetime = Query(..., description="New end time"),
     scope: str = Query("single", description="Scope: single or series"),
@@ -476,7 +490,9 @@ async def resize_event(
 async def add_attendee(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
     attendee_data: EventAttendeeCreate,
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[EventAttendeeResponse]:
     """Add an attendee to an event."""
@@ -501,7 +517,14 @@ async def add_attendee(
 )
 async def update_attendee_response(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
-    response_status: Annotated[str, Query(..., description="Response status (accepted, declined, tentative)", alias="status")],
+    response_status: Annotated[
+        str,
+        Query(
+            ...,
+            description="Response status (accepted, declined, tentative)",
+            alias="status",
+        ),
+    ],
     current_user: Annotated[User, Depends(require_permission("calendar.events.view"))],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
     comment: str | None = Query(None, description="Optional comment"),
@@ -539,7 +562,9 @@ async def update_attendee_response(
 async def add_reminder(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
     reminder_data: EventReminderCreate,
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[EventReminderResponse]:
     """Add a reminder to an event."""
@@ -606,7 +631,9 @@ async def list_event_reminders(
 )
 async def delete_reminder(
     reminder_id: Annotated[UUID, Path(..., description="Reminder ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarService, Depends(get_calendar_service)],
 ) -> StandardResponse[dict]:
     """Delete a reminder."""
@@ -793,7 +820,9 @@ async def delete_resource(
 async def assign_resource_to_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
     resource_data: EventResourceCreate,
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarResourceService, Depends(get_resource_service)],
 ) -> StandardResponse[EventResourceResponse]:
     """Assign a resource to an event."""
@@ -847,7 +876,9 @@ async def list_event_resources(
 async def remove_resource_from_event(
     event_id: Annotated[UUID, Path(..., description="Event ID")],
     resource_id: Annotated[UUID, Path(..., description="Resource ID")],
-    current_user: Annotated[User, Depends(require_permission("calendar.events.manage"))],
+    current_user: Annotated[
+        User, Depends(require_permission("calendar.events.manage"))
+    ],
     service: Annotated[CalendarResourceService, Depends(get_resource_service)],
 ) -> None:
     """Remove a resource from an event."""
@@ -863,8 +894,3 @@ async def remove_resource_from_event(
             code="RESOURCE_ASSIGNMENT_NOT_FOUND",
             message="Resource assignment not found",
         )
-
-
-
-
-

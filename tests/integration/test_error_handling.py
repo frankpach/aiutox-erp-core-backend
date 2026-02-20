@@ -52,6 +52,7 @@ def test_event_invalid_time_range(client_with_db, test_user, auth_headers, db_se
 
     # Event with end_time before start_time
     from datetime import UTC, datetime, timedelta
+
     start_time = (datetime.now(UTC) + timedelta(days=1)).isoformat()
     end_time = (datetime.now(UTC) - timedelta(days=1)).isoformat()  # Invalid
 
@@ -119,7 +120,9 @@ def test_approval_flow_not_found(client_with_db, test_user, auth_headers, db_ses
     assert "not found" in response.json()["error"]["message"].lower()
 
 
-def test_template_render_missing_variables(client_with_db, test_user, auth_headers, db_session):
+def test_template_render_missing_variables(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test template rendering with missing required variables."""
     # Assign permissions
     module_role = ModuleRole(
@@ -208,4 +211,3 @@ def test_validation_error_format(client_with_db, test_user, auth_headers, db_ses
     assert "calendar_type" in error["details"]
     assert isinstance(error["details"]["calendar_type"], list)
     assert len(error["details"]["calendar_type"]) > 0
-

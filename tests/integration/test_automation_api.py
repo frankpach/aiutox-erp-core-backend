@@ -1,6 +1,5 @@
 """Integration tests for Automation API endpoints."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -188,4 +187,3 @@ def test_delete_rule(client_with_db, test_user, auth_headers, db_session):
         f"/api/v1/automation/rules/{rule.id}", headers=auth_headers
     )
     assert get_response.status_code == 404
-

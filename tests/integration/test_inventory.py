@@ -11,7 +11,9 @@ from app.services.auth_service import AuthService
 
 
 class TestInventory:
-    def test_list_warehouses_requires_permission(self, client_with_db, db_session, test_user):
+    def test_list_warehouses_requires_permission(
+        self, client_with_db, db_session, test_user
+    ):
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
@@ -22,7 +24,9 @@ class TestInventory:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_list_warehouses_with_permission(self, client_with_db, db_session, test_user):
+    def test_list_warehouses_with_permission(
+        self, client_with_db, db_session, test_user
+    ):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,
@@ -45,7 +49,9 @@ class TestInventory:
         payload = response.json()
         assert "data" in payload
 
-    def test_create_warehouse_requires_permission(self, client_with_db, db_session, test_user):
+    def test_create_warehouse_requires_permission(
+        self, client_with_db, db_session, test_user
+    ):
         auth_service = AuthService(db_session)
         access_token = auth_service.create_access_token_for_user(test_user)
 
@@ -57,7 +63,9 @@ class TestInventory:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_create_stock_move_with_permission(self, client_with_db, db_session, test_user, test_tenant):
+    def test_create_stock_move_with_permission(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         db_session.add(
             ModuleRole(
                 user_id=test_user.id,

@@ -44,6 +44,7 @@ async def test_redis_client_connection_failure():
 
     with patch("app.core.pubsub.client.aioredis.from_url") as mock_from_url:
         from redis.exceptions import ConnectionError as RedisConnectionError
+
         mock_from_url.side_effect = RedisConnectionError("Connection failed")
 
         with pytest.raises(PubSubError, match="Failed to connect to Redis"):
@@ -53,7 +54,9 @@ async def test_redis_client_connection_failure():
 @pytest.mark.asyncio
 async def test_redis_client_connection_with_password():
     """Test Redis connection with password."""
-    client = RedisStreamsClient(redis_url="redis://localhost:6379/0", password="testpass")
+    client = RedisStreamsClient(
+        redis_url="redis://localhost:6379/0", password="testpass"
+    )
 
     with patch("app.core.pubsub.client.aioredis.from_url") as mock_from_url:
         mock_redis = AsyncMock()
@@ -110,7 +113,9 @@ async def test_get_stream_info():
 
     with patch.object(client, "connection") as mock_conn:
         mock_redis = AsyncMock()
-        mock_redis.xinfo_stream = AsyncMock(return_value={"length": 10, "first-entry": "0-0"})
+        mock_redis.xinfo_stream = AsyncMock(
+            return_value={"length": 10, "first-entry": "0-0"}
+        )
         mock_conn.return_value.__aenter__ = AsyncMock(return_value=mock_redis)
         mock_conn.return_value.__aexit__ = AsyncMock(return_value=False)
 
@@ -143,7 +148,9 @@ async def test_get_group_info():
 
     with patch.object(client, "connection") as mock_conn:
         mock_redis = AsyncMock()
-        mock_redis.xinfo_groups = AsyncMock(return_value=[{"name": "test-group", "consumers": 2}])
+        mock_redis.xinfo_groups = AsyncMock(
+            return_value=[{"name": "test-group", "consumers": 2}]
+        )
         mock_conn.return_value.__aenter__ = AsyncMock(return_value=mock_redis)
         mock_conn.return_value.__aexit__ = AsyncMock(return_value=False)
 
@@ -175,13 +182,21 @@ async def test_get_pending_messages():
 
     with patch.object(client, "connection") as mock_conn:
         mock_redis = AsyncMock()
-        mock_redis.xpending_range = AsyncMock(return_value=[
-            {"message_id": "1000-0", "consumer": "worker-1", "time_since_delivered": 5000}
-        ])
+        mock_redis.xpending_range = AsyncMock(
+            return_value=[
+                {
+                    "message_id": "1000-0",
+                    "consumer": "worker-1",
+                    "time_since_delivered": 5000,
+                }
+            ]
+        )
         mock_conn.return_value.__aenter__ = AsyncMock(return_value=mock_redis)
         mock_conn.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        pending = await client.get_pending_messages("test:stream", "test-group", count=10)
+        pending = await client.get_pending_messages(
+            "test:stream", "test-group", count=10
+        )
 
         assert len(pending) == 1
         assert pending[0]["message_id"] == "1000-0"
@@ -210,8 +225,11 @@ async def test_connection_context_manager_error():
 
     with patch.object(client, "_get_client") as mock_get_client:
         from redis.exceptions import ConnectionError as RedisConnectionError
+
         mock_redis = AsyncMock()
-        mock_redis.some_operation = AsyncMock(side_effect=RedisConnectionError("Connection lost"))
+        mock_redis.some_operation = AsyncMock(
+            side_effect=RedisConnectionError("Connection lost")
+        )
         mock_get_client.return_value = mock_redis
 
         with pytest.raises(PubSubError):
@@ -234,5 +252,3 @@ async def test_close():
 
         assert client._client is None
         mock_redis.aclose.assert_called_once()
-
-

@@ -499,7 +499,11 @@ class CalendarService:
         - Maximum 5 reminders per event
         """
         minutes_before = reminder_data.get("minutes_before", 0)
-        if not isinstance(minutes_before, int) or minutes_before < 5 or minutes_before > 10080:
+        if (
+            not isinstance(minutes_before, int)
+            or minutes_before < 5
+            or minutes_before > 10080
+        ):
             raise APIException(
                 status_code=400,
                 code="INVALID_REMINDER_MINUTES",
@@ -615,7 +619,9 @@ class ReminderService:
         """
         event = self.repository.get_event_by_id(reminder.event_id, reminder.tenant_id)
         if not event or event.status == EventStatus.CANCELLED:
-            logger.warning(f"Event {reminder.event_id} not found or cancelled, skipping reminder")
+            logger.warning(
+                f"Event {reminder.event_id} not found or cancelled, skipping reminder"
+            )
             return False
 
         # Calculate when reminder should be sent
@@ -656,7 +662,9 @@ class ReminderService:
                 )
             elif reminder.reminder_type == ReminderType.PUSH:
                 # Send push notification (future implementation)
-                logger.info(f"Push notifications not yet implemented for reminder {reminder.id}")
+                logger.info(
+                    f"Push notifications not yet implemented for reminder {reminder.id}"
+                )
 
             # Mark reminder as sent
             self.repository.update_reminder(
@@ -723,8 +731,3 @@ class ReminderService:
             )
 
         return results
-
-
-
-
-

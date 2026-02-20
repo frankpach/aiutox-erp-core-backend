@@ -117,15 +117,3 @@ class TestHelperFunctions:
         assert exc_info.value.code == "USER_ALREADY_EXISTS"
         assert exc_info.value.message == "User already exists"
         assert exc_info.value.status_code == status.HTTP_409_CONFLICT
-
-
-
-
-
-
-
-
-
-
-
-

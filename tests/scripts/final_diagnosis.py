@@ -11,6 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def test_import_step_by_step():
     """Prueba los imports paso a paso para identificar el problema."""
     print("🔍 DIAGNÓSTICO FINAL PASO A PASO")
@@ -130,6 +131,7 @@ def test_import_step_by_step():
 
     return failed_at
 
+
 def analyze_problematic_module(failed_at):
     """Analiza el módulo problemático."""
     if not failed_at:
@@ -153,6 +155,7 @@ def analyze_problematic_module(failed_at):
                 return True
 
             result = [None]
+
             def test_thread():
                 try:
                     test_v1_init()
@@ -190,6 +193,7 @@ def analyze_problematic_module(failed_at):
     print("   3. Revisar dependencias del módulo")
     print("   4. Considerar eliminar el import si no es crítico")
 
+
 def main():
     """Función principal."""
     failed_at = test_import_step_by_step()
@@ -215,6 +219,7 @@ def main():
         print("2. El startup events")
         print("3. Los middleware")
         return True
+
 
 if __name__ == "__main__":
     main()

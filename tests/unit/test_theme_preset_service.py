@@ -371,7 +371,9 @@ class TestThemePresetService:
         assert applied_config == config
 
         # Verify config was applied via ConfigService
-        applied_primary = service.config_service.get(tenant_id, "app_theme", "primary_color")
+        applied_primary = service.config_service.get(
+            tenant_id, "app_theme", "primary_color"
+        )
         assert applied_primary == "#1976D2"
 
     def test_set_default_preset_success(self, db_session: Session, test_tenant):
@@ -447,4 +449,3 @@ class TestThemePresetService:
         # Try to get preset1 with tenant_id_2 (should fail)
         with pytest.raises(APIException):
             service.get_preset(preset1.id, tenant_id_2)
-

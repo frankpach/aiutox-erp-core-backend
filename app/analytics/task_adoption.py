@@ -158,9 +158,7 @@ class TaskAdoptionAnalytics:
             or 0
         )
 
-        adoption_rate = (
-            (users_with_files / total_users * 100) if total_users > 0 else 0
-        )
+        adoption_rate = (users_with_files / total_users * 100) if total_users > 0 else 0
 
         return {
             "users_with_files": users_with_files,
@@ -263,9 +261,7 @@ class TaskAdoptionAnalytics:
         else:
             return "not_used"
 
-    def get_adoption_trends(
-        self, tenant_id: UUID, days: int = 30
-    ) -> dict[str, Any]:
+    def get_adoption_trends(self, tenant_id: UUID, days: int = 30) -> dict[str, Any]:
         """Obtiene tendencias de adopción en el tiempo.
 
         Args:
@@ -304,7 +300,11 @@ class TaskAdoptionAnalytics:
             "tasks_created": tasks_in_period,
             "tasks_synced": synced_in_period,
             "sync_rate_percent": round(
-                (synced_in_period / tasks_in_period * 100) if tasks_in_period > 0 else 0,
+                (
+                    (synced_in_period / tasks_in_period * 100)
+                    if tasks_in_period > 0
+                    else 0
+                ),
                 2,
             ),
         }

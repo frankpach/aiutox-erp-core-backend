@@ -52,12 +52,9 @@ class ApprovalRepository:
         limit: int = 100,
     ) -> list[ApprovalFlow]:
         """Get approval flows with optional filters, excluding soft-deleted flows."""
-        query = (
-            self.db.query(ApprovalFlow)
-            .filter(
-                ApprovalFlow.tenant_id == tenant_id,
-                ApprovalFlow.deleted_at.is_(None),
-            )
+        query = self.db.query(ApprovalFlow).filter(
+            ApprovalFlow.tenant_id == tenant_id,
+            ApprovalFlow.deleted_at.is_(None),
         )
 
         if module:
@@ -65,11 +62,14 @@ class ApprovalRepository:
         if is_active is not None:
             query = query.filter(ApprovalFlow.is_active == is_active)
 
-        return query.order_by(ApprovalFlow.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(ApprovalFlow.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-    def update_approval_flow(
-        self, flow: ApprovalFlow, flow_data: dict
-    ) -> ApprovalFlow:
+    def update_approval_flow(self, flow: ApprovalFlow, flow_data: dict) -> ApprovalFlow:
         """Update approval flow."""
         for key, value in flow_data.items():
             setattr(flow, key, value)
@@ -107,7 +107,9 @@ class ApprovalRepository:
         """Get approval steps by flow."""
         return (
             self.db.query(ApprovalStep)
-            .filter(ApprovalStep.flow_id == flow_id, ApprovalStep.tenant_id == tenant_id)
+            .filter(
+                ApprovalStep.flow_id == flow_id, ApprovalStep.tenant_id == tenant_id
+            )
             .order_by(ApprovalStep.step_order.asc())
             .all()
         )
@@ -125,13 +127,10 @@ class ApprovalRepository:
         self.db.delete(step)
         self.db.commit()
 
-    def delete_all_approval_steps(
-        self, flow_id: UUID, tenant_id: UUID
-    ) -> None:
+    def delete_all_approval_steps(self, flow_id: UUID, tenant_id: UUID) -> None:
         """Delete all approval steps for a given flow."""
         self.db.query(ApprovalStep).filter(
-            ApprovalStep.flow_id == flow_id,
-            ApprovalStep.tenant_id == tenant_id
+            ApprovalStep.flow_id == flow_id, ApprovalStep.tenant_id == tenant_id
         ).delete()
         self.db.commit()
 
@@ -168,7 +167,9 @@ class ApprovalRepository:
         limit: int = 100,
     ) -> list[ApprovalRequest]:
         """Get approval requests with optional filters."""
-        query = self.db.query(ApprovalRequest).filter(ApprovalRequest.tenant_id == tenant_id)
+        query = self.db.query(ApprovalRequest).filter(
+            ApprovalRequest.tenant_id == tenant_id
+        )
 
         if flow_id:
             query = query.filter(ApprovalRequest.flow_id == flow_id)
@@ -181,7 +182,12 @@ class ApprovalRepository:
         if requested_by:
             query = query.filter(ApprovalRequest.requested_by == requested_by)
 
-        return query.order_by(ApprovalRequest.requested_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(ApprovalRequest.requested_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def update_approval_request(
         self, request: ApprovalRequest, request_data: dict
@@ -222,9 +228,7 @@ class ApprovalRepository:
         )
 
     # Approval Delegation methods
-    def create_approval_delegation(
-        self, delegation_data: dict
-    ) -> ApprovalDelegation:
+    def create_approval_delegation(self, delegation_data: dict) -> ApprovalDelegation:
         """Create a new approval delegation."""
         delegation = ApprovalDelegation(**delegation_data)
         self.db.add(delegation)
@@ -270,11 +274,3 @@ class ApprovalRepository:
         """Delete approval delegation."""
         self.db.delete(delegation)
         self.db.commit()
-
-
-
-
-
-
-
-

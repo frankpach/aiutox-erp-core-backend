@@ -33,6 +33,7 @@ def get_integration_service(
 ) -> IntegrationService:
     """Dependency to get IntegrationService."""
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info("get_integration_service called")
     service = IntegrationService(db)
@@ -86,7 +87,10 @@ async def list_integrations(
     integrations = service.list_integrations(current_user.tenant_id, integration_type)
 
     return StandardListResponse(
-        data=[IntegrationResponse.model_validate(i, from_attributes=True) for i in integrations],
+        data=[
+            IntegrationResponse.model_validate(i, from_attributes=True)
+            for i in integrations
+        ],
         meta=PaginationMeta(
             total=len(integrations),
             page=1,
@@ -109,16 +113,19 @@ async def get_integration_logs(
     """Get logs for an integration."""
     # Simplified response for testing
     from uuid import uuid4
+
     return StandardResponse(
-        data=[{
-            "id": str(uuid4()),
-            "integration_id": str(integration_id),
-            "tenant_id": str(current_user.tenant_id),
-            "level": "INFO",
-            "message": "Mock log entry",
-            "details": None,
-            "created_at": "2024-01-01T00:00:00Z",
-        }],
+        data=[
+            {
+                "id": str(uuid4()),
+                "integration_id": str(integration_id),
+                "tenant_id": str(current_user.tenant_id),
+                "level": "INFO",
+                "message": "Mock log entry",
+                "details": None,
+                "created_at": "2024-01-01T00:00:00Z",
+            }
+        ],
         message="Integration logs retrieved successfully",
     )
 
@@ -189,7 +196,9 @@ async def list_webhooks(
             total=integrations["total"],
             page=page,
             page_size=limit,
-            total_pages=(integrations["total"] + limit - 1) // limit if limit > 0 else 0,
+            total_pages=(
+                (integrations["total"] + limit - 1) // limit if limit > 0 else 0
+            ),
         ),
     )
 
@@ -766,7 +775,9 @@ async def test_integration(
                         "error": {
                             "code": "AUTH_INSUFFICIENT_PERMISSIONS",
                             "message": "Insufficient permissions",
-                            "details": {"required_permission": "integrations.view_credentials"},
+                            "details": {
+                                "required_permission": "integrations.view_credentials"
+                            },
                         }
                     }
                 }

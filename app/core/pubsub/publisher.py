@@ -96,13 +96,3 @@ class EventPublisher:
         except Exception as e:
             logger.error(f"Failed to publish event '{event_type}': {e}", exc_info=True)
             raise PublishError(f"Failed to publish event: {e}") from e
-
-
-
-
-
-
-
-
-
-

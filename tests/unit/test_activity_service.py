@@ -24,7 +24,9 @@ def activity_service(db_session, mock_event_publisher):
     return ActivityService(db_session, event_publisher=mock_event_publisher)
 
 
-def test_create_activity(activity_service, test_user, test_tenant, mock_event_publisher):
+def test_create_activity(
+    activity_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating an activity."""
     entity_id = uuid4()
     activity = activity_service.create_activity(
@@ -151,7 +153,9 @@ def test_count_activities(activity_service, test_user, test_tenant):
     assert comment_count == 2
 
 
-def test_update_activity(activity_service, test_user, test_tenant, mock_event_publisher):
+def test_update_activity(
+    activity_service, test_user, test_tenant, mock_event_publisher
+):
     """Test updating an activity."""
     entity_id = uuid4()
     activity = activity_service.create_activity(
@@ -183,7 +187,9 @@ def test_update_activity(activity_service, test_user, test_tenant, mock_event_pu
     # Verify event was published
     publish_calls = [call for call in mock_event_publisher.publish.call_args_list]
     updated_calls = [
-        call for call in publish_calls if call[1].get("event_type") == "activity.updated"
+        call
+        for call in publish_calls
+        if call[1].get("event_type") == "activity.updated"
     ]
     assert len(updated_calls) > 0
 
@@ -201,7 +207,9 @@ def test_update_activity_not_found(activity_service, test_user, test_tenant):
     assert updated is None
 
 
-def test_delete_activity(activity_service, test_user, test_tenant, mock_event_publisher):
+def test_delete_activity(
+    activity_service, test_user, test_tenant, mock_event_publisher
+):
     """Test deleting an activity."""
     entity_id = uuid4()
     activity = activity_service.create_activity(
@@ -233,7 +241,9 @@ def test_delete_activity(activity_service, test_user, test_tenant, mock_event_pu
     # Verify event was published
     publish_calls = [call for call in mock_event_publisher.publish.call_args_list]
     deleted_calls = [
-        call for call in publish_calls if call[1].get("event_type") == "activity.deleted"
+        call
+        for call in publish_calls
+        if call[1].get("event_type") == "activity.deleted"
     ]
     assert len(deleted_calls) > 0
 
@@ -293,7 +303,9 @@ def test_search_activities(activity_service, test_user, test_tenant):
     )
 
     assert len(results) == 1
-    assert "price" in results[0].description.lower() or "price" in results[0].title.lower()
+    assert (
+        "price" in results[0].description.lower() or "price" in results[0].title.lower()
+    )
 
 
 def test_count_all_activities(activity_service, test_user, test_tenant):
@@ -372,4 +384,3 @@ def test_count_search_activities(activity_service, test_user, test_tenant):
     )
 
     assert count == 2
-

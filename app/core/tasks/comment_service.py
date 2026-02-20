@@ -54,10 +54,14 @@ class TaskCommentService:
         from app.models.task import Task
 
         # Verificar que la tarea existe
-        task = self.db.query(Task).filter(
-            Task.id == task_id,
-            Task.tenant_id == tenant_id,
-        ).first()
+        task = (
+            self.db.query(Task)
+            .filter(
+                Task.id == task_id,
+                Task.tenant_id == tenant_id,
+            )
+            .first()
+        )
 
         if not task:
             raise ValueError(f"Task {task_id} not found")
@@ -98,7 +102,9 @@ class TaskCommentService:
                         notification_sent=False,
                     )
                     self.db.add(mention)
-                    logger.info(f"[COMMENT_SERVICE] Added mention for user: {mentioned_user_id}")
+                    logger.info(
+                        f"[COMMENT_SERVICE] Added mention for user: {mentioned_user_id}"
+                    )
 
             self.db.commit()
             logger.info(f"[COMMENT_SERVICE] Committed comment {comment.id} to database")
@@ -125,7 +131,7 @@ class TaskCommentService:
         from app.core.pubsub.event_helpers import safe_publish_event
 
         # Si es un mock (contexto de pruebas), llamar directamente para que se registre
-        if hasattr(self.event_publisher, 'assert_called'):  # Es un unittest mock
+        if hasattr(self.event_publisher, "assert_called"):  # Es un unittest mock
             self.event_publisher.publish(
                 event_type="task.comment_added",
                 entity_type="task",
@@ -211,13 +217,17 @@ class TaskCommentService:
         from app.models.comment import Comment
 
         # Buscar comentario en la tabla comments
-        comment = self.db.query(Comment).filter(
-            Comment.id == UUID(comment_id),
-            Comment.entity_type == "task",
-            Comment.entity_id == task_id,
-            Comment.tenant_id == tenant_id,
-            Comment.is_deleted == False,  # noqa: E712
-        ).first()
+        comment = (
+            self.db.query(Comment)
+            .filter(
+                Comment.id == UUID(comment_id),
+                Comment.entity_type == "task",
+                Comment.entity_id == task_id,
+                Comment.tenant_id == tenant_id,
+                Comment.is_deleted == False,  # noqa: E712
+            )
+            .first()
+        )
 
         if not comment:
             return None
@@ -241,7 +251,7 @@ class TaskCommentService:
         from app.core.pubsub.event_helpers import safe_publish_event
 
         # Si es un mock (contexto de pruebas), llamar directamente para que se registre
-        if hasattr(self.event_publisher, 'assert_called'):  # Es un unittest mock
+        if hasattr(self.event_publisher, "assert_called"):  # Es un unittest mock
             self.event_publisher.publish(
                 event_type="task.comment_updated",
                 entity_type="task",
@@ -309,13 +319,17 @@ class TaskCommentService:
         from app.models.comment import Comment
 
         # Buscar comentario en la tabla comments
-        comment = self.db.query(Comment).filter(
-            Comment.id == UUID(comment_id),
-            Comment.entity_type == "task",
-            Comment.entity_id == task_id,
-            Comment.tenant_id == tenant_id,
-            Comment.is_deleted == False,  # noqa: E712
-        ).first()
+        comment = (
+            self.db.query(Comment)
+            .filter(
+                Comment.id == UUID(comment_id),
+                Comment.entity_type == "task",
+                Comment.entity_id == task_id,
+                Comment.tenant_id == tenant_id,
+                Comment.is_deleted == False,  # noqa: E712
+            )
+            .first()
+        )
 
         if not comment:
             return False
@@ -337,7 +351,7 @@ class TaskCommentService:
         from app.core.pubsub.event_helpers import safe_publish_event
 
         # Si es un mock (contexto de pruebas), llamar directamente para que se registre
-        if hasattr(self.event_publisher, 'assert_called'):  # Es un unittest mock
+        if hasattr(self.event_publisher, "assert_called"):  # Es un unittest mock
             self.event_publisher.publish(
                 event_type="task.comment_deleted",
                 entity_type="task",
@@ -392,24 +406,37 @@ class TaskCommentService:
         """
         from app.models.comment import Comment
 
-        logger.error(f"*** [LIST_COMMENTS] Servicio llamado con task_id={task_id}, tenant_id={tenant_id}")
-        logger.error(f"[LIST_COMMENTS] Buscando comentarios para task_id={task_id}, tenant_id={tenant_id}")
+        logger.error(
+            f"*** [LIST_COMMENTS] Servicio llamado con task_id={task_id}, tenant_id={tenant_id}"
+        )
+        logger.error(
+            f"[LIST_COMMENTS] Buscando comentarios para task_id={task_id}, tenant_id={tenant_id}"
+        )
 
         # Primero, veamos todos los comentarios de este tenant
-        all_comments = self.db.query(Comment).filter(
-            Comment.tenant_id == tenant_id
-        ).all()
-        logger.error(f"[LIST_COMMENTS] Total comentarios para tenant: {len(all_comments)}")
+        all_comments = (
+            self.db.query(Comment).filter(Comment.tenant_id == tenant_id).all()
+        )
+        logger.error(
+            f"[LIST_COMMENTS] Total comentarios para tenant: {len(all_comments)}"
+        )
         for c in all_comments:
-            logger.error(f"[LIST_COMMENTS] - Comment ID: {c.id}, entity_type: {c.entity_type}, entity_id: {c.entity_id}, is_deleted: {c.is_deleted}")
+            logger.error(
+                f"[LIST_COMMENTS] - Comment ID: {c.id}, entity_type: {c.entity_type}, entity_id: {c.entity_id}, is_deleted: {c.is_deleted}"
+            )
 
         # Obtener comentarios de la tabla comments
-        comments = self.db.query(Comment).filter(
-            Comment.entity_type == "task",
-            Comment.entity_id == task_id,
-            Comment.tenant_id == tenant_id,
-            Comment.is_deleted == False,  # noqa: E712
-        ).order_by(Comment.created_at.desc()).all()
+        comments = (
+            self.db.query(Comment)
+            .filter(
+                Comment.entity_type == "task",
+                Comment.entity_id == task_id,
+                Comment.tenant_id == tenant_id,
+                Comment.is_deleted == False,  # noqa: E712
+            )
+            .order_by(Comment.created_at.desc())
+            .all()
+        )
 
         logger.error(f"[LIST_COMMENTS] Comentarios encontrados: {len(comments)}")
 

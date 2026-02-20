@@ -23,7 +23,7 @@ class TaskDependencyService:
         task_id: UUID,
         depends_on_id: UUID,
         tenant_id: UUID,
-        dependency_type: str = "finish_to_start"
+        dependency_type: str = "finish_to_start",
     ) -> TaskDependency:
         """Agrega dependencia entre tareas."""
 
@@ -32,21 +32,25 @@ class TaskDependencyService:
             raise ValueError("Una tarea no puede depender de sí misma")
 
         # Validar que ambas tareas existan y pertenezcan al mismo tenant
-        task = self.db.query(Task).filter(
-            Task.id == task_id,
-            Task.tenant_id == tenant_id
-        ).first()
+        task = (
+            self.db.query(Task)
+            .filter(Task.id == task_id, Task.tenant_id == tenant_id)
+            .first()
+        )
 
-        depends_on_task = self.db.query(Task).filter(
-            Task.id == depends_on_id,
-            Task.tenant_id == tenant_id
-        ).first()
+        depends_on_task = (
+            self.db.query(Task)
+            .filter(Task.id == depends_on_id, Task.tenant_id == tenant_id)
+            .first()
+        )
 
         if not task:
             raise ValueError(f"Tarea {task_id} no encontrada o no pertenece al tenant")
 
         if not depends_on_task:
-            raise ValueError(f"Tarea de dependencia {depends_on_id} no encontrada o no pertenece al tenant")
+            raise ValueError(
+                f"Tarea de dependencia {depends_on_id} no encontrada o no pertenece al tenant"
+            )
 
         # Validar dependencias circulares
         if self._would_create_cycle(task_id, depends_on_id):
@@ -57,7 +61,7 @@ class TaskDependencyService:
             tenant_id=tenant_id,
             task_id=task_id,
             depends_on_id=depends_on_id,
-            dependency_type=dependency_type
+            dependency_type=dependency_type,
         )
 
         self.db.add(dependency)
@@ -84,9 +88,12 @@ class TaskDependencyService:
 
             visited.add(from_id)
 
-            dependencies = self.db.query(TaskDependency).filter(
-                TaskDependency.task_id == from_id
-            ).limit(20).all()
+            dependencies = (
+                self.db.query(TaskDependency)
+                .filter(TaskDependency.task_id == from_id)
+                .limit(20)
+                .all()
+            )
 
             for dep in dependencies:
                 if has_path(dep.depends_on_id, to_id, depth + 1):
@@ -98,24 +105,35 @@ class TaskDependencyService:
 
     def get_dependencies(self, task_id: UUID, tenant_id: UUID) -> list[TaskDependency]:
         """Obtiene dependencias de una tarea."""
-        return self.db.query(TaskDependency).filter(
-            TaskDependency.task_id == task_id,
-            TaskDependency.tenant_id == tenant_id
-        ).all()
+        return (
+            self.db.query(TaskDependency)
+            .filter(
+                TaskDependency.task_id == task_id, TaskDependency.tenant_id == tenant_id
+            )
+            .all()
+        )
 
     def get_dependents(self, task_id: UUID, tenant_id: UUID) -> list[TaskDependency]:
         """Obtiene tareas que dependen de esta."""
-        return self.db.query(TaskDependency).filter(
-            TaskDependency.depends_on_id == task_id,
-            TaskDependency.tenant_id == tenant_id
-        ).all()
+        return (
+            self.db.query(TaskDependency)
+            .filter(
+                TaskDependency.depends_on_id == task_id,
+                TaskDependency.tenant_id == tenant_id,
+            )
+            .all()
+        )
 
     def remove_dependency(self, dependency_id: UUID, tenant_id: UUID) -> bool:
         """Elimina una dependencia."""
-        dependency = self.db.query(TaskDependency).filter(
-            TaskDependency.id == dependency_id,
-            TaskDependency.tenant_id == tenant_id
-        ).first()
+        dependency = (
+            self.db.query(TaskDependency)
+            .filter(
+                TaskDependency.id == dependency_id,
+                TaskDependency.tenant_id == tenant_id,
+            )
+            .first()
+        )
 
         if not dependency:
             return False

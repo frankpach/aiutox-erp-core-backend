@@ -60,9 +60,7 @@ class AutomationEngine:
 
         # Evaluate conditions if any
         if rule.conditions:
-            conditions_met = self.condition_evaluator.evaluate(
-                rule.conditions, event
-            )
+            conditions_met = self.condition_evaluator.evaluate(rule.conditions, event)
             if not conditions_met:
                 logger.debug(
                     f"Conditions not met for rule {rule.id} with event {event.event_id}"
@@ -133,13 +131,3 @@ class AutomationEngine:
                     executions.append(execution)
 
         return executions
-
-
-
-
-
-
-
-
-
-

@@ -68,7 +68,13 @@ class RedisStreamsClient:
                 self._client = None
             raise PubSubError(f"Redis connection error: {e}") from e
 
-    async def create_group(self, stream_name: str, group_name: str, start_id: str = "0", recreate_if_exists: bool = False) -> bool:
+    async def create_group(
+        self,
+        stream_name: str,
+        group_name: str,
+        start_id: str = "0",
+        recreate_if_exists: bool = False,
+    ) -> bool:
         """Create a consumer group for a stream.
 
         Args:
@@ -85,7 +91,9 @@ class RedisStreamsClient:
                 await client.xgroup_create(
                     name=stream_name, groupname=group_name, id=start_id, mkstream=True
                 )
-                logger.info(f"Created consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'")
+                logger.info(
+                    f"Created consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'"
+                )
                 return True
             except aioredis.ResponseError as e:
                 if "BUSYGROUP" in str(e):
@@ -94,15 +102,24 @@ class RedisStreamsClient:
                         try:
                             await client.xgroup_destroy(stream_name, group_name)
                             await client.xgroup_create(
-                                name=stream_name, groupname=group_name, id=start_id, mkstream=True
+                                name=stream_name,
+                                groupname=group_name,
+                                id=start_id,
+                                mkstream=True,
                             )
-                            logger.info(f"Recreated consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'")
+                            logger.info(
+                                f"Recreated consumer group '{group_name}' for stream '{stream_name}' with start_id '{start_id}'"
+                            )
                             return True
                         except Exception as recreate_error:
                             logger.error(f"Failed to recreate group: {recreate_error}")
-                            raise PubSubError(f"Failed to recreate consumer group: {recreate_error}") from recreate_error
+                            raise PubSubError(
+                                f"Failed to recreate consumer group: {recreate_error}"
+                            ) from recreate_error
                     else:
-                        logger.debug(f"Consumer group '{group_name}' already exists for stream '{stream_name}'")
+                        logger.debug(
+                            f"Consumer group '{group_name}' already exists for stream '{stream_name}'"
+                        )
                         return False
                 raise PubSubError(f"Failed to create consumer group: {e}") from e
 
@@ -140,7 +157,9 @@ class RedisStreamsClient:
                 for group in groups:
                     if group.get("name") == group_name:
                         return dict(group)
-                raise PubSubError(f"Consumer group '{group_name}' not found in stream '{stream_name}'")
+                raise PubSubError(
+                    f"Consumer group '{group_name}' not found in stream '{stream_name}'"
+                )
             except aioredis.ResponseError as e:
                 if "no such key" in str(e).lower():
                     raise PubSubError(f"Stream '{stream_name}' not found") from e
@@ -162,7 +181,11 @@ class RedisStreamsClient:
         async with self.connection() as client:
             try:
                 pending = await client.xpending_range(
-                    name=stream_name, groupname=group_name, min="-", max="+", count=count
+                    name=stream_name,
+                    groupname=group_name,
+                    min="-",
+                    max="+",
+                    count=count,
                 )
                 return [dict(msg) for msg in pending]
             except aioredis.ResponseError as e:
@@ -176,13 +199,3 @@ class RedisStreamsClient:
             await self._client.aclose()
             self._client = None
             logger.info("Closed Redis connection")
-
-
-
-
-
-
-
-
-
-

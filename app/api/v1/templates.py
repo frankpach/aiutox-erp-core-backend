@@ -70,7 +70,9 @@ async def create_template(
 async def list_templates(
     current_user: Annotated[User, Depends(require_permission("templates.view"))],
     service: Annotated[TemplateService, Depends(get_template_service)],
-    template_type: str | None = Query(default=None, description="Filter by template type"),
+    template_type: str | None = Query(
+        default=None, description="Filter by template type"
+    ),
     category: str | None = Query(default=None, description="Filter by category"),
     is_active: bool | None = Query(default=None, description="Filter by active status"),
     page: int = Query(default=1, ge=1, description="Page number"),
@@ -297,7 +299,9 @@ async def list_template_categories(
         limit=page_size,
     )
 
-    total = len(categories)  # For simplicity, we don't have a count method for categories yet
+    total = len(
+        categories
+    )  # For simplicity, we don't have a count method for categories yet
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
@@ -389,8 +393,3 @@ async def delete_template_category(
             code="TEMPLATE_CATEGORY_NOT_FOUND",
             message=f"Template category with ID {category_id} not found",
         )
-
-
-
-
-

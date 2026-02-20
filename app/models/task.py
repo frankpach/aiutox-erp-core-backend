@@ -63,7 +63,9 @@ class Task(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default=TaskStatusEnum.TODO, index=True)
-    priority = Column(String(20), nullable=False, default=TaskPriority.MEDIUM, index=True)
+    priority = Column(
+        String(20), nullable=False, default=TaskPriority.MEDIUM, index=True
+    )
 
     # Assignment (legacy field for backward compatibility, use TaskAssignment for multiple)
     assigned_to_id = Column(
@@ -87,12 +89,20 @@ class Task(Base):
     completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     # Multi-module integration (standard payload)
-    source_module = Column(String(50), nullable=True, index=True)  # e.g., 'projects', 'workflows'
-    source_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)  # ID of source entity
-    source_context = Column(JSONB, nullable=True)  # Additional context from source module
+    source_module = Column(
+        String(50), nullable=True, index=True
+    )  # e.g., 'projects', 'workflows'
+    source_id = Column(
+        PG_UUID(as_uuid=True), nullable=True, index=True
+    )  # ID of source entity
+    source_context = Column(
+        JSONB, nullable=True
+    )  # Additional context from source module
 
     # Polymorphic relationship (legacy, kept for backward compatibility)
-    related_entity_type = Column(String(50), nullable=True, index=True)  # e.g., 'product', 'order'
+    related_entity_type = Column(
+        String(50), nullable=True, index=True
+    )  # e.g., 'product', 'order'
     related_entity_id = Column(PG_UUID(as_uuid=True), nullable=True, index=True)
 
     # Workflow reference (optional)
@@ -124,7 +134,9 @@ class Task(Base):
     )
 
     # Metadata
-    task_metadata = Column("metadata", JSONB, nullable=True)  # Additional metadata as JSON
+    task_metadata = Column(
+        "metadata", JSONB, nullable=True
+    )  # Additional metadata as JSON
     tags = Column(JSONB, nullable=True)  # Array of tag names or IDs
     tag_ids = Column(JSONB, nullable=True)  # Array of tag UUIDs for core tags
     color_override = Column(String(7), nullable=True)  # Hex color override
@@ -152,9 +164,15 @@ class Task(Base):
     )
     subtasks = relationship("Task", back_populates="parent_task")
     parent_task = relationship("Task", back_populates="subtasks", remote_side=[id])
-    assignments = relationship("TaskAssignment", back_populates="task", cascade="all, delete-orphan")
-    checklist_items = relationship("TaskChecklistItem", back_populates="task", cascade="all, delete-orphan")
-    status_obj = relationship("TaskStatus", back_populates="tasks", foreign_keys=[status_id])
+    assignments = relationship(
+        "TaskAssignment", back_populates="task", cascade="all, delete-orphan"
+    )
+    checklist_items = relationship(
+        "TaskChecklistItem", back_populates="task", cascade="all, delete-orphan"
+    )
+    status_obj = relationship(
+        "TaskStatus", back_populates="tasks", foreign_keys=[status_id]
+    )
     template = relationship("TaskTemplate", back_populates="tasks")
 
     __table_args__ = (
@@ -170,8 +188,6 @@ class Task(Base):
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
-
-
 
 
 class TaskChecklistItem(Base):
@@ -214,9 +230,7 @@ class TaskChecklistItem(Base):
     # Relationships
     task = relationship("Task", back_populates="checklist_items")
 
-    __table_args__ = (
-        Index("idx_task_checklist_task", "task_id", "order"),
-    )
+    __table_args__ = (Index("idx_task_checklist_task", "task_id", "order"),)
 
     def __repr__(self) -> str:
         return f"<TaskChecklistItem(id={self.id}, task_id={self.task_id}, title={self.title})>"
@@ -305,12 +319,12 @@ class TaskAssignment(Base):
         # Constraint: Al menos uno debe estar presente
         CheckConstraint(
             "(assigned_to_id IS NOT NULL) OR (assigned_to_group_id IS NOT NULL)",
-            name="check_assignment_target"
+            name="check_assignment_target",
         ),
         # Constraint: Solo uno puede estar presente
         CheckConstraint(
             "(assigned_to_id IS NULL) OR (assigned_to_group_id IS NULL)",
-            name="check_assignment_exclusive"
+            name="check_assignment_exclusive",
         ),
     )
 
@@ -356,12 +370,14 @@ class Workflow(Base):
     )
 
     # Relationships
-    steps = relationship("WorkflowStep", back_populates="workflow", cascade="all, delete-orphan")
-    executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        Index("idx_workflows_tenant_enabled", "tenant_id", "enabled"),
+    steps = relationship(
+        "WorkflowStep", back_populates="workflow", cascade="all, delete-orphan"
     )
+    executions = relationship(
+        "WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (Index("idx_workflows_tenant_enabled", "tenant_id", "enabled"),)
 
     def __repr__(self) -> str:
         return f"<Workflow(id={self.id}, name={self.name}, enabled={self.enabled})>"
@@ -388,7 +404,9 @@ class WorkflowStep(Base):
 
     # Step information
     name = Column(String(255), nullable=False)
-    step_type = Column(String(50), nullable=False)  # e.g., 'task', 'approval', 'condition'
+    step_type = Column(
+        String(50), nullable=False
+    )  # e.g., 'task', 'approval', 'condition'
     order = Column(Integer, nullable=False)
 
     # Step configuration
@@ -413,9 +431,7 @@ class WorkflowStep(Base):
     # Relationships
     workflow = relationship("Workflow", back_populates="steps")
 
-    __table_args__ = (
-        Index("idx_workflow_steps_workflow", "workflow_id", "order"),
-    )
+    __table_args__ = (Index("idx_workflow_steps_workflow", "workflow_id", "order"),)
 
     def __repr__(self) -> str:
         return f"<WorkflowStep(id={self.id}, workflow_id={self.workflow_id}, name={self.name})>"
@@ -441,7 +457,9 @@ class WorkflowExecution(Base):
     )
 
     # Execution information
-    status = Column(String(20), nullable=False, default="running", index=True)  # running, completed, failed, cancelled
+    status = Column(
+        String(20), nullable=False, default="running", index=True
+    )  # running, completed, failed, cancelled
     current_step_id = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("workflow_steps.id", ondelete="SET NULL"),
@@ -572,7 +590,9 @@ class TaskRecurrence(Base):
     )
 
     # Recurrence configuration
-    frequency = Column(String(50), nullable=False, default=TaskRecurrenceFrequency.WEEKLY)
+    frequency = Column(
+        String(50), nullable=False, default=TaskRecurrenceFrequency.WEEKLY
+    )
     interval = Column(Integer, nullable=False, default=1)  # e.g., every 2 weeks
 
     # Date configuration

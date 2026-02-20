@@ -430,4 +430,3 @@ def has_permission(user_permissions: set[str], required: str) -> bool:
         return True
 
     return False
-

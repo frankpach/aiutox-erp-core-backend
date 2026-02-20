@@ -1,6 +1,5 @@
 """Integration tests for authentication endpoints with debugging."""
 
-
 from app.core.auth import decode_token
 
 
@@ -38,9 +37,9 @@ def test_login_success_debug(client_with_db, test_user):
         print(f"Response bytes length: {len(response_bytes)}")
 
         # Check for problematic bytes
-        if b'\xed' in response_bytes:
+        if b"\xed" in response_bytes:
             print("Found byte 0xed in response!")
-            positions = [i for i, b in enumerate(response_bytes) if b == 0xed]
+            positions = [i for i, b in enumerate(response_bytes) if b == 0xED]
             print(f"Positions of 0xed: {positions}")
 
         print("Trying to parse JSON...")
@@ -71,5 +70,6 @@ def test_login_success_debug(client_with_db, test_user):
     except Exception as e:
         print(f"Error during test: {e}")
         import traceback
+
         traceback.print_exc()
         raise

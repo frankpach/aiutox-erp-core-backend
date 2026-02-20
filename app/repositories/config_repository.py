@@ -15,9 +15,7 @@ class ConfigRepository:
         """Initialize repository with database session."""
         self.db = db
 
-    def get(
-        self, tenant_id: UUID, module: str, key: str
-    ) -> SystemConfig | None:
+    def get(self, tenant_id: UUID, module: str, key: str) -> SystemConfig | None:
         """Get configuration by tenant, module, and key."""
         return (
             self.db.query(SystemConfig)
@@ -29,9 +27,7 @@ class ConfigRepository:
             .first()
         )
 
-    def get_all_by_module(
-        self, tenant_id: UUID, module: str
-    ) -> list[SystemConfig]:
+    def get_all_by_module(self, tenant_id: UUID, module: str) -> list[SystemConfig]:
         """Get all configurations for a module in a tenant."""
         return (
             self.db.query(SystemConfig)
@@ -90,14 +86,3 @@ class ConfigRepository:
             .first()
             is not None
         )
-
-
-
-
-
-
-
-
-
-
-

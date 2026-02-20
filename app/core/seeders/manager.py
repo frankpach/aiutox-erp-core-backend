@@ -129,7 +129,11 @@ class SeederManager:
         seeder_name = seeder.get_name()
 
         # Check if already executed
-        existing = db.query(SeederRecord).filter(SeederRecord.seeder_name == seeder_name).first()
+        existing = (
+            db.query(SeederRecord)
+            .filter(SeederRecord.seeder_name == seeder_name)
+            .first()
+        )
         if existing:
             return
 
@@ -231,7 +235,9 @@ class SeederManager:
                 db.close()
 
         # Get last executed seeder
-        last_record = db.query(SeederRecord).order_by(SeederRecord.executed_at.desc()).first()
+        last_record = (
+            db.query(SeederRecord).order_by(SeederRecord.executed_at.desc()).first()
+        )
 
         if not last_record:
             return {
@@ -247,4 +253,3 @@ class SeederManager:
             "success": True,
             "rolled_back": seeder_name,
         }
-

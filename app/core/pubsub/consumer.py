@@ -58,7 +58,13 @@ class EventConsumer:
 
         # Ensure group exists with specified start_id
         try:
-            await ensure_group_exists(self.client, stream_name, group_name, start_id=start_id, recreate_if_exists=recreate_group)
+            await ensure_group_exists(
+                self.client,
+                stream_name,
+                group_name,
+                start_id=start_id,
+                recreate_if_exists=recreate_group,
+            )
         except Exception as e:
             logger.error(f"Failed to ensure group exists: {e}")
             raise ConsumeError(f"Failed to setup consumer group: {e}") from e
@@ -66,7 +72,9 @@ class EventConsumer:
         # Start consumption loop
         self._running = True
         task = asyncio.create_task(
-            self._consume_loop(stream_name, group_name, consumer_name, event_types, callback)
+            self._consume_loop(
+                stream_name, group_name, consumer_name, event_types, callback
+            )
         )
         self._tasks.append(task)
         logger.info(
@@ -114,14 +122,18 @@ class EventConsumer:
                                     event_data = dict(data)
                                 else:
                                     # Fallback: try to convert to dict
-                                    event_data = dict(data) if hasattr(data, 'items') else {}
+                                    event_data = (
+                                        dict(data) if hasattr(data, "items") else {}
+                                    )
 
                                 event = Event.from_redis_dict(event_data)
 
                                 # Filter by event types if specified
                                 if event_types and event.event_type not in event_types:
                                     # ACK even if filtered out
-                                    await redis_client.xack(stream_name, group_name, message_id)
+                                    await redis_client.xack(
+                                        stream_name, group_name, message_id
+                                    )
                                     continue
 
                                 # Process event with retry
@@ -131,7 +143,9 @@ class EventConsumer:
                                 )
 
                                 # ACK message after successful processing
-                                await redis_client.xack(stream_name, group_name, message_id)
+                                await redis_client.xack(
+                                    stream_name, group_name, message_id
+                                )
                                 logger.debug(
                                     f"Processed and ACKed event '{event.event_type}' "
                                     f"(ID: {event.event_id}, Redis ID: {message_id})"
@@ -145,10 +159,16 @@ class EventConsumer:
                                 # After retries exhausted, move to failed stream
                                 try:
                                     await self._move_to_failed_stream(
-                                        redis_client, stream_name, message_id, data, str(e)
+                                        redis_client,
+                                        stream_name,
+                                        message_id,
+                                        data,
+                                        str(e),
                                     )
                                     # ACK to remove from pending
-                                    await redis_client.xack(stream_name, group_name, message_id)
+                                    await redis_client.xack(
+                                        stream_name, group_name, message_id
+                                    )
                                 except Exception as move_error:
                                     logger.error(
                                         f"Failed to move message to failed stream: {move_error}",
@@ -179,6 +199,7 @@ class EventConsumer:
             failed_data["failed_at"] = str(loop.time())
         except RuntimeError:
             import time
+
             failed_data["failed_at"] = str(time.time())
 
         await redis_client.xadd(self.settings.REDIS_STREAM_FAILED, failed_data)
@@ -275,5 +296,3 @@ class EventConsumer:
             self._tasks.clear()
 
         logger.info("Stopped event consumer")
-
-

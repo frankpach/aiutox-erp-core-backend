@@ -49,9 +49,7 @@ class NotificationRepository:
             query = query.filter(NotificationTemplate.event_type == event_type)
         return query.all()
 
-    def count_templates(
-        self, tenant_id: UUID, event_type: str | None = None
-    ) -> int:
+    def count_templates(self, tenant_id: UUID, event_type: str | None = None) -> int:
         """Count templates for a tenant with optional event_type filter."""
         from sqlalchemy import func
 
@@ -108,7 +106,11 @@ class NotificationRepository:
         return queue_entry
 
     def get_queue_entries(
-        self, tenant_id: UUID, status: str | None = None, skip: int = 0, limit: int = 100
+        self,
+        tenant_id: UUID,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[NotificationQueue]:
         """Get queue entries."""
         query = self.db.query(NotificationQueue).filter(
@@ -116,11 +118,14 @@ class NotificationRepository:
         )
         if status:
             query = query.filter(NotificationQueue.status == status)
-        return query.order_by(NotificationQueue.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(NotificationQueue.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-    def count_queue_entries(
-        self, tenant_id: UUID, status: str | None = None
-    ) -> int:
+    def count_queue_entries(self, tenant_id: UUID, status: str | None = None) -> int:
         """Count queue entries with optional status filter."""
         from sqlalchemy import func
 
@@ -164,13 +169,12 @@ class NotificationRepository:
         """
         from app.models.notification import NotificationStatus
 
-        query = (
-            self.db.query(NotificationQueue)
-            .filter(
-                NotificationQueue.tenant_id == tenant_id,
-                NotificationQueue.recipient_id == user_id,
-                NotificationQueue.status.in_([NotificationStatus.PENDING, NotificationStatus.SENT]),
-            )
+        query = self.db.query(NotificationQueue).filter(
+            NotificationQueue.tenant_id == tenant_id,
+            NotificationQueue.recipient_id == user_id,
+            NotificationQueue.status.in_(
+                [NotificationStatus.PENDING, NotificationStatus.SENT]
+            ),
         )
 
         # If since_id is provided, only get notifications created after that one
@@ -182,12 +186,8 @@ class NotificationRepository:
                 .first()
             )
             if since_notification:
-                query = query.filter(NotificationQueue.created_at > since_notification.created_at)
+                query = query.filter(
+                    NotificationQueue.created_at > since_notification.created_at
+                )
 
-        return (
-            query.order_by(NotificationQueue.created_at.desc())
-            .limit(limit)
-            .all()
-        )
-
-
+        return query.order_by(NotificationQueue.created_at.desc()).limit(limit).all()

@@ -31,7 +31,9 @@ router = APIRouter()
 async def list_contact_methods(
     current_user: Annotated[User, Depends(require_permission("auth.manage_users"))],
     db: Annotated[Session, Depends(get_db)],
-    entity_type: str = Query(..., description="Entity type: user, contact, organization, etc."),
+    entity_type: str = Query(
+        ..., description="Entity type: user, contact, organization, etc."
+    ),
     entity_id: UUID = Query(..., description="Entity ID"),
 ) -> StandardListResponse[ContactMethodResponse]:
     """
@@ -53,8 +55,11 @@ async def list_contact_methods(
 
     # Log for debugging
     import logging
+
     logger = logging.getLogger(__name__)
-    logger.info(f"Found {len(contact_methods)} contact methods for entity_type={entity_type}, entity_id={entity_id}")
+    logger.info(
+        f"Found {len(contact_methods)} contact methods for entity_type={entity_type}, entity_id={entity_id}"
+    )
 
     # Convert SQLAlchemy models to Pydantic models using from_attributes
     # This should handle enum conversion automatically
@@ -82,9 +87,17 @@ async def list_contact_methods(
                 # Manual conversion with enum handling
                 cm_dict = {
                     "id": cm.id,
-                    "entity_type": cm.entity_type.value if hasattr(cm.entity_type, 'value') else str(cm.entity_type),
+                    "entity_type": (
+                        cm.entity_type.value
+                        if hasattr(cm.entity_type, "value")
+                        else str(cm.entity_type)
+                    ),
                     "entity_id": cm.entity_id,
-                    "method_type": cm.method_type.value if hasattr(cm.method_type, 'value') else str(cm.method_type),
+                    "method_type": (
+                        cm.method_type.value
+                        if hasattr(cm.method_type, "value")
+                        else str(cm.method_type)
+                    ),
                     "value": cm.value,
                     "label": cm.label,
                     "is_primary": cm.is_primary,
@@ -149,7 +162,9 @@ async def get_contact_method(
     if not contact_method:
         raise_not_found("Contact method not found")
 
-    return StandardResponse(data=ContactMethodResponse.model_validate(contact_method, from_attributes=True))
+    return StandardResponse(
+        data=ContactMethodResponse.model_validate(contact_method, from_attributes=True)
+    )
 
 
 @router.post(
@@ -187,11 +202,15 @@ async def create_contact_method(
 
     if "method_type" in contact_method_data:
         if isinstance(contact_method_data["method_type"], str):
-            contact_method_data["method_type"] = ContactMethodType(contact_method_data["method_type"])
+            contact_method_data["method_type"] = ContactMethodType(
+                contact_method_data["method_type"]
+            )
 
     if "entity_type" in contact_method_data:
         if isinstance(contact_method_data["entity_type"], str):
-            contact_method_data["entity_type"] = EntityType(contact_method_data["entity_type"])
+            contact_method_data["entity_type"] = EntityType(
+                contact_method_data["entity_type"]
+            )
 
     # Create the contact method first
     contact_method = repository.create(contact_method_data)
@@ -202,12 +221,18 @@ async def create_contact_method(
             entity_type=contact_method.entity_type,
             entity_id=contact_method.entity_id,
             contact_method_id=contact_method.id,
-            method_type=contact_method.method_type.value if hasattr(contact_method.method_type, 'value') else str(contact_method.method_type),
+            method_type=(
+                contact_method.method_type.value
+                if hasattr(contact_method.method_type, "value")
+                else str(contact_method.method_type)
+            ),
         )
         # Refresh to get updated is_primary status
         db.refresh(contact_method)
 
-    return StandardResponse(data=ContactMethodResponse.model_validate(contact_method, from_attributes=True))
+    return StandardResponse(
+        data=ContactMethodResponse.model_validate(contact_method, from_attributes=True)
+    )
 
 
 @router.patch(
@@ -255,12 +280,20 @@ async def update_contact_method(
             entity_type=contact_method.entity_type,
             entity_id=contact_method.entity_id,
             contact_method_id=contact_method_id,
-            method_type=contact_method.method_type.value if hasattr(contact_method.method_type, 'value') else str(contact_method.method_type),
+            method_type=(
+                contact_method.method_type.value
+                if hasattr(contact_method.method_type, "value")
+                else str(contact_method.method_type)
+            ),
         )
 
     updated_contact_method = repository.update(contact_method, update_data)
 
-    return StandardResponse(data=ContactMethodResponse.model_validate(updated_contact_method, from_attributes=True))
+    return StandardResponse(
+        data=ContactMethodResponse.model_validate(
+            updated_contact_method, from_attributes=True
+        )
+    )
 
 
 @router.delete(
@@ -300,4 +333,3 @@ async def delete_contact_method(
     repository.delete(contact_method)
 
     return StandardResponse(data={"message": "Contact method deleted successfully"})
-

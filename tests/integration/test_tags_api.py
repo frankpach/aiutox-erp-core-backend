@@ -20,6 +20,7 @@ def test_create_tag(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -58,6 +59,7 @@ def test_list_tags(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -118,6 +120,7 @@ def test_update_tag(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -160,6 +163,7 @@ def test_delete_tag(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -198,6 +202,7 @@ def test_attach_tag_to_entity(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -273,6 +278,7 @@ def test_get_entity_tags(client_with_db, test_user, db_session):
 
     # Create token with updated permissions
     from app.services.auth_service import AuthService
+
     auth_service = AuthService(db_session)
     access_token = auth_service.create_access_token_for_user(test_user)
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -318,4 +324,3 @@ def test_get_entity_tags(client_with_db, test_user, db_session):
     tag_ids = [t["id"] for t in data]
     assert tag1_id in tag_ids
     assert tag2_id in tag_ids
-

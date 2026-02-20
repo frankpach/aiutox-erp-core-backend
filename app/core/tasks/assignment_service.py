@@ -40,8 +40,7 @@ class AssignmentService:
         """
         # Create assignment with audit fields
         assignment = self.repository.create_assignment(
-            assignment_data.model_dump(),
-            created_by_id=created_by_id
+            assignment_data.model_dump(), created_by_id=created_by_id
         )
 
         # Log audit event
@@ -93,7 +92,7 @@ class AssignmentService:
             assignment_id=assignment_id,
             tenant_id=tenant_id,
             assignment_data=assignment_data,
-            updated_by_id=updated_by_id
+            updated_by_id=updated_by_id,
         )
 
         if not updated_assignment:
@@ -173,7 +172,10 @@ class AssignmentService:
             List of assignment responses
         """
         assignments = self.repository.get_assignments_by_task(task_id, tenant_id)
-        return [TaskAssignmentResponse.model_validate(assignment) for assignment in assignments]
+        return [
+            TaskAssignmentResponse.model_validate(assignment)
+            for assignment in assignments
+        ]
 
     def get_assignments_by_user(
         self, user_id: UUID, tenant_id: UUID
@@ -189,7 +191,10 @@ class AssignmentService:
             List of assignment responses
         """
         assignments = self.repository.get_assignments_by_user(user_id, tenant_id)
-        return [TaskAssignmentResponse.model_validate(assignment) for assignment in assignments]
+        return [
+            TaskAssignmentResponse.model_validate(assignment)
+            for assignment in assignments
+        ]
 
     def _log_assignment_event(
         self,
@@ -220,14 +225,32 @@ class AssignmentService:
         return {
             "id": str(assignment.id),
             "task_id": str(assignment.task_id),
-            "assigned_to_id": str(assignment.assigned_to_id) if assignment.assigned_to_id else None,
-            "assigned_to_group_id": str(assignment.assigned_to_group_id) if assignment.assigned_to_group_id else None,
-            "assigned_by_id": str(assignment.assigned_by_id) if assignment.assigned_by_id else None,
+            "assigned_to_id": (
+                str(assignment.assigned_to_id) if assignment.assigned_to_id else None
+            ),
+            "assigned_to_group_id": (
+                str(assignment.assigned_to_group_id)
+                if assignment.assigned_to_group_id
+                else None
+            ),
+            "assigned_by_id": (
+                str(assignment.assigned_by_id) if assignment.assigned_by_id else None
+            ),
             "role": assignment.role,
             "notes": assignment.notes,
-            "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
-            "created_by_id": str(assignment.created_by_id) if assignment.created_by_id else None,
-            "updated_by_id": str(assignment.updated_by_id) if assignment.updated_by_id else None,
-            "created_at": assignment.created_at.isoformat() if assignment.created_at else None,
-            "updated_at": assignment.updated_at.isoformat() if assignment.updated_at else None,
+            "assigned_at": (
+                assignment.assigned_at.isoformat() if assignment.assigned_at else None
+            ),
+            "created_by_id": (
+                str(assignment.created_by_id) if assignment.created_by_id else None
+            ),
+            "updated_by_id": (
+                str(assignment.updated_by_id) if assignment.updated_by_id else None
+            ),
+            "created_at": (
+                assignment.created_at.isoformat() if assignment.created_at else None
+            ),
+            "updated_at": (
+                assignment.updated_at.isoformat() if assignment.updated_at else None
+            ),
         }

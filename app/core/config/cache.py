@@ -298,21 +298,3 @@ def get_config_cache(enabled: bool = True, ttl: int = 300) -> ConfigCache:
     if _cache_instance is None:
         _cache_instance = ConfigCache(enabled=enabled, ttl=ttl)
     return _cache_instance
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

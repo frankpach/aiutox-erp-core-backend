@@ -28,7 +28,7 @@ def require_permission(permission: str) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
             # Extract current_user from kwargs (FastAPI dependency injection)
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user:
                 raise APIException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,7 +65,7 @@ def require_ownership(resource_id_param: str = "task_id") -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user:
                 raise APIException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -84,6 +84,7 @@ def require_ownership(resource_id_param: str = "task_id") -> Callable:
 
             # Check ownership or admin
             from app.core.auth.permissions import is_owner_or_admin
+
             if not is_owner_or_admin(current_user, resource_id):
                 raise APIException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -109,7 +110,7 @@ def validate_tenant_access() -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user or not current_user.tenant_id:
                 raise APIException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

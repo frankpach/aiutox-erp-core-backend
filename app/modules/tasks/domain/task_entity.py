@@ -10,6 +10,7 @@ from app.core.exceptions import BusinessRuleException
 
 class TaskStatus(str, Enum):
     """Estados válidos para una tarea."""
+
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     DONE = "done"
@@ -18,6 +19,7 @@ class TaskStatus(str, Enum):
 
 class TaskPriority(str, Enum):
     """Prioridades válidas para una tarea."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -26,6 +28,7 @@ class TaskPriority(str, Enum):
 
 class TaskType(str, Enum):
     """Tipos de tareas."""
+
     TASK = "task"
     BUG = "bug"
     FEATURE = "feature"
@@ -99,14 +102,20 @@ class Task:
             raise BusinessRuleException("El título no puede exceder 200 caracteres")
 
         if self.description and len(self.description) > 2000:
-            raise BusinessRuleException("La descripción no puede exceder 2000 caracteres")
+            raise BusinessRuleException(
+                "La descripción no puede exceder 2000 caracteres"
+            )
 
         # Validar fechas
         if self.start_at and self.end_at and self.start_at > self.end_at:
-            raise BusinessRuleException("La fecha de inicio no puede ser posterior a la fecha de fin")
+            raise BusinessRuleException(
+                "La fecha de inicio no puede ser posterior a la fecha de fin"
+            )
 
         if self.due_date and self.start_at and self.due_date < self.start_at:
-            raise BusinessRuleException("La fecha de vencimiento no puede ser anterior a la fecha de inicio")
+            raise BusinessRuleException(
+                "La fecha de vencimiento no puede ser anterior a la fecha de inicio"
+            )
 
         # Validar duración estimada
         if self.estimated_duration is not None and self.estimated_duration <= 0:
@@ -114,18 +123,25 @@ class Task:
 
         # Validar formato de color
         if self.color_override and not self._is_valid_color(self.color_override):
-            raise BusinessRuleException("El color debe estar en formato hexadecimal (#RRGGBB)")
+            raise BusinessRuleException(
+                "El color debe estar en formato hexadecimal (#RRGGBB)"
+            )
 
     def _is_valid_color(self, color: str) -> bool:
         """Validar formato de color hexadecimal."""
         import re
+
         return bool(re.match(r"^#[0-9A-Fa-f]{6}$", color))
 
     def can_transition_to(self, new_status: TaskStatus) -> bool:
         """Verificar si la transición de estado es válida."""
         valid_transitions = {
             TaskStatus.TODO: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
-            TaskStatus.IN_PROGRESS: [TaskStatus.DONE, TaskStatus.TODO, TaskStatus.CANCELLED],
+            TaskStatus.IN_PROGRESS: [
+                TaskStatus.DONE,
+                TaskStatus.TODO,
+                TaskStatus.CANCELLED,
+            ],
             TaskStatus.DONE: [TaskStatus.IN_PROGRESS, TaskStatus.TODO],
             TaskStatus.CANCELLED: [TaskStatus.TODO],
         }
@@ -147,12 +163,14 @@ class Task:
         if "status_history" not in self.metadata:
             self.metadata["status_history"] = []
 
-        self.metadata["status_history"].append({
-            "from": old_status.value,
-            "to": new_status.value,
-            "timestamp": datetime.utcnow().isoformat(),
-            "user_id": str(user_id),
-        })
+        self.metadata["status_history"].append(
+            {
+                "from": old_status.value,
+                "to": new_status.value,
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_id": str(user_id),
+            }
+        )
 
     def assign_to(self, user_id: UUID, assigned_by: UUID) -> None:
         """Asignar tarea a usuario."""
@@ -167,12 +185,14 @@ class Task:
         if "assignment_history" not in self.metadata:
             self.metadata["assignment_history"] = []
 
-        self.metadata["assignment_history"].append({
-            "from": str(old_assignee) if old_assignee else None,
-            "to": str(user_id),
-            "assigned_by": str(assigned_by),
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        self.metadata["assignment_history"].append(
+            {
+                "from": str(old_assignee) if old_assignee else None,
+                "to": str(user_id),
+                "assigned_by": str(assigned_by),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
     def unassign(self, unassigned_by: UUID) -> None:
         """Desasignar tarea."""
@@ -187,12 +207,14 @@ class Task:
         if "assignment_history" not in self.metadata:
             self.metadata["assignment_history"] = []
 
-        self.metadata["assignment_history"].append({
-            "from": str(old_assignee),
-            "to": None,
-            "assigned_by": str(unassigned_by),
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        self.metadata["assignment_history"].append(
+            {
+                "from": str(old_assignee),
+                "to": None,
+                "assigned_by": str(unassigned_by),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
     def is_overdue(self) -> bool:
         """Verificar si la tarea está vencida."""
@@ -207,6 +229,7 @@ class Task:
             return False
 
         from datetime import timedelta
+
         threshold = datetime.utcnow() + timedelta(hours=hours_ahead)
         return datetime.utcnow() < self.due_date <= threshold
 
@@ -278,19 +301,25 @@ class Task:
         if "change_history" not in self.metadata:
             self.metadata["change_history"] = []
 
-        self.metadata["change_history"].append({
-            "changed_by": str(updated_by),
-            "timestamp": datetime.utcnow().isoformat(),
-            "changes": [
-                {
-                    "field": field,
-                    "old_value": str(original_values[field]) if field in original_values else None,
-                    "new_value": str(value) if value is not None else None,
-                }
-                for field, value in updates.items()
-                if field in original_values
-            ],
-        })
+        self.metadata["change_history"].append(
+            {
+                "changed_by": str(updated_by),
+                "timestamp": datetime.utcnow().isoformat(),
+                "changes": [
+                    {
+                        "field": field,
+                        "old_value": (
+                            str(original_values[field])
+                            if field in original_values
+                            else None
+                        ),
+                        "new_value": str(value) if value is not None else None,
+                    }
+                    for field, value in updates.items()
+                    if field in original_values
+                ],
+            }
+        )
 
     def add_tag(self, tag_name: str) -> None:
         """Agregar etiqueta a la tarea."""
@@ -339,10 +368,12 @@ class Task:
         if "completion_info" not in self.metadata:
             self.metadata["completion_info"] = {}
 
-        self.metadata["completion_info"].update({
-            "completed_at": datetime.utcnow().isoformat(),
-            "completed_by": str(completed_by),
-        })
+        self.metadata["completion_info"].update(
+            {
+                "completed_at": datetime.utcnow().isoformat(),
+                "completed_by": str(completed_by),
+            }
+        )
 
     def is_completed(self) -> bool:
         """Verificar si la tarea está completada."""
@@ -379,7 +410,9 @@ class Task:
             "estimated_duration": self.estimated_duration,
             "category": self.category,
             "related_entity_type": self.related_entity_type,
-            "related_entity_id": str(self.related_entity_id) if self.related_entity_id else None,
+            "related_entity_id": (
+                str(self.related_entity_id) if self.related_entity_id else None
+            ),
             "source_module": self.source_module,
             "source_id": str(self.source_id) if self.source_id else None,
             "source_context": self.source_context,
@@ -399,7 +432,14 @@ class Task:
             data["priority"] = TaskPriority(data["priority"])
 
         # Convertir strings UUID a objetos UUID
-        uuid_fields = ["id", "tenant_id", "created_by_id", "assigned_to_id", "related_entity_id", "source_id"]
+        uuid_fields = [
+            "id",
+            "tenant_id",
+            "created_by_id",
+            "assigned_to_id",
+            "related_entity_id",
+            "source_id",
+        ]
         for field in uuid_fields:
             if field in data and data[field] is not None:
                 data[field] = UUID(data[field])

@@ -18,7 +18,9 @@ settings = get_settings()
 
 def get_redis_client() -> RedisStreamsClient:
     """Dependency to get Redis client."""
-    return RedisStreamsClient(redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD)
+    return RedisStreamsClient(
+        redis_url=settings.REDIS_URL, password=settings.REDIS_PASSWORD
+    )
 
 
 @router.get(
@@ -60,7 +62,9 @@ async def get_stats(
                         for group in groups:
                             group_name = group.get("name", "unknown")
                             try:
-                                group_info = await redis_client.get_group_info(stream_name, group_name)
+                                group_info = await redis_client.get_group_info(
+                                    stream_name, group_name
+                                )
                                 pending = await redis_client.get_pending_messages(
                                     stream_name, group_name, count=100
                                 )
@@ -69,7 +73,9 @@ async def get_stats(
                                         "name": group_name,
                                         "consumers": group_info.get("consumers", 0),
                                         "pending": group_info.get("pending", 0),
-                                        "last_delivered_id": group_info.get("last-delivered-id", "0-0"),
+                                        "last_delivered_id": group_info.get(
+                                            "last-delivered-id", "0-0"
+                                        ),
                                         "pending_messages_count": len(pending),
                                     }
                                 )
@@ -122,7 +128,9 @@ async def get_stats(
 async def list_failed_events(
     current_user: Annotated[User, Depends(require_permission("pubsub.view"))],
     redis_client: Annotated[RedisStreamsClient, Depends(get_redis_client)],
-    limit: int = Query(default=50, ge=1, le=100, description="Maximum number of events to return"),
+    limit: int = Query(
+        default=50, ge=1, le=100, description="Maximum number of events to return"
+    ),
     offset: int = Query(default=0, ge=0, description="Offset for pagination"),
 ) -> StandardListResponse[dict[str, Any]]:
     """List failed events from the failed stream."""
@@ -225,7 +233,13 @@ async def reprocess_failed_event(
             reprocess_data = {
                 k: v
                 for k, v in event_data.items()
-                if k not in ["original_stream", "original_message_id", "error_info", "failed_at"]
+                if k
+                not in [
+                    "original_stream",
+                    "original_message_id",
+                    "error_info",
+                    "failed_at",
+                ]
             }
 
             # Add back to original stream
@@ -281,7 +295,9 @@ async def get_stream_info(
                 for group in groups_data:
                     group_name = group.get("name", "unknown")
                     try:
-                        group_info = await redis_client.get_group_info(stream_name, group_name)
+                        group_info = await redis_client.get_group_info(
+                            stream_name, group_name
+                        )
                         groups.append(dict(group_info))
                     except PubSubError:
                         pass
@@ -329,11 +345,15 @@ async def get_pending_messages(
     group_name: str,
     current_user: Annotated[User, Depends(require_permission("pubsub.view"))],
     redis_client: Annotated[RedisStreamsClient, Depends(get_redis_client)],
-    count: int = Query(default=10, ge=1, le=100, description="Maximum number of messages to return"),
+    count: int = Query(
+        default=10, ge=1, le=100, description="Maximum number of messages to return"
+    ),
 ) -> StandardListResponse[dict[str, Any]]:
     """Get pending messages for a consumer group."""
     try:
-        pending = await redis_client.get_pending_messages(stream_name, group_name, count=count)
+        pending = await redis_client.get_pending_messages(
+            stream_name, group_name, count=count
+        )
 
         return StandardListResponse(
             data=pending,
@@ -357,10 +377,3 @@ async def get_pending_messages(
             code="PUBSUB_PENDING_ERROR",
             message=f"Failed to retrieve pending messages: {str(e)}",
         ) from e
-
-
-
-
-
-
-

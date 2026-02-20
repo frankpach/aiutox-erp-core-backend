@@ -42,11 +42,7 @@ class PermissionService:
         Returns:
             List of role strings (e.g., ["admin", "manager"]).
         """
-        roles = (
-            self.db.query(UserRole)
-            .filter(UserRole.user_id == user_id)
-            .all()
-        )
+        roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
         return [role.role for role in roles]
 
     def get_role_permissions(self, role: str) -> set[str]:
@@ -72,11 +68,7 @@ class PermissionService:
         Returns:
             List of ModuleRole objects.
         """
-        return (
-            self.db.query(ModuleRole)
-            .filter(ModuleRole.user_id == user_id)
-            .all()
-        )
+        return self.db.query(ModuleRole).filter(ModuleRole.user_id == user_id).all()
 
     def get_module_role_permissions(self, module: str, role_name: str) -> set[str]:
         """
@@ -142,7 +134,9 @@ class PermissionService:
 
         return permissions
 
-    def get_user_delegated_permissions(self, user_id: UUID) -> list[DelegatedPermission]:
+    def get_user_delegated_permissions(
+        self, user_id: UUID
+    ) -> list[DelegatedPermission]:
         """
         Get all active delegated permissions for a user.
 
@@ -305,9 +299,8 @@ class PermissionService:
 
         # Validación: revoked_by debe ser quien otorgó el permiso O tener auth.manage_users
         revoked_by_permissions = self.get_effective_permissions(revoked_by)
-        can_revoke = (
-            permission.granted_by == revoked_by
-            or has_permission(revoked_by_permissions, "auth.manage_users")
+        can_revoke = permission.granted_by == revoked_by or has_permission(
+            revoked_by_permissions, "auth.manage_users"
         )
 
         if not can_revoke:
@@ -426,4 +419,3 @@ class PermissionService:
             )
 
         return revoked_count
-

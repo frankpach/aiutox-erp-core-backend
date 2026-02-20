@@ -21,7 +21,7 @@ async def liveness():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "aiutox-backend"
+        "service": "aiutox-backend",
     }
 
 
@@ -38,11 +38,7 @@ async def readiness(db: Session = Depends(get_db)):
     Returns:
         Status detallado de todos los componentes
     """
-    checks = {
-        "database": "unknown",
-        "redis": "unknown",
-        "scheduler": "unknown"
-    }
+    checks = {"database": "unknown", "redis": "unknown", "scheduler": "unknown"}
 
     # Check database
     try:
@@ -54,6 +50,7 @@ async def readiness(db: Session = Depends(get_db)):
     # Check Redis
     try:
         from app.core.redis import get_redis_client
+
         redis_client = get_redis_client()
         await redis_client.ping()
         checks["redis"] = "healthy"
@@ -63,23 +60,20 @@ async def readiness(db: Session = Depends(get_db)):
     # Check TaskScheduler
     try:
         from app.core.tasks.scheduler import get_task_scheduler
+
         scheduler = await get_task_scheduler()
         checks["scheduler"] = "healthy" if scheduler.scheduler.running else "stopped"
     except Exception as e:
         checks["scheduler"] = f"unhealthy: {str(e)}"
 
     # Determinar status general
-    all_healthy = all(
-        status_value == "healthy"
-        for status_value in checks.values()
-    )
-
+    all_healthy = all(status_value == "healthy" for status_value in checks.values())
 
     return StandardResponse(
         data={
             "status": "healthy" if all_healthy else "unhealthy",
             "checks": checks,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
     )
 
@@ -94,16 +88,17 @@ async def metrics_summary():
     """
     try:
         from app.monitoring.task_metrics import get_task_metrics
+
         metrics = get_task_metrics()
 
         return {
             "status": "healthy",
             "prometheus_available": metrics.prometheus_available,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }

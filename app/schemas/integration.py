@@ -12,7 +12,9 @@ class IntegrationBase(BaseModel):
 
     name: str = Field(..., description="Integration name", max_length=255)
     type: str = Field(..., description="Integration type", max_length=50)
-    config: dict[str, Any] = Field(..., description="Integration configuration (credentials, settings)")
+    config: dict[str, Any] = Field(
+        ..., description="Integration configuration (credentials, settings)"
+    )
 
 
 class IntegrationCreate(IntegrationBase):
@@ -26,7 +28,9 @@ class WebhookCreate(BaseModel):
 
     name: str = Field(..., description="Webhook name", max_length=255)
     url: str = Field(..., description="Webhook URL", max_length=500)
-    event_type: str = Field(..., description="Event type (e.g., 'product.created')", max_length=100)
+    event_type: str = Field(
+        ..., description="Event type (e.g., 'product.created')", max_length=100
+    )
 
 
 class WebhookResponse(BaseModel):

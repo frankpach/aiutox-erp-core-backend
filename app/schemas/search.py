@@ -11,7 +11,9 @@ class SearchRequest(BaseModel):
 
     query: str = Field(..., description="Search query", min_length=1)
     entity_types: list[str] | None = Field(None, description="Filter by entity types")
-    limit: int = Field(default=50, ge=1, le=100, description="Maximum number of results")
+    limit: int = Field(
+        default=50, ge=1, le=100, description="Maximum number of results"
+    )
 
 
 class SearchResult(BaseModel):
@@ -31,7 +33,9 @@ class SearchResponse(BaseModel):
 
     query: str = Field(..., description="Search query")
     total: int = Field(..., description="Total number of results")
-    results: dict[str, list[SearchResult]] = Field(..., description="Results grouped by entity type")
+    results: dict[str, list[SearchResult]] = Field(
+        ..., description="Results grouped by entity type"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -54,11 +58,3 @@ class IndexEntityRequest(BaseModel):
     title: str = Field(..., description="Entity title", max_length=255)
     content: str | None = Field(None, description="Entity content")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
-
-
-
-
-
-
-
-

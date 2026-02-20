@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 # TASKS
 # ============================================
 
+
 class TaskEventPayload(BaseModel):
     """Payload genérico para eventos de tareas"""
+
     task_id: UUID
     tenant_id: UUID
     event_type: str
@@ -25,6 +27,7 @@ class TaskEventPayload(BaseModel):
 
 class TaskCreatedPayload(BaseModel):
     """Payload para evento tasks.created"""
+
     task_id: UUID
     tenant_id: UUID
     title: str
@@ -41,6 +44,7 @@ class TaskCreatedPayload(BaseModel):
 
 class TaskUpdatedPayload(BaseModel):
     """Payload para evento tasks.updated"""
+
     task_id: UUID
     tenant_id: UUID
     changes: dict[str, Any]
@@ -49,6 +53,7 @@ class TaskUpdatedPayload(BaseModel):
 
 class TaskMovedPayload(BaseModel):
     """Payload para evento tasks.moved (Board)"""
+
     task_id: UUID
     tenant_id: UUID
     old_status_id: UUID | None
@@ -60,6 +65,7 @@ class TaskMovedPayload(BaseModel):
 
 class TaskCreateRequestPayload(BaseModel):
     """Payload para solicitud de creación de tarea desde otro módulo"""
+
     title: str
     description: str | None = None
     priority: str = "medium"
@@ -76,6 +82,7 @@ class TaskCreateRequestPayload(BaseModel):
 
 class TaskDependencyCreatedPayload(BaseModel):
     """Payload para evento task_dependency.created"""
+
     parent_task_id: UUID
     child_task_id: UUID
     dependency_type: str
@@ -86,8 +93,10 @@ class TaskDependencyCreatedPayload(BaseModel):
 # CALENDAR
 # ============================================
 
+
 class CalendarEventCreatedPayload(BaseModel):
     """Payload para evento calendar.event.created"""
+
     event_id: UUID
     tenant_id: UUID
     calendar_id: UUID
@@ -102,6 +111,7 @@ class CalendarEventCreatedPayload(BaseModel):
 
 class CalendarEventUpdatedPayload(BaseModel):
     """Payload para evento calendar.event.updated"""
+
     event_id: UUID
     tenant_id: UUID
     changes: dict[str, Any]
@@ -110,6 +120,7 @@ class CalendarEventUpdatedPayload(BaseModel):
 
 class CalendarSharedPayload(BaseModel):
     """Payload para evento calendar.shared"""
+
     calendar_id: UUID
     tenant_id: UUID
     shared_with_user_id: UUID | None = None
@@ -122,8 +133,10 @@ class CalendarSharedPayload(BaseModel):
 # NOTIFICATIONS
 # ============================================
 
+
 class NotificationSendPayload(BaseModel):
     """Payload para envío de notificaciones"""
+
     user_id: UUID
     title: str
     message: str
@@ -137,8 +150,10 @@ class NotificationSendPayload(BaseModel):
 # APPROVALS
 # ============================================
 
+
 class ApprovalStatusChangedPayload(BaseModel):
     """Payload para evento approvals.status_changed"""
+
     approval_id: UUID
     tenant_id: UUID
     status: str
@@ -151,8 +166,10 @@ class ApprovalStatusChangedPayload(BaseModel):
 # WORKFLOWS
 # ============================================
 
+
 class WorkflowStepCompletedPayload(BaseModel):
     """Payload para evento workflows.step_completed"""
+
     workflow_id: UUID
     step_id: UUID
     tenant_id: UUID
@@ -164,8 +181,10 @@ class WorkflowStepCompletedPayload(BaseModel):
 # SCHEDULER
 # ============================================
 
+
 class SchedulerEventScheduledPayload(BaseModel):
     """Payload para evento scheduler.event_scheduled"""
+
     event_id: UUID
     resource_id: UUID
     tenant_id: UUID
@@ -178,8 +197,10 @@ class SchedulerEventScheduledPayload(BaseModel):
 # AUTOMATION
 # ============================================
 
+
 class AutomationTriggeredPayload(BaseModel):
     """Payload para evento automation.triggered"""
+
     automation_id: UUID
     tenant_id: UUID
     trigger_type: str

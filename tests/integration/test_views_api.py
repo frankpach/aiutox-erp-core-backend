@@ -1,6 +1,5 @@
 """Integration tests for Views API endpoints."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -64,11 +63,3 @@ def test_create_custom_view(client_with_db, test_user, auth_headers, db_session)
     assert data["name"] == "Test View"
     assert data["module"] == "products"
     assert "id" in data
-
-
-
-
-
-
-
-

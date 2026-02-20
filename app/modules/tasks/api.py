@@ -32,9 +32,11 @@ logger = logging.getLogger(__name__)
 # Main router
 router = APIRouter()
 
+
 def get_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
     """Dependency to get TaskService."""
     return TaskService(db)
+
 
 # Include all modular routers
 router.include_router(tasks_status.router, tags=["tasks-status"])
@@ -92,33 +94,66 @@ def _build_task_settings(settings: dict) -> TaskModuleSettings:
         inbox_enabled=settings.get(TASK_SETTINGS_KEYS["inbox_enabled"], False),
         list_enabled=settings.get(TASK_SETTINGS_KEYS["list_enabled"], False),
         gantt_enabled=settings.get(TASK_SETTINGS_KEYS["gantt_enabled"], False),
-        calendar_auto_sync=settings.get(TASK_SETTINGS_KEYS["calendar_auto_sync"], False),
+        calendar_auto_sync=settings.get(
+            TASK_SETTINGS_KEYS["calendar_auto_sync"], False
+        ),
         default_priority=settings.get(TASK_SETTINGS_KEYS["default_priority"], "medium"),
         default_status=settings.get(TASK_SETTINGS_KEYS["default_status"], "todo"),
-        task_auto_numbering=settings.get(TASK_SETTINGS_KEYS["task_auto_numbering"], False),
-        task_number_prefix=settings.get(TASK_SETTINGS_KEYS["task_number_prefix"], "TASK-"),
-        task_number_separator=settings.get(TASK_SETTINGS_KEYS["task_number_separator"], "-"),
-        allow_task_dependencies=settings.get(TASK_SETTINGS_KEYS["allow_task_dependencies"], True),
-        require_dependency_resolution=settings.get(TASK_SETTINGS_KEYS["require_dependency_resolution"], False),
+        task_auto_numbering=settings.get(
+            TASK_SETTINGS_KEYS["task_auto_numbering"], False
+        ),
+        task_number_prefix=settings.get(
+            TASK_SETTINGS_KEYS["task_number_prefix"], "TASK-"
+        ),
+        task_number_separator=settings.get(
+            TASK_SETTINGS_KEYS["task_number_separator"], "-"
+        ),
+        allow_task_dependencies=settings.get(
+            TASK_SETTINGS_KEYS["allow_task_dependencies"], True
+        ),
+        require_dependency_resolution=settings.get(
+            TASK_SETTINGS_KEYS["require_dependency_resolution"], False
+        ),
         max_task_depth=settings.get(TASK_SETTINGS_KEYS["max_task_depth"], 5),
-        enable_task_templates=settings.get(TASK_SETTINGS_KEYS["enable_task_templates"], False),
-        default_task_duration=settings.get(TASK_SETTINGS_KEYS["default_task_duration"], 60),
-        enable_task_reminders=settings.get(TASK_SETTINGS_KEYS["enable_task_reminders"], True),
-        default_reminder_time=settings.get(TASK_SETTINGS_KEYS["default_reminder_time"], 15),
-        enable_task_comments=settings.get(TASK_SETTINGS_KEYS["enable_task_comments"], True),
+        enable_task_templates=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_templates"], False
+        ),
+        default_task_duration=settings.get(
+            TASK_SETTINGS_KEYS["default_task_duration"], 60
+        ),
+        enable_task_reminders=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_reminders"], True
+        ),
+        default_reminder_time=settings.get(
+            TASK_SETTINGS_KEYS["default_reminder_time"], 15
+        ),
+        enable_task_comments=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_comments"], True
+        ),
         enable_task_files=settings.get(TASK_SETTINGS_KEYS["enable_task_files"], True),
-        max_file_size=settings.get(TASK_SETTINGS_KEYS["max_file_size"], 10485760),  # 10MB
-        allowed_file_types=settings.get(TASK_SETTINGS_KEYS["allowed_file_types"], [".pdf", ".doc", ".docx", ".txt", ".jpg", ".png"]),
+        max_file_size=settings.get(
+            TASK_SETTINGS_KEYS["max_file_size"], 10485760
+        ),  # 10MB
+        allowed_file_types=settings.get(
+            TASK_SETTINGS_KEYS["allowed_file_types"],
+            [".pdf", ".doc", ".docx", ".txt", ".jpg", ".png"],
+        ),
         enable_task_tags=settings.get(TASK_SETTINGS_KEYS["enable_task_tags"], True),
         max_tags_per_task=settings.get(TASK_SETTINGS_KEYS["max_tags_per_task"], 10),
-        enable_task_checklist=settings.get(TASK_SETTINGS_KEYS["enable_task_checklist"], True),
+        enable_task_checklist=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_checklist"], True
+        ),
         max_checklist_items=settings.get(TASK_SETTINGS_KEYS["max_checklist_items"], 20),
-        enable_task_assignments=settings.get(TASK_SETTINGS_KEYS["enable_task_assignments"], True),
-        max_assignees_per_task=settings.get(TASK_SETTINGS_KEYS["max_assignees_per_task"], 5),
-        enable_task_history=settings.get(TASK_SETTINGS_KEYS["enable_task_history"], True),
-        history_retention_days=settings.get(TASK_SETTINGS_KEYS["history_retention_days"], 90),
+        enable_task_assignments=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_assignments"], True
+        ),
+        max_assignees_per_task=settings.get(
+            TASK_SETTINGS_KEYS["max_assignees_per_task"], 5
+        ),
+        enable_task_history=settings.get(
+            TASK_SETTINGS_KEYS["enable_task_history"], True
+        ),
+        history_retention_days=settings.get(
+            TASK_SETTINGS_KEYS["history_retention_days"], 90
+        ),
     )
-
-
-
-

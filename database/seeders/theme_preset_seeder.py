@@ -118,14 +118,3 @@ class ThemePresetSeeder(Seeder):
                     user_agent=None,
                 )
                 db.commit()
-
-
-
-
-
-
-
-
-
-
-

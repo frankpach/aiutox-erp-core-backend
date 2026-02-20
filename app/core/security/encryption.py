@@ -33,9 +33,7 @@ def get_encryption_key(tenant_id: UUID) -> bytes:
 
     # Derive key using HMAC-SHA256
     key_hash = hmac.new(
-        secret_key.encode(),
-        tenant_secret.encode(),
-        hashlib.sha256
+        secret_key.encode(), tenant_secret.encode(), hashlib.sha256
     ).digest()
 
     # Fernet requires a URL-safe base64-encoded 32-byte key
@@ -64,8 +62,8 @@ def encrypt_credentials(data: str, tenant_id: UUID) -> str:
     try:
         key = get_encryption_key(tenant_id)
         fernet = Fernet(key)
-        encrypted = fernet.encrypt(data.encode('utf-8'))
-        return encrypted.decode('utf-8')
+        encrypted = fernet.encrypt(data.encode("utf-8"))
+        return encrypted.decode("utf-8")
     except Exception as e:
         raise ValueError(f"Failed to encrypt credentials: {str(e)}") from e
 
@@ -91,20 +89,9 @@ def decrypt_credentials(encrypted_data: str, tenant_id: UUID) -> str:
     try:
         key = get_encryption_key(tenant_id)
         fernet = Fernet(key)
-        decrypted = fernet.decrypt(encrypted_data.encode('utf-8'))
-        return decrypted.decode('utf-8')
+        decrypted = fernet.decrypt(encrypted_data.encode("utf-8"))
+        return decrypted.decode("utf-8")
     except InvalidToken:
         raise ValueError("Invalid encrypted data or wrong tenant key") from None
     except Exception as e:
         raise ValueError(f"Failed to decrypt credentials: {str(e)}") from e
-
-
-
-
-
-
-
-
-
-
-

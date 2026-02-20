@@ -127,13 +127,3 @@ class ViewsService:
                     "is_default": view.is_default,
                 }
         return None
-
-
-
-
-
-
-
-
-
-

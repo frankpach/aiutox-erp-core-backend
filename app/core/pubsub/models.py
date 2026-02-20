@@ -11,9 +11,13 @@ from pydantic import BaseModel, Field, field_validator
 class EventMetadata(BaseModel):
     """Metadata for an event."""
 
-    source: str = Field(..., description="Source service/module (e.g., 'product_service')")
+    source: str = Field(
+        ..., description="Source service/module (e.g., 'product_service')"
+    )
     version: str = Field(default="1.0", description="Version of the event schema")
-    additional_data: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    additional_data: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
 
 class Event(BaseModel):
@@ -69,7 +73,7 @@ class Event(BaseModel):
             if isinstance(data, (list, tuple)):
                 data = dict(data)
             else:
-                data = dict(data) if hasattr(data, 'items') else {}
+                data = dict(data) if hasattr(data, "items") else {}
 
         # Parse additional_data if it's a string representation
         additional_data = {}
@@ -102,7 +106,11 @@ class Event(BaseModel):
             entity_type=data["entity_type"],
             entity_id=UUID(data["entity_id"]),
             tenant_id=UUID(data["tenant_id"]),
-            user_id=UUID(data["user_id"]) if data.get("user_id") and data["user_id"] else None,
+            user_id=(
+                UUID(data["user_id"])
+                if data.get("user_id") and data["user_id"]
+                else None
+            ),
             timestamp=datetime.fromisoformat(data["timestamp"]),
             metadata=EventMetadata(
                 source=metadata_source,
@@ -110,13 +118,3 @@ class Event(BaseModel):
                 additional_data=additional_data,
             ),
         )
-
-
-
-
-
-
-
-
-
-

@@ -234,7 +234,9 @@ class TestAuditRepository:
         assert total >= 1
         assert all(log.action == "recent_action" for log in logs if log.action)
 
-    def test_get_audit_logs_with_ip_address_filter(self, db_session, test_user, test_tenant):
+    def test_get_audit_logs_with_ip_address_filter(
+        self, db_session, test_user, test_tenant
+    ):
         """Test getting audit logs filtered by IP address."""
         repo = AuditRepository(db_session)
 
@@ -260,7 +262,9 @@ class TestAuditRepository:
         assert total >= 2  # Should match both IPs
         assert all("192.168.1" in (log.ip_address or "") for log in logs)
 
-    def test_get_audit_logs_with_user_agent_filter(self, db_session, test_user, test_tenant):
+    def test_get_audit_logs_with_user_agent_filter(
+        self, db_session, test_user, test_tenant
+    ):
         """Test getting audit logs filtered by user agent."""
         repo = AuditRepository(db_session)
 
@@ -279,14 +283,14 @@ class TestAuditRepository:
         )
 
         # Filter by user agent (partial match)
-        logs, total = repo.get_audit_logs(
-            tenant_id=test_tenant.id, user_agent="Chrome"
-        )
+        logs, total = repo.get_audit_logs(tenant_id=test_tenant.id, user_agent="Chrome")
 
         assert total >= 1
         assert all("Chrome" in (log.user_agent or "") for log in logs)
 
-    def test_get_audit_logs_with_details_search(self, db_session, test_user, test_tenant):
+    def test_get_audit_logs_with_details_search(
+        self, db_session, test_user, test_tenant
+    ):
         """Test getting audit logs filtered by details search."""
         repo = AuditRepository(db_session)
 
@@ -324,9 +328,7 @@ class TestAuditRepository:
         from app.models.tenant import Tenant
 
         # Create another tenant
-        other_tenant = Tenant(
-            name="Other Tenant", slug=f"other-{uuid4().hex[:8]}"
-        )
+        other_tenant = Tenant(name="Other Tenant", slug=f"other-{uuid4().hex[:8]}")
         db_session.add(other_tenant)
         db_session.commit()
         db_session.refresh(other_tenant)
@@ -348,16 +350,3 @@ class TestAuditRepository:
 
         assert all(log.tenant_id == test_tenant.id for log in logs)
         assert all(log.action != "action2" for log in logs)
-
-
-
-
-
-
-
-
-
-
-
-
-

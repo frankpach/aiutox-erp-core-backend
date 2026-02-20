@@ -102,4 +102,3 @@ def safe_publish_event(
     except Exception as e:
         # Log warning but don't fail - events are fire-and-forget
         logger.debug(f"Failed to publish {event_type} event: {e}")
-

@@ -36,9 +36,13 @@ class UserCalendarPreferences(Base):
     )
 
     # Sync settings
-    auto_sync_tasks = Column(Boolean, nullable=False, default=False)  # Auto-sync tasks to calendar
+    auto_sync_tasks = Column(
+        Boolean, nullable=False, default=False
+    )  # Auto-sync tasks to calendar
     auto_sync_enabled = Column(Boolean, nullable=False, default=False)
-    default_calendar_id = Column(PG_UUID(as_uuid=True), nullable=True)  # Default calendar for synced tasks
+    default_calendar_id = Column(
+        PG_UUID(as_uuid=True), nullable=True
+    )  # Default calendar for synced tasks
     default_calendar_provider = Column(
         String(50), nullable=False, default="internal"
     )  # internal, google, outlook

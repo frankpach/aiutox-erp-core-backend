@@ -13,7 +13,9 @@ class TeamBase(BaseModel):
 
     name: str = Field(..., description="Team name", max_length=255)
     description: str | None = Field(None, description="Team description")
-    parent_team_id: UUID | None = Field(None, description="Parent team ID for hierarchy")
+    parent_team_id: UUID | None = Field(
+        None, description="Parent team ID for hierarchy"
+    )
     color: str | None = Field(None, description="Hex color code", max_length=7)
     is_active: bool = Field(default=True, description="Whether team is active")
 
@@ -50,7 +52,9 @@ class TeamMemberBase(BaseModel):
 
     team_id: UUID = Field(..., description="Team ID")
     user_id: UUID = Field(..., description="User ID")
-    role: str | None = Field(None, description="Member role (e.g., 'member', 'leader', 'admin')")
+    role: str | None = Field(
+        None, description="Member role (e.g., 'member', 'leader', 'admin')"
+    )
 
 
 class TeamMemberCreate(TeamMemberBase):

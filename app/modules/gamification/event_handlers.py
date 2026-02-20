@@ -102,8 +102,7 @@ class GamificationEventHandler:
             self.leaderboard_service.update_user_score(user_id, "all_time")
 
             logger.info(
-                f"task.completed: user={user_id}, task={task_id}, "
-                f"points={points}"
+                f"task.completed: user={user_id}, task={task_id}, " f"points={points}"
             )
         except Exception as e:
             logger.error(f"Error handling task.completed: {e}", exc_info=True)

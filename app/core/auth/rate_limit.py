@@ -51,7 +51,9 @@ def create_rate_limit_exception() -> APIException:
 _login_attempts: dict[str, list[datetime]] = defaultdict(list)
 
 
-def check_login_rate_limit(ip_address: str, max_attempts: int = 5, window_minutes: int = 1) -> bool:
+def check_login_rate_limit(
+    ip_address: str, max_attempts: int = 5, window_minutes: int = 1
+) -> bool:
     """
     Check if login rate limit is exceeded for an IP address.
 

@@ -32,6 +32,7 @@ def get_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
     """Dependency to get TaskService."""
     return TaskService(db)
 
+
 TASK_SETTINGS_KEYS = {
     "calendar_enabled": "calendar.enabled",
     "board_enabled": "board.enabled",
@@ -40,7 +41,10 @@ TASK_SETTINGS_KEYS = {
     "stats_enabled": "stats.enabled",
 }
 
-def _build_task_settings(config_service: ConfigService, tenant_id: UUID) -> TaskModuleSettings:
+
+def _build_task_settings(
+    config_service: ConfigService, tenant_id: UUID
+) -> TaskModuleSettings:
     """Build task settings from config service."""
     config = config_service.get_module_config(tenant_id, "tasks")
     return TaskModuleSettings(
@@ -106,7 +110,9 @@ async def list_tasks(
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
     status: str | None = Query(default=None, description="Filter by status"),
     priority: str | None = Query(default=None, description="Filter by priority"),
-    assigned_to_id: UUID | None = Query(default=None, description="Filter by assigned user"),
+    assigned_to_id: UUID | None = Query(
+        default=None, description="Filter by assigned user"
+    ),
 ) -> StandardListResponse[TaskResponse]:
     """List tasks."""
     skip = (page - 1) * page_size
@@ -277,7 +283,9 @@ async def update_task(
 ) -> StandardResponse[TaskResponse]:
     """Update a task."""
     update_dict = task_data.model_dump(exclude_unset=True)
-    task = service.update_task(task_id, current_user.tenant_id, update_dict, current_user.id)
+    task = service.update_task(
+        task_id, current_user.tenant_id, update_dict, current_user.id
+    )
 
     if not task:
         raise APIException(
@@ -306,7 +314,9 @@ async def delete_task(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
     """Delete a task."""
-    deleted = await service.delete_task(task_id, current_user.tenant_id, current_user.id)
+    deleted = await service.delete_task(
+        task_id, current_user.tenant_id, current_user.id
+    )
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,

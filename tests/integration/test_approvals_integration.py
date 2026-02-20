@@ -6,7 +6,9 @@ from uuid import uuid4
 from app.models.module_role import ModuleRole
 
 
-def test_approval_flow_complete_workflow(client_with_db, test_user, auth_headers, db_session):
+def test_approval_flow_complete_workflow(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test complete approval workflow: create flow -> add steps -> create request -> approve."""
     # Assign permissions
     approval_role = ModuleRole(
@@ -103,6 +105,7 @@ def test_approval_delegation(client_with_db, test_user, auth_headers, db_session
 
     # Create flow and request (simplified)
     from app.core.approvals.service import ApprovalService
+
     approval_service = ApprovalService(db_session)
 
     flow = approval_service.create_approval_flow(
@@ -142,6 +145,7 @@ def test_approval_delegation(client_with_db, test_user, auth_headers, db_session
 
     # Create another user for delegation
     from app.models.user import User
+
     delegated_user = User(
         id=uuid4(),
         email="delegated@test.com",
@@ -206,9 +210,3 @@ def test_approval_publishes_events(client_with_db, test_user, auth_headers, db_s
         assert response.status_code == 201
         # Event publishing is done via background task
         assert True  # Background task scheduled
-
-
-
-
-
-

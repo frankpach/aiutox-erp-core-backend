@@ -65,5 +65,5 @@ async def sse_notifications(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )

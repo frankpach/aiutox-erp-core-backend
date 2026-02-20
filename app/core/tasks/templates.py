@@ -101,7 +101,7 @@ class TaskTemplateService:
                 "Enviar convocatoria",
                 "Realizar reunión",
                 "Enviar acta",
-                "Seguimiento de acciones"
+                "Seguimiento de acciones",
             ],
             tags=["reunión", "meeting", "importante"],
             category="meetings",
@@ -121,7 +121,7 @@ class TaskTemplateService:
                 "Implementar solución",
                 "Probar localmente",
                 "Desplegar a staging",
-                "Validar en producción"
+                "Validar en producción",
             ],
             tags=["bug", "técnico", "desarrollo"],
             category="development",
@@ -140,7 +140,7 @@ class TaskTemplateService:
                 "Verificar estructura",
                 "Revisar contenido",
                 "Comentar mejoras",
-                "Aprobar o solicitar cambios"
+                "Aprobar o solicitar cambios",
             ],
             tags=["revisión", "documento", "código"],
             category="reviews",
@@ -160,7 +160,7 @@ class TaskTemplateService:
                 "Analizar fuentes",
                 "Sintetizar hallazgos",
                 "Preparar informe",
-                "Presentar resultados"
+                "Presentar resultados",
             ],
             tags=["investigación", "análisis", "estudio"],
             category="research",
@@ -180,7 +180,7 @@ class TaskTemplateService:
                 "Contactar cliente",
                 "Proponer solución",
                 "Implementar solución",
-                "Verificar satisfacción"
+                "Verificar satisfacción",
             ],
             tags=["soporte", "cliente", "helpdesk"],
             category="support",
@@ -205,7 +205,7 @@ class TaskTemplateService:
         user_id: UUID | None = None,
         category: str | None = None,
         tags: list[str] | None = None,
-        include_public: bool = True
+        include_public: bool = True,
     ) -> list[TaskTemplate]:
         """Get available templates."""
         templates = []
@@ -248,7 +248,7 @@ class TaskTemplateService:
         template_id: str,
         tenant_id: UUID,
         created_by_id: UUID,
-        overrides: dict | None = None
+        overrides: dict | None = None,
     ) -> dict:
         """Create task data from template."""
         template = self.get_template(template_id)
@@ -262,14 +262,13 @@ class TaskTemplateService:
         task_data = template.to_task_data(
             tenant_id=str(tenant_id),
             created_by_id=str(created_by_id),
-            **(overrides or {})
+            **(overrides or {}),
         )
 
         # Add checklist items if they exist
         if template.checklist_items:
             task_data["checklist_items"] = [
-                {"title": item, "completed": False}
-                for item in template.checklist_items
+                {"title": item, "completed": False} for item in template.checklist_items
             ]
 
         logger.info(f"Task created from template {template_id}")
@@ -287,7 +286,7 @@ class TaskTemplateService:
         checklist_items: list[str] | None = None,
         tags: list[str] | None = None,
         category: str | None = None,
-        is_public: bool = False
+        is_public: bool = False,
     ) -> TaskTemplate:
         """Create a new template."""
         template = TaskTemplate(
@@ -309,11 +308,7 @@ class TaskTemplateService:
 
         return template
 
-    def update_template(
-        self,
-        template_id: UUID,
-        updates: dict
-    ) -> TaskTemplate | None:
+    def update_template(self, template_id: UUID, updates: dict) -> TaskTemplate | None:
         """Update an existing template."""
         # TODO: Update in database
         logger.info(f"Template updated: {template_id}")
@@ -326,9 +321,7 @@ class TaskTemplateService:
         return True
 
     def get_popular_templates(
-        self,
-        tenant_id: UUID,
-        limit: int = 10
+        self, tenant_id: UUID, limit: int = 10
     ) -> list[TaskTemplate]:
         """Get most used templates."""
         templates = self.get_templates(tenant_id, include_public=True)
@@ -337,6 +330,7 @@ class TaskTemplateService:
 
 # Global template service instance
 task_template_service = None
+
 
 def get_task_template_service(db) -> TaskTemplateService:
     """Get task template service instance."""

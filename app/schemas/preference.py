@@ -16,7 +16,9 @@ class PreferenceValue(BaseModel):
 class PreferenceSetRequest(BaseModel):
     """Schema for setting preferences."""
 
-    preferences: dict[str, Any] = Field(..., description="Dictionary of preference key-value pairs")
+    preferences: dict[str, Any] = Field(
+        ..., description="Dictionary of preference key-value pairs"
+    )
 
 
 class NotificationPreferenceSchema(BaseModel):
@@ -62,15 +64,21 @@ class SavedViewCreate(BaseModel):
 
     name: str = Field(..., description="View name", min_length=1, max_length=255)
     config: dict[str, Any] = Field(..., description="View configuration")
-    is_default: bool = Field(default=False, description="Whether this is the default view")
+    is_default: bool = Field(
+        default=False, description="Whether this is the default view"
+    )
 
 
 class SavedViewUpdate(BaseModel):
     """Schema for updating a saved view."""
 
-    name: str | None = Field(None, description="View name", min_length=1, max_length=255)
+    name: str | None = Field(
+        None, description="View name", min_length=1, max_length=255
+    )
     config: dict[str, Any] | None = Field(None, description="View configuration")
-    is_default: bool | None = Field(None, description="Whether this is the default view")
+    is_default: bool | None = Field(
+        None, description="Whether this is the default view"
+    )
 
 
 class SavedViewResponse(BaseModel):
@@ -93,18 +101,26 @@ class DashboardCreate(BaseModel):
     """Schema for creating a dashboard."""
 
     name: str = Field(..., description="Dashboard name", min_length=1, max_length=255)
-    widgets: list[dict[str, Any]] = Field(..., description="List of widget configurations")
-    is_default: bool = Field(default=False, description="Whether this is the default dashboard")
+    widgets: list[dict[str, Any]] = Field(
+        ..., description="List of widget configurations"
+    )
+    is_default: bool = Field(
+        default=False, description="Whether this is the default dashboard"
+    )
 
 
 class DashboardUpdate(BaseModel):
     """Schema for updating a dashboard."""
 
-    name: str | None = Field(None, description="Dashboard name", min_length=1, max_length=255)
+    name: str | None = Field(
+        None, description="Dashboard name", min_length=1, max_length=255
+    )
     widgets: list[dict[str, Any]] | None = Field(
         None, description="List of widget configurations"
     )
-    is_default: bool | None = Field(None, description="Whether this is the default dashboard")
+    is_default: bool | None = Field(
+        None, description="Whether this is the default dashboard"
+    )
 
 
 class DashboardResponse(BaseModel):
@@ -120,13 +136,3 @@ class DashboardResponse(BaseModel):
     is_default: bool
     created_at: str
     updated_at: str
-
-
-
-
-
-
-
-
-
-

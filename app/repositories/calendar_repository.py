@@ -115,7 +115,12 @@ class CalendarRepository:
         if status:
             query = query.filter(CalendarEvent.status == status)
 
-        return query.order_by(CalendarEvent.start_time.asc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(CalendarEvent.start_time.asc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count_events_by_calendar(
         self,
@@ -170,8 +175,12 @@ class CalendarRepository:
 
         # Combine queries
         if start_date:
-            organizer_query = organizer_query.filter(CalendarEvent.start_time >= start_date)
-            attendee_query = attendee_query.filter(CalendarEvent.start_time >= start_date)
+            organizer_query = organizer_query.filter(
+                CalendarEvent.start_time >= start_date
+            )
+            attendee_query = attendee_query.filter(
+                CalendarEvent.start_time >= start_date
+            )
         if end_date:
             organizer_query = organizer_query.filter(CalendarEvent.end_time <= end_date)
             attendee_query = attendee_query.filter(CalendarEvent.end_time <= end_date)
@@ -218,8 +227,12 @@ class CalendarRepository:
 
         # Apply date filters
         if start_date:
-            organizer_query = organizer_query.filter(CalendarEvent.start_time >= start_date)
-            attendee_query = attendee_query.filter(CalendarEvent.start_time >= start_date)
+            organizer_query = organizer_query.filter(
+                CalendarEvent.start_time >= start_date
+            )
+            attendee_query = attendee_query.filter(
+                CalendarEvent.start_time >= start_date
+            )
         if end_date:
             organizer_query = organizer_query.filter(CalendarEvent.end_time <= end_date)
             attendee_query = attendee_query.filter(CalendarEvent.end_time <= end_date)
@@ -261,7 +274,9 @@ class CalendarRepository:
         """Get attendee by ID and tenant."""
         return (
             self.db.query(EventAttendee)
-            .filter(EventAttendee.id == attendee_id, EventAttendee.tenant_id == tenant_id)
+            .filter(
+                EventAttendee.id == attendee_id, EventAttendee.tenant_id == tenant_id
+            )
             .first()
         )
 
@@ -290,7 +305,9 @@ class CalendarRepository:
             .first()
         )
 
-    def update_attendee(self, attendee: EventAttendee, attendee_data: dict) -> EventAttendee:
+    def update_attendee(
+        self, attendee: EventAttendee, attendee_data: dict
+    ) -> EventAttendee:
         """Update attendee."""
         for key, value in attendee_data.items():
             setattr(attendee, key, value)
@@ -339,7 +356,9 @@ class CalendarRepository:
             .all()
         )
 
-    def update_reminder(self, reminder: EventReminder, reminder_data: dict) -> EventReminder:
+    def update_reminder(
+        self, reminder: EventReminder, reminder_data: dict
+    ) -> EventReminder:
         """Update reminder."""
         for key, value in reminder_data.items():
             setattr(reminder, key, value)
@@ -383,7 +402,9 @@ class CalendarRepository:
             .count()
         )
 
-    def get_reminder_by_id(self, reminder_id: UUID, tenant_id: UUID) -> EventReminder | None:
+    def get_reminder_by_id(
+        self, reminder_id: UUID, tenant_id: UUID
+    ) -> EventReminder | None:
         """Get reminder by ID."""
         return (
             self.db.query(EventReminder)
@@ -391,11 +412,3 @@ class CalendarRepository:
             .filter(EventReminder.tenant_id == tenant_id)
             .first()
         )
-
-
-
-
-
-
-
-

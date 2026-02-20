@@ -58,12 +58,16 @@ class Integration(Base):
     tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     type = Column(String(50), nullable=False)  # IntegrationType
-    status = Column(String(20), nullable=False, default=IntegrationStatus.INACTIVE.value)  # IntegrationStatus
+    status = Column(
+        String(20), nullable=False, default=IntegrationStatus.INACTIVE.value
+    )  # IntegrationStatus
     config = Column(JSON, nullable=False, default=dict)  # Credentials and configuration
     credentials = Column(Text, nullable=True)  # Encrypted credentials (JSON string)
     last_sync_at = Column(DateTime(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -82,7 +86,12 @@ class Webhook(Base):
 
     id = Column(POSTGRES_UUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
-    integration_id = Column(POSTGRES_UUID(as_uuid=True), ForeignKey("integrations.id", ondelete="CASCADE"), nullable=True, index=True)
+    integration_id = Column(
+        POSTGRES_UUID(as_uuid=True),
+        ForeignKey("integrations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     name = Column(String(255), nullable=False)
     url = Column(String(1000), nullable=False)
     event_type = Column(String(100), nullable=False, index=True)
@@ -92,8 +101,12 @@ class Webhook(Base):
     secret = Column(String(255), nullable=True)
     max_retries = Column(Integer, nullable=False, default=3)
     retry_delay = Column(Integer, nullable=False, default=60)
-    extra_data = Column("metadata", JSON, nullable=True)  # Maps Python attribute 'extra_data' to DB column 'metadata'
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    extra_data = Column(
+        "metadata", JSON, nullable=True
+    )  # Maps Python attribute 'extra_data' to DB column 'metadata'
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -103,7 +116,9 @@ class Webhook(Base):
 
     # Relationships
     integration = relationship("Integration", backref="webhooks")
-    deliveries = relationship("WebhookDelivery", back_populates="webhook", cascade="all, delete-orphan")
+    deliveries = relationship(
+        "WebhookDelivery", back_populates="webhook", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Webhook(id={self.id}, name={self.name}, event_type={self.event_type}, enabled={self.enabled})>"
@@ -115,9 +130,16 @@ class WebhookDelivery(Base):
     __tablename__ = "webhook_deliveries"
 
     id = Column(POSTGRES_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    webhook_id = Column(POSTGRES_UUID(as_uuid=True), ForeignKey("webhooks.id", ondelete="CASCADE"), nullable=False, index=True)
+    webhook_id = Column(
+        POSTGRES_UUID(as_uuid=True),
+        ForeignKey("webhooks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     tenant_id = Column(POSTGRES_UUID(as_uuid=True), nullable=False, index=True)
-    status = Column(String(20), nullable=False, default=WebhookStatus.PENDING.value, index=True)
+    status = Column(
+        String(20), nullable=False, default=WebhookStatus.PENDING.value, index=True
+    )
     event_type = Column(String(100), nullable=False)
     payload = Column(JSON, nullable=False)
     response_status = Column(Integer, nullable=True)
@@ -125,7 +147,12 @@ class WebhookDelivery(Base):
     error_message = Column(Text, nullable=True)
     retry_count = Column(Integer, nullable=False, default=0)
     next_retry_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+        index=True,
+    )
     sent_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships

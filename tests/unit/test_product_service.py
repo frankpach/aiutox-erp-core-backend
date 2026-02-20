@@ -27,7 +27,9 @@ class TestProductService:
     @pytest.fixture
     def mock_product_repo(self):
         """Mock ProductRepository."""
-        with patch("app.modules.products.services.product_service.ProductRepository") as mock:
+        with patch(
+            "app.modules.products.services.product_service.ProductRepository"
+        ) as mock:
             repo = Mock()
             mock.return_value = repo
             yield repo
@@ -35,7 +37,9 @@ class TestProductService:
     @pytest.fixture
     def mock_category_repo(self):
         """Mock CategoryRepository."""
-        with patch("app.modules.products.services.product_service.CategoryRepository") as mock:
+        with patch(
+            "app.modules.products.services.product_service.CategoryRepository"
+        ) as mock:
             repo = Mock()
             mock.return_value = repo
             yield repo
@@ -43,7 +47,9 @@ class TestProductService:
     @pytest.fixture
     def mock_variant_repo(self):
         """Mock ProductVariantRepository."""
-        with patch("app.modules.products.services.product_service.ProductVariantRepository") as mock:
+        with patch(
+            "app.modules.products.services.product_service.ProductVariantRepository"
+        ) as mock:
             repo = Mock()
             mock.return_value = repo
             yield repo
@@ -51,20 +57,29 @@ class TestProductService:
     @pytest.fixture
     def mock_barcode_repo(self):
         """Mock ProductBarcodeRepository."""
-        with patch("app.modules.products.services.product_service.ProductBarcodeRepository") as mock:
+        with patch(
+            "app.modules.products.services.product_service.ProductBarcodeRepository"
+        ) as mock:
             repo = Mock()
             mock.return_value = repo
             yield repo
 
     @pytest.fixture
     def service(
-        self, mock_db, mock_product_repo, mock_category_repo, mock_variant_repo, mock_barcode_repo
+        self,
+        mock_db,
+        mock_product_repo,
+        mock_category_repo,
+        mock_variant_repo,
+        mock_barcode_repo,
     ):
         """Create ProductService instance with mocked dependencies."""
         return ProductService(mock_db)
 
     # Product tests
-    def test_create_product_success(self, service, mock_product_repo, mock_category_repo):
+    def test_create_product_success(
+        self, service, mock_product_repo, mock_category_repo
+    ):
         """Test successful product creation."""
         # Arrange
         tenant_id = uuid4()
@@ -143,7 +158,9 @@ class TestProductService:
         with pytest.raises(ValueError, match="Currency.*is not supported"):
             service.create_product(product_data, tenant_id)
 
-    def test_create_product_category_not_found(self, service, mock_product_repo, mock_category_repo):
+    def test_create_product_category_not_found(
+        self, service, mock_product_repo, mock_category_repo
+    ):
         """Test product creation fails when category not found."""
         # Arrange
         tenant_id = uuid4()
@@ -162,7 +179,9 @@ class TestProductService:
         with pytest.raises(ValueError, match="Category.*not found"):
             service.create_product(product_data, tenant_id)
 
-    def test_update_product_success(self, service, mock_product_repo, mock_category_repo):
+    def test_update_product_success(
+        self, service, mock_product_repo, mock_category_repo
+    ):
         """Test successful product update."""
         # Arrange
         tenant_id = uuid4()
@@ -318,14 +337,18 @@ class TestProductService:
         category_data = CategoryCreate(
             tenant_id=tenant_id, name="Test Category", slug="test-category"
         )
-        mock_category_repo.get_category_by_slug.return_value = Mock(slug="test-category")
+        mock_category_repo.get_category_by_slug.return_value = Mock(
+            slug="test-category"
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="slug.*already exists"):
             service.create_category(category_data, tenant_id)
 
     # Variant tests
-    def test_create_variant_success(self, service, mock_product_repo, mock_variant_repo):
+    def test_create_variant_success(
+        self, service, mock_product_repo, mock_variant_repo
+    ):
         """Test successful variant creation."""
         # Arrange
         tenant_id = uuid4()
@@ -361,7 +384,9 @@ class TestProductService:
         mock_product_repo.get_by_id.assert_called_once_with(product_id, tenant_id)
         mock_variant_repo.create_variant.assert_called_once()
 
-    def test_create_variant_invalid_sku_format(self, service, mock_product_repo, mock_variant_repo):
+    def test_create_variant_invalid_sku_format(
+        self, service, mock_product_repo, mock_variant_repo
+    ):
         """Test variant creation fails with invalid SKU format."""
         # Arrange
         tenant_id = uuid4()
@@ -394,7 +419,9 @@ class TestProductService:
             service.create_variant(product_id, variant_data, tenant_id)
 
     # Barcode tests
-    def test_create_barcode_success(self, service, mock_product_repo, mock_barcode_repo):
+    def test_create_barcode_success(
+        self, service, mock_product_repo, mock_barcode_repo
+    ):
         """Test successful barcode creation."""
         # Arrange
         tenant_id = uuid4()
@@ -428,7 +455,9 @@ class TestProductService:
         mock_product_repo.get_by_id.assert_called_once_with(product_id, tenant_id)
         mock_barcode_repo.create_barcode.assert_called_once()
 
-    def test_create_barcode_invalid_ean13(self, service, mock_product_repo, mock_barcode_repo):
+    def test_create_barcode_invalid_ean13(
+        self, service, mock_product_repo, mock_barcode_repo
+    ):
         """Test barcode creation fails with invalid EAN13 format."""
         # Arrange
         tenant_id = uuid4()
@@ -446,7 +475,9 @@ class TestProductService:
         with pytest.raises(ValueError, match="EAN13 barcode must be exactly 13 digits"):
             service.create_barcode(product_id, None, barcode_data, tenant_id)
 
-    def test_create_barcode_duplicate(self, service, mock_product_repo, mock_barcode_repo):
+    def test_create_barcode_duplicate(
+        self, service, mock_product_repo, mock_barcode_repo
+    ):
         """Test barcode creation fails with duplicate barcode."""
         # Arrange
         tenant_id = uuid4()

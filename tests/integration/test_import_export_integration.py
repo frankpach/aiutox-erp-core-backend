@@ -1,6 +1,5 @@
 """Integration tests for Import/Export module interactions."""
 
-
 from app.models.module_role import ModuleRole
 
 
@@ -39,7 +38,9 @@ def test_import_job_lifecycle(client_with_db, test_user, auth_headers, db_sessio
     assert status_response.json()["data"]["status"] == "pending"
 
 
-def test_import_template_reusability(client_with_db, test_user, auth_headers, db_session):
+def test_import_template_reusability(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test that import templates can be reused."""
     # Assign permissions
     import_role = ModuleRole(
@@ -112,11 +113,3 @@ def test_export_multiple_formats(client_with_db, test_user, auth_headers, db_ses
 
         assert job_response.status_code == 201
         assert job_response.json()["data"]["export_format"] == export_format
-
-
-
-
-
-
-
-

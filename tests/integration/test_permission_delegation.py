@@ -102,7 +102,9 @@ class TestPermissionDelegation:
                 expires_at=None,
                 granted_by=test_user.id,
             )
-        assert "PERMISSION_DENIED" in str(exc_info.value) or "403" in str(exc_info.value)
+        assert "PERMISSION_DENIED" in str(exc_info.value) or "403" in str(
+            exc_info.value
+        )
 
     def test_leader_cannot_grant_manage_users_permission(
         self, db_session: Session, test_user: User
@@ -143,7 +145,9 @@ class TestPermissionDelegation:
                 expires_at=None,
                 granted_by=test_user.id,
             )
-        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(exc_info.value)
+        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(
+            exc_info.value
+        )
 
     def test_leader_cannot_grant_global_permissions(
         self, db_session: Session, test_user: User
@@ -185,7 +189,9 @@ class TestPermissionDelegation:
                 expires_at=None,
                 granted_by=test_user.id,
             )
-        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(exc_info.value)
+        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(
+            exc_info.value
+        )
 
         # Test system.* permission
         with pytest.raises(Exception) as exc_info:
@@ -196,7 +202,9 @@ class TestPermissionDelegation:
                 expires_at=None,
                 granted_by=test_user.id,
             )
-        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(exc_info.value)
+        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(
+            exc_info.value
+        )
 
     def test_leader_cannot_grant_permission_of_other_module(
         self, db_session: Session, test_user: User
@@ -237,7 +245,9 @@ class TestPermissionDelegation:
                 expires_at=None,
                 granted_by=test_user.id,
             )
-        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(exc_info.value)
+        assert "INVALID_PERMISSION" in str(exc_info.value) or "400" in str(
+            exc_info.value
+        )
 
     def test_permission_with_expiration_is_created_correctly(
         self, db_session: Session, test_user: User
@@ -432,7 +442,9 @@ class TestPermissionDelegation:
         # Act & Assert: test_user cannot revoke leader2's permission
         with pytest.raises(Exception) as exc_info:
             permission_service.revoke_permission(delegated_permission.id, test_user.id)
-        assert "PERMISSION_DENIED" in str(exc_info.value) or "403" in str(exc_info.value)
+        assert "PERMISSION_DENIED" in str(exc_info.value) or "403" in str(
+            exc_info.value
+        )
 
     def test_admin_can_revoke_any_permission(
         self, db_session: Session, test_user: User
@@ -762,4 +774,3 @@ class TestPermissionDelegation:
         assert "inventory.manage_users" in effective_permissions
         # From delegated permission (should still be there, but already included from manager role)
         assert "inventory.edit" in effective_permissions
-

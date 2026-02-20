@@ -23,9 +23,7 @@ class FlowRunRepository:
         self.db.refresh(flow_run)
         return flow_run
 
-    def get_flow_run_by_id(
-        self, run_id: UUID, tenant_id: UUID
-    ) -> FlowRun | None:
+    def get_flow_run_by_id(self, run_id: UUID, tenant_id: UUID) -> FlowRun | None:
         """Get flow run by ID and tenant."""
         return (
             self.db.query(FlowRun)
@@ -69,7 +67,9 @@ class FlowRunRepository:
         if entity_type:
             query = query.filter(FlowRun.entity_type == entity_type)
 
-        return query.order_by(FlowRun.created_at.desc()).offset(offset).limit(limit).all()
+        return (
+            query.order_by(FlowRun.created_at.desc()).offset(offset).limit(limit).all()
+        )
 
     def update_flow_run(
         self, run_id: UUID, tenant_id: UUID, update_data: dict
@@ -91,7 +91,11 @@ class FlowRunRepository:
 
         if status == FlowRunStatus.RUNNING.value:
             update_data["started_at"] = datetime.now(UTC)
-        elif status in [FlowRunStatus.COMPLETED.value, FlowRunStatus.FAILED.value, FlowRunStatus.CANCELLED.value]:
+        elif status in [
+            FlowRunStatus.COMPLETED.value,
+            FlowRunStatus.FAILED.value,
+            FlowRunStatus.CANCELLED.value,
+        ]:
             update_data["completed_at"] = datetime.now(UTC)
 
         return self.update_flow_run(run_id, tenant_id, update_data)
@@ -107,11 +111,7 @@ class FlowRunRepository:
 
     def get_flow_runs_stats(self, tenant_id: UUID) -> dict:
         """Get flow run statistics."""
-        total = (
-            self.db.query(FlowRun)
-            .filter(FlowRun.tenant_id == tenant_id)
-            .count()
-        )
+        total = self.db.query(FlowRun).filter(FlowRun.tenant_id == tenant_id).count()
 
         pending = (
             self.db.query(FlowRun)

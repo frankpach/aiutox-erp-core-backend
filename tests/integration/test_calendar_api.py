@@ -97,4 +97,3 @@ def test_create_event(client_with_db, test_user, auth_headers, db_session):
     data = response.json()["data"]
     assert data["title"] == "Test Event"
     assert "id" in data
-

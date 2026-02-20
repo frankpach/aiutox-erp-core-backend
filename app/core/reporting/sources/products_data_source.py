@@ -23,7 +23,9 @@ class ProductsDataSource(BaseDataSource):
         self.product_repo = ProductRepository(db)
 
     async def get_data(
-        self, filters: dict[str, Any] | None = None, pagination: dict[str, int] | None = None
+        self,
+        filters: dict[str, Any] | None = None,
+        pagination: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Get products data.
 
@@ -44,7 +46,10 @@ class ProductsDataSource(BaseDataSource):
         # Get products based on filters
         if category_id:
             products = self.product_repo.get_all_by_category(
-                tenant_id=self.tenant_id, category_id=category_id, skip=skip, limit=limit
+                tenant_id=self.tenant_id,
+                category_id=category_id,
+                skip=skip,
+                limit=limit,
             )
         elif search:
             products = self.product_repo.search(
@@ -114,4 +119,3 @@ class ProductsDataSource(BaseDataSource):
                 "options": None,
             },
         ]
-

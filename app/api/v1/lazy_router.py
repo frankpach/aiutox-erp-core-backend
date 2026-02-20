@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 # Cache para el router
 _api_router = None
 
+
 def get_api_router() -> APIRouter:
     """Obtiene el API router con lazy loading."""
     global _api_router
@@ -65,34 +66,63 @@ def get_api_router() -> APIRouter:
     _api_router.include_router(products_router, prefix="/products", tags=["products"])
     _api_router.include_router(config.router, prefix="/config", tags=["config"])
     _api_router.include_router(pubsub.router, prefix="/pubsub", tags=["pubsub"])
-    _api_router.include_router(automation.router, prefix="/automation", tags=["automation"])
-    _api_router.include_router(preferences.router, prefix="/preferences", tags=["preferences"])
-    _api_router.include_router(reporting.router, prefix="/reporting", tags=["reporting"])
-    _api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+    _api_router.include_router(
+        automation.router, prefix="/automation", tags=["automation"]
+    )
+    _api_router.include_router(
+        preferences.router, prefix="/preferences", tags=["preferences"]
+    )
+    _api_router.include_router(
+        reporting.router, prefix="/reporting", tags=["reporting"]
+    )
+    _api_router.include_router(
+        notifications.router, prefix="/notifications", tags=["notifications"]
+    )
     _api_router.include_router(files.router, prefix="/files", tags=["files"])
-    _api_router.include_router(flow_runs.router, prefix="/flow-runs", tags=["flow-runs"])
+    _api_router.include_router(
+        flow_runs.router, prefix="/flow-runs", tags=["flow-runs"]
+    )
     _api_router.include_router(folders.router, prefix="/folders", tags=["folders"])
-    _api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
+    _api_router.include_router(
+        activities.router, prefix="/activities", tags=["activities"]
+    )
     _api_router.include_router(activity_icons.router, tags=["activity-icons"])
     _api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
-    _api_router.include_router(task_statuses_router, prefix="/task-statuses", tags=["task-statuses"])
+    _api_router.include_router(
+        task_statuses_router, prefix="/task-statuses", tags=["task-statuses"]
+    )
     _api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
-    _api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+    _api_router.include_router(
+        workflows.router, prefix="/workflows", tags=["workflows"]
+    )
     _api_router.include_router(search.router, prefix="/search", tags=["search"])
-    _api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+    _api_router.include_router(
+        integrations.router, prefix="/integrations", tags=["integrations"]
+    )
     _api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
-    _api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
+    _api_router.include_router(
+        inventory_router, prefix="/inventory", tags=["inventory"]
+    )
     _api_router.include_router(crm_router, prefix="/crm", tags=["crm"])
-    _api_router.include_router(import_export.router, prefix="/import-export", tags=["import-export"])
+    _api_router.include_router(
+        import_export.router, prefix="/import-export", tags=["import-export"]
+    )
     _api_router.include_router(views.router, prefix="/views", tags=["views"])
-    _api_router.include_router(approvals.router, prefix="/approvals", tags=["approvals"])
-    _api_router.include_router(templates.router, prefix="/templates", tags=["templates"])
+    _api_router.include_router(
+        approvals.router, prefix="/approvals", tags=["approvals"]
+    )
+    _api_router.include_router(
+        templates.router, prefix="/templates", tags=["templates"]
+    )
     _api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
-    _api_router.include_router(contact_methods.router, prefix="/contact-methods", tags=["contact-methods"])
+    _api_router.include_router(
+        contact_methods.router, prefix="/contact-methods", tags=["contact-methods"]
+    )
     _api_router.include_router(sse.router, tags=["sse"])
 
     print("✅ API router creado exitosamente")
     return _api_router
+
 
 # Para compatibilidad con el código existente
 api_router = get_api_router()

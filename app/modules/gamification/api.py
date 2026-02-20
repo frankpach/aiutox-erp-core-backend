@@ -32,6 +32,7 @@ router = APIRouter()
 
 # --- Dependencies ---
 
+
 def _get_points_service(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -54,6 +55,7 @@ def _get_leaderboard_service(
 
 
 # --- User Points ---
+
 
 @router.get(
     "/me/points",
@@ -99,7 +101,9 @@ async def get_my_points(
         current_streak=user_points.current_streak,
         longest_streak=user_points.longest_streak,
         last_activity_date=(
-            str(user_points.last_activity_date) if user_points.last_activity_date else None
+            str(user_points.last_activity_date)
+            if user_points.last_activity_date
+            else None
         ),
         progress_to_next_level=round(progress, 1),
         points_to_next_level=max(0, next_level_min - user_points.total_points),
@@ -110,6 +114,7 @@ async def get_my_points(
 
 
 # --- Points History ---
+
 
 @router.get(
     "/me/history",
@@ -139,6 +144,7 @@ async def get_my_history(
 
 
 # --- Badges ---
+
 
 @router.get(
     "/me/badges",
@@ -229,6 +235,7 @@ async def create_badge(
 
 # --- Leaderboard ---
 
+
 @router.get(
     "/leaderboard",
     response_model=StandardListResponse[LeaderboardEntryResponse],
@@ -239,7 +246,9 @@ async def get_leaderboard(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[LeaderboardService, Depends(_get_leaderboard_service)],
     db: Annotated[Session, Depends(get_db)],
-    period: str = Query(default="all_time", description="Period: daily, weekly, monthly, all_time"),
+    period: str = Query(
+        default="all_time", description="Period: daily, weekly, monthly, all_time"
+    ),
     limit: int = Query(default=10, ge=1, le=50, description="Max entries"),
 ) -> StandardListResponse[LeaderboardEntryResponse]:
     """Get leaderboard for a period. Only shows rank, not other users' points."""
@@ -276,6 +285,7 @@ async def get_leaderboard(
 
 # --- Analytics (Manager) ---
 
+
 def _get_analytics_service(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_permission("gamification.manage"))],
@@ -296,7 +306,9 @@ async def get_team_analytics(
 ) -> StandardResponse[TeamAnalyticsResponse]:
     """Get team gamification analytics (manager only)."""
     # Get all users in the same tenant
-    team_users = db.query(User.id).filter(User.tenant_id == current_user.tenant_id).all()
+    team_users = (
+        db.query(User.id).filter(User.tenant_id == current_user.tenant_id).all()
+    )
     user_ids = [u.id for u in team_users]
 
     analytics = service.get_team_analytics(user_ids)
@@ -319,7 +331,9 @@ async def get_alerts(
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardListResponse[AlertResponse]:
     """Get predictive alerts for team members (manager only)."""
-    team_users = db.query(User.id).filter(User.tenant_id == current_user.tenant_id).all()
+    team_users = (
+        db.query(User.id).filter(User.tenant_id == current_user.tenant_id).all()
+    )
     user_ids = [u.id for u in team_users]
 
     alerts = service.get_alerts(user_ids)

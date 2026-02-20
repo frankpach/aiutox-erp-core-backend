@@ -83,9 +83,7 @@ class TaskTagService:
         # Limitar resultados
         tasks = q.limit(limit).all()
 
-        logger.info(
-            f"Search completed: query='{query}', found {len(tasks)} tasks"
-        )
+        logger.info(f"Search completed: query='{query}', found {len(tasks)} tasks")
 
         return tasks
 
@@ -106,9 +104,7 @@ class TaskTagService:
         from app.models.task import Task
 
         # Obtener todas las tareas del tenant
-        tasks = self.db.query(Task).filter(
-            Task.tenant_id == tenant_id
-        ).all()
+        tasks = self.db.query(Task).filter(Task.tenant_id == tenant_id).all()
 
         # Contar uso de tags
         tag_counts: dict[str, int] = {}
@@ -119,17 +115,12 @@ class TaskTagService:
                     tag_counts[tag_id] = tag_counts.get(tag_id, 0) + 1
 
         # Ordenar por uso
-        sorted_tags = sorted(
-            tag_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:limit]
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[
+            :limit
+        ]
 
         # Formatear resultado
-        result = [
-            {"tag_id": tag_id, "count": count}
-            for tag_id, count in sorted_tags
-        ]
+        result = [{"tag_id": tag_id, "count": count} for tag_id, count in sorted_tags]
 
         logger.info(f"Retrieved {len(result)} popular tags for tenant {tenant_id}")
 
@@ -155,13 +146,18 @@ class TaskTagService:
 
         # Buscar tareas que coincidan con el query
         search_pattern = f"%{query}%"
-        tasks = self.db.query(Task).filter(
-            Task.tenant_id == tenant_id,
-            or_(
-                Task.title.ilike(search_pattern),
-                Task.description.ilike(search_pattern),
+        tasks = (
+            self.db.query(Task)
+            .filter(
+                Task.tenant_id == tenant_id,
+                or_(
+                    Task.title.ilike(search_pattern),
+                    Task.description.ilike(search_pattern),
+                ),
             )
-        ).limit(100).all()
+            .limit(100)
+            .all()
+        )
 
         # Contar tags en tareas encontradas
         tag_counts: dict[str, int] = {}
@@ -172,17 +168,13 @@ class TaskTagService:
                     tag_counts[tag_id] = tag_counts.get(tag_id, 0) + 1
 
         # Ordenar y limitar
-        sorted_tags = sorted(
-            tag_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:limit]
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[
+            :limit
+        ]
 
         suggestions = [tag_id for tag_id, _ in sorted_tags]
 
-        logger.info(
-            f"Generated {len(suggestions)} tag suggestions for query '{query}'"
-        )
+        logger.info(f"Generated {len(suggestions)} tag suggestions for query '{query}'")
 
         return suggestions
 

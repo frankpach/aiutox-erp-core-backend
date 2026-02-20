@@ -11,8 +11,6 @@ from app.modules.tasks.routers.tasks_analytics import router
 """Tests for tasks statistics API endpoints."""
 
 
-
-
 class TestTasksStatisticsAPI:
     """Test cases for tasks statistics API endpoints."""
 
@@ -21,13 +19,13 @@ class TestTasksStatisticsAPI:
         from fastapi import FastAPI
 
         self.app = FastAPI()
-        self.app.include_router(router, prefix="/api/v1/tasks", tags=["tasks-statistics"])
+        self.app.include_router(
+            router, prefix="/api/v1/tasks", tags=["tasks-statistics"]
+        )
         self.client = TestClient(self.app)
 
         self.test_user = User(
-            id="user-1",
-            email="test@example.com",
-            tenant_id="tenant-1"
+            id="user-1", email="test@example.com", tenant_id="tenant-1"
         )
 
     @pytest.fixture
@@ -45,7 +43,7 @@ class TestTasksStatisticsAPI:
             "by_custom_state": {"Vendido": 15, "Llamado": 10},
             "completion_rate": 30.0,
             "completed_tasks": 30,
-            "overdue_tasks": 5
+            "overdue_tasks": 5,
         }
 
     @pytest.fixture
@@ -56,8 +54,8 @@ class TestTasksStatisticsAPI:
             "data_points": [
                 {"period": "2026-01-25", "created": 5, "completed": 3},
                 {"period": "2026-01-26", "created": 3, "completed": 4},
-                {"period": "2026-01-27", "created": 7, "completed": 2}
-            ]
+                {"period": "2026-01-27", "created": 7, "completed": 2},
+            ],
         }
 
     @pytest.fixture
@@ -70,7 +68,7 @@ class TestTasksStatisticsAPI:
                 "state_type": "closed",
                 "state_color": "#FF5722",
                 "task_count": 15,
-                "avg_time_in_state_hours": 24.5
+                "avg_time_in_state_hours": 24.5,
             },
             {
                 "state_id": "status-2",
@@ -78,20 +76,20 @@ class TestTasksStatisticsAPI:
                 "state_type": "in_progress",
                 "state_color": "#2196F3",
                 "task_count": 10,
-                "avg_time_in_state_hours": None
-            }
+                "avg_time_in_state_hours": None,
+            },
         ]
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_tasks_statistics_overview_success(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
         sample_statistics,
-        mock_db_session
+        mock_db_session,
     ):
         """Test successful statistics overview retrieval."""
         # Setup mocks
@@ -121,16 +119,16 @@ class TestTasksStatisticsAPI:
         assert stats_data["completion_rate"] == 30.0
         assert stats_data["by_status"]["todo"] == 40
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_tasks_statistics_overview_with_filters(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
         sample_statistics,
-        mock_db_session
+        mock_db_session,
     ):
         """Test statistics overview with date filters."""
         # Setup mocks
@@ -162,16 +160,16 @@ class TestTasksStatisticsAPI:
         assert filters["status"] == "todo"
         assert filters["priority"] == "high"
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_tasks_trends_success(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
         sample_trends,
-        mock_db_session
+        mock_db_session,
     ):
         """Test successful trends retrieval."""
         # Setup mocks
@@ -200,16 +198,16 @@ class TestTasksStatisticsAPI:
         assert trends_data["data_points"][0]["created"] == 5
         assert trends_data["data_points"][0]["completed"] == 3
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_tasks_trends_default_period(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
         sample_trends,
-        mock_db_session
+        mock_db_session,
     ):
         """Test trends retrieval with default period."""
         # Setup mocks
@@ -229,16 +227,16 @@ class TestTasksStatisticsAPI:
         # Verify default period was used
         mock_data_source.get_trends.assert_called_once_with("30d", "tenant-1")
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_custom_states_metrics_success(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
         sample_custom_metrics,
-        mock_db_session
+        mock_db_session,
     ):
         """Test successful custom states metrics retrieval."""
         # Setup mocks
@@ -270,7 +268,7 @@ class TestTasksStatisticsAPI:
         assert first_metric["task_count"] == 15
         assert first_metric["avg_time_in_state_hours"] == 24.5
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
     def test_statistics_endpoints_permission_check(self, mock_require_permission):
         """Test that endpoints require proper permissions."""
         # Mock permission check to raise exception
@@ -279,7 +277,7 @@ class TestTasksStatisticsAPI:
         mock_require_permission.side_effect = APIException(
             code="PERMISSION_DENIED",
             message="Insufficient permissions",
-            status_code=403
+            status_code=403,
         )
 
         # Test statistics overview endpoint
@@ -294,15 +292,15 @@ class TestTasksStatisticsAPI:
         response = self.client.get("/api/v1/tasks/statistics/custom-states")
         assert response.status_code == 403
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_multi_tenancy_enforcement(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
-        mock_db_session
+        mock_db_session,
     ):
         """Test that tenant filtering is enforced."""
         # Setup mocks
@@ -324,18 +322,20 @@ class TestTasksStatisticsAPI:
         # Verify tenant ID was passed to methods
         mock_data_source.get_statistics.assert_called()
         stats_call_args = mock_data_source.get_statistics.call_args
-        assert stats_call_args[0][1] == "tenant-1"  # Second argument should be tenant_id
+        assert (
+            stats_call_args[0][1] == "tenant-1"
+        )  # Second argument should be tenant_id
 
     def test_response_format_compliance(self):
         """Test that responses follow the standard API contract."""
         from app.core.exceptions import APIException
 
         # Mock permission to raise exception to test error response
-        with patch('app.modules.tasks.routers.tasks_analytics.require_permission') as mock_perm:
+        with patch(
+            "app.modules.tasks.routers.tasks_analytics.require_permission"
+        ) as mock_perm:
             mock_perm.side_effect = APIException(
-                code="TEST_ERROR",
-                message="Test error message",
-                status_code=400
+                code="TEST_ERROR", message="Test error message", status_code=400
             )
 
             response = self.client.get("/api/v1/tasks/statistics/overview")
@@ -349,13 +349,9 @@ class TestTasksStatisticsAPI:
             assert data["error"] is not None
             assert data["error"]["code"] == "TEST_ERROR"
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    def test_database_error_handling(
-        self,
-        mock_get_db,
-        mock_require_permission
-    ):
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    def test_database_error_handling(self, mock_get_db, mock_require_permission):
         """Test handling of database errors."""
         # Setup mocks
         mock_require_permission.return_value = lambda: self.test_user
@@ -382,15 +378,15 @@ class TestTasksStatisticsAPI:
         for route in routes:
             assert "GET" in route.methods
 
-    @patch('app.modules.tasks.routers.tasks_analytics.require_permission')
-    @patch('app.modules.tasks.routers.tasks_analytics.get_db')
-    @patch('app.modules.tasks.routers.tasks_analytics.TasksDataSource')
+    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
+    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_empty_data_handling(
         self,
         mock_data_source_class,
         mock_get_db,
         mock_require_permission,
-        mock_db_session
+        mock_db_session,
     ):
         """Test handling of empty data responses."""
         # Setup mocks
@@ -406,7 +402,7 @@ class TestTasksStatisticsAPI:
             "by_custom_state": {},
             "completion_rate": 0.0,
             "completed_tasks": 0,
-            "overdue_tasks": 0
+            "overdue_tasks": 0,
         }
         mock_data_source.get_trends.return_value = {"period": "30d", "data_points": []}
         mock_data_source.get_custom_states_metrics.return_value = []

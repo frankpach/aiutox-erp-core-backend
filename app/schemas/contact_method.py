@@ -9,9 +9,16 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class ContactMethodBase(BaseModel):
     """Base contact method schema with common fields."""
 
-    method_type: str = Field(..., description="Method type: email, phone, mobile, whatsapp, etc.")
-    value: str = Field(..., description="Contact value (required for non-address types, auto-constructed for address)")
-    label: str | None = Field(None, description="Custom label (e.g., 'Trabajo', 'Personal')")
+    method_type: str = Field(
+        ..., description="Method type: email, phone, mobile, whatsapp, etc."
+    )
+    value: str = Field(
+        ...,
+        description="Contact value (required for non-address types, auto-constructed for address)",
+    )
+    label: str | None = Field(
+        None, description="Custom label (e.g., 'Trabajo', 'Personal')"
+    )
     is_primary: bool = Field(False, description="Primary contact method")
     is_verified: bool = Field(False, description="Verified contact method")
     notes: str | None = Field(None, description="Notes")
@@ -31,7 +38,9 @@ class ContactMethodAddressFields(BaseModel):
 class ContactMethodCreate(ContactMethodBase, ContactMethodAddressFields):
     """Schema for creating a new contact method."""
 
-    entity_type: str = Field(..., description="Entity type: user, contact, organization, etc.")
+    entity_type: str = Field(
+        ..., description="Entity type: user, contact, organization, etc."
+    )
     entity_id: UUID = Field(..., description="Entity ID")
 
     @field_validator("address_line1", "city", "country", mode="before")
@@ -41,7 +50,9 @@ class ContactMethodCreate(ContactMethodBase, ContactMethodAddressFields):
         # Only validate if method_type is address and the field is being set
         if info.data.get("method_type") == "address":
             if v is None or (isinstance(v, str) and not v.strip()):
-                raise ValueError("Address fields (address_line1, city, country) are required when method_type is 'address'")
+                raise ValueError(
+                    "Address fields (address_line1, city, country) are required when method_type is 'address'"
+                )
         return v
 
 

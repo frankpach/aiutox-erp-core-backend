@@ -91,11 +91,22 @@ def validate_theme_colors(theme_data: dict[str, Any]) -> None:
         InvalidColorFormatException: If any color format is invalid
     """
     color_keys = [
-        "primary_color", "secondary_color", "accent_color",
-        "background_color", "surface_color",
-        "error_color", "warning_color", "success_color", "info_color",
-        "text_primary", "text_secondary", "text_disabled",
-        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
+        "primary_color",
+        "secondary_color",
+        "accent_color",
+        "background_color",
+        "surface_color",
+        "error_color",
+        "warning_color",
+        "success_color",
+        "info_color",
+        "text_primary",
+        "text_secondary",
+        "text_disabled",
+        "sidebar_bg",
+        "sidebar_text",
+        "navbar_bg",
+        "navbar_text",
     ]
 
     for key, value in theme_data.items():
@@ -159,8 +170,24 @@ async def list_modules(
     except RuntimeError:
         # Registry not initialized yet, return empty list
         try:
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Registry not initialized, returning empty list", "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "R"}) + "\n")
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as log_file:
+                log_file.write(
+                    json.dumps(
+                        {
+                            "location": "config.py:list_modules",
+                            "message": "Registry not initialized, returning empty list",
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "R",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
 
@@ -176,8 +203,29 @@ async def list_modules(
     except Exception as e:
         # Log unexpected errors
         try:
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error getting registry", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "E"}) + "\n")
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as log_file:
+                log_file.write(
+                    json.dumps(
+                        {
+                            "location": "config.py:list_modules",
+                            "message": "Error getting registry",
+                            "data": {
+                                "error": str(e),
+                                "error_type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "E",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
         raise
@@ -188,18 +236,25 @@ async def list_modules(
 
         for module_id, module_instance in registry.get_all_modules().items():
             try:
-                is_enabled = registry.is_module_enabled(module_id, current_user.tenant_id)
+                is_enabled = registry.is_module_enabled(
+                    module_id, current_user.tenant_id
+                )
 
                 # Ensure all fields are valid and have correct types
                 module_name = getattr(module_instance, "module_name", "") or ""
-                module_type = getattr(module_instance, "module_type", "business") or "business"
-                dependencies = getattr(module_instance, "get_dependencies", lambda: [])() or []
+                module_type = (
+                    getattr(module_instance, "module_type", "business") or "business"
+                )
+                dependencies = (
+                    getattr(module_instance, "get_dependencies", lambda: [])() or []
+                )
                 description = getattr(module_instance, "description", "") or ""
                 navigation_items = (
                     getattr(module_instance, "get_navigation_items", lambda: [])() or []
                 )
                 settings_links = (
-                    getattr(module_instance, "get_settings_navigation", lambda: [])() or []
+                    getattr(module_instance, "get_settings_navigation", lambda: [])()
+                    or []
                 )
 
                 # Ensure dependencies is a list of strings
@@ -238,8 +293,30 @@ async def list_modules(
             except Exception as module_error:
                 # Log error for individual module but continue
                 try:
-                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error processing module", "data": {"module_id": module_id, "error": str(module_error), "error_type": type(module_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "M"}) + "\n")
+                    with open(
+                        r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                        "a",
+                        encoding="utf-8",
+                    ) as log_file:
+                        log_file.write(
+                            json.dumps(
+                                {
+                                    "location": "config.py:list_modules",
+                                    "message": "Error processing module",
+                                    "data": {
+                                        "module_id": module_id,
+                                        "error": str(module_error),
+                                        "error_type": type(module_error).__name__,
+                                        "traceback": traceback.format_exc(),
+                                    },
+                                    "timestamp": int(__import__("time").time() * 1000),
+                                    "sessionId": "debug-session",
+                                    "runId": "run1",
+                                    "hypothesisId": "M",
+                                }
+                            )
+                            + "\n"
+                        )
                 except Exception:
                     pass
                 continue
@@ -254,8 +331,32 @@ async def list_modules(
             )
 
             try:
-                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                    log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Creating PaginationMeta", "data": {"total": len(modules_list), "page": 1, "page_size": len(modules_list) if modules_list else 1, "total_pages": 1}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "PM"}) + "\n")
+                with open(
+                    r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                    "a",
+                    encoding="utf-8",
+                ) as log_file:
+                    log_file.write(
+                        json.dumps(
+                            {
+                                "location": "config.py:list_modules",
+                                "message": "Creating PaginationMeta",
+                                "data": {
+                                    "total": len(modules_list),
+                                    "page": 1,
+                                    "page_size": (
+                                        len(modules_list) if modules_list else 1
+                                    ),
+                                    "total_pages": 1,
+                                },
+                                "timestamp": int(__import__("time").time() * 1000),
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "PM",
+                            }
+                        )
+                        + "\n"
+                    )
             except Exception:
                 pass
 
@@ -271,15 +372,57 @@ async def list_modules(
                     response.model_dump_json()
                 except Exception as serialization_error:
                     try:
-                        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                            log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Serialization error", "data": {"error": str(serialization_error), "error_type": type(serialization_error).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "SE"}) + "\n")
+                        with open(
+                            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                            "a",
+                            encoding="utf-8",
+                        ) as log_file:
+                            log_file.write(
+                                json.dumps(
+                                    {
+                                        "location": "config.py:list_modules",
+                                        "message": "Serialization error",
+                                        "data": {
+                                            "error": str(serialization_error),
+                                            "error_type": type(
+                                                serialization_error
+                                            ).__name__,
+                                            "traceback": traceback.format_exc(),
+                                        },
+                                        "timestamp": int(
+                                            __import__("time").time() * 1000
+                                        ),
+                                        "sessionId": "debug-session",
+                                        "runId": "run1",
+                                        "hypothesisId": "SE",
+                                    }
+                                )
+                                + "\n"
+                            )
                     except Exception:
                         pass
                     raise
 
                 try:
-                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Response created successfully", "data": {"modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "S"}) + "\n")
+                    with open(
+                        r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                        "a",
+                        encoding="utf-8",
+                    ) as log_file:
+                        log_file.write(
+                            json.dumps(
+                                {
+                                    "location": "config.py:list_modules",
+                                    "message": "Response created successfully",
+                                    "data": {"modules_count": len(modules_list)},
+                                    "timestamp": int(__import__("time").time() * 1000),
+                                    "sessionId": "debug-session",
+                                    "runId": "run1",
+                                    "hypothesisId": "S",
+                                }
+                            )
+                            + "\n"
+                        )
                 except Exception:
                     pass
 
@@ -287,24 +430,91 @@ async def list_modules(
             except Exception as response_creation_error:
                 # Log error creating response
                 try:
-                    with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                        log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_creation_error), "error_type": type(response_creation_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+                    with open(
+                        r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                        "a",
+                        encoding="utf-8",
+                    ) as log_file:
+                        log_file.write(
+                            json.dumps(
+                                {
+                                    "location": "config.py:list_modules",
+                                    "message": "Error creating StandardListResponse",
+                                    "data": {
+                                        "error": str(response_creation_error),
+                                        "error_type": type(
+                                            response_creation_error
+                                        ).__name__,
+                                        "traceback": traceback.format_exc(),
+                                        "modules_count": len(modules_list),
+                                    },
+                                    "timestamp": int(__import__("time").time() * 1000),
+                                    "sessionId": "debug-session",
+                                    "runId": "run1",
+                                    "hypothesisId": "RE",
+                                }
+                            )
+                            + "\n"
+                        )
                 except Exception:
                     pass
                 raise
         except Exception as response_error:
             # Log error creating response
             try:
-                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                    log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating StandardListResponse", "data": {"error": str(response_error), "error_type": type(response_error).__name__, "traceback": traceback.format_exc(), "modules_count": len(modules_list)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+                with open(
+                    r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                    "a",
+                    encoding="utf-8",
+                ) as log_file:
+                    log_file.write(
+                        json.dumps(
+                            {
+                                "location": "config.py:list_modules",
+                                "message": "Error creating StandardListResponse",
+                                "data": {
+                                    "error": str(response_error),
+                                    "error_type": type(response_error).__name__,
+                                    "traceback": traceback.format_exc(),
+                                    "modules_count": len(modules_list),
+                                },
+                                "timestamp": int(__import__("time").time() * 1000),
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "RE",
+                            }
+                        )
+                        + "\n"
+                    )
             except Exception:
                 pass
             raise
     except Exception as e:
         # Log error creating response
         try:
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                log_file.write(json.dumps({"location": "config.py:list_modules", "message": "Error creating response", "data": {"error": str(e), "error_type": type(e).__name__, "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "RE"}) + "\n")
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as log_file:
+                log_file.write(
+                    json.dumps(
+                        {
+                            "location": "config.py:list_modules",
+                            "message": "Error creating response",
+                            "data": {
+                                "error": str(e),
+                                "error_type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "RE",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
         raise
@@ -418,7 +628,10 @@ async def get_module_info(
                         "error": {
                             "code": "MODULE_DEPENDENCY_NOT_MET",
                             "message": "Cannot enable 'inventory': required dependency 'products' is not enabled",
-                            "details": {"module_id": "inventory", "missing_dependency": "products"},
+                            "details": {
+                                "module_id": "inventory",
+                                "missing_dependency": "products",
+                            },
                         }
                     }
                 }
@@ -537,7 +750,10 @@ async def enable_module(
                         "error": {
                             "code": "MODULE_HAS_DEPENDENCIES",
                             "message": "Cannot disable 'products': the following enabled modules depend on it: inventory",
-                            "details": {"module_id": "products", "dependent_modules": ["inventory"]},
+                            "details": {
+                                "module_id": "products",
+                                "dependent_modules": ["inventory"],
+                            },
                         }
                     }
                 }
@@ -735,7 +951,11 @@ async def get_general_settings(
                         "error": {
                             "code": "VALIDATION_ERROR",
                             "message": "Validation failed",
-                            "details": {"time_format": ["Invalid time format. Must be '12h' or '24h'"]},
+                            "details": {
+                                "time_format": [
+                                    "Invalid time format. Must be '12h' or '24h'"
+                                ]
+                            },
                         }
                     }
                 }
@@ -1206,7 +1426,9 @@ async def list_theme_presets(
         meta=PaginationMeta(
             total=len(presets),
             page=1,
-            page_size=len(presets) if presets else 1,  # Must be >= 1 per PaginationMeta validation
+            page_size=(
+                len(presets) if presets else 1
+            ),  # Must be >= 1 per PaginationMeta validation
             total_pages=1,
         ),
     )
@@ -1539,8 +1761,6 @@ async def set_default_theme_preset(
     )
 
 
-
-
 @router.put(
     "/app_theme/{key}",
     response_model=StandardResponse[dict],
@@ -1612,14 +1832,27 @@ async def update_theme_property(
     """
     # Validate color format if it's a color key
     color_keys = [
-        "primary_color", "secondary_color", "accent_color",
-        "background_color", "surface_color",
-        "error_color", "warning_color", "success_color", "info_color",
-        "text_primary", "text_secondary", "text_disabled",
-        "sidebar_bg", "sidebar_text", "navbar_bg", "navbar_text",
+        "primary_color",
+        "secondary_color",
+        "accent_color",
+        "background_color",
+        "surface_color",
+        "error_color",
+        "warning_color",
+        "success_color",
+        "info_color",
+        "text_primary",
+        "text_secondary",
+        "text_disabled",
+        "sidebar_bg",
+        "sidebar_text",
+        "navbar_bg",
+        "navbar_text",
     ]
 
-    if key in color_keys or (key.startswith("dark_") and key.replace("dark_", "", 1) in color_keys):
+    if key in color_keys or (
+        key.startswith("dark_") and key.replace("dark_", "", 1) in color_keys
+    ):
         try:
             validate_color(key, config_update.value)
         except InvalidColorFormatException:
@@ -1757,7 +1990,10 @@ async def get_storage_stats(
             message="Storage statistics retrieved successfully",
         )
     except Exception as e:
-        logger.error(f"Error retrieving storage stats for tenant {current_user.tenant_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error retrieving storage stats for tenant {current_user.tenant_id}: {e}",
+            exc_info=True,
+        )
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="STATS_RETRIEVAL_FAILED",
@@ -1863,11 +2099,10 @@ async def update_thumbnail_config(
     from app.core.logging import get_client_info
 
     # Validate quality range manually to return proper error code
-    if config_data.quality is not None and (config_data.quality < 1 or config_data.quality > 100):
-        raise_bad_request(
-            "INVALID_QUALITY",
-            "Quality must be between 1 and 100"
-        )
+    if config_data.quality is not None and (
+        config_data.quality < 1 or config_data.quality > 100
+    ):
+        raise_bad_request("INVALID_QUALITY", "Quality must be between 1 and 100")
 
     service = StorageConfigService(db)
     ip_address, user_agent = get_client_info(request)
@@ -2109,7 +2344,9 @@ async def rollback_to_version(
     summary="Get notification channels configuration",
     description="Get configuration for all notification channels (SMTP, SMS, webhooks). Requires notifications.manage permission.",
     responses={
-        200: {"description": "Notification channels configuration retrieved successfully"},
+        200: {
+            "description": "Notification channels configuration retrieved successfully"
+        },
         403: {
             "description": "Insufficient permissions",
             "content": {
@@ -2145,7 +2382,9 @@ async def get_notification_channels(
     config_service = ConfigService(db)
 
     # Get all notifications config
-    notifications_config = config_service.get_module_config(current_user.tenant_id, "notifications")
+    notifications_config = config_service.get_module_config(
+        current_user.tenant_id, "notifications"
+    )
 
     # Get SMTP config
     smtp_data = {}
@@ -2600,7 +2839,9 @@ async def test_smtp_connection(
     config_service = ConfigService(db)
 
     # Get SMTP config
-    notifications_config = config_service.get_module_config(current_user.tenant_id, "notifications")
+    notifications_config = config_service.get_module_config(
+        current_user.tenant_id, "notifications"
+    )
     smtp_data = {}
     for key, value in notifications_config.items():
         if key.startswith("channels.smtp."):
@@ -2692,7 +2933,9 @@ async def test_webhook_connection(
     config_service = ConfigService(db)
 
     # Get webhook config
-    notifications_config = config_service.get_module_config(current_user.tenant_id, "notifications")
+    notifications_config = config_service.get_module_config(
+        current_user.tenant_id, "notifications"
+    )
     webhook_data = {}
     for key, value in notifications_config.items():
         if key.startswith("channels.webhook."):
@@ -2721,14 +2964,21 @@ async def test_webhook_connection(
             )
             if response.status_code < 400:
                 return StandardResponse(
-                    data={"success": True, "status_code": response.status_code, "message": "Webhook connection test successful"},
+                    data={
+                        "success": True,
+                        "status_code": response.status_code,
+                        "message": "Webhook connection test successful",
+                    },
                     message="Webhook connection test completed",
                 )
             else:
                 raise_bad_request(
                     "WEBHOOK_TEST_FAILED",
                     f"Webhook returned status {response.status_code}",
-                    details={"status_code": response.status_code, "response": response.text[:200]},
+                    details={
+                        "status_code": response.status_code,
+                        "response": response.text[:200],
+                    },
                 )
     except httpx.TimeoutException:
         raise_bad_request(
@@ -2869,9 +3119,7 @@ async def get_config_value(
         )
 
     config_service = ConfigService(db)
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
+    value = config_service.get(tenant_id=current_user.tenant_id, module=module, key=key)
 
     if value is None:
         raise APIException(
@@ -2881,9 +3129,7 @@ async def get_config_value(
             details={"module": module, "key": key},
         )
 
-    return StandardResponse(
-        data={"module": module, "key": key, "value": value}
-    )
+    return StandardResponse(data={"module": module, "key": key, "value": value})
 
 
 @router.delete(
@@ -2958,9 +3204,7 @@ async def delete_config_value(
         )
 
     config_service = ConfigService(db)
-    value = config_service.get(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
+    value = config_service.get(tenant_id=current_user.tenant_id, module=module, key=key)
     if value is None:
         raise APIException(
             code="CONFIG_NOT_FOUND",
@@ -2969,9 +3213,7 @@ async def delete_config_value(
             details={"module": module, "key": key},
         )
 
-    config_service.delete(
-        tenant_id=current_user.tenant_id, module=module, key=key
-    )
+    config_service.delete(tenant_id=current_user.tenant_id, module=module, key=key)
 
     return StandardResponse(
         data={
@@ -2981,4 +3223,3 @@ async def delete_config_value(
             "message": f"Configuration value '{module}.{key}' deleted successfully",
         }
     )
-

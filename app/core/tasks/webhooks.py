@@ -57,7 +57,9 @@ class TaskWebhook:
             "timeout": self.timeout,
             "created_by_id": str(self.created_by_id) if self.created_by_id else None,
             "created_at": self.created_at.isoformat(),
-            "last_triggered": self.last_triggered.isoformat() if self.last_triggered else None,
+            "last_triggered": (
+                self.last_triggered.isoformat() if self.last_triggered else None
+            ),
             "success_count": self.success_count,
             "failure_count": self.failure_count,
         }
@@ -102,10 +104,7 @@ class TaskWebhookService:
         return webhook
 
     def get_webhooks(
-        self,
-        tenant_id: UUID,
-        event: str | None = None,
-        is_active: bool | None = None
+        self, tenant_id: UUID, event: str | None = None, is_active: bool | None = None
     ) -> list[TaskWebhook]:
         """Get webhooks for a tenant."""
         webhooks = []
@@ -132,10 +131,7 @@ class TaskWebhookService:
         return None
 
     def update_webhook(
-        self,
-        webhook_id: UUID,
-        tenant_id: UUID,
-        updates: dict
+        self, webhook_id: UUID, tenant_id: UUID, updates: dict
     ) -> TaskWebhook | None:
         """Update a webhook."""
         webhook = self.get_webhook(webhook_id, tenant_id)
@@ -162,10 +158,7 @@ class TaskWebhookService:
         return True
 
     async def trigger_webhooks(
-        self,
-        event: str,
-        data: dict,
-        tenant_id: UUID
+        self, event: str, data: dict, tenant_id: UUID
     ) -> list[dict]:
         """Trigger webhooks for an event."""
         results = []
@@ -186,21 +179,18 @@ class TaskWebhookService:
 
             except Exception as e:
                 logger.error(f"Failed to trigger webhook {webhook.id}: {e}")
-                results.append({
-                    "webhook_id": str(webhook.id),
-                    "success": False,
-                    "error": str(e),
-                    "status_code": None,
-                })
+                results.append(
+                    {
+                        "webhook_id": str(webhook.id),
+                        "success": False,
+                        "error": str(e),
+                        "status_code": None,
+                    }
+                )
 
         return results
 
-    async def _send_webhook(
-        self,
-        webhook: TaskWebhook,
-        event: str,
-        data: dict
-    ) -> dict:
+    async def _send_webhook(self, webhook: TaskWebhook, event: str, data: dict) -> dict:
         """Send webhook payload."""
         import httpx
 
@@ -219,9 +209,7 @@ class TaskWebhookService:
             import hmac
 
             signature = hmac.new(
-                webhook.secret.encode(),
-                str(payload).encode(),
-                hashlib.sha256
+                webhook.secret.encode(), str(payload).encode(), hashlib.sha256
             ).hexdigest()
             headers["X-Webhook-Signature"] = f"sha256={signature}"
 
@@ -230,11 +218,7 @@ class TaskWebhookService:
 
         try:
             async with httpx.AsyncClient(timeout=webhook.timeout) as client:
-                response = await client.post(
-                    webhook.url,
-                    json=payload,
-                    headers=headers
-                )
+                response = await client.post(webhook.url, json=payload, headers=headers)
 
                 if response.status_code >= 200 and response.status_code < 300:
                     logger.info(f"Webhook {webhook.id} delivered successfully")
@@ -245,7 +229,9 @@ class TaskWebhookService:
                         "response": response.text,
                     }
                 else:
-                    logger.warning(f"Webhook {webhook.id} failed with status {response.status_code}")
+                    logger.warning(
+                        f"Webhook {webhook.id} failed with status {response.status_code}"
+                    )
                     return {
                         "webhook_id": str(webhook.id),
                         "success": False,
@@ -269,7 +255,9 @@ class TaskWebhookService:
             return None
 
         total_calls = webhook.success_count + webhook.failure_count
-        success_rate = (webhook.success_count / total_calls * 100) if total_calls > 0 else 0
+        success_rate = (
+            (webhook.success_count / total_calls * 100) if total_calls > 0 else 0
+        )
 
         return {
             "webhook_id": str(webhook.id),
@@ -277,7 +265,9 @@ class TaskWebhookService:
             "success_count": webhook.success_count,
             "failure_count": webhook.failure_count,
             "success_rate": round(success_rate, 2),
-            "last_triggered": webhook.last_triggered.isoformat() if webhook.last_triggered else None,
+            "last_triggered": (
+                webhook.last_triggered.isoformat() if webhook.last_triggered else None
+            ),
             "is_active": webhook.is_active,
         }
 
@@ -295,7 +285,10 @@ class TaskWebhookService:
 
         # Trigger test event
         import asyncio
-        results = asyncio.run(self.trigger_webhooks("webhook.test", sample_data, tenant_id))
+
+        results = asyncio.run(
+            self.trigger_webhooks("webhook.test", sample_data, tenant_id)
+        )
 
         return results[0] if results else {"error": "No results"}
 
@@ -317,6 +310,7 @@ TASK_WEBHOOK_EVENTS = [
 
 # Global webhook service instance
 task_webhook_service = None
+
 
 def get_task_webhook_service(db) -> TaskWebhookService:
     """Get task webhook service instance."""

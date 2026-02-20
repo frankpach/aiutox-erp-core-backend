@@ -71,7 +71,9 @@ def mask_email(email: str) -> str:
     return f"{masked_local}@{domain}"
 
 
-def log_auth_success(user_id: str, email: str, tenant_id: str, ip_address: str | None = None) -> None:
+def log_auth_success(
+    user_id: str, email: str, tenant_id: str, ip_address: str | None = None
+) -> None:
     """
     Log successful authentication.
 
@@ -311,6 +313,3 @@ def log_user_action(
         message += f", ip={ip_address}"
 
     security_logger.info(message)
-
-
-

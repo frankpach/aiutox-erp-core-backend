@@ -59,4 +59,3 @@ def verify_token(token: str, hashed_token: str) -> bool:
 
     # Verify against stored hash
     return verify_password(sha256_hash, hashed_token)
-

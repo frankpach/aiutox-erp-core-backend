@@ -118,7 +118,11 @@ class FlowEngine:
             return str(request.requested_by)
 
         # Check request metadata if available and is a dictionary
-        if hasattr(request, "request_metadata") and request.request_metadata and isinstance(request.request_metadata, dict):
+        if (
+            hasattr(request, "request_metadata")
+            and request.request_metadata
+            and isinstance(request.request_metadata, dict)
+        ):
             return request.request_metadata.get(field)
 
         return None
@@ -131,9 +135,7 @@ class FlowEngine:
         if not steps:
             return None
 
-        return next(
-            (s for s in steps if s.step_order == request.current_step), None
-        )
+        return next((s for s in steps if s.step_order == request.current_step), None)
 
     def can_approve(
         self, request: ApprovalRequest, user_id: UUID, flow: ApprovalFlow
@@ -148,14 +150,18 @@ class FlowEngine:
             return current_step.approver_id == user_id
         elif current_step.approver_type == "role":
             # Check if user has the role
-            return self._check_user_has_role(user_id, current_step.approver_role, request.tenant_id)
+            return self._check_user_has_role(
+                user_id, current_step.approver_role, request.tenant_id
+            )
         elif current_step.approver_type == "dynamic":
             # Evaluate dynamic rule
             return self._evaluate_dynamic_rule(current_step, request, user_id)
 
         return False
 
-    def _check_user_has_role(self, user_id: UUID, role_name: str, tenant_id: UUID) -> bool:
+    def _check_user_has_role(
+        self, user_id: UUID, role_name: str, tenant_id: UUID
+    ) -> bool:
         """Check if a user has a specific role."""
         from app.models.user_role import UserRole
 
@@ -166,7 +172,9 @@ class FlowEngine:
         )
         return user_role is not None
 
-    def _evaluate_dynamic_rule(self, step: ApprovalStep, request: ApprovalRequest, user_id: UUID) -> bool:
+    def _evaluate_dynamic_rule(
+        self, step: ApprovalStep, request: ApprovalRequest, user_id: UUID
+    ) -> bool:
         """Evaluate dynamic approver rule."""
         if not step.approver_rule:
             return False
@@ -201,7 +209,9 @@ class FlowEngine:
         user_agent: str | None = None,
     ) -> ApprovalRequest:
         """Process an approval action."""
-        flow = self.repository.get_approval_flow_by_id(request.flow_id, request.tenant_id)
+        flow = self.repository.get_approval_flow_by_id(
+            request.flow_id, request.tenant_id
+        )
         if not flow:
             raise ValueError("Approval flow not found")
 
@@ -524,7 +534,9 @@ class ApprovalService:
         # Create flow run if service is available
         if self.flow_runs_service:
             try:
-                logger.info(f"Attempting to create flow run for request {request.id} with tenant_id {tenant_id}")
+                logger.info(
+                    f"Attempting to create flow run for request {request.id} with tenant_id {tenant_id}"
+                )
                 flow_run = self.flow_runs_service.create_flow_run(
                     flow_id=request.flow_id,
                     entity_type=request.entity_type,
@@ -536,10 +548,15 @@ class ApprovalService:
                         "requested_by": str(user_id),
                     },
                 )
-                logger.info(f"Created flow run {flow_run.id} for approval request {request.id}")
+                logger.info(
+                    f"Created flow run {flow_run.id} for approval request {request.id}"
+                )
             except Exception as e:
-                logger.error(f"Failed to create flow run for approval request {request.id}: {e}")
+                logger.error(
+                    f"Failed to create flow run for approval request {request.id}: {e}"
+                )
                 import traceback
+
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Send notifications to approvers
@@ -579,7 +596,9 @@ class ApprovalService:
             return
 
         steps = self.repository.get_approval_steps_by_flow(flow.id, tenant_id)
-        current_step = next((s for s in steps if s.step_order == request.current_step), None)
+        current_step = next(
+            (s for s in steps if s.step_order == request.current_step), None
+        )
 
         if not current_step:
             return
@@ -616,7 +635,9 @@ class ApprovalService:
             return
 
         steps = self.repository.get_approval_steps_by_flow(flow.id, tenant_id)
-        current_step = next((s for s in steps if s.step_order == request.current_step), None)
+        current_step = next(
+            (s for s in steps if s.step_order == request.current_step), None
+        )
 
         if not current_step:
             return
@@ -644,9 +665,13 @@ class ApprovalService:
                     },
                 )
             except Exception as e:
-                logger.error(f"Failed to send notification to approver {approver_id}: {e}")
+                logger.error(
+                    f"Failed to send notification to approver {approver_id}: {e}"
+                )
 
-    def _get_step_approvers(self, step: ApprovalStep, request: ApprovalRequest, tenant_id: UUID) -> list[UUID]:
+    def _get_step_approvers(
+        self, step: ApprovalStep, request: ApprovalRequest, tenant_id: UUID
+    ) -> list[UUID]:
         """Get list of approver IDs for a step."""
         approvers = []
 
@@ -728,12 +753,18 @@ class ApprovalService:
                                 "comment": comment,
                             },
                         )
-                        logger.info(f"Completed flow run {flow_run.id} for approved request {request_id}")
+                        logger.info(
+                            f"Completed flow run {flow_run.id} for approved request {request_id}"
+                        )
                     else:
                         self.flow_runs_service.start_flow_run(flow_run.id, tenant_id)
-                        logger.info(f"Started flow run {flow_run.id} for request {request_id}")
+                        logger.info(
+                            f"Started flow run {flow_run.id} for request {request_id}"
+                        )
             except Exception as e:
-                logger.error(f"Failed to update flow run for approval request {request_id}: {e}")
+                logger.error(
+                    f"Failed to update flow run for approval request {request_id}: {e}"
+                )
 
         # Publish event
         safe_publish_event(
@@ -790,12 +821,18 @@ class ApprovalService:
                                 "comment": comment,
                             },
                         )
-                        logger.info(f"Failed flow run {flow_run.id} for rejected request {request_id}")
+                        logger.info(
+                            f"Failed flow run {flow_run.id} for rejected request {request_id}"
+                        )
                     else:
                         self.flow_runs_service.start_flow_run(flow_run.id, tenant_id)
-                        logger.info(f"Started flow run {flow_run.id} for request {request_id}")
+                        logger.info(
+                            f"Started flow run {flow_run.id} for request {request_id}"
+                        )
             except Exception as e:
-                logger.error(f"Failed to update flow run for approval request {request_id}: {e}")
+                logger.error(
+                    f"Failed to update flow run for approval request {request_id}: {e}"
+                )
 
         # Publish event
         safe_publish_event(
@@ -951,7 +988,8 @@ class ApprovalService:
 
         # Calculate average approval time
         approved_requests = [
-            r for r in all_requests
+            r
+            for r in all_requests
             if r.status == ApprovalStatus.APPROVED and r.completed_at
         ]
         avg_approval_time = None
@@ -995,30 +1033,32 @@ class ApprovalService:
         timeline = []
 
         # Add request creation event
-        timeline.append({
-            "type": "request_created",
-            "timestamp": request.requested_at,
-            "actor_id": str(request.requested_by),
-            "data": {
-                "title": request.title,
-                "entity_type": request.entity_type,
-                "entity_id": str(request.entity_id),
-            },
-        })
+        timeline.append(
+            {
+                "type": "request_created",
+                "timestamp": request.requested_at,
+                "actor_id": str(request.requested_by),
+                "data": {
+                    "title": request.title,
+                    "entity_type": request.entity_type,
+                    "entity_id": str(request.entity_id),
+                },
+            }
+        )
 
         # Get actions
-        actions = self.repository.get_approval_actions_by_request(
-            request_id, tenant_id
-        )
+        actions = self.repository.get_approval_actions_by_request(request_id, tenant_id)
         for action in actions:
-            timeline.append({
-                "type": "action",
-                "action_type": action.action_type,
-                "timestamp": action.acted_at,
-                "actor_id": str(action.acted_by) if action.acted_by else None,
-                "step_order": action.step_order,
-                "comment": action.comment,
-            })
+            timeline.append(
+                {
+                    "type": "action",
+                    "action_type": action.action_type,
+                    "timestamp": action.acted_at,
+                    "actor_id": str(action.acted_by) if action.acted_by else None,
+                    "step_order": action.step_order,
+                    "comment": action.comment,
+                }
+            )
 
         # Get delegations
         delegations = self.repository.get_approval_delegations(
@@ -1026,26 +1066,34 @@ class ApprovalService:
             request_id=request_id,
         )
         for delegation in delegations:
-            timeline.append({
-                "type": "delegation",
-                "timestamp": delegation.created_at,
-                "actor_id": str(delegation.from_user_id),
-                "data": {
-                    "to_user_id": str(delegation.to_user_id),
-                    "reason": delegation.reason,
-                    "expires_at": delegation.expires_at.isoformat() if delegation.expires_at else None,
-                },
-            })
+            timeline.append(
+                {
+                    "type": "delegation",
+                    "timestamp": delegation.created_at,
+                    "actor_id": str(delegation.from_user_id),
+                    "data": {
+                        "to_user_id": str(delegation.to_user_id),
+                        "reason": delegation.reason,
+                        "expires_at": (
+                            delegation.expires_at.isoformat()
+                            if delegation.expires_at
+                            else None
+                        ),
+                    },
+                }
+            )
 
         # Add completion event if applicable
         if request.completed_at:
-            timeline.append({
-                "type": "completed",
-                "timestamp": request.completed_at,
-                "data": {
-                    "status": request.status.value,
-                },
-            })
+            timeline.append(
+                {
+                    "type": "completed",
+                    "timestamp": request.completed_at,
+                    "data": {
+                        "status": request.status.value,
+                    },
+                }
+            )
 
         # Sort by timestamp
         return sorted(timeline, key=lambda x: x["timestamp"])
@@ -1146,7 +1194,11 @@ class ApprovalService:
         current_step = self.flow_engine.get_current_step(request, flow)
 
         # Check if user can approve
-        can_approve = self.flow_engine.can_approve(request, user_id, flow) if current_step else False
+        can_approve = (
+            self.flow_engine.can_approve(request, user_id, flow)
+            if current_step
+            else False
+        )
 
         # Get timeline
         timeline = self.get_request_timeline(request_id, tenant_id)
@@ -1160,22 +1212,32 @@ class ApprovalService:
                 "current_step": request.current_step,
                 "entity_type": request.entity_type,
                 "entity_id": str(request.entity_id),
-                "requested_by": str(request.requested_by) if request.requested_by else None,
+                "requested_by": (
+                    str(request.requested_by) if request.requested_by else None
+                ),
                 "requested_at": request.requested_at.isoformat(),
-                "completed_at": request.completed_at.isoformat() if request.completed_at else None,
+                "completed_at": (
+                    request.completed_at.isoformat() if request.completed_at else None
+                ),
             },
             "flow": {
                 "id": str(flow.id),
                 "name": flow.name,
                 "flow_type": flow.flow_type,
             },
-            "current_step": {
-                "id": str(current_step.id) if current_step else None,
-                "step_order": current_step.step_order if current_step else None,
-                "name": current_step.name if current_step else None,
-                "description": current_step.description if current_step else None,
-                "approver_type": current_step.approver_type if current_step else None,
-            } if current_step else None,
+            "current_step": (
+                {
+                    "id": str(current_step.id) if current_step else None,
+                    "step_order": current_step.step_order if current_step else None,
+                    "name": current_step.name if current_step else None,
+                    "description": current_step.description if current_step else None,
+                    "approver_type": (
+                        current_step.approver_type if current_step else None
+                    ),
+                }
+                if current_step
+                else None
+            ),
             "permissions": {
                 "can_approve": can_approve,
             },
@@ -1256,18 +1318,30 @@ class ApprovalService:
         current_step = self.flow_engine.get_current_step(request, flow)
 
         # Check if user can approve
-        can_approve = self.flow_engine.can_approve(request, user_id, flow) if current_step else False
+        can_approve = (
+            self.flow_engine.can_approve(request, user_id, flow)
+            if current_step
+            else False
+        )
 
         return {
             "can_approve": can_approve,
-            "current_step": {
-                "id": str(current_step.id) if current_step else None,
-                "step_order": current_step.step_order if current_step else None,
-                "name": current_step.name if current_step else None,
-                "description": current_step.description if current_step else None,
-                "approver_type": current_step.approver_type if current_step else None,
-                "rejection_required": current_step.rejection_required if current_step else False,
-            } if current_step else None,
+            "current_step": (
+                {
+                    "id": str(current_step.id) if current_step else None,
+                    "step_order": current_step.step_order if current_step else None,
+                    "name": current_step.name if current_step else None,
+                    "description": current_step.description if current_step else None,
+                    "approver_type": (
+                        current_step.approver_type if current_step else None
+                    ),
+                    "rejection_required": (
+                        current_step.rejection_required if current_step else False
+                    ),
+                }
+                if current_step
+                else None
+            ),
             "request_status": request.status.value,
         }
 
@@ -1286,15 +1360,21 @@ class ApprovalService:
 
         for request_id in request_ids:
             try:
-                request = self.repository.get_approval_request_by_id(request_id, tenant_id)
+                request = self.repository.get_approval_request_by_id(
+                    request_id, tenant_id
+                )
                 if not request:
                     errors.append(f"Request {request_id} not found")
                     continue
 
                 # Get the flow for this request
-                flow = self.repository.get_approval_flow_by_id(request.flow_id, tenant_id)
+                flow = self.repository.get_approval_flow_by_id(
+                    request.flow_id, tenant_id
+                )
                 if not flow:
-                    errors.append(f"Flow {request.flow_id} not found for request {request_id}")
+                    errors.append(
+                        f"Flow {request.flow_id} not found for request {request_id}"
+                    )
                     continue
 
                 if not self.flow_engine.can_approve(request, user_id, flow):
@@ -1326,7 +1406,9 @@ class ApprovalService:
         if errors:
             logger.warning(f"Bulk approve completed with errors: {errors}")
 
-        logger.info(f"Bulk approve results: {len(results)} approved, {len(errors)} errors")
+        logger.info(
+            f"Bulk approve results: {len(results)} approved, {len(errors)} errors"
+        )
         return results
 
     def bulk_reject_requests(
@@ -1344,7 +1426,9 @@ class ApprovalService:
 
         for request_id in request_ids:
             try:
-                request = self.repository.get_approval_request_by_id(request_id, tenant_id)
+                request = self.repository.get_approval_request_by_id(
+                    request_id, tenant_id
+                )
                 if not request:
                     errors.append(f"Request {request_id} not found")
                     continue
@@ -1408,7 +1492,17 @@ class ApprovalService:
                     raise ValueError("Each rule must have an 'operator'")
 
                 # Validate operator
-                valid_operators = ["eq", "ne", "gt", "lt", "gte", "lte", "in", "not_in", "contains"]
+                valid_operators = [
+                    "eq",
+                    "ne",
+                    "gt",
+                    "lt",
+                    "gte",
+                    "lte",
+                    "in",
+                    "not_in",
+                    "contains",
+                ]
                 if rule["operator"] not in valid_operators:
                     raise ValueError(
                         f"Invalid operator '{rule['operator']}'. "
@@ -1422,8 +1516,3 @@ class ApprovalService:
         if "logic" in conditions:
             if conditions["logic"] not in ["AND", "OR"]:
                 raise ValueError("Logic must be either 'AND' or 'OR'")
-
-
-
-
-

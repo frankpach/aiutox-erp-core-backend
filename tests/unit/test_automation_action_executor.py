@@ -110,13 +110,3 @@ async def test_execute_action_with_error(action_executor, sample_event):
     result = await action_executor.execute(actions, sample_event)
     # invoke_api is not fully implemented, so it should return success but with a message
     assert result["actions_executed"] == 1
-
-
-
-
-
-
-
-
-
-

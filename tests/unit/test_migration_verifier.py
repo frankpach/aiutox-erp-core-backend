@@ -95,10 +95,14 @@ def test_verify_schema(verifier):
         mock_tenant_col_id.type = MagicMock()
         mock_tenant_table.columns = [mock_tenant_col_id]
 
-        with patch.object(Base.metadata, "tables", {
-            "users": mock_user_table,
-            "tenants": mock_tenant_table,
-        }):
+        with patch.object(
+            Base.metadata,
+            "tables",
+            {
+                "users": mock_user_table,
+                "tenants": mock_tenant_table,
+            },
+        ):
             result = verifier.verify_schema()
             assert isinstance(result, SchemaVerificationResult)
 
@@ -137,7 +141,9 @@ def test_get_orphaned_migrations(verifier, mock_manager):
 
 def test_get_missing_tables(verifier):
     """Test get_missing_tables."""
-    with patch("app.core.migrations.verifier.MigrationVerifier.verify_schema") as mock_verify:
+    with patch(
+        "app.core.migrations.verifier.MigrationVerifier.verify_schema"
+    ) as mock_verify:
         mock_result = MagicMock()
         mock_result.diff.missing_tables = ["missing_table"]
         mock_verify.return_value = mock_result
@@ -148,17 +154,24 @@ def test_get_missing_tables(verifier):
 
 def test_verify_all(verifier):
     """Test verify_all."""
-    with patch("app.core.migrations.verifier.MigrationVerifier.verify_applied") as mock_applied, patch(
-        "app.core.migrations.verifier.MigrationVerifier.verify_schema"
-    ) as mock_schema, patch(
-        "app.core.migrations.verifier.MigrationVerifier.verify_integrity"
-    ) as mock_integrity:
+    with (
+        patch(
+            "app.core.migrations.verifier.MigrationVerifier.verify_applied"
+        ) as mock_applied,
+        patch(
+            "app.core.migrations.verifier.MigrationVerifier.verify_schema"
+        ) as mock_schema,
+        patch(
+            "app.core.migrations.verifier.MigrationVerifier.verify_integrity"
+        ) as mock_integrity,
+    ):
         mock_applied.return_value = VerificationResult(
             applied_match=True, schema_match=True, integrity_ok=True
         )
         mock_schema.return_value = MagicMock(match=True, issues=[], diff=MagicMock())
-        mock_integrity.return_value = IntegrityResult(valid=True, errors=[], warnings=[])
+        mock_integrity.return_value = IntegrityResult(
+            valid=True, errors=[], warnings=[]
+        )
 
         result = verifier.verify_all()
         assert isinstance(result, VerificationResult)
-

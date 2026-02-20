@@ -13,9 +13,15 @@ class ApprovalFlowBase(BaseModel):
 
     name: str = Field(..., description="Flow name", max_length=255)
     description: str | None = Field(None, description="Flow description")
-    flow_type: str = Field(..., description="Flow type (sequential, parallel, conditional)", max_length=20)
-    module: str = Field(..., description="Module name (e.g., 'products', 'orders')", max_length=50)
-    conditions: dict[str, Any] | None = Field(None, description="Conditional rules for flow")
+    flow_type: str = Field(
+        ..., description="Flow type (sequential, parallel, conditional)", max_length=20
+    )
+    module: str = Field(
+        ..., description="Module name (e.g., 'products', 'orders')", max_length=50
+    )
+    conditions: dict[str, Any] | None = Field(
+        None, description="Conditional rules for flow"
+    )
     is_active: bool = Field(True, description="Whether flow is active")
 
 
@@ -43,7 +49,9 @@ class ApprovalFlowResponse(ApprovalFlowBase):
     created_by: UUID | None
     created_at: datetime
     updated_at: datetime
-    steps: list["ApprovalStepResponse"] = Field(default_factory=list, description="Flow steps")
+    steps: list["ApprovalStepResponse"] = Field(
+        default_factory=list, description="Flow steps"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,15 +64,27 @@ class ApprovalStepBase(BaseModel):
     step_order: int = Field(..., description="Step order in flow")
     name: str = Field(..., description="Step name", max_length=255)
     description: str | None = Field(None, description="Step description")
-    approver_type: str = Field(..., description="Approver type (user, role, dynamic)", max_length=20)
+    approver_type: str = Field(
+        ..., description="Approver type (user, role, dynamic)", max_length=20
+    )
     approver_id: UUID | None = Field(None, description="Approver user/role ID")
-    approver_role: str | None = Field(None, description="Approver role name", max_length=50)
-    approver_rule: dict[str, Any] | None = Field(None, description="Dynamic approver rule")
+    approver_role: str | None = Field(
+        None, description="Approver role name", max_length=50
+    )
+    approver_rule: dict[str, Any] | None = Field(
+        None, description="Dynamic approver rule"
+    )
     require_all: bool = Field(False, description="Require all approvers (for parallel)")
     min_approvals: int | None = Field(None, description="Minimum approvals required")
-    form_schema: dict[str, Any] | None = Field(None, description="JSON Schema for dynamic form")
-    print_config: dict[str, Any] | None = Field(None, description="Configuration for printing (label, template, position)")
-    rejection_required: bool = Field(False, description="Require explanation on rejection")
+    form_schema: dict[str, Any] | None = Field(
+        None, description="JSON Schema for dynamic form"
+    )
+    print_config: dict[str, Any] | None = Field(
+        None, description="Configuration for printing (label, template, position)"
+    )
+    rejection_required: bool = Field(
+        False, description="Require explanation on rejection"
+    )
 
 
 class ApprovalStepCreate(ApprovalStepBase):
@@ -81,13 +101,23 @@ class ApprovalStepUpdate(BaseModel):
     description: str | None = Field(None, description="Step description")
     approver_type: str | None = Field(None, description="Approver type", max_length=20)
     approver_id: UUID | None = Field(None, description="Approver user/role ID")
-    approver_role: str | None = Field(None, description="Approver role name", max_length=50)
-    approver_rule: dict[str, Any] | None = Field(None, description="Dynamic approver rule")
+    approver_role: str | None = Field(
+        None, description="Approver role name", max_length=50
+    )
+    approver_rule: dict[str, Any] | None = Field(
+        None, description="Dynamic approver rule"
+    )
     require_all: bool | None = Field(None, description="Require all approvers")
     min_approvals: int | None = Field(None, description="Minimum approvals required")
-    form_schema: dict[str, Any] | None = Field(None, description="JSON Schema for dynamic form")
-    print_config: dict[str, Any] | None = Field(None, description="Configuration for printing (label, template, position)")
-    rejection_required: bool | None = Field(None, description="Require explanation on rejection")
+    form_schema: dict[str, Any] | None = Field(
+        None, description="JSON Schema for dynamic form"
+    )
+    print_config: dict[str, Any] | None = Field(
+        None, description="Configuration for printing (label, template, position)"
+    )
+    rejection_required: bool | None = Field(
+        None, description="Require explanation on rejection"
+    )
 
 
 class ApprovalStepResponse(ApprovalStepBase):
@@ -108,7 +138,9 @@ class ApprovalRequestBase(BaseModel):
     flow_id: UUID = Field(..., description="Flow ID")
     title: str = Field(..., description="Request title", max_length=255)
     description: str | None = Field(None, description="Request description")
-    entity_type: str = Field(..., description="Entity type (e.g., 'order', 'invoice')", max_length=50)
+    entity_type: str = Field(
+        ..., description="Entity type (e.g., 'order', 'invoice')", max_length=50
+    )
     entity_id: UUID = Field(..., description="Entity ID")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
@@ -131,7 +163,9 @@ class ApprovalRequestResponse(ApprovalRequestBase):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="request_metadata", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="request_metadata", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -141,11 +175,19 @@ class ApprovalActionBase(BaseModel):
     """Base schema for approval action."""
 
     request_id: UUID = Field(..., description="Request ID")
-    action_type: str = Field(..., description="Action type (approve, reject, delegate, comment)", max_length=20)
+    action_type: str = Field(
+        ...,
+        description="Action type (approve, reject, delegate, comment)",
+        max_length=20,
+    )
     step_order: int = Field(..., description="Step order")
     comment: str | None = Field(None, description="Optional comment")
-    rejection_reason: str | None = Field(None, description="Explanation of rejection (separate from comment)")
-    form_data: dict[str, Any] | None = Field(None, description="Data from dynamic form filled in this step")
+    rejection_reason: str | None = Field(
+        None, description="Explanation of rejection (separate from comment)"
+    )
+    form_data: dict[str, Any] | None = Field(
+        None, description="Data from dynamic form filled in this step"
+    )
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 

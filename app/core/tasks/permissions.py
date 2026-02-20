@@ -76,41 +76,45 @@ class TaskPermissionChecker:
         if "admin" in self.user_roles:
             permissions.update([perm.value for perm in TaskPermission])
         elif "manager" in self.user_roles:
-            permissions.update([
-                TaskPermission.VIEW,
-                TaskPermission.CREATE,
-                TaskPermission.MANAGE,
-                TaskPermission.UPDATE,
-                TaskPermission.ASSIGN,
-                TaskPermission.ASSIGN_OTHERS,
-                TaskPermission.CHANGE_STATUS,
-                TaskPermission.CHANGE_STATUS_OTHERS,
-                TaskPermission.MARK_DONE,
-                TaskPermission.REOPEN,
-                TaskPermission.AGENDA_VIEW,
-                TaskPermission.CALENDAR_SOURCES_VIEW,
-                TaskPermission.CHECKLIST_CREATE,
-                TaskPermission.CHECKLIST_UPDATE,
-                TaskPermission.REMINDERS_CREATE,
-                TaskPermission.BULK_UPDATE,
-                TaskPermission.VIEW_ALL,
-            ])
+            permissions.update(
+                [
+                    TaskPermission.VIEW,
+                    TaskPermission.CREATE,
+                    TaskPermission.MANAGE,
+                    TaskPermission.UPDATE,
+                    TaskPermission.ASSIGN,
+                    TaskPermission.ASSIGN_OTHERS,
+                    TaskPermission.CHANGE_STATUS,
+                    TaskPermission.CHANGE_STATUS_OTHERS,
+                    TaskPermission.MARK_DONE,
+                    TaskPermission.REOPEN,
+                    TaskPermission.AGENDA_VIEW,
+                    TaskPermission.CALENDAR_SOURCES_VIEW,
+                    TaskPermission.CHECKLIST_CREATE,
+                    TaskPermission.CHECKLIST_UPDATE,
+                    TaskPermission.REMINDERS_CREATE,
+                    TaskPermission.BULK_UPDATE,
+                    TaskPermission.VIEW_ALL,
+                ]
+            )
         elif "employee" in self.user_roles:
-            permissions.update([
-                TaskPermission.VIEW,
-                TaskPermission.CREATE,
-                TaskPermission.MANAGE,
-                TaskPermission.UPDATE,
-                TaskPermission.ASSIGN_SELF,
-                TaskPermission.CHANGE_STATUS_SELF,
-                TaskPermission.MARK_DONE,
-                TaskPermission.REOPEN,
-                TaskPermission.AGENDA_VIEW,
-                TaskPermission.CALENDAR_SOURCES_VIEW,
-                TaskPermission.CHECKLIST_CREATE,
-                TaskPermission.CHECKLIST_UPDATE,
-                TaskPermission.REMINDERS_CREATE,
-            ])
+            permissions.update(
+                [
+                    TaskPermission.VIEW,
+                    TaskPermission.CREATE,
+                    TaskPermission.MANAGE,
+                    TaskPermission.UPDATE,
+                    TaskPermission.ASSIGN_SELF,
+                    TaskPermission.CHANGE_STATUS_SELF,
+                    TaskPermission.MARK_DONE,
+                    TaskPermission.REOPEN,
+                    TaskPermission.AGENDA_VIEW,
+                    TaskPermission.CALENDAR_SOURCES_VIEW,
+                    TaskPermission.CHECKLIST_CREATE,
+                    TaskPermission.CHECKLIST_UPDATE,
+                    TaskPermission.REMINDERS_CREATE,
+                ]
+            )
 
         return permissions
 
@@ -121,14 +125,16 @@ class TaskPermissionChecker:
         # Add roles based on user properties
         if self.user.is_superuser:
             roles.add("admin")
-        elif hasattr(self.user, 'role') and self.user.role:
+        elif hasattr(self.user, "role") and self.user.role:
             roles.add(self.user.role.lower())
 
         return roles
 
     def has_permission(self, permission: TaskPermission | str) -> bool:
         """Check if user has a specific permission."""
-        perm_value = permission.value if isinstance(permission, TaskPermission) else permission
+        perm_value = (
+            permission.value if isinstance(permission, TaskPermission) else permission
+        )
         return perm_value in self.user_permissions
 
     def can_view_task(self, task: Task) -> bool:
@@ -150,7 +156,7 @@ class TaskPermissionChecker:
             return True
 
         # Check modern assignments
-        if hasattr(task, 'assignments') and task.assignments:
+        if hasattr(task, "assignments") and task.assignments:
             for assignment in task.assignments:
                 if assignment.assigned_to_id == self.user.id:
                     return True
@@ -180,7 +186,7 @@ class TaskPermissionChecker:
             return True
 
         # Check modern assignments
-        if hasattr(task, 'assignments') and task.assignments:
+        if hasattr(task, "assignments") and task.assignments:
             for assignment in task.assignments:
                 if assignment.assigned_to_id == self.user.id:
                     return True
@@ -229,8 +235,7 @@ class TaskPermissionChecker:
 
         # Check if changing own task
         is_own_task = (
-            task.created_by_id == self.user.id or
-            task.assigned_to_id == self.user.id
+            task.created_by_id == self.user.id or task.assigned_to_id == self.user.id
         )
 
         if is_own_task:
@@ -250,10 +255,7 @@ class TaskPermissionChecker:
             return False
 
         # User can mark their own assigned tasks as done
-        return (
-            task.assigned_to_id == self.user.id or
-            task.created_by_id == self.user.id
-        )
+        return task.assigned_to_id == self.user.id or task.created_by_id == self.user.id
 
     def can_reopen_task(self, task: Task) -> bool:
         """Check if user can reopen a completed task."""
@@ -296,10 +298,7 @@ class TaskPermissionChecker:
             return True
 
         # User can manage checklist of their own tasks
-        return (
-            task.created_by_id == self.user.id or
-            task.assigned_to_id == self.user.id
-        )
+        return task.created_by_id == self.user.id or task.assigned_to_id == self.user.id
 
     def can_bulk_update_tasks(self, task_ids: list[UUID]) -> bool:
         """Check if user can bulk update specific tasks."""
@@ -333,7 +332,7 @@ class TaskPermissionChecker:
         self,
         permission: TaskPermission | str,
         resource_id: UUID | None = None,
-        details: dict | None = None
+        details: dict | None = None,
     ) -> bool:
         """Check permission and log for audit purposes."""
         has_perm = self.has_permission(permission)
@@ -349,7 +348,7 @@ def check_task_permission(
     tenant_id: UUID,
     permission: TaskPermission | str,
     task: Task | None = None,
-    **kwargs
+    **kwargs,
 ) -> bool:
     """Convenience function to check task permissions."""
     checker = TaskPermissionChecker(user, tenant_id)

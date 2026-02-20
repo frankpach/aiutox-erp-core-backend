@@ -142,11 +142,3 @@ def test_remove_index(client_with_db, test_user, auth_headers, db_session):
     )
 
     assert response.status_code == 204
-
-
-
-
-
-
-
-

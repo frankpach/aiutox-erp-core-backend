@@ -63,6 +63,7 @@ class FilesCoreModule(ModuleInterface):
 def create_module(_db: object | None = None) -> FilesCoreModule:
     return FilesCoreModule()
 
+
 __all__ = [
     "FileService",
     "BaseStorageBackend",
@@ -72,4 +73,3 @@ __all__ = [
     "FilesCoreModule",
     "create_module",
 ]
-

@@ -441,7 +441,9 @@ class TestContactMethodsAPI:
         assert "message" in data["data"]
 
         # Verify it's actually deleted
-        deleted = db_session.query(ContactMethod).filter_by(id=contact_method_id).first()
+        deleted = (
+            db_session.query(ContactMethod).filter_by(id=contact_method_id).first()
+        )
         assert deleted is None
 
     def test_create_contact_method_address(
@@ -486,21 +488,3 @@ class TestContactMethodsAPI:
         assert data["data"]["address_line1"] == "123 Main St"
         assert data["data"]["city"] == "New York"
         assert data["data"]["country"] == "US"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

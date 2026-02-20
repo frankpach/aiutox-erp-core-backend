@@ -11,10 +11,14 @@ from pydantic import BaseModel, ConfigDict, Field
 class CommentBase(BaseModel):
     """Base schema for comment."""
 
-    entity_type: str = Field(..., description="Entity type (e.g., 'product', 'order')", max_length=50)
+    entity_type: str = Field(
+        ..., description="Entity type (e.g., 'product', 'order')", max_length=50
+    )
     entity_id: UUID = Field(..., description="Entity ID")
     content: str = Field(..., description="Comment content")
-    parent_id: UUID | None = Field(None, description="Parent comment ID (for threaded comments)")
+    parent_id: UUID | None = Field(
+        None, description="Parent comment ID (for threaded comments)"
+    )
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
 
 
@@ -43,7 +47,9 @@ class CommentResponse(CommentBase):
     updated_at: datetime
     edited_at: datetime | None
     deleted_at: datetime | None
-    metadata: dict[str, Any] | None = Field(None, alias="meta_data", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="meta_data", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -89,11 +95,3 @@ class CommentAttachmentResponse(CommentAttachmentBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
-
-
-
-
-

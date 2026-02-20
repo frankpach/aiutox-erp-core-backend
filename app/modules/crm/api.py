@@ -45,12 +45,16 @@ async def list_pipelines(
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> StandardListResponse[PipelineResponse]:
     skip = (page - 1) * page_size
-    pipelines = service.list_pipelines(current_user.tenant_id, skip=skip, limit=page_size)
+    pipelines = service.list_pipelines(
+        current_user.tenant_id, skip=skip, limit=page_size
+    )
     total = len(pipelines)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return StandardListResponse(
         data=[PipelineResponse.model_validate(p) for p in pipelines],
-        meta=PaginationMeta(total=total, page=page, page_size=page_size, total_pages=total_pages),
+        meta=PaginationMeta(
+            total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
     )
 
 
@@ -149,7 +153,9 @@ async def list_leads(
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return StandardListResponse(
         data=[LeadResponse.model_validate(lead) for lead in leads],
-        meta=PaginationMeta(total=total, page=page, page_size=page_size, total_pages=total_pages),
+        meta=PaginationMeta(
+            total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
     )
 
 
@@ -165,7 +171,9 @@ async def create_lead(
     current_user: Annotated[User, Depends(require_permission("crm.create"))],
     service: Annotated[CRMService, Depends(get_crm_service)],
 ) -> StandardResponse[LeadResponse]:
-    lead = service.create_lead(current_user.tenant_id, current_user.id, payload.model_dump())
+    lead = service.create_lead(
+        current_user.tenant_id, current_user.id, payload.model_dump()
+    )
     return StandardResponse(data=LeadResponse.model_validate(lead))
 
 
@@ -248,7 +256,9 @@ async def list_opportunities(
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return StandardListResponse(
         data=[OpportunityResponse.model_validate(o) for o in opps],
-        meta=PaginationMeta(total=total, page=page, page_size=page_size, total_pages=total_pages),
+        meta=PaginationMeta(
+            total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
     )
 
 
@@ -264,7 +274,9 @@ async def create_opportunity(
     current_user: Annotated[User, Depends(require_permission("crm.create"))],
     service: Annotated[CRMService, Depends(get_crm_service)],
 ) -> StandardResponse[OpportunityResponse]:
-    opp = service.create_opportunity(current_user.tenant_id, current_user.id, payload.model_dump())
+    opp = service.create_opportunity(
+        current_user.tenant_id, current_user.id, payload.model_dump()
+    )
     return StandardResponse(data=OpportunityResponse.model_validate(opp))
 
 

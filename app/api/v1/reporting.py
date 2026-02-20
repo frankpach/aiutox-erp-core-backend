@@ -91,7 +91,9 @@ async def list_reports(
         meta={
             "total": total,
             "page": page,
-            "page_size": max(page_size, 1) if total == 0 else page_size,  # Minimum page_size is 1
+            "page_size": (
+                max(page_size, 1) if total == 0 else page_size
+            ),  # Minimum page_size is 1
             "total_pages": total_pages,
         },
     )
@@ -300,4 +302,3 @@ async def get_data_source_filters(
         data=filters,
         message="Filters retrieved successfully",
     )
-

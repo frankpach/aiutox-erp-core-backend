@@ -69,7 +69,9 @@ class PersonIdentification(Base):
     )
     document_number = Column(String(100), nullable=True, index=True)
     tax_id = Column(String(100), nullable=True)  # Número de identificación fiscal
-    social_security_number = Column(String(100), nullable=True)  # Número de seguridad social
+    social_security_number = Column(
+        String(100), nullable=True
+    )  # Número de seguridad social
 
     # Additional identification fields (for future expansion)
     issuing_country = Column(String(2), nullable=True)  # ISO 3166-1 alpha-2

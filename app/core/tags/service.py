@@ -81,7 +81,9 @@ class TagService:
 
         # Check if already tagged
         if self.repository.entity_has_tag(tag_id, entity_type, entity_id, tenant_id):
-            raise ValueError(f"Entity {entity_type}:{entity_id} already has tag {tag_id}")
+            raise ValueError(
+                f"Entity {entity_type}:{entity_id} already has tag {tag_id}"
+            )
 
         entity_tag = self.repository.create_entity_tag(
             {
@@ -137,9 +139,7 @@ class TagService:
         """
         return self.repository.get_entity_tags(entity_type, entity_id, tenant_id)
 
-    def get_tags_by_category(
-        self, category_id: UUID, tenant_id: UUID
-    ) -> list[Tag]:
+    def get_tags_by_category(self, category_id: UUID, tenant_id: UUID) -> list[Tag]:
         """Get all tags in a category.
 
         Args:
@@ -261,4 +261,3 @@ class TagService:
     def get_all_categories(self, tenant_id: UUID) -> list[TagCategory]:
         """Get all categories for a tenant."""
         return self.repository.get_all_categories(tenant_id)
-

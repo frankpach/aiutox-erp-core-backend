@@ -112,22 +112,6 @@ class ThemeSeeder(Seeder):
                 db.add(config)
 
         db.commit()
-        print(f"✅ ThemeSeeder: Default theme configuration created for tenant {tenant_id}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        print(
+            f"✅ ThemeSeeder: Default theme configuration created for tenant {tenant_id}"
+        )

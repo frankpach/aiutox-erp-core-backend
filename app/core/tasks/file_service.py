@@ -123,16 +123,21 @@ class TaskFileService:
 
         logger.debug(
             "Attaching file to task: task_id=%s, tenant_id=%s, user_id=%s, file_id=%s, file_name=%s",
-            task_id, tenant_id, user_id, file_id, file_name
+            task_id,
+            tenant_id,
+            user_id,
+            file_id,
+            file_name,
         )
 
         # Validar parámetros ANTES de cualquier operación
         self._validate_file_params(file_url, file_size, file_type)
 
-        task = self.db.query(Task).filter(
-            Task.id == task_id,
-            Task.tenant_id == tenant_id
-        ).first()
+        task = (
+            self.db.query(Task)
+            .filter(Task.id == task_id, Task.tenant_id == tenant_id)
+            .first()
+        )
 
         logger.debug("Task found: %s", task is not None)
 
@@ -225,13 +230,17 @@ class TaskFileService:
 
         logger.debug(
             "Detaching file from task: task_id=%s, tenant_id=%s, user_id=%s, file_id=%s",
-            task_id, tenant_id, user_id, file_id
+            task_id,
+            tenant_id,
+            user_id,
+            file_id,
         )
 
-        task = self.db.query(Task).filter(
-            Task.id == task_id,
-            Task.tenant_id == tenant_id
-        ).first()
+        task = (
+            self.db.query(Task)
+            .filter(Task.id == task_id, Task.tenant_id == tenant_id)
+            .first()
+        )
 
         logger.debug("Task found: %s", task is not None)
 
@@ -268,10 +277,14 @@ class TaskFileService:
             logger.debug("File not found in attached_files")
             return False
 
-        file_record = self.db.query(File).filter(
-            File.id == file_id,
-            File.tenant_id == tenant_id,
-        ).first()
+        file_record = (
+            self.db.query(File)
+            .filter(
+                File.id == file_id,
+                File.tenant_id == tenant_id,
+            )
+            .first()
+        )
 
         if not file_record:
             logger.debug("File record not found for soft delete")
@@ -328,12 +341,15 @@ class TaskFileService:
         """
         from app.models.task import Task
 
-        logger.debug("Listing files for task: task_id=%s, tenant_id=%s", task_id, tenant_id)
+        logger.debug(
+            "Listing files for task: task_id=%s, tenant_id=%s", task_id, tenant_id
+        )
 
-        task = self.db.query(Task).filter(
-            Task.id == task_id,
-            Task.tenant_id == tenant_id
-        ).first()
+        task = (
+            self.db.query(Task)
+            .filter(Task.id == task_id, Task.tenant_id == tenant_id)
+            .first()
+        )
 
         if not task:
             logger.debug("Task not found, returning empty list")

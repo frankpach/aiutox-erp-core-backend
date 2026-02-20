@@ -61,9 +61,7 @@ class ModuleRegistry:
             logger.warning(f"Failed to load modules.json: {e}")
             return {}
 
-    def is_module_enabled(
-        self, module_id: str, tenant_id: UUID | None = None
-    ) -> bool:
+    def is_module_enabled(self, module_id: str, tenant_id: UUID | None = None) -> bool:
         """Check if a module is enabled.
 
         Priority:
@@ -162,11 +160,15 @@ class ModuleRegistry:
                         )
                         continue
                     self._modules[module.module_id] = module
-                    logger.info(f"Discovered module: {module.module_id} ({module_type})")
+                    logger.info(
+                        f"Discovered module: {module.module_id} ({module_type})"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to load module {module_dir.name}: {e}")
 
-    def _load_module(self, module_dir: Path, module_type: str) -> ModuleInterface | None:
+    def _load_module(
+        self, module_dir: Path, module_type: str
+    ) -> ModuleInterface | None:
         """Load a module from a directory.
 
         Args:
@@ -236,7 +238,9 @@ class ModuleRegistry:
                     in_degree[module_id] += 1
 
         # Kahn's algorithm
-        queue: list[str] = [module_id for module_id, degree in in_degree.items() if degree == 0]
+        queue: list[str] = [
+            module_id for module_id, degree in in_degree.items() if degree == 0
+        ]
         result: list[str] = []
 
         while queue:
@@ -262,9 +266,7 @@ class ModuleRegistry:
         self._load_order = result
         return result
 
-    def get_routers(
-        self, tenant_id: UUID | None = None
-    ) -> dict[str, APIRouter]:
+    def get_routers(self, tenant_id: UUID | None = None) -> dict[str, APIRouter]:
         """Get routers for enabled modules.
 
         Args:
@@ -353,13 +355,3 @@ def set_module_registry(registry: ModuleRegistry) -> None:
     """
     global _registry
     _registry = registry
-
-
-
-
-
-
-
-
-
-

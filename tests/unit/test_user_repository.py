@@ -279,9 +279,7 @@ class TestUserRepository:
         assert all(user.is_active is False for user in users)
         assert any(user.id == inactive_user.id for user in users)
 
-    def test_get_all_by_tenant_with_combined_filters(
-        self, db_session, test_tenant
-    ):
+    def test_get_all_by_tenant_with_combined_filters(self, db_session, test_tenant):
         """Test filtering users with multiple filters combined."""
         repo = UserRepository(db_session)
 
@@ -315,18 +313,8 @@ class TestUserRepository:
         )
         assert total >= 1
         assert all(user.is_active is True for user in users)
-        assert all("john" in user.email.lower() or "john" in (user.first_name or "").lower() for user in users)
+        assert all(
+            "john" in user.email.lower() or "john" in (user.first_name or "").lower()
+            for user in users
+        )
         assert any(user.id == active_john.id for user in users)
-
-
-
-
-
-
-
-
-
-
-
-
-

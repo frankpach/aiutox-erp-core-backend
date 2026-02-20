@@ -35,7 +35,9 @@ def test_restore_file_version_success(client_with_db, test_user, db_session):
     assert version_id is not None
 
     # Get the first version (should be version 1)
-    versions_response = client_with_db.get(f"/api/v1/files/{file_id}/versions", headers=headers)
+    versions_response = client_with_db.get(
+        f"/api/v1/files/{file_id}/versions", headers=headers
+    )
     if versions_response.status_code != 200:
         print(f"Error response: {versions_response.status_code}")
         print(f"Response body: {versions_response.text}")
@@ -88,7 +90,9 @@ def test_restore_file_version_not_found(client_with_db, test_user, db_session):
     assert data["error"]["code"] == "FILE_VERSION_NOT_FOUND"
 
 
-def test_restore_file_version_requires_permission(client_with_db, test_user, db_session):
+def test_restore_file_version_requires_permission(
+    client_with_db, test_user, db_session
+):
     """Test that restore version requires files.manage permission."""
     from app.core.auth import hash_password
     from app.models.module_role import ModuleRole
@@ -106,7 +110,9 @@ def test_restore_file_version_requires_permission(client_with_db, test_user, db_
     db_session.commit()
 
     # Upload a file with manager permission
-    manager_headers = create_user_with_permission(db_session, manager_user, "files", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, manager_user, "files", "manager"
+    )
     file_content = b"test content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
     upload_response = client_with_db.post(
@@ -118,7 +124,9 @@ def test_restore_file_version_requires_permission(client_with_db, test_user, db_
     file_id = upload_response.json()["data"]["id"]
 
     # Get versions
-    versions_response = client_with_db.get(f"/api/v1/files/{file_id}/versions", headers=manager_headers)
+    versions_response = client_with_db.get(
+        f"/api/v1/files/{file_id}/versions", headers=manager_headers
+    )
     assert versions_response.status_code == 200
     versions = versions_response.json()["data"]
     version_id = versions[0]["id"]
@@ -128,11 +136,13 @@ def test_restore_file_version_requires_permission(client_with_db, test_user, db_
     db_session.query(ModuleRole).filter(
         ModuleRole.user_id == test_user.id,
         ModuleRole.module == "files",
-        ModuleRole.role_name == "manager"
+        ModuleRole.role_name == "manager",
     ).delete()
     db_session.commit()
 
-    viewer_headers = create_user_with_permission(db_session, test_user, "files", "viewer")
+    viewer_headers = create_user_with_permission(
+        db_session, test_user, "files", "viewer"
+    )
     response = client_with_db.post(
         f"/api/v1/files/{file_id}/versions/{version_id}/restore",
         headers=viewer_headers,
@@ -141,4 +151,3 @@ def test_restore_file_version_requires_permission(client_with_db, test_user, db_
     assert response.status_code == 403
     data = response.json()
     assert "error" in data
-

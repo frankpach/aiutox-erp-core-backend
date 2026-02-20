@@ -38,7 +38,9 @@ def test_render_template(template_renderer):
     assert rendered == "Hello World!"
 
 
-def test_create_template(template_service, test_user, test_tenant, mock_event_publisher):
+def test_create_template(
+    template_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating a template."""
     template = template_service.create_template(
         template_data={
@@ -88,11 +90,3 @@ def test_render_template_with_variables(template_service, test_user, test_tenant
     assert "rendered_content" in result
     assert "Hello John, your order 12345 is ready!" in result["rendered_content"]
     assert result["format"] == "html"
-
-
-
-
-
-
-
-

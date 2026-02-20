@@ -20,7 +20,9 @@ class ContactBase(BaseModel):
     full_name: str | None = Field(None, description="Full name")
     job_title: str | None = Field(None, description="Job title in organization")
     department: str | None = Field(None, description="Department")
-    is_primary_contact: bool = Field(False, description="Primary contact of organization")
+    is_primary_contact: bool = Field(
+        False, description="Primary contact of organization"
+    )
     notes: str | None = Field(None, description="Notes")
 
 
@@ -55,7 +57,9 @@ class ContactResponse(ContactBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    organization: "OrganizationResponse | None" = Field(None, description="Associated organization")
+    organization: "OrganizationResponse | None" = Field(
+        None, description="Associated organization"
+    )
     contact_methods: list["ContactMethodResponse"] = Field(
         default_factory=list, description="Contact methods"
     )

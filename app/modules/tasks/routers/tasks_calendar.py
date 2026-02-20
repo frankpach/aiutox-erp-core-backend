@@ -139,5 +139,5 @@ async def sync_batch_tasks(
     return StandardResponse(
         data=result,
         message=f"Batch sync completed: {len(result['synced'])} synced, "
-                f"{len(result['skipped'])} skipped, {len(result['failed'])} failed",
+        f"{len(result['skipped'])} skipped, {len(result['failed'])} failed",
     )

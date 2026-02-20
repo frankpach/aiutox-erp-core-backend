@@ -30,7 +30,9 @@ class TestRoleSeeder(Seeder):
             return  # Tenant doesn't exist, skip
 
         # Get admin user
-        admin_user = db.query(User).filter(User.email == "admin@test.example.com").first()
+        admin_user = (
+            db.query(User).filter(User.email == "admin@test.example.com").first()
+        )
         if admin_user:
             # Check if role already exists
             existing_role = (
@@ -48,7 +50,9 @@ class TestRoleSeeder(Seeder):
                 db.commit()
 
         # Get regular user
-        regular_user = db.query(User).filter(User.email == "user@test.example.com").first()
+        regular_user = (
+            db.query(User).filter(User.email == "user@test.example.com").first()
+        )
         if regular_user:
             # Check if role already exists
             existing_role = (

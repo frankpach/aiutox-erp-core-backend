@@ -8,13 +8,3 @@ from app.modules.products.models.product import (
 )
 
 __all__ = ["Category", "Product", "ProductVariant", "ProductBarcode"]
-
-
-
-
-
-
-
-
-
-

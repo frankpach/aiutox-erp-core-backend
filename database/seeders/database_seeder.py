@@ -51,4 +51,3 @@ class DatabaseSeeder(Seeder):
         ConfigSeeder().run(db)
         ThemeSeeder().run(db)
         ThemePresetSeeder().run(db)
-

@@ -77,9 +77,34 @@ async def list_saved_filters(
     """List saved filters."""
     # #region agent log
     import json
+
     try:
-        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"location": "views.py:69", "message": "list_saved_filters endpoint called", "data": {"module": module, "is_shared": is_shared, "page": page, "page_size": page_size, "user_id": str(current_user.id), "tenant_id": str(current_user.tenant_id)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+        with open(
+            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(
+                json.dumps(
+                    {
+                        "location": "views.py:69",
+                        "message": "list_saved_filters endpoint called",
+                        "data": {
+                            "module": module,
+                            "is_shared": is_shared,
+                            "page": page,
+                            "page_size": page_size,
+                            "user_id": str(current_user.id),
+                            "tenant_id": str(current_user.tenant_id),
+                        },
+                        "timestamp": int(__import__("time").time() * 1000),
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "H",
+                    }
+                )
+                + "\n"
+            )
     except Exception:
         pass
     # #endregion agent log
@@ -88,8 +113,29 @@ async def list_saved_filters(
 
     # #region agent log
     try:
-        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"location": "views.py:87", "message": "Before service.get_saved_filters", "data": {"tenant_id": str(current_user.tenant_id), "module": module, "user_id": str(current_user.id)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+        with open(
+            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(
+                json.dumps(
+                    {
+                        "location": "views.py:87",
+                        "message": "Before service.get_saved_filters",
+                        "data": {
+                            "tenant_id": str(current_user.tenant_id),
+                            "module": module,
+                            "user_id": str(current_user.id),
+                        },
+                        "timestamp": int(__import__("time").time() * 1000),
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "H",
+                    }
+                )
+                + "\n"
+            )
     except Exception:
         pass
     # #endregion agent log
@@ -106,8 +152,25 @@ async def list_saved_filters(
 
         # #region agent log
         try:
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-                f.write(json.dumps({"location": "views.py:102", "message": "After service.get_saved_filters", "data": {"filters_count": len(filters)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "location": "views.py:102",
+                            "message": "After service.get_saved_filters",
+                            "data": {"filters_count": len(filters)},
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "H",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
         # #endregion agent log
@@ -123,8 +186,25 @@ async def list_saved_filters(
 
         # #region agent log
         try:
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-                f.write(json.dumps({"location": "views.py:118", "message": "Before returning response", "data": {"total": total, "total_pages": total_pages}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "H"}) + "\n")
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "location": "views.py:118",
+                            "message": "Before returning response",
+                            "data": {"total": total, "total_pages": total_pages},
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "H",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
         # #endregion agent log
@@ -134,14 +214,44 @@ async def list_saved_filters(
             response_data = []
             for f in filters:
                 try:
-                    response_data.append(SavedFilterResponse.model_validate(f, from_attributes=True))
+                    response_data.append(
+                        SavedFilterResponse.model_validate(f, from_attributes=True)
+                    )
                 except Exception as validation_error:
                     # #region agent log
                     try:
                         import traceback
+
                         filter_obj = f  # Save filter object before opening file
-                        with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                            log_file.write(json.dumps({"location": "views.py:validation", "message": "Error validating filter", "data": {"filter_id": str(filter_obj.id) if hasattr(filter_obj, 'id') else 'unknown', "error": str(validation_error), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "V"}) + "\n")
+                        with open(
+                            r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                            "a",
+                            encoding="utf-8",
+                        ) as log_file:
+                            log_file.write(
+                                json.dumps(
+                                    {
+                                        "location": "views.py:validation",
+                                        "message": "Error validating filter",
+                                        "data": {
+                                            "filter_id": (
+                                                str(filter_obj.id)
+                                                if hasattr(filter_obj, "id")
+                                                else "unknown"
+                                            ),
+                                            "error": str(validation_error),
+                                            "traceback": traceback.format_exc(),
+                                        },
+                                        "timestamp": int(
+                                            __import__("time").time() * 1000
+                                        ),
+                                        "sessionId": "debug-session",
+                                        "runId": "run1",
+                                        "hypothesisId": "V",
+                                    }
+                                )
+                                + "\n"
+                            )
                     except Exception:
                         pass
                     # #endregion agent log
@@ -159,8 +269,25 @@ async def list_saved_filters(
 
             # #region agent log
             try:
-                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                    log_file.write(json.dumps({"location": "views.py:response", "message": "Response created successfully", "data": {"response_data_count": len(response_data)}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "R"}) + "\n")
+                with open(
+                    r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                    "a",
+                    encoding="utf-8",
+                ) as log_file:
+                    log_file.write(
+                        json.dumps(
+                            {
+                                "location": "views.py:response",
+                                "message": "Response created successfully",
+                                "data": {"response_data_count": len(response_data)},
+                                "timestamp": int(__import__("time").time() * 1000),
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "R",
+                            }
+                        )
+                        + "\n"
+                    )
             except Exception:
                 pass
             # #endregion agent log
@@ -170,8 +297,29 @@ async def list_saved_filters(
             # #region agent log
             try:
                 import traceback
-                with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as log_file:
-                    log_file.write(json.dumps({"location": "views.py:validation_error", "message": "Error creating response", "data": {"error": str(validation_error), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "VE"}) + "\n")
+
+                with open(
+                    r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                    "a",
+                    encoding="utf-8",
+                ) as log_file:
+                    log_file.write(
+                        json.dumps(
+                            {
+                                "location": "views.py:validation_error",
+                                "message": "Error creating response",
+                                "data": {
+                                    "error": str(validation_error),
+                                    "traceback": traceback.format_exc(),
+                                },
+                                "timestamp": int(__import__("time").time() * 1000),
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "VE",
+                            }
+                        )
+                        + "\n"
+                    )
             except Exception:
                 pass
             # #endregion agent log
@@ -180,8 +328,30 @@ async def list_saved_filters(
         # #region agent log
         try:
             import traceback
-            with open(r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log", "a", encoding="utf-8") as f:
-                f.write(json.dumps({"location": "views.py:130", "message": "Exception in list_saved_filters", "data": {"exception_type": type(e).__name__, "exception_msg": str(e), "traceback": traceback.format_exc()}, "timestamp": int(__import__("time").time() * 1000), "sessionId": "debug-session", "runId": "run1", "hypothesisId": "I"}) + "\n")
+
+            with open(
+                r"d:\Documents\Mis_proyectos\Proyectos_Actuales\aiutox_erp_core\.cursor\debug.log",
+                "a",
+                encoding="utf-8",
+            ) as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "location": "views.py:130",
+                            "message": "Exception in list_saved_filters",
+                            "data": {
+                                "exception_type": type(e).__name__,
+                                "exception_msg": str(e),
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "I",
+                        }
+                    )
+                    + "\n"
+                )
         except Exception:
             pass
         # #endregion agent log
@@ -328,7 +498,9 @@ async def list_custom_views(
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
     return StandardListResponse(
-        data=[CustomViewResponse.model_validate(v, from_attributes=True) for v in views],
+        data=[
+            CustomViewResponse.model_validate(v, from_attributes=True) for v in views
+        ],
         meta=PaginationMeta(
             total=total,
             page=page,
@@ -466,8 +638,3 @@ async def share_view(
     return StandardResponse(
         data=ViewShareResponse.model_validate(share, from_attributes=True),
     )
-
-
-
-
-

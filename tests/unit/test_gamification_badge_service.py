@@ -23,25 +23,29 @@ def points_service(db_session, test_tenant):
 @pytest.fixture
 def sample_badge(badge_service):
     """Create a sample badge for testing."""
-    return badge_service.create_badge({
-        "name": "Primer Tarea",
-        "description": "Completar tu primera tarea",
-        "icon": "check-circle",
-        "criteria": {"event_type": "task.completed", "count": 1},
-        "points_value": 50,
-    })
+    return badge_service.create_badge(
+        {
+            "name": "Primer Tarea",
+            "description": "Completar tu primera tarea",
+            "icon": "check-circle",
+            "criteria": {"event_type": "task.completed", "count": 1},
+            "points_value": 50,
+        }
+    )
 
 
 @pytest.fixture
 def streak_badge(badge_service):
     """Create a streak-based badge."""
-    return badge_service.create_badge({
-        "name": "Racha de 5",
-        "description": "Completar 5 tareas",
-        "icon": "flame",
-        "criteria": {"event_type": "task.completed", "count": 5},
-        "points_value": 100,
-    })
+    return badge_service.create_badge(
+        {
+            "name": "Racha de 5",
+            "description": "Completar 5 tareas",
+            "icon": "flame",
+            "criteria": {"event_type": "task.completed", "count": 5},
+            "points_value": 100,
+        }
+    )
 
 
 class TestCreateBadge:
@@ -49,13 +53,15 @@ class TestCreateBadge:
 
     def test_create_badge_basic(self, badge_service):
         """Crear un badge con datos básicos."""
-        badge = badge_service.create_badge({
-            "name": "Test Badge",
-            "description": "Descripción de prueba",
-            "icon": "star",
-            "criteria": {"event_type": "task.completed", "count": 10},
-            "points_value": 25,
-        })
+        badge = badge_service.create_badge(
+            {
+                "name": "Test Badge",
+                "description": "Descripción de prueba",
+                "icon": "star",
+                "criteria": {"event_type": "task.completed", "count": 10},
+                "points_value": 25,
+            }
+        )
 
         assert badge.id is not None
         assert badge.name == "Test Badge"
@@ -65,10 +71,12 @@ class TestCreateBadge:
 
     def test_create_badge_defaults(self, badge_service):
         """Crear un badge usa valores por defecto correctos."""
-        badge = badge_service.create_badge({
-            "name": "Minimal Badge",
-            "criteria": {"event_type": "task.created"},
-        })
+        badge = badge_service.create_badge(
+            {
+                "name": "Minimal Badge",
+                "criteria": {"event_type": "task.created"},
+            }
+        )
 
         assert badge.icon == "trophy"
         assert badge.points_value == 0
@@ -91,14 +99,18 @@ class TestListBadges:
 
     def test_list_badges_sorted_by_name(self, badge_service):
         """Badges se retornan ordenados por nombre."""
-        badge_service.create_badge({
-            "name": "Zeta Badge",
-            "criteria": {"event_type": "task.completed"},
-        })
-        badge_service.create_badge({
-            "name": "Alpha Badge",
-            "criteria": {"event_type": "task.completed"},
-        })
+        badge_service.create_badge(
+            {
+                "name": "Zeta Badge",
+                "criteria": {"event_type": "task.completed"},
+            }
+        )
+        badge_service.create_badge(
+            {
+                "name": "Alpha Badge",
+                "criteria": {"event_type": "task.completed"},
+            }
+        )
 
         badges = badge_service.list_badges()
         names = [b.name for b in badges]
@@ -219,17 +231,17 @@ class TestGetUserBadges:
 class TestMultiTenancy:
     """Tests para aislamiento multi-tenant."""
 
-    def test_badges_isolated_by_tenant(
-        self, db_session, test_tenant, other_tenant
-    ):
+    def test_badges_isolated_by_tenant(self, db_session, test_tenant, other_tenant):
         """Badges de un tenant no son visibles en otro."""
         svc_t1 = BadgeService(db=db_session, tenant_id=test_tenant.id)
         svc_t2 = BadgeService(db=db_session, tenant_id=other_tenant.id)
 
-        svc_t1.create_badge({
-            "name": "Tenant 1 Badge",
-            "criteria": {"event_type": "task.completed"},
-        })
+        svc_t1.create_badge(
+            {
+                "name": "Tenant 1 Badge",
+                "criteria": {"event_type": "task.completed"},
+            }
+        )
 
         badges_t2 = svc_t2.list_badges()
         assert all(b.name != "Tenant 1 Badge" for b in badges_t2)

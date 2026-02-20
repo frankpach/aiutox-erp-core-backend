@@ -6,4 +6,3 @@ def test_healthz_endpoint(client):
     assert data["status"] == "ok"
     assert "env" in data
     assert "debug" in data
-

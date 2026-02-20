@@ -710,7 +710,11 @@ async def create_product(
         # Publish event in background
         if event_publisher:
             # product["id"] is already a UUID object, not a string
-            product_id = product["id"] if isinstance(product["id"], UUID) else UUID(str(product["id"]))
+            product_id = (
+                product["id"]
+                if isinstance(product["id"], UUID)
+                else UUID(str(product["id"]))
+            )
             background_tasks.add_task(
                 event_publisher.publish,
                 event_type="product.created",
@@ -1628,5 +1632,3 @@ async def delete_barcode(
         raise_not_found("Barcode", barcode_id)
 
     return StandardResponse(data={"message": "Barcode deleted successfully"})
-
-

@@ -38,7 +38,9 @@ def discover_and_register_events() -> None:
     for module_name, (module_path, getter_name) in module_event_getters.items():
         # Check if module is enabled in config
         if not module_registry.is_module_enabled(module_name):
-            logger.debug(f"Module '{module_name}' is disabled, skipping event registration")
+            logger.debug(
+                f"Module '{module_name}' is disabled, skipping event registration"
+            )
             continue
 
         try:
@@ -61,9 +63,7 @@ def discover_and_register_events() -> None:
             )
 
         except ImportError as e:
-            logger.warning(
-                f"Could not import events for module '{module_name}': {e}"
-            )
+            logger.warning(f"Could not import events for module '{module_name}': {e}")
         except AttributeError as e:
             logger.warning(
                 f"Module '{module_name}' does not have getter function '{getter_name}': {e}"

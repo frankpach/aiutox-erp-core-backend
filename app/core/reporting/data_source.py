@@ -21,7 +21,9 @@ class BaseDataSource(ABC):
 
     @abstractmethod
     async def get_data(
-        self, filters: dict[str, Any] | None = None, pagination: dict[str, int] | None = None
+        self,
+        filters: dict[str, Any] | None = None,
+        pagination: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Get data for the report.
 
@@ -51,13 +53,3 @@ class BaseDataSource(ABC):
             List of filter definitions with 'name', 'type', 'options', etc.
         """
         pass
-
-
-
-
-
-
-
-
-
-

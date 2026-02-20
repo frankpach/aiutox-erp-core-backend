@@ -188,7 +188,3 @@ def test_filter_default_operator(mock_query):
 
     assert result == mock_query
     mock_query.filter.assert_called_once()
-
-
-
-

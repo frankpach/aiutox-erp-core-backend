@@ -15,11 +15,13 @@ settings = get_settings()
 def _encode_jwt(payload: dict[str, Any]) -> str:
     """Encode JWT token with common fields (DRY helper)."""
     to_encode = payload.copy()
-    to_encode.update({
-        "exp": to_encode.get("exp"),
-        "iat": datetime.now(UTC),
-        "type": to_encode.get("type", "access")
-    })
+    to_encode.update(
+        {
+            "exp": to_encode.get("exp"),
+            "iat": datetime.now(UTC),
+            "type": to_encode.get("type", "access"),
+        }
+    )
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -77,7 +79,11 @@ def create_refresh_token(
         True
     """
     if expires_at is None:
-        expire_days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        expire_days = (
+            settings.REFRESH_TOKEN_REMEMBER_ME_DAYS
+            if remember_me
+            else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
         expire = datetime.now(UTC) + timedelta(days=expire_days)
     else:
         expire = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=UTC)

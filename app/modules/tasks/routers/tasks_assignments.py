@@ -92,7 +92,9 @@ async def list_assignments(
             message=f"Task with ID {task_id} not found",
         )
 
-    assignments = service.repository.get_assignments_by_task(task_id, current_user.tenant_id)
+    assignments = service.repository.get_assignments_by_task(
+        task_id, current_user.tenant_id
+    )
 
     return StandardListResponse(
         data=[TaskAssignmentResponse.model_validate(a) for a in assignments],
@@ -127,7 +129,9 @@ async def remove_assignment(
             message=f"Task with ID {task_id} not found",
         )
 
-    deleted = service.repository.delete_assignment(assignment_id, current_user.tenant_id)
+    deleted = service.repository.delete_assignment(
+        assignment_id, current_user.tenant_id
+    )
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,

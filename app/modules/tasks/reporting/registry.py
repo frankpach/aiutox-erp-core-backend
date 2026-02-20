@@ -46,7 +46,9 @@ def get_tasks_report_definitions() -> dict[str, any]:
     }
 
 
-def create_default_reports(db: Session, tenant_id: UUID, created_by: UUID) -> list[UUID]:
+def create_default_reports(
+    db: Session, tenant_id: UUID, created_by: UUID
+) -> list[UUID]:
     """Create default tasks reports for a tenant.
 
     Args:
@@ -125,7 +127,9 @@ def create_default_reports(db: Session, tenant_id: UUID, created_by: UUID) -> li
                 config=config["report_definition"].config,
             )
             created_report_ids.append(report.id)
-            logger.info(f"Created default report '{config['name']}' for tenant {tenant_id}")
+            logger.info(
+                f"Created default report '{config['name']}' for tenant {tenant_id}"
+            )
         except Exception as e:
             logger.error(f"Failed to create report '{config['name']}': {e}")
             # Continue with other reports

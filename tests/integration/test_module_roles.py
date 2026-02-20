@@ -287,4 +287,3 @@ class TestModuleRoles:
         assert len(module_roles_user1) == 1
         assert module_roles_user1[0].module == "inventory"
         assert module_roles_user1[0].role_name == "editor"
-

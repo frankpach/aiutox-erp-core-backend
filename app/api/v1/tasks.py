@@ -47,7 +47,9 @@ def get_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
     return TaskService(db)
 
 
-async def get_async_task_service(db: Annotated[Session, Depends(get_db)]) -> TaskService:
+async def get_async_task_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> TaskService:
     """Dependency to get TaskService for async operations."""
     return TaskService(db)
 
@@ -114,7 +116,9 @@ async def list_tasks(
     page_size: int = Query(default=20, ge=1, le=100, description="Page size"),
     status: str | None = Query(default=None, description="Filter by status"),
     priority: str | None = Query(default=None, description="Filter by priority"),
-    assigned_to_id: UUID | None = Query(default=None, description="Filter by assigned user"),
+    assigned_to_id: UUID | None = Query(
+        default=None, description="Filter by assigned user"
+    ),
 ) -> StandardListResponse[TaskResponse]:
     """List tasks with granular permission filtering."""
     skip = (page - 1) * page_size
@@ -169,7 +173,7 @@ async def list_my_tasks(
     skip = (page - 1) * page_size
 
     # Usar cache wrapper si est� disponible
-    if hasattr(service.repository, 'get_visible_tasks_cached'):
+    if hasattr(service.repository, "get_visible_tasks_cached"):
         tasks = service.repository.get_visible_tasks_cached(
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
@@ -232,7 +236,7 @@ async def get_tasks_dashboard(
     # Ejecutar todas las consultas en paralelo
     async def get_tasks_data():
         # Usar cache wrapper si est� disponible
-        if hasattr(service.repository, 'get_visible_tasks_cached'):
+        if hasattr(service.repository, "get_visible_tasks_cached"):
             tasks = service.repository.get_visible_tasks_cached(
                 tenant_id=current_user.tenant_id,
                 user_id=current_user.id,
@@ -267,7 +271,7 @@ async def get_tasks_dashboard(
                 "page": page,
                 "page_size": page_size,
                 "total_pages": total_pages,
-            }
+            },
         }
 
     async def get_settings_data():
@@ -278,13 +282,13 @@ async def get_tasks_dashboard(
             "available_views": ["list", "board", "calendar"],
             "filters": {
                 "status": ["todo", "in_progress", "done"],
-                "priority": ["low", "medium", "high", "urgent"]
-            }
+                "priority": ["low", "medium", "high", "urgent"],
+            },
         }
 
     async def get_assignments_data():
         # Obtener IDs de las tareas para buscar asignaciones
-        if hasattr(service.repository, 'get_visible_tasks_cached'):
+        if hasattr(service.repository, "get_visible_tasks_cached"):
             tasks = service.repository.get_visible_tasks_cached(
                 tenant_id=current_user.tenant_id,
                 user_id=current_user.id,
@@ -309,8 +313,7 @@ async def get_tasks_dashboard(
         assignments = {}
         for task_id in task_ids:
             task_assignments = service.repository.get_task_assignments(
-                task_id=task_id,
-                tenant_id=current_user.tenant_id
+                task_id=task_id, tenant_id=current_user.tenant_id
             )
             if task_assignments:
                 assignments[str(task_id)] = [
@@ -329,7 +332,7 @@ async def get_tasks_dashboard(
         get_tasks_data(),
         get_settings_data(),
         get_assignments_data(),
-        return_exceptions=True  # No falla todo si una consulta falla
+        return_exceptions=True,  # No falla todo si una consulta falla
     )
 
     # Manejar excepciones individualmente
@@ -337,10 +340,8 @@ async def get_tasks_dashboard(
 
     if isinstance(tasks_data, Exception):
         from app.core.exceptions import APIException
-        raise APIException(
-            message="Error fetching tasks data",
-            details=str(tasks_data)
-        )
+
+        raise APIException(message="Error fetching tasks data", details=str(tasks_data))
     else:
         dashboard_data.update(tasks_data)
 
@@ -349,7 +350,7 @@ async def get_tasks_dashboard(
         dashboard_data["settings"] = {
             "default_view": "list",
             "available_views": ["list", "board", "calendar"],
-            "error": str(settings_data)
+            "error": str(settings_data),
         }
     else:
         dashboard_data["settings"] = settings_data
@@ -537,7 +538,9 @@ async def list_assignments(
     try:
         # Obtener asignaciones directamente sin verificar tarea primero
         # Esto evita el timeout causado por get_task
-        assignments = service.repository.get_assignments_by_task(task_id, current_user.tenant_id)
+        assignments = service.repository.get_assignments_by_task(
+            task_id, current_user.tenant_id
+        )
 
         return StandardListResponse(
             data=[TaskAssignmentResponse.model_validate(a) for a in assignments],
@@ -577,7 +580,9 @@ async def remove_assignment(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
     """Remove a task assignment."""
-    deleted = service.repository.delete_assignment(assignment_id, current_user.tenant_id)
+    deleted = service.repository.delete_assignment(
+        assignment_id, current_user.tenant_id
+    )
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -649,7 +654,9 @@ async def list_reminders(
             message=f"Task with ID {task_id} not found",
         )
 
-    reminders = service.repository.get_reminders_by_task(task_id, current_user.tenant_id)
+    reminders = service.repository.get_reminders_by_task(
+        task_id, current_user.tenant_id
+    )
 
     return StandardListResponse(
         data=[TaskReminderResponse.model_validate(r) for r in reminders],
@@ -729,7 +736,9 @@ async def get_recurrence(
             message=f"Task with ID {task_id} not found",
         )
 
-    recurrence = service.repository.get_recurrence_by_task(task_id, current_user.tenant_id)
+    recurrence = service.repository.get_recurrence_by_task(
+        task_id, current_user.tenant_id
+    )
     if not recurrence:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -766,7 +775,9 @@ async def update_recurrence(
             message=f"Task with ID {task_id} not found",
         )
 
-    recurrence = service.repository.update_recurrence(task_id, current_user.tenant_id, recurrence_data)
+    recurrence = service.repository.update_recurrence(
+        task_id, current_user.tenant_id, recurrence_data
+    )
 
     return StandardResponse(
         data=TaskRecurrenceResponse.model_validate(recurrence),
@@ -813,14 +824,11 @@ async def sync_task_to_calendar(
 
     sync_service = TaskEventSyncService(db)
     result = await sync_service.sync_task_to_calendar(
-        task_id=task_id,
-        tenant_id=current_user.tenant_id,
-        user_id=current_user.id
+        task_id=task_id, tenant_id=current_user.tenant_id, user_id=current_user.id
     )
 
     return StandardResponse(
-        data=result,
-        message="Task synchronized to calendar successfully"
+        data=result, message="Task synchronized to calendar successfully"
     )
 
 
@@ -868,7 +876,9 @@ async def update_task(
     try:
         update_dict = task_data.model_dump(exclude_unset=True)
         logger.info(f"Updating task {task_id} with data: {update_dict}")
-        task = service.update_task(task_id, current_user.tenant_id, update_dict, current_user.id)
+        task = service.update_task(
+            task_id, current_user.tenant_id, update_dict, current_user.id
+        )
         logger.info(f"Task updated successfully: {task.id if task else 'None'}")
 
         if not task:
@@ -916,7 +926,9 @@ async def delete_task(
     service: Annotated[TaskService, Depends(get_task_service)],
 ) -> None:
     """Delete a task."""
-    deleted = await service.delete_task(task_id, current_user.tenant_id, current_user.id)
+    deleted = await service.delete_task(
+        task_id, current_user.tenant_id, current_user.id
+    )
     if not deleted:
         raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -938,7 +950,9 @@ async def get_agenda(
     service: Annotated[TaskService, Depends(get_task_service)],
     start_date: datetime | None = Query(default=None, description="Start date filter"),
     end_date: datetime | None = Query(default=None, description="End date filter"),
-    sources: str | None = Query(default=None, description="Comma-separated list of sources to include"),
+    sources: str | None = Query(
+        default=None, description="Comma-separated list of sources to include"
+    ),
 ) -> StandardListResponse[dict]:
     """Get agenda items for calendar view."""
     # Parse sources
@@ -965,17 +979,19 @@ async def get_agenda(
                 if end_date and task_date > end_date:
                     continue
 
-                agenda_items.append({
-                    "id": str(task.id),
-                    "title": task.title,
-                    "date": task_date.isoformat(),
-                    "end_date": task.end_at.isoformat() if task.end_at else None,
-                    "type": "task",
-                    "status": task.status,
-                    "priority": task.priority,
-                    "source": "tasks",
-                    "source_id": str(task.id),
-                })
+                agenda_items.append(
+                    {
+                        "id": str(task.id),
+                        "title": task.title,
+                        "date": task_date.isoformat(),
+                        "end_date": task.end_at.isoformat() if task.end_at else None,
+                        "type": "task",
+                        "status": task.status,
+                        "priority": task.priority,
+                        "source": "tasks",
+                        "source_id": str(task.id),
+                    }
+                )
 
     # Add reminders to agenda
     if "reminders" in source_list:
@@ -986,15 +1002,18 @@ async def get_agenda(
             end_date=end_date,
         )
         for reminder in reminders:
-            agenda_items.append({
-                "id": str(reminder.id),
-                "title": reminder.message or f"Recordatorio para {reminder.task_id}",
-                "date": reminder.reminder_time.isoformat(),
-                "type": "reminder",
-                "source": "reminders",
-                "source_id": str(reminder.task_id),
-                "task_id": str(reminder.task_id),
-            })
+            agenda_items.append(
+                {
+                    "id": str(reminder.id),
+                    "title": reminder.message
+                    or f"Recordatorio para {reminder.task_id}",
+                    "date": reminder.reminder_time.isoformat(),
+                    "type": "reminder",
+                    "source": "reminders",
+                    "source_id": str(reminder.task_id),
+                    "task_id": str(reminder.task_id),
+                }
+            )
 
     # Sort by date
     agenda_items.sort(key=lambda x: x["date"])
@@ -1202,7 +1221,9 @@ async def import_ics(
     current_user: Annotated[User, Depends(require_permission("tasks.manage"))],
     service: Annotated[TaskService, Depends(get_task_service)],
     ics_content: str = Query(..., description="ICS file content"),
-    create_tasks: bool = Query(default=True, description="Whether to create tasks from imported events"),
+    create_tasks: bool = Query(
+        default=True, description="Whether to create tasks from imported events"
+    ),
 ) -> StandardListResponse[dict]:
     """Import events from ICS file content."""
     events = parse_ics_events(ics_content)
@@ -1220,11 +1241,15 @@ async def import_ics(
                     source_module="ics_import",
                     source_context=event,
                 )
-                created_tasks.append({
-                    "id": str(task.id),
-                    "title": task.title,
-                    "due_date": task.due_date.isoformat() if task.due_date else None,
-                })
+                created_tasks.append(
+                    {
+                        "id": str(task.id),
+                        "title": task.title,
+                        "due_date": (
+                            task.due_date.isoformat() if task.due_date else None
+                        ),
+                    }
+                )
 
     return StandardListResponse(
         data=created_tasks if create_tasks else events,
@@ -1245,6 +1270,7 @@ async def test_comments_debug():
     logger.info("[TEST_DEBUG] Endpoint reached!")
     return {"message": "FastAPI is working!", "timestamp": str(datetime.now())}
 
+
 # Minimal POST endpoint to test validation
 @router.post("/test-post-minimal")
 async def test_post_minimal():
@@ -1252,12 +1278,14 @@ async def test_post_minimal():
     print("!!! TEST POST MINIMAL REACHED !!!")
     return {"message": "POST works!"}
 
+
 # Also allow GET for testing
 @router.get("/test-post-minimal")
 async def test_post_minimal_get():
     """GET version for testing."""
     print("!!! TEST POST MINIMAL GET REACHED !!!")
     return {"message": "GET works!"}
+
 
 # NOTA: Los endpoints de comments est�n en app/modules/tasks/api.py
 # Este archivo (app/api/v1/tasks.py) NO est� registrado en el router principal
@@ -1371,8 +1399,12 @@ async def test_post_minimal_get():
 async def list_task_templates(
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     category: str | None = Query(default=None, description="Filter by category"),
-    tags: str | None = Query(default=None, description="Filter by tags (comma-separated)"),
-    limit: int = Query(default=20, ge=1, le=100, description="Maximum number of templates"),
+    tags: str | None = Query(
+        default=None, description="Filter by tags (comma-separated)"
+    ),
+    limit: int = Query(
+        default=20, ge=1, le=100, description="Maximum number of templates"
+    ),
 ) -> StandardListResponse[dict]:
     """List task templates."""
     from app.core.tasks.templates import get_task_template_service
@@ -1389,7 +1421,7 @@ async def list_task_templates(
         user_id=current_user.id,
         category=category,
         tags=tag_list,
-        include_public=True
+        include_public=True,
     )
 
     # Apply limit
@@ -1457,7 +1489,7 @@ async def create_task_from_template(
             template_id=template_id,
             tenant_id=current_user.tenant_id,
             created_by_id=current_user.id,
-            overrides=task_overrides
+            overrides=task_overrides,
         )
 
         # Create the task
@@ -1481,7 +1513,7 @@ async def create_task_from_template(
                     task_id=task.id,
                     tenant_id=current_user.tenant_id,
                     title=item_data["title"],
-                    order=item_data.get("order", 0)
+                    order=item_data.get("order", 0),
                 )
 
         return StandardResponse.create(
@@ -1529,6 +1561,3 @@ async def create_task_template(
         data=template.to_dict(),
         message="Template created successfully",
     )
-
-
-

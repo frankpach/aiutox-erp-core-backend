@@ -10,6 +10,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
+
 def create_definitive_main():
     """Crea una versión definitiva de main.py sin dependencias circulares."""
     print("🔧 CREANDO VERSIÓN DEFINITIVA DE main.py")
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     main_path = backend_path / "app" / "main_definitive.py"
 
     try:
-        with open(main_path, 'w', encoding='utf-8') as f:
+        with open(main_path, "w", encoding="utf-8") as f:
             f.write(definitive_main_content)
 
         print(f"✅ main_definitive.py creado en: {main_path}")
@@ -183,6 +184,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error creando main_definitive.py: {e}")
         return False
+
 
 def create_minimal_lazy_router():
     """Crea un router lazy minimal que solo carga endpoints esenciales."""
@@ -248,7 +250,7 @@ api_router = get_api_router()
     router_path = backend_path / "app" / "api" / "v1" / "minimal_router.py"
 
     try:
-        with open(router_path, 'w', encoding='utf-8') as f:
+        with open(router_path, "w", encoding="utf-8") as f:
             f.write(minimal_router_content)
 
         print(f"✅ minimal_router.py creado en: {router_path}")
@@ -257,6 +259,7 @@ api_router = get_api_router()
     except Exception as e:
         print(f"❌ Error creando minimal_router.py: {e}")
         return False
+
 
 def test_definitive_solution():
     """Prueba la solución definitiva."""
@@ -294,6 +297,7 @@ def test_definitive_solution():
     except Exception as e:
         print(f"   ❌ Error en prueba: {e}")
         return False
+
 
 def main():
     """Función principal."""
@@ -341,6 +345,7 @@ def main():
         print("💡 Revisa los errores y prueba manualmente")
 
     return success_count == total_tasks
+
 
 if __name__ == "__main__":
     main()

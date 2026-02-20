@@ -11,10 +11,16 @@ class FolderBase(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255, description="Folder name")
     description: str | None = Field(None, description="Folder description")
-    color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$", description="Folder color (hex)")
+    color: str | None = Field(
+        None, pattern=r"^#[0-9A-Fa-f]{6}$", description="Folder color (hex)"
+    )
     icon: str | None = Field(None, max_length=50, description="Folder icon name")
-    parent_id: UUID | None = Field(None, description="Parent folder ID (null for root folders)")
-    entity_type: str | None = Field(None, max_length=50, description="Entity type (e.g., 'product', 'order')")
+    parent_id: UUID | None = Field(
+        None, description="Parent folder ID (null for root folders)"
+    )
+    entity_type: str | None = Field(
+        None, max_length=50, description="Entity type (e.g., 'product', 'order')"
+    )
     entity_id: UUID | None = Field(None, description="Entity ID")
     metadata: dict | None = Field(None, description="Additional metadata")
 
@@ -71,17 +77,25 @@ class MoveItemsRequest(BaseModel):
     """Request to move files/folders to a folder."""
 
     file_ids: list[UUID] = Field(default_factory=list, description="File IDs to move")
-    folder_ids: list[UUID] = Field(default_factory=list, description="Folder IDs to move")
-    target_folder_id: UUID | None = Field(None, description="Target folder ID (null for root)")
+    folder_ids: list[UUID] = Field(
+        default_factory=list, description="Folder IDs to move"
+    )
+    target_folder_id: UUID | None = Field(
+        None, description="Target folder ID (null for root)"
+    )
 
 
 class FolderPermissionRequest(BaseModel):
     """Schema for folder permission request."""
 
-    target_type: str = Field(..., description="Target type: 'user', 'role', 'organization'")
+    target_type: str = Field(
+        ..., description="Target type: 'user', 'role', 'organization'"
+    )
     target_id: UUID = Field(..., description="Target ID")
     can_view: bool = Field(default=True, description="Can view folder")
-    can_create_files: bool = Field(default=False, description="Can create files in folder")
+    can_create_files: bool = Field(
+        default=False, description="Can create files in folder"
+    )
     can_create_folders: bool = Field(default=False, description="Can create subfolders")
     can_edit: bool = Field(default=False, description="Can edit folder")
     can_delete: bool = Field(default=False, description="Can delete folder")
@@ -103,5 +117,3 @@ class FolderPermissionResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-

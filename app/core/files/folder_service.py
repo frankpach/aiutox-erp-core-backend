@@ -64,7 +64,9 @@ class FolderService:
         # Check if folder name already exists in parent
         existing = self.repository.get_by_parent(parent_id, tenant_id)
         if any(f.name.lower() == name.lower() for f in existing):
-            raise ValueError(f"Folder with name '{name}' already exists in this location")
+            raise ValueError(
+                f"Folder with name '{name}' already exists in this location"
+            )
 
         folder = self.repository.create(
             {
@@ -93,13 +95,15 @@ class FolderService:
                     source="folder_service",
                     version="1.0",
                     additional_data={
-                    "name": name,
-                    "parent_id": str(parent_id) if parent_id else None,
-                },
-            ),
-        )
+                        "name": name,
+                        "parent_id": str(parent_id) if parent_id else None,
+                    },
+                ),
+            )
         except Exception as e:
-            logger.warning(f"Failed to publish folder.created event: {e}", exc_info=True)
+            logger.warning(
+                f"Failed to publish folder.created event: {e}", exc_info=True
+            )
             # Don't fail folder creation if event publishing fails
 
         logger.info(f"Folder created: {folder.id} ({name})")
@@ -135,7 +139,9 @@ class FolderService:
         Returns:
             List of Folder objects
         """
-        return self.repository.get_by_parent(parent_id, tenant_id, entity_type, entity_id)
+        return self.repository.get_by_parent(
+            parent_id, tenant_id, entity_type, entity_id
+        )
 
     async def get_folder_tree(
         self,
@@ -190,8 +196,12 @@ class FolderService:
         # Check name uniqueness if name is being changed
         if name and name != folder.name:
             existing = self.repository.get_by_parent(folder.parent_id, tenant_id)
-            if any(f.name.lower() == name.lower() and f.id != folder_id for f in existing):
-                raise ValueError(f"Folder with name '{name}' already exists in this location")
+            if any(
+                f.name.lower() == name.lower() and f.id != folder_id for f in existing
+            ):
+                raise ValueError(
+                    f"Folder with name '{name}' already exists in this location"
+                )
 
         update_data = {}
         if name is not None:
@@ -224,7 +234,9 @@ class FolderService:
 
         return updated_folder
 
-    async def delete_folder(self, folder_id: UUID, tenant_id: UUID, user_id: UUID) -> bool:
+    async def delete_folder(
+        self, folder_id: UUID, tenant_id: UUID, user_id: UUID
+    ) -> bool:
         """Delete a folder.
 
         Args:
@@ -260,7 +272,13 @@ class FolderService:
             logger.error(f"Error deleting folder {folder_id}: {e}")
             raise
 
-    async def move_folder(self, folder_id: UUID, tenant_id: UUID, user_id: UUID, new_parent_id: UUID | None) -> Folder | None:
+    async def move_folder(
+        self,
+        folder_id: UUID,
+        tenant_id: UUID,
+        user_id: UUID,
+        new_parent_id: UUID | None,
+    ) -> Folder | None:
         """Move a folder to a new parent.
 
         Args:
@@ -278,8 +296,13 @@ class FolderService:
 
         # Check name uniqueness in new location
         existing = self.repository.get_by_parent(new_parent_id, tenant_id)
-        if any(f.name.lower() == folder.name.lower() and f.id != folder_id for f in existing):
-            raise ValueError(f"Folder with name '{folder.name}' already exists in target location")
+        if any(
+            f.name.lower() == folder.name.lower() and f.id != folder_id
+            for f in existing
+        ):
+            raise ValueError(
+                f"Folder with name '{folder.name}' already exists in target location"
+            )
 
         moved_folder = self.repository.move(folder_id, tenant_id, new_parent_id)
 
@@ -295,7 +318,9 @@ class FolderService:
                     source="folder_service",
                     version="1.0",
                     additional_data={
-                        "old_parent_id": str(folder.parent_id) if folder.parent_id else None,
+                        "old_parent_id": (
+                            str(folder.parent_id) if folder.parent_id else None
+                        ),
                         "new_parent_id": str(new_parent_id) if new_parent_id else None,
                     },
                 ),
@@ -315,7 +340,9 @@ class FolderService:
         """
         return self.repository.get_path(folder_id, tenant_id)
 
-    async def search_folders(self, tenant_id: UUID, query: str, entity_type: str | None = None) -> list[Folder]:
+    async def search_folders(
+        self, tenant_id: UUID, query: str, entity_type: str | None = None
+    ) -> list[Folder]:
         """Search folders by name.
 
         Args:
@@ -366,15 +393,19 @@ class FolderService:
 
             # Validate that target exists and belongs to tenant
             if target_type == "user":
-                user = self.db.query(User).filter(
-                    User.id == target_id,
-                    User.tenant_id == tenant_id
-                ).first()
+                user = (
+                    self.db.query(User)
+                    .filter(User.id == target_id, User.tenant_id == tenant_id)
+                    .first()
+                )
                 if not user:
-                    raise ValueError(f"User with ID {target_id} not found or doesn't belong to tenant")
+                    raise ValueError(
+                        f"User with ID {target_id} not found or doesn't belong to tenant"
+                    )
             elif target_type == "role":
                 # Validate role exists (check in ROLE_PERMISSIONS or MODULE_ROLES)
                 from app.core.auth.permissions import MODULE_ROLES, ROLE_PERMISSIONS
+
                 role_name = str(target_id)
                 # Check if it's a global role
                 if role_name not in ROLE_PERMISSIONS:
@@ -382,20 +413,32 @@ class FolderService:
                     # or just the role name for any module
                     is_valid = False
                     for module_roles in MODULE_ROLES.values():
-                        if role_name in module_roles or role_name.replace("internal.", "") in [r.replace("internal.", "") for r in module_roles.keys()]:
+                        if role_name in module_roles or role_name.replace(
+                            "internal.", ""
+                        ) in [r.replace("internal.", "") for r in module_roles.keys()]:
                             is_valid = True
                             break
                     if not is_valid:
-                        raise ValueError(f"Role '{target_id}' not found. Must be a valid global role or module role.")
+                        raise ValueError(
+                            f"Role '{target_id}' not found. Must be a valid global role or module role."
+                        )
             elif target_type == "organization":
-                org = self.db.query(Organization).filter(
-                    Organization.id == target_id,
-                    Organization.tenant_id == tenant_id
-                ).first()
+                org = (
+                    self.db.query(Organization)
+                    .filter(
+                        Organization.id == target_id,
+                        Organization.tenant_id == tenant_id,
+                    )
+                    .first()
+                )
                 if not org:
-                    raise ValueError(f"Organization with ID {target_id} not found or doesn't belong to tenant")
+                    raise ValueError(
+                        f"Organization with ID {target_id} not found or doesn't belong to tenant"
+                    )
             else:
-                raise ValueError(f"Invalid target_type: {target_type}. Must be 'user', 'role', or 'organization'")
+                raise ValueError(
+                    f"Invalid target_type: {target_type}. Must be 'user', 'role', or 'organization'"
+                )
 
             perm = self.repository.create_permission(
                 {
@@ -414,7 +457,9 @@ class FolderService:
 
         return created_permissions
 
-    def get_folder_permissions(self, folder_id: UUID, tenant_id: UUID) -> list[FolderPermission]:
+    def get_folder_permissions(
+        self, folder_id: UUID, tenant_id: UUID
+    ) -> list[FolderPermission]:
         """Get all permissions for a folder.
 
         Args:
@@ -488,11 +533,7 @@ class FolderService:
         # Check role-based permissions
         from app.models.user_role import UserRole
 
-        user_roles = (
-            self.db.query(UserRole)
-            .filter(UserRole.user_id == user_id)
-            .all()
-        )
+        user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
 
         # Check if any permission matches a role UUID
         for perm in permissions:
@@ -503,6 +544,7 @@ class FolderService:
 
         # Check organization-based permissions (if user belongs to organization)
         from app.models.user import User
+
         user = self.db.query(User).filter(User.id == user_id).first()
         if user and user.organization_id:
             for perm in permissions:
@@ -556,6 +598,7 @@ class FolderService:
                     matches = True
                 elif perm.target_type == "role":
                     from app.models.user_role import UserRole
+
                     user_roles = (
                         self.db.query(UserRole)
                         .filter(UserRole.user_id == user_id)
@@ -565,6 +608,7 @@ class FolderService:
                         matches = True  # Simplified check
                 elif perm.target_type == "organization":
                     from app.models.user import User
+
                     user = self.db.query(User).filter(User.id == user_id).first()
                     if user and user.organization_id == perm.target_id:
                         matches = True
@@ -572,12 +616,15 @@ class FolderService:
                 if matches:
                     # Inherit permissions (OR logic - if any parent grants, inherit)
                     inherited["can_view"] = inherited["can_view"] or perm.can_view
-                    inherited["can_create_files"] = inherited["can_create_files"] or perm.can_create_files
-                    inherited["can_create_folders"] = inherited["can_create_folders"] or perm.can_create_folders
+                    inherited["can_create_files"] = (
+                        inherited["can_create_files"] or perm.can_create_files
+                    )
+                    inherited["can_create_folders"] = (
+                        inherited["can_create_folders"] or perm.can_create_folders
+                    )
                     inherited["can_edit"] = inherited["can_edit"] or perm.can_edit
                     inherited["can_delete"] = inherited["can_delete"] or perm.can_delete
 
             current = current.parent
 
         return inherited
-

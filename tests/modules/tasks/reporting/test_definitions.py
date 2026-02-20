@@ -112,7 +112,7 @@ class TestTasksReportDefinitions:
             "custom_states_usage",
             "productivity_metrics",
             "tasks_by_priority",
-            "task_completion_timeline"
+            "task_completion_timeline",
         ]
 
         for key in expected_keys:
@@ -149,14 +149,14 @@ class TestTasksReportDefinitions:
         valid_config = {
             "data_field": "data_points",
             "x_axis": "period",
-            "y_axis": ["created", "completed"]
+            "y_axis": ["created", "completed"],
         }
         assert validate_report_config(TASKS_TRENDS_REPORT, valid_config) is True
 
         # Invalid config - missing x_axis
         invalid_config = {
             "data_field": "data_points",
-            "y_axis": ["created", "completed"]
+            "y_axis": ["created", "completed"],
         }
         assert validate_report_config(TASKS_TRENDS_REPORT, invalid_config) is False
 
@@ -166,47 +166,46 @@ class TestTasksReportDefinitions:
         valid_config = {
             "data_field": "task_count",
             "x_axis": "state_name",
-            "y_axis": "task_count"
+            "y_axis": "task_count",
         }
         assert validate_report_config(CUSTOM_STATES_USAGE_REPORT, valid_config) is True
 
         # Invalid config - missing y_axis
-        invalid_config = {
-            "data_field": "task_count",
-            "x_axis": "state_name"
-        }
-        assert validate_report_config(CUSTOM_STATES_USAGE_REPORT, invalid_config) is False
+        invalid_config = {"data_field": "task_count", "x_axis": "state_name"}
+        assert (
+            validate_report_config(CUSTOM_STATES_USAGE_REPORT, invalid_config) is False
+        )
 
     def test_validate_report_config_kpi(self):
         """Test validate_report_config for KPI."""
         # Valid config
         valid_config = {
             "data_field": "productivity_data",  # Required field
-            "kpis": [
-                {"title": "Total", "data_field": "total", "format": "number"}
-            ]
+            "kpis": [{"title": "Total", "data_field": "total", "format": "number"}],
         }
         assert validate_report_config(PRODUCTIVITY_METRICS_REPORT, valid_config) is True
 
         # Invalid config - kpis not a list
-        invalid_config = {
-            "data_field": "productivity_data",
-            "kpis": "not_a_list"
-        }
-        assert validate_report_config(PRODUCTIVITY_METRICS_REPORT, invalid_config) is False
+        invalid_config = {"data_field": "productivity_data", "kpis": "not_a_list"}
+        assert (
+            validate_report_config(PRODUCTIVITY_METRICS_REPORT, invalid_config) is False
+        )
 
     def test_validate_report_config_timeline(self):
         """Test validate_report_config for timeline."""
         # Valid config
-        valid_config = {
-            "data_field": "completed_tasks",
-            "time_field": "completed_at"
-        }
-        assert validate_report_config(TASK_COMPLETION_TIMELINE_REPORT, valid_config) is True
+        valid_config = {"data_field": "completed_tasks", "time_field": "completed_at"}
+        assert (
+            validate_report_config(TASK_COMPLETION_TIMELINE_REPORT, valid_config)
+            is True
+        )
 
         # Invalid config - missing time_field
         invalid_config = {"data_field": "completed_tasks"}
-        assert validate_report_config(TASK_COMPLETION_TIMELINE_REPORT, invalid_config) is False
+        assert (
+            validate_report_config(TASK_COMPLETION_TIMELINE_REPORT, invalid_config)
+            is False
+        )
 
     def test_validate_report_config_unknown_type(self):
         """Test validate_report_config with unknown visualization type."""
@@ -214,9 +213,7 @@ class TestTasksReportDefinitions:
         from app.models.reporting import ReportDefinition
 
         unknown_report = ReportDefinition(
-            name="Unknown",
-            data_source_type="tasks",
-            visualization_type="unknown_type"
+            name="Unknown", data_source_type="tasks", visualization_type="unknown_type"
         )
 
         # Should return False for unknown types
@@ -228,17 +225,27 @@ class TestTasksReportDefinitions:
 
         for report_id, report in definitions.items():
             # Check required fields
-            assert hasattr(report, 'name'), f"Report {report_id} missing name"
-            assert hasattr(report, 'data_source_type'), f"Report {report_id} missing data_source_type"
-            assert hasattr(report, 'visualization_type'), f"Report {report_id} missing visualization_type"
+            assert hasattr(report, "name"), f"Report {report_id} missing name"
+            assert hasattr(
+                report, "data_source_type"
+            ), f"Report {report_id} missing data_source_type"
+            assert hasattr(
+                report, "visualization_type"
+            ), f"Report {report_id} missing visualization_type"
 
             # Check values are not empty
             assert report.name, f"Report {report_id} has empty name"
-            assert report.data_source_type, f"Report {report_id} has empty data_source_type"
-            assert report.visualization_type, f"Report {report_id} has empty visualization_type"
+            assert (
+                report.data_source_type
+            ), f"Report {report_id} has empty data_source_type"
+            assert (
+                report.visualization_type
+            ), f"Report {report_id} has empty visualization_type"
 
             # Check that data_source_type is "tasks"
-            assert report.data_source_type == "tasks", f"Report {report_id} has wrong data_source_type"
+            assert (
+                report.data_source_type == "tasks"
+            ), f"Report {report_id} has wrong data_source_type"
 
     def test_all_reports_have_valid_config(self):
         """Test that all report definitions have valid configuration."""
@@ -246,7 +253,9 @@ class TestTasksReportDefinitions:
 
         for report_id, report in definitions.items():
             assert report.config is not None, f"Report {report_id} missing config"
-            assert isinstance(report.config, dict), f"Report {report_id} config is not a dict"
+            assert isinstance(
+                report.config, dict
+            ), f"Report {report_id} config is not a dict"
 
             # Validate the config
             is_valid = validate_report_config(report, report.config)
@@ -270,10 +279,18 @@ class TestTasksReportDefinitions:
         for report_id, report in definitions.items():
             if report.filters:
                 for filter_name, filter_def in report.filters.items():
-                    assert "type" in filter_def, f"Report {report_id} filter {filter_name} missing type"
-                    assert "label" in filter_def, f"Report {report_id} filter {filter_name} missing label"
+                    assert (
+                        "type" in filter_def
+                    ), f"Report {report_id} filter {filter_name} missing type"
+                    assert (
+                        "label" in filter_def
+                    ), f"Report {report_id} filter {filter_name} missing label"
 
                     # Check select filters have options
                     if filter_def["type"] in ["select", "multi_select"]:
-                        assert "options" in filter_def, f"Report {report_id} filter {filter_name} missing options"
-                        assert isinstance(filter_def["options"], list), f"Report {report_id} filter {filter_name} options not a list"
+                        assert (
+                            "options" in filter_def
+                        ), f"Report {report_id} filter {filter_name} missing options"
+                        assert isinstance(
+                            filter_def["options"], list
+                        ), f"Report {report_id} filter {filter_name} options not a list"

@@ -77,7 +77,9 @@ class NotificationEventConsumer:
             event_type = event.event_type
 
             # Skip technical events and notification events themselves
-            if event_type.startswith("notification.") or event_type.startswith("system."):
+            if event_type.startswith("notification.") or event_type.startswith(
+                "system."
+            ):
                 return
 
             # Handle task-specific events with dedicated handlers
@@ -133,7 +135,9 @@ class NotificationEventConsumer:
                 tenant_id=event.tenant_id,
             )
 
-            logger.info(f"Notification sent for event {event_type} to user {recipient_id}")
+            logger.info(
+                f"Notification sent for event {event_type} to user {recipient_id}"
+            )
 
         except Exception as e:
             logger.error(f"Error handling event {event.event_type}: {e}", exc_info=True)
@@ -295,4 +299,3 @@ class NotificationEventConsumer:
             data.update(event.metadata.additional_data)
 
         return data
-

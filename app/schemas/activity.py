@@ -10,9 +10,13 @@ from pydantic import BaseModel, ConfigDict, Field
 class ActivityBase(BaseModel):
     """Base schema for activity."""
 
-    entity_type: str = Field(..., description="Entity type (e.g., 'product', 'order')", max_length=50)
+    entity_type: str = Field(
+        ..., description="Entity type (e.g., 'product', 'order')", max_length=50
+    )
     entity_id: UUID = Field(..., description="Entity ID")
-    activity_type: str = Field(..., description="Activity type (e.g., 'comment', 'call')", max_length=50)
+    activity_type: str = Field(
+        ..., description="Activity type (e.g., 'comment', 'call')", max_length=50
+    )
     title: str = Field(..., description="Activity title", max_length=255)
     description: str | None = Field(None, description="Activity description")
     metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
@@ -40,7 +44,8 @@ class ActivityResponse(ActivityBase):
     user_id: UUID | None
     created_at: datetime
     updated_at: datetime
-    metadata: dict[str, Any] | None = Field(None, alias="activity_metadata", description="Additional metadata")
+    metadata: dict[str, Any] | None = Field(
+        None, alias="activity_metadata", description="Additional metadata"
+    )
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
-

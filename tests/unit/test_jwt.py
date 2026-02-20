@@ -64,6 +64,7 @@ def test_decode_token_expired():
 
     # Wait a bit to ensure expiration
     import time
+
     time.sleep(2)
 
     decoded = decode_token(token)
@@ -249,7 +250,6 @@ def test_access_token_expires_in_60_minutes():
 
     diff = exp_datetime - iat_datetime
     expected_minutes = 60  # Explicit expiration time
-    assert abs(diff.total_seconds() / 60 - expected_minutes) < 1  # Allow 1 minute tolerance
-
-
-
+    assert (
+        abs(diff.total_seconds() / 60 - expected_minutes) < 1
+    )  # Allow 1 minute tolerance

@@ -70,19 +70,11 @@ class TriggerHandler:
         """
         # Subscribe to each event type separately
         for event_type in event_types:
-            await self.subscribe_to_event(event_type, callback, group_name, consumer_name)
+            await self.subscribe_to_event(
+                event_type, callback, group_name, consumer_name
+            )
 
     async def stop(self) -> None:
         """Stop the event consumer."""
         await self.event_consumer.stop()
         logger.info("Stopped trigger handler")
-
-
-
-
-
-
-
-
-
-

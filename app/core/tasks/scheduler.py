@@ -225,7 +225,9 @@ class TaskScheduler:
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat() if task.due_date else None,
                     "window": window_name,
-                    "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+                    "assigned_to_id": (
+                        str(task.assigned_to_id) if task.assigned_to_id else None
+                    ),
                     "created_by_id": str(task.created_by_id),
                 },
             ),
@@ -237,9 +239,9 @@ class TaskScheduler:
         if "notifications_sent" not in task.metadata:
             task.metadata["notifications_sent"] = {}
 
-        task.metadata["notifications_sent"][f"due_soon_{window_name}"] = (
-            datetime.now(UTC).isoformat()
-        )
+        task.metadata["notifications_sent"][f"due_soon_{window_name}"] = datetime.now(
+            UTC
+        ).isoformat()
         task.metadata = dict(task.metadata)  # Force SQLAlchemy to detect change
 
     async def _publish_overdue_event(self, task: Task, event_publisher) -> None:
@@ -268,7 +270,9 @@ class TaskScheduler:
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat() if task.due_date else None,
                     "days_overdue": days_overdue,
-                    "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
+                    "assigned_to_id": (
+                        str(task.assigned_to_id) if task.assigned_to_id else None
+                    ),
                     "created_by_id": str(task.created_by_id),
                 },
             ),

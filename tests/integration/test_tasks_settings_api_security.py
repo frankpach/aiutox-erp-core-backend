@@ -35,7 +35,9 @@ def test_get_settings_requires_view_permission(client_with_db, auth_headers):
 @pytest.mark.security
 def test_get_settings_with_view_permission(client_with_db, tasks_viewer_headers):
     """Ensure viewer can read settings."""
-    response = client_with_db.get("/api/v1/tasks/settings", headers=tasks_viewer_headers)
+    response = client_with_db.get(
+        "/api/v1/tasks/settings", headers=tasks_viewer_headers
+    )
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"] is not None
@@ -60,9 +62,7 @@ def test_update_settings_requires_manage_permission(
 
 @pytest.mark.integration
 @pytest.mark.security
-def test_update_settings_with_manage_permission(
-    client_with_db, tasks_manager_headers
-):
+def test_update_settings_with_manage_permission(client_with_db, tasks_manager_headers):
     """Ensure manager can update settings."""
     response = client_with_db.put(
         "/api/v1/tasks/settings",

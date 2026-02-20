@@ -47,7 +47,9 @@ class ActivityRepository:
         )
         if activity_type:
             query = query.filter(Activity.activity_type == activity_type)
-        return query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_by_entity(
         self,
@@ -79,7 +81,9 @@ class ActivityRepository:
         query = self.db.query(Activity).filter(Activity.tenant_id == tenant_id)
         if activity_type:
             query = query.filter(Activity.activity_type == activity_type)
-        return query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_all(
         self,
@@ -89,7 +93,9 @@ class ActivityRepository:
         """Count all activities for a tenant."""
         from sqlalchemy import func
 
-        query = self.db.query(func.count(Activity.id)).filter(Activity.tenant_id == tenant_id)
+        query = self.db.query(func.count(Activity.id)).filter(
+            Activity.tenant_id == tenant_id
+        )
         if activity_type:
             query = query.filter(Activity.activity_type == activity_type)
         return query.scalar() or 0
@@ -116,7 +122,9 @@ class ActivityRepository:
             query = query.filter(Activity.entity_type == entity_type)
         if activity_type:
             query = query.filter(Activity.activity_type == activity_type)
-        return query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(Activity.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_search(
         self,
@@ -163,4 +171,3 @@ class ActivityRepository:
         self.db.delete(activity)
         self.db.commit()
         return True
-

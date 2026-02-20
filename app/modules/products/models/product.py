@@ -239,13 +239,3 @@ class ProductBarcode(Base):
 
     def __repr__(self) -> str:
         return f"<ProductBarcode(id={self.id}, barcode={self.barcode}, product_id={self.product_id}, variant_id={self.variant_id})>"
-
-
-
-
-
-
-
-
-
-

@@ -10,7 +10,9 @@ from tests.helpers import create_user_with_permission
 def test_create_notification_template(client_with_db, test_user, db_session):
     """Test creating a notification template."""
     # Assign notifications.manage permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "manager"
+    )
 
     template_data = {
         "name": "Product Created Email",
@@ -38,7 +40,9 @@ def test_create_notification_template(client_with_db, test_user, db_session):
 def test_list_notification_templates(client_with_db, test_user, db_session):
     """Test listing notification templates."""
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     # Create a template
     from app.repositories.notification_repository import NotificationRepository
@@ -67,7 +71,9 @@ def test_list_notification_templates(client_with_db, test_user, db_session):
 def test_get_notification_template(client_with_db, test_user, db_session):
     """Test getting a specific notification template."""
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     # Create a template
     from app.repositories.notification_repository import NotificationRepository
@@ -98,7 +104,9 @@ def test_get_notification_template(client_with_db, test_user, db_session):
 def test_update_notification_template(client_with_db, test_user, db_session):
     """Test updating a notification template."""
     # Assign notifications.manage permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "manager"
+    )
 
     # Create a template
     from app.repositories.notification_repository import NotificationRepository
@@ -133,7 +141,9 @@ def test_update_notification_template(client_with_db, test_user, db_session):
 def test_delete_notification_template(client_with_db, test_user, db_session):
     """Test deleting a notification template."""
     # Assign notifications.manage permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "manager"
+    )
 
     # Create a template
     from app.repositories.notification_repository import NotificationRepository
@@ -167,7 +177,9 @@ def test_delete_notification_template(client_with_db, test_user, db_session):
 def test_list_notification_queue(client_with_db, test_user, db_session):
     """Test listing notification queue entries."""
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     response = client_with_db.get("/api/v1/notifications/queue", headers=headers)
 
@@ -202,7 +214,9 @@ def test_stream_notifications_sse(client_with_db, test_user, db_session):
     from unittest.mock import patch
 
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     # Create a notification queue entry to ensure there's data to stream
     from app.models.notification import NotificationQueue, NotificationStatus
@@ -230,7 +244,7 @@ def test_stream_notifications_sse(client_with_db, test_user, db_session):
         await asyncio.sleep(0.01)
 
     # Make request to SSE endpoint with mocked sleep
-    with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
+    with patch("app.api.v1.notifications.asyncio.sleep", side_effect=mock_sleep):
         response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
@@ -295,13 +309,17 @@ def test_get_unread_notifications(client_with_db, test_user, auth_headers, db_se
     assert all(n.created_at > notification1.created_at for n in notifications_new)
 
 
-def test_stream_notifications_adaptive_interval_no_notifications(client_with_db, test_user, db_session):
+def test_stream_notifications_adaptive_interval_no_notifications(
+    client_with_db, test_user, db_session
+):
     """Test that SSE endpoint increases interval when no notifications are found.
 
     Verifies that intervals progress: 5s -> 10s -> 20s -> 30s -> 60s (max)
     """
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     # Track sleep calls to verify intervals
     sleep_calls = []
@@ -318,7 +336,7 @@ def test_stream_notifications_adaptive_interval_no_notifications(client_with_db,
         await real_sleep(0.001)
 
     # Test: No notifications - interval should increase
-    with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
+    with patch("app.api.v1.notifications.asyncio.sleep", side_effect=mock_sleep):
         response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
@@ -332,7 +350,9 @@ def test_stream_notifications_adaptive_interval_no_notifications(client_with_db,
             pass  # Expected when stream cancels
 
     # Verify intervals increased: 5s -> 10s -> 20s -> 30s -> 60s
-    assert len(sleep_calls) >= 5, f"Expected at least 5 sleep calls, got {len(sleep_calls)}"
+    assert (
+        len(sleep_calls) >= 5
+    ), f"Expected at least 5 sleep calls, got {len(sleep_calls)}"
     assert sleep_calls[0] == 5, f"First interval should be 5s, got {sleep_calls[0]}"
     assert sleep_calls[1] == 10, f"Second interval should be 10s, got {sleep_calls[1]}"
     assert sleep_calls[2] == 20, f"Third interval should be 20s, got {sleep_calls[2]}"
@@ -340,16 +360,22 @@ def test_stream_notifications_adaptive_interval_no_notifications(client_with_db,
     assert sleep_calls[4] == 60, f"Fifth interval should be 60s, got {sleep_calls[4]}"
     # Verify it stays at 60s (max)
     if len(sleep_calls) > 5:
-        assert sleep_calls[5] == 60, f"Sixth interval should stay at 60s (max), got {sleep_calls[5]}"
+        assert (
+            sleep_calls[5] == 60
+        ), f"Sixth interval should stay at 60s (max), got {sleep_calls[5]}"
 
 
-def test_stream_notifications_adaptive_interval_with_notifications(client_with_db, test_user, db_session):
+def test_stream_notifications_adaptive_interval_with_notifications(
+    client_with_db, test_user, db_session
+):
     """Test that SSE endpoint resets interval to 5s when notifications are found.
 
     Verifies that finding notifications resets the interval back to the fastest (5s).
     """
     # Assign notifications.view permission
-    headers = create_user_with_permission(db_session, test_user, "notifications", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "notifications", "viewer"
+    )
 
     from app.models.notification import NotificationQueue, NotificationStatus
 
@@ -382,7 +408,7 @@ def test_stream_notifications_adaptive_interval_with_notifications(client_with_d
         # Use real sleep with minimal delay for test speed
         await real_sleep(0.001)
 
-    with patch('app.api.v1.notifications.asyncio.sleep', side_effect=mock_sleep):
+    with patch("app.api.v1.notifications.asyncio.sleep", side_effect=mock_sleep):
         response = client_with_db.get(
             "/api/v1/notifications/stream",
             headers=headers,
@@ -398,7 +424,10 @@ def test_stream_notifications_adaptive_interval_with_notifications(client_with_d
     # Verify behavior:
     # - First iteration: finds notification1, interval should be 5s (index 0)
     # - After finding notification, interval resets to 5s, so next sleep should be 5s
-    assert len(sleep_calls) >= 1, f"Expected at least 1 sleep call, got {len(sleep_calls)}"
+    assert (
+        len(sleep_calls) >= 1
+    ), f"Expected at least 1 sleep call, got {len(sleep_calls)}"
     # After finding notification, interval should reset to 5s
-    assert sleep_calls[0] == 5, f"After finding notification, interval should reset to 5s, got {sleep_calls[0]}"
-
+    assert (
+        sleep_calls[0] == 5
+    ), f"After finding notification, interval should reset to 5s, got {sleep_calls[0]}"

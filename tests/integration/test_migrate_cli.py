@@ -22,10 +22,18 @@ def mock_manager():
             orphaned=[],
         )
     )
-    manager.apply_migrations = MagicMock(return_value=MigrationResult(success=True, applied_count=0))
-    manager.rollback = MagicMock(return_value=MigrationResult(success=True, applied_count=-1))
-    manager.fresh = MagicMock(return_value=MigrationResult(success=True, applied_count=3))
-    manager.refresh = MagicMock(return_value=MigrationResult(success=True, applied_count=3))
+    manager.apply_migrations = MagicMock(
+        return_value=MigrationResult(success=True, applied_count=0)
+    )
+    manager.rollback = MagicMock(
+        return_value=MigrationResult(success=True, applied_count=-1)
+    )
+    manager.fresh = MagicMock(
+        return_value=MigrationResult(success=True, applied_count=3)
+    )
+    manager.refresh = MagicMock(
+        return_value=MigrationResult(success=True, applied_count=3)
+    )
     manager.create_migration = MagicMock(return_value="migrations/versions/003_test.py")
     manager._get_all_migration_files = MagicMock(return_value=[])
     return manager
@@ -87,4 +95,3 @@ def test_make_migration_command_non_interactive(mock_manager, mock_reporter):
     """Test make:migration command in non-interactive mode."""
     file_path = mock_manager.create_migration("test migration", autogenerate=True)
     assert "migrations" in file_path.lower()
-

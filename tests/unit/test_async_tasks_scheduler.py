@@ -58,7 +58,9 @@ class TestAsyncTaskScheduler:
         """Test scheduling a non-existent task."""
         # Act & Assert
         with pytest.raises(ValueError, match="Task.*not found"):
-            await scheduler.schedule_task("nonexistent.task", {"type": "interval", "hours": 24})
+            await scheduler.schedule_task(
+                "nonexistent.task", {"type": "interval", "hours": 24}
+            )
 
     @pytest.mark.asyncio
     async def test_schedule_disabled_task(self, scheduler, registry):
@@ -80,7 +82,9 @@ class TestAsyncTaskScheduler:
         """Test executing a task for a specific tenant."""
         # Arrange
         tenant_id = uuid4()
-        task = MockTask(module="test", name="test_task", execute_result={"tenant": str(tenant_id)})
+        task = MockTask(
+            module="test", name="test_task", execute_result={"tenant": str(tenant_id)}
+        )
         schedule = {"type": "interval", "hours": 24}
         registry.register(task, schedule, enabled=True)
 
@@ -109,7 +113,10 @@ class TestAsyncTaskScheduler:
 
             with patch("app.core.db.session.SessionLocal") as mock_session_local:
                 mock_db = MagicMock()
-                mock_db.query.return_value.all.return_value = [mock_tenant1, mock_tenant2]
+                mock_db.query.return_value.all.return_value = [
+                    mock_tenant1,
+                    mock_tenant2,
+                ]
                 mock_session_local.return_value = mock_db
 
                 # Act
@@ -169,9 +176,3 @@ class TestAsyncTaskScheduler:
 
         # Assert
         assert "test.cancel_task" not in scheduler._scheduled_tasks
-
-
-
-
-
-

@@ -22,7 +22,9 @@ class TestTaskCalendarSync:
         task_service = TaskService(db_session)
 
         # Mock del sync service
-        with patch.object(TaskEventSyncService, 'sync_task_to_calendar', new_callable=AsyncMock) as _mock_sync:
+        with patch.object(
+            TaskEventSyncService, "sync_task_to_calendar", new_callable=AsyncMock
+        ) as _mock_sync:
             _mock_sync.return_value = {"task_id": str(uuid4()), "synced": True}
 
             task = await task_service.create_task(
@@ -45,7 +47,9 @@ class TestTaskCalendarSync:
         """Verifica que tarea NO se sincroniza cuando está deshabilitado."""
         task_service = TaskService(db_session)
 
-        with patch.object(TaskEventSyncService, 'sync_task_to_calendar', new_callable=AsyncMock) as _mock_sync:
+        with patch.object(
+            TaskEventSyncService, "sync_task_to_calendar", new_callable=AsyncMock
+        ) as _mock_sync:
             task = await task_service.create_task(
                 title="Tarea sin sync",
                 tenant_id=test_tenant.id,
@@ -66,7 +70,9 @@ class TestTaskCalendarSync:
         """Verifica que tarea sin fechas NO se sincroniza."""
         task_service = TaskService(db_session)
 
-        with patch.object(TaskEventSyncService, 'sync_task_to_calendar', new_callable=AsyncMock) as _mock_sync:
+        with patch.object(
+            TaskEventSyncService, "sync_task_to_calendar", new_callable=AsyncMock
+        ) as _mock_sync:
             task = await task_service.create_task(
                 title="Tarea sin fechas",
                 tenant_id=test_tenant.id,
@@ -101,7 +107,7 @@ class TestTaskCalendarSync:
         sync_service = TaskEventSyncService(db_session)
 
         # Mock event publisher para evitar publicación real
-        with patch.object(sync_service, 'event_publisher') as mock_publisher:
+        with patch.object(sync_service, "event_publisher") as mock_publisher:
             mock_publisher.publish = AsyncMock(return_value="message-id-123")
 
             # Usar el método correcto sync_task_to_calendar
@@ -109,7 +115,7 @@ class TestTaskCalendarSync:
                 task_id=task.id,
                 tenant_id=test_tenant.id,
                 user_id=test_user.id,
-                calendar_provider="internal"
+                calendar_provider="internal",
             )
 
             # Verificar que se sincronizó correctamente
@@ -126,8 +132,8 @@ class TestTaskCalendarSync:
         # Mock que lanza excepción en el método sync_task_to_calendar
         with patch.object(
             TaskEventSyncService,
-            'sync_task_to_calendar',
-            side_effect=Exception("Sync error")
+            "sync_task_to_calendar",
+            side_effect=Exception("Sync error"),
         ):
             # La tarea debe crearse exitosamente a pesar del error
             task = await task_service.create_task(
@@ -142,5 +148,3 @@ class TestTaskCalendarSync:
 
             assert task is not None
             assert task.id is not None
-
-

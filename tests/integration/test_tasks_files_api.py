@@ -4,9 +4,7 @@ import pytest
 
 
 @pytest.mark.integration
-def test_list_task_files_empty(
-    client_with_db, tasks_manager_headers, task_factory
-):
+def test_list_task_files_empty(client_with_db, tasks_manager_headers, task_factory):
     """Test listing files when task has no attachments."""
     task = task_factory()
 
@@ -35,7 +33,7 @@ def test_attach_file_to_task_success(
             "file_name": "test_document.pdf",
             "file_size": 1024000,  # 1MB
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/test_document.pdf"
+            "file_url": "https://example.com/files/test_document.pdf",
         },
         headers=tasks_manager_headers,
     )
@@ -69,9 +67,7 @@ def test_attach_file_validation_error_missing_params(
 
 
 @pytest.mark.integration
-def test_attach_file_to_nonexistent_task(
-    client_with_db, tasks_manager_headers
-):
+def test_attach_file_to_nonexistent_task(client_with_db, tasks_manager_headers):
     """Test attaching file to non-existent task returns 404."""
     fake_task_id = "12345678-1234-5678-9abc-123456789def"
 
@@ -82,20 +78,21 @@ def test_attach_file_to_nonexistent_task(
             "file_name": "test_document.pdf",
             "file_size": 1024000,
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/test_document.pdf"
+            "file_url": "https://example.com/files/test_document.pdf",
         },
         headers=tasks_manager_headers,
     )
 
     # Should return 422 for invalid UUID format, not 404
     assert response.status_code == 422
-    assert "uuid" in response.json()["error"]["message"].lower() or "validation" in response.json()["error"]["message"].lower()
+    assert (
+        "uuid" in response.json()["error"]["message"].lower()
+        or "validation" in response.json()["error"]["message"].lower()
+    )
 
 
 @pytest.mark.integration
-def test_list_task_files_with_data(
-    client_with_db, tasks_manager_headers, task_factory
-):
+def test_list_task_files_with_data(client_with_db, tasks_manager_headers, task_factory):
     """Test listing files when task has attachments."""
     task = task_factory()
 
@@ -107,7 +104,7 @@ def test_list_task_files_with_data(
             "file_name": "test_document.pdf",
             "file_size": 1024000,
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/test_document.pdf"
+            "file_url": "https://example.com/files/test_document.pdf",
         },
         headers=tasks_manager_headers,
     )
@@ -141,7 +138,7 @@ def test_detach_file_from_task_success(
             "file_name": "test_document.pdf",
             "file_size": 1024000,
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/test_document.pdf"
+            "file_url": "https://example.com/files/test_document.pdf",
         },
         headers=tasks_manager_headers,
     )
@@ -164,9 +161,7 @@ def test_detach_file_from_task_success(
 
 
 @pytest.mark.integration
-def test_detach_nonexistent_file(
-    client_with_db, tasks_manager_headers, task_factory
-):
+def test_detach_nonexistent_file(client_with_db, tasks_manager_headers, task_factory):
     """Test detaching a file that doesn't exist returns 404."""
     task = task_factory()
     fake_file_id = "87654321-4321-8765-cba-987654321fed"
@@ -178,13 +173,14 @@ def test_detach_nonexistent_file(
 
     # Should return 422 for invalid UUID format, not 404
     assert response.status_code == 422
-    assert "uuid" in response.json()["error"]["message"].lower() or "validation" in response.json()["error"]["message"].lower()
+    assert (
+        "uuid" in response.json()["error"]["message"].lower()
+        or "validation" in response.json()["error"]["message"].lower()
+    )
 
 
 @pytest.mark.integration
-def test_detach_file_from_nonexistent_task(
-    client_with_db, tasks_manager_headers
-):
+def test_detach_file_from_nonexistent_task(client_with_db, tasks_manager_headers):
     """Test detaching file from non-existent task returns 404."""
     fake_task_id = "12345678-1234-5678-9abc-123456789def"
     file_id = "87654321-4321-8765-cba-987654321fed"
@@ -196,12 +192,20 @@ def test_detach_file_from_nonexistent_task(
 
     # Should return 422 for invalid UUID format, not 404
     assert response.status_code == 422
-    assert "uuid" in response.json()["error"]["message"].lower() or "validation" in response.json()["error"]["message"].lower()
+    assert (
+        "uuid" in response.json()["error"]["message"].lower()
+        or "validation" in response.json()["error"]["message"].lower()
+    )
 
 
 @pytest.mark.integration
 def test_files_tenant_isolation(
-    client_with_db, tasks_manager_headers, task_factory, other_tenant, other_user, db_session
+    client_with_db,
+    tasks_manager_headers,
+    task_factory,
+    other_tenant,
+    other_user,
+    db_session,
 ):
     """Test that file attachments respect tenant isolation."""
     # Create task in main tenant
@@ -209,7 +213,10 @@ def test_files_tenant_isolation(
 
     # Create headers for other tenant user with proper permissions
     from tests.helpers import create_user_with_permission
-    other_headers = create_user_with_permission(db_session=db_session, user=other_user, module="tasks", role_name="manager")
+
+    other_headers = create_user_with_permission(
+        db_session=db_session, user=other_user, module="tasks", role_name="manager"
+    )
 
     response = client_with_db.post(
         f"/api/v1/tasks/{task.id}/files",
@@ -218,7 +225,7 @@ def test_files_tenant_isolation(
             "file_name": "test_document.pdf",
             "file_size": 1024000,
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/test_document.pdf"
+            "file_url": "https://example.com/files/test_document.pdf",
         },
         headers=other_headers,
     )
@@ -242,7 +249,7 @@ def test_attach_file_multiple_files(
             "file_name": "document1.pdf",
             "file_size": 1024000,
             "file_type": "application/pdf",
-            "file_url": "https://example.com/files/document1.pdf"
+            "file_url": "https://example.com/files/document1.pdf",
         },
         headers=tasks_manager_headers,
     )
@@ -256,7 +263,7 @@ def test_attach_file_multiple_files(
             "file_name": "document2.jpg",
             "file_size": 512000,
             "file_type": "image/jpeg",
-            "file_url": "https://example.com/files/document2.jpg"
+            "file_url": "https://example.com/files/document2.jpg",
         },
         headers=tasks_manager_headers,
     )

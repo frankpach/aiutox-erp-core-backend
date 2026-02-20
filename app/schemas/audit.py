@@ -15,10 +15,14 @@ class AuditLogResponse(BaseModel):
     id: UUID = Field(..., description="Audit log entry ID")
     user_id: UUID | None = Field(None, description="User who performed the action")
     tenant_id: UUID = Field(..., description="Tenant ID")
-    action: str = Field(..., description="Action type (e.g., 'grant_permission', 'create_user')")
+    action: str = Field(
+        ..., description="Action type (e.g., 'grant_permission', 'create_user')"
+    )
     resource_type: str | None = Field(None, description="Type of resource affected")
     resource_id: UUID | None = Field(None, description="ID of the resource affected")
-    details: dict[str, Any] | None = Field(None, description="Additional details as JSON")
+    details: dict[str, Any] | None = Field(
+        None, description="Additional details as JSON"
+    )
     ip_address: str | None = Field(None, description="Client IP address")
     user_agent: str | None = Field(None, description="Client user agent")
     created_at: datetime = Field(..., description="Timestamp when the action occurred")
@@ -40,4 +44,3 @@ class AuditLogListResponse(BaseModel):
             }
         },
     )
-

@@ -31,6 +31,7 @@ def get_team_service(db: Annotated[Session, Depends(get_db)]) -> TeamService:
 
 # Team CRUD Endpoints
 
+
 @router.post(
     "",
     response_model=StandardResponse[TeamResponse],
@@ -83,7 +84,9 @@ async def list_teams(
         query = query.filter(Team.is_active == is_active)
 
     total = query.count()
-    teams = query.order_by(Team.name).offset((page - 1) * page_size).limit(page_size).all()
+    teams = (
+        query.order_by(Team.name).offset((page - 1) * page_size).limit(page_size).all()
+    )
 
     return StandardListResponse(
         data=[TeamResponse.model_validate(team) for team in teams],
@@ -186,6 +189,7 @@ async def delete_team(
 
 # Team Member Endpoints
 
+
 @router.post(
     "/{team_id}/members",
     response_model=StandardResponse[TeamMemberResponse],
@@ -251,10 +255,14 @@ async def list_team_members(
             message="Team not found",
         )
 
-    members = db.query(TeamMember).filter(
-        TeamMember.tenant_id == current_user.tenant_id,
-        TeamMember.team_id == team_id,
-    ).all()
+    members = (
+        db.query(TeamMember)
+        .filter(
+            TeamMember.tenant_id == current_user.tenant_id,
+            TeamMember.team_id == team_id,
+        )
+        .all()
+    )
 
     return StandardListResponse(
         data=[TeamMemberResponse.model_validate(member) for member in members],

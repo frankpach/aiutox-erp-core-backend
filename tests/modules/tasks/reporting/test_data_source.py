@@ -29,7 +29,7 @@ class TestTasksDataSource:
                 title="Task 1",
                 status=TaskStatusEnum.TODO,
                 priority=TaskPriority.HIGH,
-                created_at=datetime.now(UTC) - timedelta(days=5)
+                created_at=datetime.now(UTC) - timedelta(days=5),
             ),
             Task(
                 id="task-2",
@@ -38,7 +38,7 @@ class TestTasksDataSource:
                 status=TaskStatusEnum.DONE,
                 priority=TaskPriority.MEDIUM,
                 created_at=datetime.now(UTC) - timedelta(days=3),
-                completed_at=datetime.now(UTC) - timedelta(days=1)
+                completed_at=datetime.now(UTC) - timedelta(days=1),
             ),
             Task(
                 id="task-3",
@@ -46,8 +46,8 @@ class TestTasksDataSource:
                 title="Task 3",
                 status=TaskStatusEnum.IN_PROGRESS,
                 priority=TaskPriority.LOW,
-                created_at=datetime.now(UTC) - timedelta(days=1)
-            )
+                created_at=datetime.now(UTC) - timedelta(days=1),
+            ),
         ]
 
     @pytest.fixture
@@ -60,7 +60,7 @@ class TestTasksDataSource:
                 name="Vendido",
                 type="closed",
                 color="#FF5722",
-                is_system=False
+                is_system=False,
             ),
             TaskStatus(
                 id="status-2",
@@ -68,8 +68,8 @@ class TestTasksDataSource:
                 name="Llamado",
                 type="in_progress",
                 color="#2196F3",
-                is_system=False
-            )
+                is_system=False,
+            ),
         ]
 
     @pytest.mark.asyncio
@@ -88,7 +88,7 @@ class TestTasksDataSource:
         filters = {
             "status": TaskStatusEnum.TODO,
             "priority": TaskPriority.HIGH,
-            "date_from": datetime.now(UTC) - timedelta(days=7)
+            "date_from": datetime.now(UTC) - timedelta(days=7),
         }
         pagination = {"skip": 0, "limit": 10}
 
@@ -96,7 +96,9 @@ class TestTasksDataSource:
 
         # Verify query was built correctly
         assert self.db.query.called
-        assert mock_query.filter.call_count >= 3  # tenant + status + priority + date_from
+        assert (
+            mock_query.filter.call_count >= 3
+        )  # tenant + status + priority + date_from
         mock_query.offset.assert_called_with(0)
         mock_query.limit.assert_called_with(10)
 
@@ -172,7 +174,7 @@ class TestTasksDataSource:
             (datetime.now(UTC) - timedelta(days=5), 3),
             (datetime.now(UTC) - timedelta(days=4), 1),
             (datetime.now(UTC) - timedelta(days=3), 4),
-            (datetime.now(UTC) - timedelta(days=2), 2)
+            (datetime.now(UTC) - timedelta(days=2), 2),
         ]
 
         # Mock completed trends
@@ -182,11 +184,13 @@ class TestTasksDataSource:
         mock_completed_query.order_by.return_value = mock_completed_query
         mock_completed_query.all.return_value = [
             (datetime.now(UTC) - timedelta(days=4), 1),
-            (datetime.now(UTC) - timedelta(days=2), 2)
+            (datetime.now(UTC) - timedelta(days=2), 2),
         ]
 
         # Mock the date_trunc function
-        with patch('app.modules.tasks.reporting.data_source.func.date_trunc') as mock_date_trunc:
+        with patch(
+            "app.modules.tasks.reporting.data_source.func.date_trunc"
+        ) as mock_date_trunc:
             mock_date_trunc.return_value = mock_query
 
             result = self.data_source.get_trends("7d", self.tenant_id)
@@ -217,7 +221,7 @@ class TestTasksDataSource:
         mock_query.order_by.return_value = mock_query
         mock_query.all.return_value = [
             (datetime.now(UTC) - timedelta(days=29), 1),
-            (datetime.now(UTC) - timedelta(days=15), 2)
+            (datetime.now(UTC) - timedelta(days=15), 2),
         ]
 
         # Mock completed trends
@@ -230,7 +234,9 @@ class TestTasksDataSource:
         ]
 
         # Mock the date_trunc function
-        with patch('app.modules.tasks.reporting.data_source.func.date_trunc') as mock_date_trunc:
+        with patch(
+            "app.modules.tasks.reporting.data_source.func.date_trunc"
+        ) as mock_date_trunc:
             mock_date_trunc.return_value = mock_query
 
             result = self.data_source.get_trends("30d", self.tenant_id)
@@ -354,6 +360,7 @@ class TestTasksDataSource:
         self.db.query.return_value = mock_query
 
         import asyncio
+
         asyncio.run(self.data_source.get_data())
 
         # Verify tenant filter was applied
@@ -388,6 +395,7 @@ class TestTasksDataSource:
         mock_query.all.return_value = []
 
         import asyncio
+
         result = asyncio.run(self.data_source.get_data())
 
         assert result["data"] == []

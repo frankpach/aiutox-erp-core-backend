@@ -5,4 +5,3 @@ from app.core.activities.service import ActivityService
 __all__ = [
     "ActivityService",
 ]
-

@@ -251,11 +251,3 @@ def test_get_entity_tags(tag_service, test_tenant):
     tag_ids = [et.id for et in entity_tags]
     assert tag1.id in tag_ids
     assert tag2.id in tag_ids
-
-
-
-
-
-
-
-

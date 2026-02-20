@@ -59,9 +59,7 @@ class TestGamificationFlowIntegration:
         mock_badge.criteria = {"event_type": "task.completed", "count": 5}
         mock_badge.is_active = True
 
-        result = service._evaluate_criteria(
-            USER_ID, mock_badge, "task.completed", None
-        )
+        result = service._evaluate_criteria(USER_ID, mock_badge, "task.completed", None)
         assert result is True
 
     def test_badge_service_criteria_not_met(self):
@@ -76,9 +74,7 @@ class TestGamificationFlowIntegration:
         mock_badge.id = uuid4()
         mock_badge.criteria = {"event_type": "task.completed", "count": 10}
 
-        result = service._evaluate_criteria(
-            USER_ID, mock_badge, "task.completed", None
-        )
+        result = service._evaluate_criteria(USER_ID, mock_badge, "task.completed", None)
         assert result is False
 
     def test_badge_wrong_event_type(self):
@@ -89,9 +85,7 @@ class TestGamificationFlowIntegration:
         mock_badge = MagicMock()
         mock_badge.criteria = {"event_type": "calendar.event_attended", "count": 1}
 
-        result = service._evaluate_criteria(
-            USER_ID, mock_badge, "task.completed", None
-        )
+        result = service._evaluate_criteria(USER_ID, mock_badge, "task.completed", None)
         assert result is False
 
     def test_leaderboard_service_recalculate_ranks(self):
@@ -107,7 +101,8 @@ class TestGamificationFlowIntegration:
         entry2.rank = None
 
         db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
-            entry1, entry2
+            entry1,
+            entry2,
         ]
 
         service = LeaderboardService(db, TENANT_ID)
@@ -133,7 +128,10 @@ class TestGamificationFlowIntegration:
         mock_up2.current_streak = 0
         mock_up2.last_activity_date = None
 
-        db.query.return_value.filter.return_value.all.return_value = [mock_up1, mock_up2]
+        db.query.return_value.filter.return_value.all.return_value = [
+            mock_up1,
+            mock_up2,
+        ]
         # Mock para _calculate_trend
         db.query.return_value.filter.return_value.scalar.return_value = 0
 

@@ -19,7 +19,9 @@ class TasksDataSource(BaseDataSource):
         super().__init__(db, tenant_id)
 
     async def get_data(
-        self, filters: dict[str, Any] | None = None, pagination: dict[str, int] | None = None
+        self,
+        filters: dict[str, Any] | None = None,
+        pagination: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Obtiene datos de tareas según filtros."""
         filters = filters or {}
@@ -58,17 +60,25 @@ class TasksDataSource(BaseDataSource):
         # Convert to dict format
         data = []
         for task in tasks:
-            data.append({
-                "id": str(task.id),
-                "title": task.title,
-                "status": task.status,
-                "priority": task.priority,
-                "assigned_to_id": str(task.assigned_to_id) if task.assigned_to_id else None,
-                "created_at": task.created_at.isoformat() if task.created_at else None,
-                "due_date": task.due_date.isoformat() if task.due_date else None,
-                "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-                "tenant_id": str(task.tenant_id)
-            })
+            data.append(
+                {
+                    "id": str(task.id),
+                    "title": task.title,
+                    "status": task.status,
+                    "priority": task.priority,
+                    "assigned_to_id": (
+                        str(task.assigned_to_id) if task.assigned_to_id else None
+                    ),
+                    "created_at": (
+                        task.created_at.isoformat() if task.created_at else None
+                    ),
+                    "due_date": task.due_date.isoformat() if task.due_date else None,
+                    "completed_at": (
+                        task.completed_at.isoformat() if task.completed_at else None
+                    ),
+                    "tenant_id": str(task.tenant_id),
+                }
+            )
 
         return {"data": data, "total": total}
 
@@ -114,13 +124,15 @@ class TasksDataSource(BaseDataSource):
 
         # Completion metrics
         completed_tasks = base_query.filter(Task.status == TaskStatusEnum.DONE).count()
-        completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        completion_rate = (
+            (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        )
 
         # Overdue tasks
         overdue_tasks = base_query.filter(
             and_(
                 Task.due_date < datetime.utcnow(),
-                Task.status.notin_([TaskStatusEnum.DONE, TaskStatusEnum.CANCELLED])
+                Task.status.notin_([TaskStatusEnum.DONE, TaskStatusEnum.CANCELLED]),
             )
         ).count()
 
@@ -131,7 +143,7 @@ class TasksDataSource(BaseDataSource):
             "by_custom_state": by_custom_state,
             "completion_rate": round(completion_rate, 2),
             "completed_tasks": completed_tasks,
-            "overdue_tasks": overdue_tasks
+            "overdue_tasks": overdue_tasks,
         }
 
     def get_trends(self, period: str, tenant_id: str) -> dict[str, Any]:
@@ -158,7 +170,9 @@ class TasksDataSource(BaseDataSource):
             date_trunc = func.date_trunc("week", Task.created_at)
 
         created_trends = (
-            self.db.query(date_trunc.label("period"), func.count(Task.id).label("count"))
+            self.db.query(
+                date_trunc.label("period"), func.count(Task.id).label("count")
+            )
             .filter(Task.tenant_id == tenant_id, Task.created_at >= start_date)
             .group_by(date_trunc)
             .order_by(date_trunc)
@@ -167,11 +181,13 @@ class TasksDataSource(BaseDataSource):
 
         # Query tasks completed over time
         completed_trends = (
-            self.db.query(date_trunc.label("period"), func.count(Task.id).label("count"))
+            self.db.query(
+                date_trunc.label("period"), func.count(Task.id).label("count")
+            )
             .filter(
                 Task.tenant_id == tenant_id,
                 Task.completed_at >= start_date,
-                Task.completed_at.is_not(None)
+                Task.completed_at.is_not(None),
             )
             .group_by(date_trunc)
             .order_by(date_trunc)
@@ -186,16 +202,15 @@ class TasksDataSource(BaseDataSource):
         # Combine dates from both trends
         all_dates = set(created_dict.keys()) | set(completed_dict.keys())
         for date_str in sorted(all_dates):
-            data_points.append({
-                "period": date_str,
-                "created": created_dict.get(date_str, 0),
-                "completed": completed_dict.get(date_str, 0)
-            })
+            data_points.append(
+                {
+                    "period": date_str,
+                    "created": created_dict.get(date_str, 0),
+                    "completed": completed_dict.get(date_str, 0),
+                }
+            )
 
-        return {
-            "period": period,
-            "data_points": data_points
-        }
+        return {"period": period, "data_points": data_points}
 
     def get_custom_states_metrics(self, tenant_id: str) -> list[dict[str, Any]]:
         """Métricas de estados custom."""
@@ -210,9 +225,10 @@ class TasksDataSource(BaseDataSource):
                 func.avg(
                     func.extract(
                         "epoch",
-                        func.coalesce(Task.completed_at, datetime.now(UTC)) - Task.created_at
+                        func.coalesce(Task.completed_at, datetime.now(UTC))
+                        - Task.created_at,
                     )
-                ).label("avg_time_seconds")
+                ).label("avg_time_seconds"),
             )
             .join(Task, Task.status_id == TaskStatus.id, isouter=True)
             .filter(TaskStatus.tenant_id == tenant_id, not TaskStatus.is_system)
@@ -226,14 +242,16 @@ class TasksDataSource(BaseDataSource):
             if metric.avg_time_seconds:
                 avg_time_hours = round(float(metric.avg_time_seconds) / 3600, 2)
 
-            result.append({
-                "state_id": str(metric.id),
-                "state_name": metric.name,
-                "state_type": metric.type,
-                "state_color": metric.color,
-                "task_count": metric.task_count,
-                "avg_time_in_state_hours": avg_time_hours
-            })
+            result.append(
+                {
+                    "state_id": str(metric.id),
+                    "state_name": metric.name,
+                    "state_type": metric.type,
+                    "state_color": metric.color,
+                    "task_count": metric.task_count,
+                    "avg_time_in_state_hours": avg_time_hours,
+                }
+            )
 
         return result
 
@@ -248,7 +266,7 @@ class TasksDataSource(BaseDataSource):
             {"name": "created_at", "type": "datetime", "label": "Created At"},
             {"name": "due_date", "type": "datetime", "label": "Due Date"},
             {"name": "completed_at", "type": "datetime", "label": "Completed At"},
-            {"name": "tenant_id", "type": "uuid", "label": "Tenant ID"}
+            {"name": "tenant_id", "type": "uuid", "label": "Tenant ID"},
         ]
 
     def get_filters(self) -> list[dict[str, Any]]:
@@ -261,7 +279,7 @@ class TasksDataSource(BaseDataSource):
                 "options": [
                     {"value": status.value, "label": status.value}
                     for status in TaskStatusEnum
-                ]
+                ],
             },
             {
                 "name": "priority",
@@ -270,22 +288,14 @@ class TasksDataSource(BaseDataSource):
                 "options": [
                     {"value": priority.value, "label": priority.value}
                     for priority in TaskPriority
-                ]
+                ],
             },
             {
                 "name": "assigned_to",
                 "type": "select",
                 "label": "Assigned To",
-                "options": []  # Would need to query users
+                "options": [],  # Would need to query users
             },
-            {
-                "name": "date_from",
-                "type": "date",
-                "label": "Date From"
-            },
-            {
-                "name": "date_to",
-                "type": "date",
-                "label": "Date To"
-            }
+            {"name": "date_from", "type": "date", "label": "Date From"},
+            {"name": "date_to", "type": "date", "label": "Date To"},
         ]

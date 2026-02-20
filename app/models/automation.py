@@ -59,14 +59,14 @@ class Rule(Base):
     )
 
     # Relationships
-    versions = relationship("RuleVersion", back_populates="rule", cascade="all, delete-orphan")
+    versions = relationship(
+        "RuleVersion", back_populates="rule", cascade="all, delete-orphan"
+    )
     executions = relationship(
         "AutomationExecution", back_populates="rule", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        Index("idx_rules_tenant_enabled", "tenant_id", "enabled"),
-    )
+    __table_args__ = (Index("idx_rules_tenant_enabled", "tenant_id", "enabled"),)
 
 
 class RuleVersion(Base):
@@ -113,7 +113,10 @@ class AutomationExecution(Base):
         PG_UUID(as_uuid=True), nullable=True, index=True
     )  # ID of triggering event (for idempotency)
     status = Column(
-        String(20), nullable=False, default=AutomationExecutionStatus.SUCCESS, index=True
+        String(20),
+        nullable=False,
+        default=AutomationExecutionStatus.SUCCESS,
+        index=True,
     )
     result = Column(JSONB, nullable=True)  # Execution result data
     error_message = Column(Text, nullable=True)
@@ -132,13 +135,3 @@ class AutomationExecution(Base):
         Index("idx_automation_executions_rule_status", "rule_id", "status"),
         Index("idx_automation_executions_executed_at", "executed_at"),
     )
-
-
-
-
-
-
-
-
-
-

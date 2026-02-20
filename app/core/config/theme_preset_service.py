@@ -34,7 +34,11 @@ class ThemePresetService:
         return (
             self.db.query(ThemePreset)
             .filter(ThemePreset.tenant_id == tenant_id)
-            .order_by(ThemePreset.is_system.desc(), ThemePreset.is_default.desc(), ThemePreset.name)
+            .order_by(
+                ThemePreset.is_system.desc(),
+                ThemePreset.is_default.desc(),
+                ThemePreset.name,
+            )
             .all()
         )
 
@@ -294,14 +298,3 @@ class ThemePresetService:
             ThemePreset.is_default,
         ).update({"is_default": False})
         self.db.commit()
-
-
-
-
-
-
-
-
-
-
-

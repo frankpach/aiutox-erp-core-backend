@@ -30,9 +30,7 @@ def test_status_definitions_list_requires_auth(client_with_db):
 
 @pytest.mark.integration
 @pytest.mark.security
-def test_status_definitions_list_requires_view_permission(
-    client_with_db, auth_headers
-):
+def test_status_definitions_list_requires_view_permission(client_with_db, auth_headers):
     """Ensure tasks.view permission is required to list status definitions."""
     response = client_with_db.get(
         "/api/v1/tasks/status-definitions",

@@ -12,14 +12,29 @@ from pydantic import BaseModel, ConfigDict, Field
 class ActivityIconConfigBase(BaseModel):
     """Base schema for activity icon configuration"""
 
-    activity_type: str = Field(..., min_length=1, max_length=50, description="Type of activity (task, meeting, event, etc.)")
-    status: str = Field(..., min_length=1, max_length=50, description="Status of the activity (todo, in_progress, done, etc.)")
-    icon: str = Field(..., min_length=1, max_length=10, description="Icon character or emoji")
-    class_name: str | None = Field(None, max_length=100, description="CSS classes for styling")
+    activity_type: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Type of activity (task, meeting, event, etc.)",
+    )
+    status: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Status of the activity (todo, in_progress, done, etc.)",
+    )
+    icon: str = Field(
+        ..., min_length=1, max_length=10, description="Icon character or emoji"
+    )
+    class_name: str | None = Field(
+        None, max_length=100, description="CSS classes for styling"
+    )
 
 
 class ActivityIconConfigCreate(ActivityIconConfigBase):
     """Schema for creating a new activity icon configuration"""
+
     pass
 
 
@@ -49,6 +64,5 @@ class ActivityIconConfigBulkUpdate(BaseModel):
     """Schema for bulk updating activity icon configurations"""
 
     configs: dict[str, dict[str, str]] = Field(
-        ...,
-        description="Nested dictionary: {activity_type: {status: icon}}"
+        ..., description="Nested dictionary: {activity_type: {status: icon}}"
     )

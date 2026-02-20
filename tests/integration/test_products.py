@@ -186,7 +186,9 @@ class TestProducts:
         assert "error" in data
         assert data["error"]["code"] == "PRODUCT_ALREADY_EXISTS"
 
-    def test_get_product_by_id(self, client_with_db, db_session, test_user, test_tenant):
+    def test_get_product_by_id(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test getting product by ID."""
         # Arrange: Assign products.viewer role for reading and editor for creating
         viewer_role = ModuleRole(
@@ -235,7 +237,9 @@ class TestProducts:
         assert "data" in data
         assert data["data"]["id"] == product_id
 
-    def test_get_product_not_found(self, client_with_db, db_session, test_user, test_tenant):
+    def test_get_product_not_found(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test getting non-existent product returns 404."""
         # Arrange: Assign products.viewer role
         module_role = ModuleRole(
@@ -867,9 +871,17 @@ class TestBarcodes:
 
         # Create barcode with unique EAN13 barcode
         import random
+
         # Generate a unique 13-digit barcode (first 12 digits random, last digit checksum)
-        base_digits = ''.join([str(random.randint(0, 9)) for _ in range(12)])
-        checksum = (10 - sum(int(digit) * (1 if i % 2 == 0 else 3) for i, digit in enumerate(base_digits)) % 10) % 10
+        base_digits = "".join([str(random.randint(0, 9)) for _ in range(12)])
+        checksum = (
+            10
+            - sum(
+                int(digit) * (1 if i % 2 == 0 else 3)
+                for i, digit in enumerate(base_digits)
+            )
+            % 10
+        ) % 10
         unique_barcode = base_digits + str(checksum)
 
         barcode_response = client_with_db.post(
@@ -883,7 +895,9 @@ class TestBarcodes:
         )
         # Verify barcode creation succeeded
         if barcode_response.status_code != status.HTTP_201_CREATED:
-            print(f"ERROR: Barcode creation failed with status {barcode_response.status_code}")
+            print(
+                f"ERROR: Barcode creation failed with status {barcode_response.status_code}"
+            )
             print(f"Response: {barcode_response.text}")
             print(f"Product ID: {product_id}")
             print(f"Tenant ID: {test_tenant.id}")
@@ -910,7 +924,9 @@ class TestBarcodes:
 class TestProductValidations:
     """Test suite for product validation edge cases."""
 
-    def test_create_product_invalid_sku_format(self, client_with_db, db_session, test_user, test_tenant):
+    def test_create_product_invalid_sku_format(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test product creation fails with invalid SKU format."""
         # Arrange
         editor_role = ModuleRole(
@@ -943,9 +959,14 @@ class TestProductValidations:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "error" in data
-        assert "SKU" in data["error"]["message"] or "alphanumeric" in data["error"]["message"]
+        assert (
+            "SKU" in data["error"]["message"]
+            or "alphanumeric" in data["error"]["message"]
+        )
 
-    def test_create_product_invalid_currency(self, client_with_db, db_session, test_user, test_tenant):
+    def test_create_product_invalid_currency(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test product creation fails with invalid currency."""
         # Arrange
         editor_role = ModuleRole(
@@ -978,9 +999,14 @@ class TestProductValidations:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "error" in data
-        assert "Currency" in data["error"]["message"] or "not supported" in data["error"]["message"]
+        assert (
+            "Currency" in data["error"]["message"]
+            or "not supported" in data["error"]["message"]
+        )
 
-    def test_create_barcode_invalid_ean13(self, client_with_db, db_session, test_user, test_tenant):
+    def test_create_barcode_invalid_ean13(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test barcode creation fails with invalid EAN13 format."""
         # Arrange
         editor_role = ModuleRole(
@@ -1028,4 +1054,7 @@ class TestProductValidations:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "error" in data
-        assert "EAN13" in data["error"]["message"] or "13 digits" in data["error"]["message"]
+        assert (
+            "EAN13" in data["error"]["message"]
+            or "13 digits" in data["error"]["message"]
+        )

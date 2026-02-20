@@ -118,7 +118,9 @@ def test_refresh_access_token_valid(db_session, test_user):
     # Old refresh token should be revoked, new one should be valid
     refresh_token_repo = RefreshTokenRepository(db_session)
     assert refresh_token_repo.find_valid_token(test_user.id, refresh_token) is None
-    assert refresh_token_repo.find_valid_token(test_user.id, new_refresh_token) is not None
+    assert (
+        refresh_token_repo.find_valid_token(test_user.id, new_refresh_token) is not None
+    )
 
 
 def test_refresh_access_token_expired(db_session, test_user):
@@ -137,6 +139,7 @@ def test_refresh_access_token_expired(db_session, test_user):
 
     # Wait a bit to ensure expiration
     import time
+
     time.sleep(2)
 
     # Try to refresh
@@ -322,6 +325,3 @@ def test_revoke_refresh_token_invalid_user_id(db_session, test_user):
     refresh_token_repo = RefreshTokenRepository(db_session)
     stored_token = refresh_token_repo.find_valid_token(test_user.id, refresh_token)
     assert stored_token is not None
-
-
-

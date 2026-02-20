@@ -182,8 +182,12 @@ def test_database_indexes_exist(db_session):
 
     # Verify key indexes exist (exact names may vary)
     # At minimum, should have indexes on email and tenant_id
-    email_indexed = any("email" in name for name in index_names) or any("email" in str(idx) for idx in user_indexes)
-    tenant_indexed = any("tenant_id" in name for name in index_names) or any("tenant_id" in str(idx) for idx in user_indexes)
+    email_indexed = any("email" in name for name in index_names) or any(
+        "email" in str(idx) for idx in user_indexes
+    )
+    tenant_indexed = any("tenant_id" in name for name in index_names) or any(
+        "tenant_id" in str(idx) for idx in user_indexes
+    )
 
     # These are critical for performance
     assert email_indexed or len(user_indexes) > 0
@@ -229,4 +233,3 @@ def test_database_unique_constraints(db_session):
         # Expected error
         db_session.rollback()
         assert True
-

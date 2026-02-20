@@ -1,6 +1,5 @@
 """Integration tests for configuration module."""
 
-
 from fastapi import status
 
 from app.models.module_role import ModuleRole
@@ -224,7 +223,9 @@ class TestConfig:
         assert "error" in data
         assert data["error"]["code"] == "AUTH_INSUFFICIENT_PERMISSIONS"
 
-    def test_set_module_config(self, client_with_db, db_session, test_user, test_tenant):
+    def test_set_module_config(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test setting multiple configuration values."""
         # Arrange: Assign config.editor role
         module_role = ModuleRole(
@@ -256,7 +257,9 @@ class TestConfig:
         assert data["data"]["module"] == module
         assert data["data"]["config"] == config_data
 
-    def test_delete_config_value(self, client_with_db, db_session, test_user, test_tenant):
+    def test_delete_config_value(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test deleting a configuration value."""
         # Arrange: Assign config roles
         viewer_role = ModuleRole(
@@ -394,7 +397,9 @@ class TestConfig:
         # Note: We can't easily test another tenant without creating another user
         # But the repository tests verify isolation at the data layer
 
-    def test_error_response_format(self, client_with_db, db_session, test_user, test_tenant):
+    def test_error_response_format(
+        self, client_with_db, db_session, test_user, test_tenant
+    ):
         """Test that error responses follow API contract format."""
         # Arrange: User without permission
         auth_service = AuthService(db_session)
@@ -605,7 +610,9 @@ class TestConfig:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         data = response.json()
         # FastAPI validation errors can be in "detail" or custom error format
-        assert "detail" in data or ("error" in data and data.get("error", {}).get("code") == "VALIDATION_ERROR")
+        assert "detail" in data or (
+            "error" in data and data.get("error", {}).get("code") == "VALIDATION_ERROR"
+        )
 
     def test_update_general_settings_partial_update(
         self, client_with_db, db_session, test_user, test_tenant
@@ -668,14 +675,3 @@ class TestConfig:
         assert final_settings["time_format"] == second_update["time_format"]
         assert final_settings["currency"] == second_update["currency"]
         assert final_settings["language"] == second_update["language"]
-
-
-
-
-
-
-
-
-
-
-

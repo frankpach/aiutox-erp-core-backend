@@ -37,4 +37,3 @@ class RefreshToken(Base):
 
     def __repr__(self) -> str:
         return f"<RefreshToken(id={self.id}, user_id={self.user_id}, expires_at={self.expires_at})>"
-

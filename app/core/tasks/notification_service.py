@@ -19,6 +19,7 @@ class TaskNotificationService:
         # Connect to existing notification service
         try:
             from app.services.notification_service import NotificationService
+
             self.notification_service = NotificationService(db) if db else None
             self.is_connected = True
             logger.info("TaskNotificationService connected to NotificationService")
@@ -45,7 +46,7 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "assigned_by": creator.full_name or creator.email,
-                }
+                },
             )
 
         # Notify manager if task has high priority
@@ -59,10 +60,12 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "created_by": creator.full_name or creator.email,
-                }
+                },
             )
 
-    async def notify_task_updated(self, task: Task, updated_by: User, changes: dict) -> None:
+    async def notify_task_updated(
+        self, task: Task, updated_by: User, changes: dict
+    ) -> None:
         """Send notification when a task is updated."""
         # Notify task creator if someone else updated their task
         if task.created_by_id != updated_by.id:
@@ -77,11 +80,15 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "updated_by": updated_by.full_name or updated_by.email,
                     "changes": changes,
-                }
+                },
             )
 
         # Notify assigned user if they're not the one who updated
-        if task.assigned_to_id and task.assigned_to_id != updated_by.id and task.assigned_to_id != task.created_by_id:
+        if (
+            task.assigned_to_id
+            and task.assigned_to_id != updated_by.id
+            and task.assigned_to_id != task.created_by_id
+        ):
             await self._send_notification(
                 user_id=task.assigned_to_id,
                 tenant_id=task.tenant_id,
@@ -93,10 +100,12 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "updated_by": updated_by.full_name or updated_by.email,
                     "changes": changes,
-                }
+                },
             )
 
-    async def notify_task_assigned(self, task: Task, assigned_to: User, assigned_by: User) -> None:
+    async def notify_task_assigned(
+        self, task: Task, assigned_to: User, assigned_by: User
+    ) -> None:
         """Send notification when a task is assigned to someone."""
         await self._send_notification(
             user_id=assigned_to.id,
@@ -109,7 +118,7 @@ class TaskNotificationService:
                 "task_title": task.title,
                 "assigned_by": assigned_by.full_name or assigned_by.email,
                 "due_date": task.due_date.isoformat() if task.due_date else None,
-            }
+            },
         )
 
         # Notify task creator if they're not the one who assigned
@@ -125,10 +134,12 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "assigned_to": assigned_to.full_name or assigned_to.email,
                     "assigned_by": assigned_by.full_name or assigned_by.email,
-                }
+                },
             )
 
-    async def notify_task_status_changed(self, task: Task, old_status: str, new_status: str, changed_by: User) -> None:
+    async def notify_task_status_changed(
+        self, task: Task, old_status: str, new_status: str, changed_by: User
+    ) -> None:
         """Send notification when task status changes."""
         status_messages = {
             "done": "completada",
@@ -156,13 +167,15 @@ class TaskNotificationService:
                     "old_status": old_status,
                     "new_status": new_status,
                     "changed_by": changed_by.full_name or changed_by.email,
-                }
+                },
             )
 
         # Notify assigned user if different from creator and changer
-        if (task.assigned_to_id and
-            task.assigned_to_id != changed_by.id and
-            task.assigned_to_id != task.created_by_id):
+        if (
+            task.assigned_to_id
+            and task.assigned_to_id != changed_by.id
+            and task.assigned_to_id != task.created_by_id
+        ):
 
             await self._send_notification(
                 user_id=task.assigned_to_id,
@@ -176,7 +189,7 @@ class TaskNotificationService:
                     "old_status": old_status,
                     "new_status": new_status,
                     "changed_by": changed_by.full_name or changed_by.email,
-                }
+                },
             )
 
         # Special notifications for important status changes
@@ -200,7 +213,7 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "completed_by": completed_by.full_name or completed_by.email,
                     "completed_at": datetime.now(UTC).isoformat(),
-                }
+                },
             )
 
         # Notify managers for high priority tasks
@@ -214,7 +227,7 @@ class TaskNotificationService:
                     "task_id": str(task.id),
                     "task_title": task.title,
                     "completed_by": completed_by.full_name or completed_by.email,
-                }
+                },
             )
 
     async def notify_task_due_soon(self, task: Task) -> None:
@@ -240,7 +253,7 @@ class TaskNotificationService:
                         "task_title": task.title,
                         "due_date": task.due_date.isoformat(),
                         "hours_until_due": hours_until_due,
-                    }
+                    },
                 )
 
             # Notify task creator
@@ -256,7 +269,7 @@ class TaskNotificationService:
                         "task_title": task.title,
                         "due_date": task.due_date.isoformat(),
                         "hours_until_due": hours_until_due,
-                    }
+                    },
                 )
 
     async def notify_task_overdue(self, task: Task) -> None:
@@ -277,7 +290,7 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat(),
                     "days_overdue": (datetime.now(UTC) - task.due_date).days,
-                }
+                },
             )
 
         # Notify task creator
@@ -293,10 +306,12 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "due_date": task.due_date.isoformat(),
                     "days_overdue": (datetime.now(UTC) - task.due_date).days,
-                }
+                },
             )
 
-    async def notify_task_unassigned(self, task: Task, unassigned_user: User, unassigned_by: User) -> None:
+    async def notify_task_unassigned(
+        self, task: Task, unassigned_user: User, unassigned_by: User
+    ) -> None:
         """Send notification when a task is unassigned from someone."""
         await self._send_notification(
             user_id=unassigned_user.id,
@@ -308,7 +323,7 @@ class TaskNotificationService:
                 "task_id": str(task.id),
                 "task_title": task.title,
                 "unassigned_by": unassigned_by.full_name or unassigned_by.email,
-            }
+            },
         )
 
         # Notify task creator if they're not the one who unassigned
@@ -322,12 +337,15 @@ class TaskNotificationService:
                 data={
                     "task_id": str(task.id),
                     "task_title": task.title,
-                    "unassigned_user": unassigned_user.full_name or unassigned_user.email,
+                    "unassigned_user": unassigned_user.full_name
+                    or unassigned_user.email,
                     "unassigned_by": unassigned_by.full_name or unassigned_by.email,
-                }
+                },
             )
 
-    async def notify_comment_added(self, task: Task, comment_text: str, commented_by: User) -> None:
+    async def notify_comment_added(
+        self, task: Task, comment_text: str, commented_by: User
+    ) -> None:
         """Send notification when a comment is added to a task."""
         # Notify task creator if they're not the one who commented
         if task.created_by_id != commented_by.id:
@@ -342,13 +360,15 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "comment_text": comment_text,
                     "commented_by": commented_by.full_name or commented_by.email,
-                }
+                },
             )
 
         # Notify assigned user if different from creator and commenter
-        if (task.assigned_to_id and
-            task.assigned_to_id != commented_by.id and
-            task.assigned_to_id != task.created_by_id):
+        if (
+            task.assigned_to_id
+            and task.assigned_to_id != commented_by.id
+            and task.assigned_to_id != task.created_by_id
+        ):
             await self._send_notification(
                 user_id=task.assigned_to_id,
                 tenant_id=task.tenant_id,
@@ -360,10 +380,12 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "comment_text": comment_text,
                     "commented_by": commented_by.full_name or commented_by.email,
-                }
+                },
             )
 
-    async def notify_file_attached(self, task: Task, filename: str, attached_by: User) -> None:
+    async def notify_file_attached(
+        self, task: Task, filename: str, attached_by: User
+    ) -> None:
         """Send notification when a file is attached to a task."""
         # Notify task creator if they're not the one who attached
         if task.created_by_id != attached_by.id:
@@ -378,13 +400,15 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "filename": filename,
                     "attached_by": attached_by.full_name or attached_by.email,
-                }
+                },
             )
 
         # Notify assigned user if different from creator and attacher
-        if (task.assigned_to_id and
-            task.assigned_to_id != attached_by.id and
-            task.assigned_to_id != task.created_by_id):
+        if (
+            task.assigned_to_id
+            and task.assigned_to_id != attached_by.id
+            and task.assigned_to_id != task.created_by_id
+        ):
             await self._send_notification(
                 user_id=task.assigned_to_id,
                 tenant_id=task.tenant_id,
@@ -396,10 +420,12 @@ class TaskNotificationService:
                     "task_title": task.title,
                     "filename": filename,
                     "attached_by": attached_by.full_name or attached_by.email,
-                }
+                },
             )
 
-    async def notify_checklist_updated(self, task: Task, updated_by: User, item_text: str, completed: bool) -> None:
+    async def notify_checklist_updated(
+        self, task: Task, updated_by: User, item_text: str, completed: bool
+    ) -> None:
         """Send notification when checklist item is updated."""
         action = "completado" if completed else "marcado como pendiente"
 
@@ -417,7 +443,7 @@ class TaskNotificationService:
                     "item_text": item_text,
                     "completed": completed,
                     "updated_by": updated_by.full_name or updated_by.email,
-                }
+                },
             )
 
     async def _send_notification(
@@ -441,7 +467,7 @@ class TaskNotificationService:
                     type=type,
                     data=data,
                     channels=["in_app", "email"],  # Configurable channels
-                    priority="normal"  # Based on task priority
+                    priority="normal",  # Based on task priority
                 )
                 logger.info(f"Notification sent via NotificationService: {title}")
             else:
@@ -455,7 +481,7 @@ class TaskNotificationService:
                     "data": data,
                     "channels": ["in_app", "email"],
                     "priority": "normal",
-                    "created_at": datetime.now(UTC).isoformat()
+                    "created_at": datetime.now(UTC).isoformat(),
                 }
 
                 # Log the notification (simulating the real service)
@@ -505,7 +531,9 @@ class TaskNotificationService:
                 await self.notify_task_due_soon(task)
                 logger.info(f"Sent due_soon notification for task {task.id} ({window})")
             except Exception as e:
-                logger.error(f"Failed to send due_soon notification for task {task.id}: {e}")
+                logger.error(
+                    f"Failed to send due_soon notification for task {task.id}: {e}"
+                )
 
     async def notify_tasks_overdue(self, tasks: list[Task]) -> None:
         """Send notifications for multiple overdue tasks.
@@ -518,7 +546,9 @@ class TaskNotificationService:
                 await self.notify_task_overdue(task)
                 logger.info(f"Sent overdue notification for task {task.id}")
             except Exception as e:
-                logger.error(f"Failed to send overdue notification for task {task.id}: {e}")
+                logger.error(
+                    f"Failed to send overdue notification for task {task.id}: {e}"
+                )
 
     async def check_and_send_due_notifications(self, tenant_id: UUID) -> None:
         """Check for tasks due soon and send notifications."""
@@ -537,6 +567,7 @@ class TaskNotificationService:
 def get_task_notification_service(db=None) -> TaskNotificationService:
     """Get TaskNotificationService instance."""
     return TaskNotificationService(db)
+
 
 # Global instance for backward compatibility
 task_notification_service = TaskNotificationService()

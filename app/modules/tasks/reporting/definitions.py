@@ -11,11 +11,7 @@ TASKS_BY_STATUS_REPORT = ReportDefinition(
     data_source_type="tasks",
     visualization_type="pie_chart",
     filters={
-        "date_range": {
-            "type": "date_range",
-            "label": "Date Range",
-            "default": "30d"
-        }
+        "date_range": {"type": "date_range", "label": "Date Range", "default": "30d"}
     },
     config={
         "chart_type": "pie",
@@ -24,11 +20,11 @@ TASKS_BY_STATUS_REPORT = ReportDefinition(
             "todo": "#6B7280",
             "in_progress": "#3B82F6",
             "done": "#10B981",
-            "cancelled": "#EF4444"
+            "cancelled": "#EF4444",
         },
         "show_labels": True,
-        "show_percentages": True
-    }
+        "show_percentages": True,
+    },
 )
 
 # Tasks Trends Report
@@ -44,9 +40,9 @@ TASKS_TRENDS_REPORT = ReportDefinition(
             "options": [
                 {"value": "7d", "label": "Last 7 days"},
                 {"value": "30d", "label": "Last 30 days"},
-                {"value": "90d", "label": "Last 90 days"}
+                {"value": "90d", "label": "Last 90 days"},
             ],
-            "default": "30d"
+            "default": "30d",
         }
     },
     config={
@@ -54,13 +50,10 @@ TASKS_TRENDS_REPORT = ReportDefinition(
         "data_field": "data_points",
         "x_axis": "period",
         "y_axis": ["created", "completed"],
-        "colors": {
-            "created": "#3B82F6",
-            "completed": "#10B981"
-        },
+        "colors": {"created": "#3B82F6", "completed": "#10B981"},
         "show_points": True,
-        "show_grid": True
-    }
+        "show_grid": True,
+    },
 )
 
 # Custom States Usage Report
@@ -76,8 +69,8 @@ CUSTOM_STATES_USAGE_REPORT = ReportDefinition(
             "options": [
                 {"value": "open", "label": "Open"},
                 {"value": "in_progress", "label": "In Progress"},
-                {"value": "closed", "label": "Closed"}
-            ]
+                {"value": "closed", "label": "Closed"},
+            ],
         }
     },
     config={
@@ -88,8 +81,8 @@ CUSTOM_STATES_USAGE_REPORT = ReportDefinition(
         "color_field": "state_color",
         "show_values": True,
         "sort_by": "task_count",
-        "sort_order": "desc"
-    }
+        "sort_order": "desc",
+    },
 )
 
 # Productivity Metrics Report
@@ -99,11 +92,7 @@ PRODUCTIVITY_METRICS_REPORT = ReportDefinition(
     data_source_type="tasks",
     visualization_type="kpi",
     filters={
-        "date_range": {
-            "type": "date_range",
-            "label": "Date Range",
-            "default": "30d"
-        }
+        "date_range": {"type": "date_range", "label": "Date Range", "default": "30d"}
     },
     config={
         "kpis": [
@@ -111,33 +100,30 @@ PRODUCTIVITY_METRICS_REPORT = ReportDefinition(
                 "title": "Total Tasks",
                 "data_field": "total_tasks",
                 "format": "number",
-                "icon": "tasks"
+                "icon": "tasks",
             },
             {
                 "title": "Completion Rate",
                 "data_field": "completion_rate",
                 "format": "percentage",
-                "icon": "check_circle"
+                "icon": "check_circle",
             },
             {
                 "title": "Overdue Tasks",
                 "data_field": "overdue_tasks",
                 "format": "number",
                 "icon": "warning",
-                "color_threshold": {
-                    "warning": 5,
-                    "danger": 10
-                }
+                "color_threshold": {"warning": 5, "danger": 10},
             },
             {
                 "title": "Avg Time in Custom States",
                 "data_field": "avg_time_in_custom_states",
                 "format": "hours",
-                "icon": "clock"
-            }
+                "icon": "clock",
+            },
         ],
-        "layout": "grid_2x2"
-    }
+        "layout": "grid_2x2",
+    },
 )
 
 # Tasks by Priority Report
@@ -153,9 +139,9 @@ TASKS_BY_PRIORITY_REPORT = ReportDefinition(
             "options": [
                 {"value": "all", "label": "All Tasks"},
                 {"value": "active", "label": "Active Only"},
-                {"value": "completed", "label": "Completed Only"}
+                {"value": "completed", "label": "Completed Only"},
             ],
-            "default": "active"
+            "default": "active",
         }
     },
     config={
@@ -165,11 +151,11 @@ TASKS_BY_PRIORITY_REPORT = ReportDefinition(
             "urgent": "#DC2626",
             "high": "#F59E0B",
             "medium": "#3B82F6",
-            "low": "#6B7280"
+            "low": "#6B7280",
         },
         "show_labels": True,
-        "center_text": "Tasks"
-    }
+        "center_text": "Tasks",
+    },
 )
 
 # Task Completion Timeline Report
@@ -184,9 +170,9 @@ TASK_COMPLETION_TIMELINE_REPORT = ReportDefinition(
             "label": "Period",
             "options": [
                 {"value": "7d", "label": "Last 7 days"},
-                {"value": "30d", "label": "Last 30 days"}
+                {"value": "30d", "label": "Last 30 days"},
             ],
-            "default": "30d"
+            "default": "30d",
         },
         "priority": {
             "type": "multi_select",
@@ -195,9 +181,9 @@ TASK_COMPLETION_TIMELINE_REPORT = ReportDefinition(
                 {"value": "urgent", "label": "Urgent"},
                 {"value": "high", "label": "High"},
                 {"value": "medium", "label": "Medium"},
-                {"value": "low", "label": "Low"}
-            ]
-        }
+                {"value": "low", "label": "Low"},
+            ],
+        },
     },
     config={
         "chart_type": "timeline",
@@ -205,8 +191,8 @@ TASK_COMPLETION_TIMELINE_REPORT = ReportDefinition(
         "time_field": "completed_at",
         "group_by": "priority",
         "show_avg_time": True,
-        "time_format": "relative"
-    }
+        "time_format": "relative",
+    },
 )
 
 # Registry of all task report definitions
@@ -216,8 +202,9 @@ TASKS_REPORT_DEFINITIONS: dict[str, ReportDefinition] = {
     "custom_states_usage": CUSTOM_STATES_USAGE_REPORT,
     "productivity_metrics": PRODUCTIVITY_METRICS_REPORT,
     "tasks_by_priority": TASKS_BY_PRIORITY_REPORT,
-    "task_completion_timeline": TASK_COMPLETION_TIMELINE_REPORT
+    "task_completion_timeline": TASK_COMPLETION_TIMELINE_REPORT,
 }
+
 
 def get_tasks_report_definitions() -> dict[str, ReportDefinition]:
     """Get all task report definitions.
@@ -226,6 +213,7 @@ def get_tasks_report_definitions() -> dict[str, ReportDefinition]:
         Dictionary mapping report IDs to ReportDefinition objects
     """
     return TASKS_REPORT_DEFINITIONS
+
 
 def get_report_definition(report_id: str) -> ReportDefinition | None:
     """Get a specific report definition by ID.
@@ -238,7 +226,10 @@ def get_report_definition(report_id: str) -> ReportDefinition | None:
     """
     return TASKS_REPORT_DEFINITIONS.get(report_id)
 
-def validate_report_config(report_def: ReportDefinition, config: dict[str, Any]) -> bool:
+
+def validate_report_config(
+    report_def: ReportDefinition, config: dict[str, Any]
+) -> bool:
     """Validate report configuration against definition.
 
     Args:

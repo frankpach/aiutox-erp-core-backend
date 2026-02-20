@@ -24,16 +24,22 @@ class SearchIndex(Base):
     )
 
     # Entity reference (polymorphic)
-    entity_type = Column(String(50), nullable=False, index=True)  # e.g., 'product', 'contact', 'order'
+    entity_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'product', 'contact', 'order'
     entity_id = Column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
     # Searchable content
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=True)  # Full text content for search
-    search_vector = Column(TSVECTOR, nullable=True)  # PostgreSQL full-text search vector
+    search_vector = Column(
+        TSVECTOR, nullable=True
+    )  # PostgreSQL full-text search vector
 
     # Additional searchable fields (stored as JSON for flexibility)
-    search_metadata = Column("metadata", Text, nullable=True)  # JSON string with additional searchable fields
+    search_metadata = Column(
+        "metadata", Text, nullable=True
+    )  # JSON string with additional searchable fields
 
     # Timestamps
     created_at = Column(
@@ -51,10 +57,11 @@ class SearchIndex(Base):
 
     __table_args__ = (
         Index("idx_search_indices_entity", "entity_type", "entity_id", unique=True),
-        Index("idx_search_indices_tenant_entity", "tenant_id", "entity_type", "entity_id"),
+        Index(
+            "idx_search_indices_tenant_entity", "tenant_id", "entity_type", "entity_id"
+        ),
         Index("idx_search_indices_vector", "search_vector", postgresql_using="gin"),
     )
 
     def __repr__(self) -> str:
         return f"<SearchIndex(id={self.id}, entity_type={self.entity_type}, entity_id={self.entity_id})>"
-

@@ -23,21 +23,21 @@ class TestTaskDependencyService:
             title="Task 1",
             created_by_id=test_user.id,
             status="todo",
-            priority="medium"
+            priority="medium",
         )
         task2 = Task(
             tenant_id=test_tenant.id,
             title="Task 2",
             created_by_id=test_user.id,
             status="todo",
-            priority="medium"
+            priority="medium",
         )
         task3 = Task(
             tenant_id=test_tenant.id,
             title="Task 3",
             created_by_id=test_user.id,
             status="todo",
-            priority="medium"
+            priority="medium",
         )
 
         db_session.add_all([task1, task2, task3])
@@ -60,7 +60,7 @@ class TestTaskDependencyService:
             task_id=task1.id,
             depends_on_id=task2.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         assert dependency.task_id == task1.id
@@ -68,9 +68,7 @@ class TestTaskDependencyService:
         assert dependency.dependency_type == "finish_to_start"
         assert dependency.tenant_id == test_tenant.id
 
-    def test_get_task_dependencies(
-        self, dependency_service, sample_tasks, test_tenant
-    ):
+    def test_get_task_dependencies(self, dependency_service, sample_tasks, test_tenant):
         """Test retrieving task dependencies."""
         task1, task2, task3 = sample_tasks
 
@@ -79,13 +77,13 @@ class TestTaskDependencyService:
             task_id=task1.id,
             depends_on_id=task2.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
         dep2 = dependency_service.add_dependency(
             task_id=task1.id,
             depends_on_id=task3.id,
             dependency_type="start_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         dependencies = dependency_service.get_dependencies(task1.id, test_tenant.id)
@@ -95,9 +93,7 @@ class TestTaskDependencyService:
         assert dep1.id in dependency_ids
         assert dep2.id in dependency_ids
 
-    def test_get_task_dependents(
-        self, dependency_service, sample_tasks, test_tenant
-    ):
+    def test_get_task_dependents(self, dependency_service, sample_tasks, test_tenant):
         """Test retrieving tasks that depend on a task."""
         task1, task2, task3 = sample_tasks
 
@@ -106,18 +102,17 @@ class TestTaskDependencyService:
             task_id=task2.id,
             depends_on_id=task1.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
         dependency_service.add_dependency(
             task_id=task3.id,
             depends_on_id=task1.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         dependents = dependency_service.get_dependents(
-            task_id=task1.id,
-            tenant_id=test_tenant.id
+            task_id=task1.id, tenant_id=test_tenant.id
         )
 
         assert len(dependents) == 2
@@ -136,32 +131,28 @@ class TestTaskDependencyService:
             task_id=task1.id,
             depends_on_id=task2.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         # Delete dependency
         result = dependency_service.remove_dependency(
-            dependency_id=dependency.id,
-            tenant_id=test_tenant.id
+            dependency_id=dependency.id, tenant_id=test_tenant.id
         )
 
         assert result is True
 
         # Verify dependency is deleted
         dependencies = dependency_service.get_dependencies(
-            task_id=task1.id,
-            tenant_id=test_tenant.id
+            task_id=task1.id, tenant_id=test_tenant.id
         )
         assert len(dependencies) == 0
 
-    def test_delete_dependency_not_found(
-        self, dependency_service, test_tenant
-    ):
+    def test_delete_dependency_not_found(self, dependency_service, test_tenant):
         """Test deleting non-existent dependency."""
         from uuid import uuid4
+
         result = dependency_service.remove_dependency(
-            dependency_id=uuid4(),
-            tenant_id=test_tenant.id
+            dependency_id=uuid4(), tenant_id=test_tenant.id
         )
 
         assert result is False
@@ -174,8 +165,7 @@ class TestTaskDependencyService:
 
         # No dependencies initially
         has_cycle = dependency_service._would_create_cycle(
-            task_id=task1.id,
-            depends_on_id=task2.id
+            task_id=task1.id, depends_on_id=task2.id
         )
         assert has_cycle is False
 
@@ -184,7 +174,7 @@ class TestTaskDependencyService:
             task_id=task1.id,
             depends_on_id=task2.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         # Try to create circular dependency: task2 -> task1
@@ -193,7 +183,7 @@ class TestTaskDependencyService:
                 task_id=task2.id,
                 depends_on_id=task1.id,
                 dependency_type="finish_to_start",
-                tenant_id=test_tenant.id
+                tenant_id=test_tenant.id,
             )
 
         # Create dependency: task2 -> task3 (this should work)
@@ -201,12 +191,11 @@ class TestTaskDependencyService:
             task_id=task2.id,
             depends_on_id=task3.id,
             dependency_type="finish_to_start",
-            tenant_id=test_tenant.id
+            tenant_id=test_tenant.id,
         )
 
         # Now task3 -> task1 would create a cycle: task3 -> task1 -> task2 -> task3
         has_cycle = dependency_service._would_create_cycle(
-            task_id=task3.id,
-            depends_on_id=task1.id
+            task_id=task3.id, depends_on_id=task1.id
         )
         assert has_cycle is True

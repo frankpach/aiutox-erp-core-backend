@@ -41,15 +41,11 @@ async def test_evaluate_empty_conditions(condition_evaluator, sample_event):
 @pytest.mark.asyncio
 async def test_evaluate_equals_condition(condition_evaluator, sample_event):
     """Test equals operator."""
-    conditions = [
-        {"field": "event_type", "operator": "==", "value": "product.created"}
-    ]
+    conditions = [{"field": "event_type", "operator": "==", "value": "product.created"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is True
 
-    conditions = [
-        {"field": "event_type", "operator": "==", "value": "product.updated"}
-    ]
+    conditions = [{"field": "event_type", "operator": "==", "value": "product.updated"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is False
 
@@ -57,9 +53,7 @@ async def test_evaluate_equals_condition(condition_evaluator, sample_event):
 @pytest.mark.asyncio
 async def test_evaluate_not_equals_condition(condition_evaluator, sample_event):
     """Test not equals operator."""
-    conditions = [
-        {"field": "event_type", "operator": "!=", "value": "product.updated"}
-    ]
+    conditions = [{"field": "event_type", "operator": "!=", "value": "product.updated"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is True
 
@@ -108,13 +102,21 @@ async def test_evaluate_less_than_condition(condition_evaluator, sample_event):
 async def test_evaluate_in_condition(condition_evaluator, sample_event):
     """Test in operator."""
     conditions = [
-        {"field": "event_type", "operator": "in", "value": ["product.created", "product.updated"]}
+        {
+            "field": "event_type",
+            "operator": "in",
+            "value": ["product.created", "product.updated"],
+        }
     ]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is True
 
     conditions = [
-        {"field": "event_type", "operator": "in", "value": ["product.deleted", "product.updated"]}
+        {
+            "field": "event_type",
+            "operator": "in",
+            "value": ["product.deleted", "product.updated"],
+        }
     ]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is False
@@ -123,15 +125,11 @@ async def test_evaluate_in_condition(condition_evaluator, sample_event):
 @pytest.mark.asyncio
 async def test_evaluate_contains_condition(condition_evaluator, sample_event):
     """Test contains operator."""
-    conditions = [
-        {"field": "event_type", "operator": "contains", "value": "product"}
-    ]
+    conditions = [{"field": "event_type", "operator": "contains", "value": "product"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is True
 
-    conditions = [
-        {"field": "event_type", "operator": "contains", "value": "inventory"}
-    ]
+    conditions = [{"field": "event_type", "operator": "contains", "value": "inventory"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is False
 
@@ -152,7 +150,9 @@ async def test_evaluate_multiple_conditions_all_met(condition_evaluator, sample_
 
 
 @pytest.mark.asyncio
-async def test_evaluate_multiple_conditions_one_not_met(condition_evaluator, sample_event):
+async def test_evaluate_multiple_conditions_one_not_met(
+    condition_evaluator, sample_event
+):
     """Test multiple conditions where one is not met."""
     conditions = [
         {"field": "event_type", "operator": "==", "value": "product.created"},
@@ -169,9 +169,7 @@ async def test_evaluate_multiple_conditions_one_not_met(condition_evaluator, sam
 @pytest.mark.asyncio
 async def test_evaluate_invalid_field_path(condition_evaluator, sample_event):
     """Test that invalid field path returns False."""
-    conditions = [
-        {"field": "nonexistent.field", "operator": "==", "value": "test"}
-    ]
+    conditions = [{"field": "nonexistent.field", "operator": "==", "value": "test"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is False
 
@@ -179,18 +177,6 @@ async def test_evaluate_invalid_field_path(condition_evaluator, sample_event):
 @pytest.mark.asyncio
 async def test_evaluate_unknown_operator(condition_evaluator, sample_event):
     """Test that unknown operator returns False."""
-    conditions = [
-        {"field": "event_type", "operator": "unknown", "value": "test"}
-    ]
+    conditions = [{"field": "event_type", "operator": "unknown", "value": "test"}]
     result = condition_evaluator.evaluate(conditions, sample_event)
     assert result is False
-
-
-
-
-
-
-
-
-
-

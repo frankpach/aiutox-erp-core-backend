@@ -201,4 +201,3 @@ class PermissionRepository:
             )
             .all()
         )
-

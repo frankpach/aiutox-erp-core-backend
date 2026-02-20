@@ -23,7 +23,9 @@ def calendar_service(db_session, mock_event_publisher):
     return CalendarService(db=db_session, event_publisher=mock_event_publisher)
 
 
-def test_create_calendar(calendar_service, test_user, test_tenant, mock_event_publisher):
+def test_create_calendar(
+    calendar_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating a calendar."""
     calendar = calendar_service.create_calendar(
         calendar_data={
@@ -158,7 +160,9 @@ def _create_test_event(calendar_service, test_user, test_tenant, **overrides):
     return event
 
 
-def test_resize_event_rejects_end_before_start(calendar_service, test_user, test_tenant):
+def test_resize_event_rejects_end_before_start(
+    calendar_service, test_user, test_tenant
+):
     """Test that resize_event raises APIException when new_end_time <= start_time."""
     from app.core.exceptions import APIException
 
@@ -192,7 +196,9 @@ def test_resize_event_rejects_short_duration(calendar_service, test_user, test_t
     assert "15 minutes" in exc_info.value.message
 
 
-def test_update_event_rejects_invalid_time_range(calendar_service, test_user, test_tenant):
+def test_update_event_rejects_invalid_time_range(
+    calendar_service, test_user, test_tenant
+):
     """Test that update_event raises APIException when end_time <= start_time."""
     from app.core.exceptions import APIException
 
@@ -226,7 +232,9 @@ def test_resize_event_accepts_valid_end_time(calendar_service, test_user, test_t
 # --- Reminder validation tests ---
 
 
-def test_add_reminder_rejects_minutes_below_minimum(calendar_service, test_user, test_tenant):
+def test_add_reminder_rejects_minutes_below_minimum(
+    calendar_service, test_user, test_tenant
+):
     """Test that add_reminder raises APIException when minutes_before < 5."""
     from app.core.exceptions import APIException
 
@@ -242,7 +250,9 @@ def test_add_reminder_rejects_minutes_below_minimum(calendar_service, test_user,
     assert exc_info.value.code == "INVALID_REMINDER_MINUTES"
 
 
-def test_add_reminder_rejects_minutes_above_maximum(calendar_service, test_user, test_tenant):
+def test_add_reminder_rejects_minutes_above_maximum(
+    calendar_service, test_user, test_tenant
+):
     """Test that add_reminder raises APIException when minutes_before > 10080."""
     from app.core.exceptions import APIException
 
@@ -274,7 +284,9 @@ def test_add_reminder_rejects_invalid_type(calendar_service, test_user, test_ten
     assert exc_info.value.code == "INVALID_REMINDER_TYPE"
 
 
-def test_add_reminder_rejects_when_limit_exceeded(calendar_service, test_user, test_tenant):
+def test_add_reminder_rejects_when_limit_exceeded(
+    calendar_service, test_user, test_tenant
+):
     """Test that add_reminder raises APIException when 5 reminders already exist."""
     from app.core.exceptions import APIException
 
@@ -299,7 +311,9 @@ def test_add_reminder_rejects_when_limit_exceeded(calendar_service, test_user, t
     assert exc_info.value.code == "REMINDER_LIMIT_EXCEEDED"
 
 
-def test_add_reminder_succeeds_with_valid_data(calendar_service, test_user, test_tenant):
+def test_add_reminder_succeeds_with_valid_data(
+    calendar_service, test_user, test_tenant
+):
     """Test that add_reminder succeeds with valid data."""
     event = _create_test_event(calendar_service, test_user, test_tenant)
 
@@ -312,4 +326,3 @@ def test_add_reminder_succeeds_with_valid_data(calendar_service, test_user, test
     assert reminder is not None
     assert reminder.minutes_before == 30
     assert reminder.reminder_type == "email"
-

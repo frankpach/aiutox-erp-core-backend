@@ -28,7 +28,9 @@ class UserPreference(Base):
         nullable=False,
         index=True,
     )
-    preference_type = Column(String(50), nullable=False, index=True)  # e.g., 'basic', 'notification', 'view'
+    preference_type = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., 'basic', 'notification', 'view'
     key = Column(String(255), nullable=False)
     value = Column(JSONB, nullable=False)
     created_at = Column(
@@ -44,7 +46,13 @@ class UserPreference(Base):
     )
 
     __table_args__ = (
-        Index("idx_user_preferences_user_type_key", "user_id", "preference_type", "key", unique=True),
+        Index(
+            "idx_user_preferences_user_type_key",
+            "user_id",
+            "preference_type",
+            "key",
+            unique=True,
+        ),
         Index("idx_user_preferences_tenant", "tenant_id"),
     )
 
@@ -77,7 +85,13 @@ class OrgPreference(Base):
     )
 
     __table_args__ = (
-        Index("idx_org_preferences_tenant_type_key", "tenant_id", "preference_type", "key", unique=True),
+        Index(
+            "idx_org_preferences_tenant_type_key",
+            "tenant_id",
+            "preference_type",
+            "key",
+            unique=True,
+        ),
     )
 
 
@@ -115,7 +129,13 @@ class RolePreference(Base):
     )
 
     __table_args__ = (
-        Index("idx_role_preferences_role_type_key", "role_id", "preference_type", "key", unique=True),
+        Index(
+            "idx_role_preferences_role_type_key",
+            "role_id",
+            "preference_type",
+            "key",
+            unique=True,
+        ),
         Index("idx_role_preferences_tenant", "tenant_id"),
     )
 
@@ -138,9 +158,13 @@ class SavedView(Base):
         nullable=False,
         index=True,
     )
-    module = Column(String(100), nullable=False, index=True)  # e.g., 'products', 'inventory'
+    module = Column(
+        String(100), nullable=False, index=True
+    )  # e.g., 'products', 'inventory'
     name = Column(String(255), nullable=False)
-    config = Column(JSONB, nullable=False)  # View configuration (columns, filters, sorting, etc.)
+    config = Column(
+        JSONB, nullable=False
+    )  # View configuration (columns, filters, sorting, etc.)
     is_default = Column(Boolean, default=False, nullable=False)
     created_at = Column(
         TIMESTAMP(timezone=True),
@@ -197,13 +221,3 @@ class Dashboard(Base):
         Index("idx_dashboards_user", "user_id"),
         Index("idx_dashboards_tenant", "tenant_id"),
     )
-
-
-
-
-
-
-
-
-
-

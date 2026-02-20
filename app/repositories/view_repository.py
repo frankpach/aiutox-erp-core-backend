@@ -65,22 +65,23 @@ class ViewRepository:
             elif is_shared is False:
                 # Only user's non-shared filters
                 query = query.filter(
-                    SavedFilter.created_by == user_id,
-                    not SavedFilter.is_shared
+                    SavedFilter.created_by == user_id, not SavedFilter.is_shared
                 )
             else:
                 # User's filters OR shared filters
                 query = query.filter(
-                    or_(
-                        SavedFilter.created_by == user_id,
-                        SavedFilter.is_shared
-                    )
+                    or_(SavedFilter.created_by == user_id, SavedFilter.is_shared)
                 )
         elif is_shared is not None:
             # Filter by shared status only (no user filter)
             query = query.filter(SavedFilter.is_shared == is_shared)
 
-        return query.order_by(SavedFilter.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(SavedFilter.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count_saved_filters(
         self,
@@ -92,7 +93,9 @@ class ViewRepository:
         """Count saved filters with optional filters."""
         from sqlalchemy import func, or_
 
-        query = self.db.query(func.count(SavedFilter.id)).filter(SavedFilter.tenant_id == tenant_id)
+        query = self.db.query(func.count(SavedFilter.id)).filter(
+            SavedFilter.tenant_id == tenant_id
+        )
 
         if module:
             query = query.filter(SavedFilter.module == module)
@@ -103,22 +106,20 @@ class ViewRepository:
                 query = query.filter(SavedFilter.is_shared)
             elif is_shared is False:
                 query = query.filter(
-                    SavedFilter.created_by == user_id,
-                    not SavedFilter.is_shared
+                    SavedFilter.created_by == user_id, not SavedFilter.is_shared
                 )
             else:
                 query = query.filter(
-                    or_(
-                        SavedFilter.created_by == user_id,
-                        SavedFilter.is_shared
-                    )
+                    or_(SavedFilter.created_by == user_id, SavedFilter.is_shared)
                 )
         elif is_shared is not None:
             query = query.filter(SavedFilter.is_shared == is_shared)
 
         return query.scalar() or 0
 
-    def update_saved_filter(self, filter_obj: SavedFilter, filter_data: dict) -> SavedFilter:
+    def update_saved_filter(
+        self, filter_obj: SavedFilter, filter_data: dict
+    ) -> SavedFilter:
         """Update saved filter."""
         for key, value in filter_data.items():
             setattr(filter_obj, key, value)
@@ -140,7 +141,9 @@ class ViewRepository:
         self.db.refresh(view)
         return view
 
-    def get_custom_view_by_id(self, view_id: UUID, tenant_id: UUID) -> CustomView | None:
+    def get_custom_view_by_id(
+        self, view_id: UUID, tenant_id: UUID
+    ) -> CustomView | None:
         """Get custom view by ID and tenant."""
         return (
             self.db.query(CustomView)
@@ -167,7 +170,9 @@ class ViewRepository:
         if is_shared is not None:
             query = query.filter(CustomView.is_shared == is_shared)
 
-        return query.order_by(CustomView.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(CustomView.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_custom_views(
         self,
@@ -233,11 +238,3 @@ class ViewRepository:
         """Delete view share."""
         self.db.delete(share)
         self.db.commit()
-
-
-
-
-
-
-
-

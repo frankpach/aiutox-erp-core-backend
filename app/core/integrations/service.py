@@ -81,8 +81,11 @@ class IntegrationService:
                 limit=limit,
             )
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.info(f"get_all_paginated result type: {type(result)}, value: {result}")
+            logger.info(
+                f"get_all_paginated result type: {type(result)}, value: {result}"
+            )
 
             items_list = []
             for idx, i in enumerate(result["items"]):
@@ -102,16 +105,24 @@ class IntegrationService:
                     items_list.append(item_dict)
                 except Exception as e:
                     import logging
+
                     logger = logging.getLogger(__name__)
-                    logger.error(f"Error converting integration {idx} to dict: {e}", exc_info=True)
+                    logger.error(
+                        f"Error converting integration {idx} to dict: {e}",
+                        exc_info=True,
+                    )
                     logger.error(f"Integration object: {i}, type: {type(i)}")
-                    logger.error(f"Integration config: {i.config}, type: {type(i.config)}")
+                    logger.error(
+                        f"Integration config: {i.config}, type: {type(i.config)}"
+                    )
                     raise
             return_value = {
                 "items": items_list,
                 "total": result["total"],
             }
-            logger.info(f"list_integrations return value type: {type(return_value)}, value: {return_value}")
+            logger.info(
+                f"list_integrations return value type: {type(return_value)}, value: {return_value}"
+            )
             return return_value
         else:
             integrations = self.repository.get_all(tenant_id, integration_type)
@@ -312,9 +323,7 @@ class IntegrationService:
 
             self.repository.delete(integration_id, tenant_id)
 
-    def test_integration(
-        self, integration_id: UUID, tenant_id: UUID
-    ) -> dict[str, Any]:
+    def test_integration(self, integration_id: UUID, tenant_id: UUID) -> dict[str, Any]:
         """Test an integration connection."""
         from app.core.integrations.integration_test import (
             IntegrationTestResult,

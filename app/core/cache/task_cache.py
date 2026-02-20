@@ -46,9 +46,7 @@ class TaskCache:
             # Serializar tareas
             tasks_data = [self._serialize_task(task) for task in tasks]
 
-            await self.redis.setex(
-                cache_key, self.default_ttl, json.dumps(tasks_data)
-            )
+            await self.redis.setex(cache_key, self.default_ttl, json.dumps(tasks_data))
         except Exception:
             # Si falla el cache, continuar sin error
             pass

@@ -20,7 +20,9 @@ class FilterParser:
     """
 
     @staticmethod
-    def apply_filters(query: Query, model_class: type, filters: dict[str, Any]) -> Query:
+    def apply_filters(
+        query: Query, model_class: type, filters: dict[str, Any]
+    ) -> Query:
         """Apply filters to a SQLAlchemy query.
 
         Args:
@@ -39,7 +41,9 @@ class FilterParser:
         for field_name, filter_config in filters.items():
             # Skip if field doesn't exist in model
             if not hasattr(model_class, field_name):
-                logger.warning(f"Field '{field_name}' not found in model {model_class.__name__}")
+                logger.warning(
+                    f"Field '{field_name}' not found in model {model_class.__name__}"
+                )
                 continue
 
             # Get operator and value
@@ -55,12 +59,16 @@ class FilterParser:
                     query = query.filter(field != value)
                 elif operator == "in":
                     if not isinstance(value, list):
-                        logger.warning(f"Operator 'in' requires a list, got {type(value)}")
+                        logger.warning(
+                            f"Operator 'in' requires a list, got {type(value)}"
+                        )
                         continue
                     query = query.filter(field.in_(value))
                 elif operator == "not_in":
                     if not isinstance(value, list):
-                        logger.warning(f"Operator 'not_in' requires a list, got {type(value)}")
+                        logger.warning(
+                            f"Operator 'not_in' requires a list, got {type(value)}"
+                        )
                         continue
                     query = query.filter(~field.in_(value))
                 elif operator == "gt":
@@ -72,7 +80,11 @@ class FilterParser:
                 elif operator == "lte":
                     query = query.filter(field <= value)
                 elif operator == "between":
-                    if not isinstance(value, dict) or "min" not in value or "max" not in value:
+                    if (
+                        not isinstance(value, dict)
+                        or "min" not in value
+                        or "max" not in value
+                    ):
                         logger.warning(
                             f"Operator 'between' requires {{'min': ..., 'max': ...}}, got {value}"
                         )
@@ -89,7 +101,9 @@ class FilterParser:
                 elif operator == "is_not_null":
                     query = query.filter(field.isnot(None))
                 else:
-                    logger.warning(f"Unknown operator '{operator}' for field '{field_name}'")
+                    logger.warning(
+                        f"Unknown operator '{operator}' for field '{field_name}'"
+                    )
                     continue
             except Exception as e:
                 logger.error(
@@ -100,7 +114,3 @@ class FilterParser:
                 continue
 
         return query
-
-
-
-

@@ -41,7 +41,9 @@ def test_create_approval_flow(approval_service, test_user, test_tenant):
     assert flow.tenant_id == test_tenant.id
 
 
-def test_create_approval_request(approval_service, test_user, test_tenant, mock_event_publisher):
+def test_create_approval_request(
+    approval_service, test_user, test_tenant, mock_event_publisher
+):
     """Test creating an approval request."""
     # First create a flow
     flow = approval_service.create_approval_flow(
@@ -106,7 +108,9 @@ def test_add_approval_step(approval_service, test_user, test_tenant):
     assert step.name == "Step 1"
 
 
-def test_bulk_approve_requests(approval_service, test_user, test_tenant, mock_event_publisher):
+def test_bulk_approve_requests(
+    approval_service, test_user, test_tenant, mock_event_publisher
+):
     """Test bulk approving multiple approval requests."""
     # Create a flow with steps
     flow = approval_service.create_approval_flow(
@@ -166,5 +170,3 @@ def test_bulk_approve_requests(approval_service, test_user, test_tenant, mock_ev
     assert len(approved_requests) == 3
     for request in approved_requests:
         assert request.status == "approved"
-
-

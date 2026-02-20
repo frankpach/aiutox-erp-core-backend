@@ -89,11 +89,15 @@ class ActivityIconConfigsSeeder(Seeder):
             for activity_type, statuses in DEFAULT_ICON_CONFIGS.items():
                 for status, config in statuses.items():
                     # Verificar si ya existe la configuración
-                    existing = db.query(ActivityIconConfig).filter(
-                        ActivityIconConfig.tenant_id == tenant.id,
-                        ActivityIconConfig.activity_type == activity_type,
-                        ActivityIconConfig.status == status,
-                    ).first()
+                    existing = (
+                        db.query(ActivityIconConfig)
+                        .filter(
+                            ActivityIconConfig.tenant_id == tenant.id,
+                            ActivityIconConfig.activity_type == activity_type,
+                            ActivityIconConfig.status == status,
+                        )
+                        .first()
+                    )
 
                     if existing:
                         configs_skipped += 1

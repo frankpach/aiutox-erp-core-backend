@@ -21,14 +21,16 @@ class TestTaskTemplates:
             template_id=template_key,
             tenant_id=test_tenant.id,
             created_by_id=test_user.id,
-            overrides={"title": "Tarea desde template"}
+            overrides={"title": "Tarea desde template"},
         )
 
         assert task_data is not None
         assert task_data["title"] == "Tarea desde template"
         assert "Plantilla para crear reuniones" in task_data["description"]
 
-    async def test_template_usage_count_increments(self, db_session, test_user, test_tenant):
+    async def test_template_usage_count_increments(
+        self, db_session, test_user, test_tenant
+    ):
         """Verifica que usage_count se incrementa al usar template."""
         template_service = get_task_template_service(db_session)
 
@@ -42,7 +44,7 @@ class TestTaskTemplates:
         task_data = template_service.create_task_from_template(
             template_id=template_key,
             tenant_id=test_tenant.id,
-            created_by_id=test_user.id
+            created_by_id=test_user.id,
         )
 
         # Verificar que usage_count se incrementó
@@ -55,13 +57,10 @@ class TestTaskTemplates:
 
         # Obtener templates populares
         popular = template_service.get_popular_templates(
-            tenant_id=test_tenant.id,
-            limit=3
+            tenant_id=test_tenant.id, limit=3
         )
 
         assert len(popular) <= 3
         # Verificar que están ordenados por usage_count descendente
         if len(popular) > 1:
             assert popular[0].usage_count >= popular[1].usage_count
-
-

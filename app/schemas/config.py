@@ -48,11 +48,12 @@ class ConfigCreate(BaseModel):
 
     tenant_id: UUID = Field(..., description="Tenant ID for multi-tenancy isolation")
     module: str = Field(
-        ..., min_length=1, max_length=100, description="Module name (e.g., 'products', 'inventory')"
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Module name (e.g., 'products', 'inventory')",
     )
-    key: str = Field(
-        ..., min_length=1, max_length=255, description="Configuration key"
-    )
+    key: str = Field(..., min_length=1, max_length=255, description="Configuration key")
     value: dict[str, Any] | list | str | int | float | bool = Field(
         ..., description="Configuration value (JSON)"
     )
@@ -72,9 +73,7 @@ class ConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="Configuration ID")
-    tenant_id: UUID = Field(
-        ..., description="Tenant ID for multi-tenancy isolation"
-    )
+    tenant_id: UUID = Field(..., description="Tenant ID for multi-tenancy isolation")
     module: str = Field(
         ...,
         min_length=1,
@@ -117,7 +116,9 @@ class ModuleInfoResponse(BaseModel):
     )
     description: str = Field(default="", description="Module description")
     has_router: bool = Field(..., description="Whether the module has API endpoints")
-    model_count: int = Field(..., description="Number of SQLAlchemy models in the module")
+    model_count: int = Field(
+        ..., description="Number of SQLAlchemy models in the module"
+    )
     navigation_items: list[ModuleNavigationItemSchema] = Field(
         default_factory=list,
         description="Primary navigation entries exposed by the module",
@@ -187,16 +188,24 @@ class ThemePresetCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="Preset name")
     description: str | None = Field(None, description="Optional description")
     config: dict[str, Any] = Field(..., description="Theme configuration dictionary")
-    is_default: bool = Field(False, description="Whether this should be the default preset")
+    is_default: bool = Field(
+        False, description="Whether this should be the default preset"
+    )
 
 
 class ThemePresetUpdate(BaseModel):
     """Schema for updating a theme preset."""
 
-    name: str | None = Field(None, min_length=1, max_length=255, description="Preset name")
+    name: str | None = Field(
+        None, min_length=1, max_length=255, description="Preset name"
+    )
     description: str | None = Field(None, description="Optional description")
-    config: dict[str, Any] | None = Field(None, description="Theme configuration dictionary")
-    is_default: bool | None = Field(None, description="Whether this should be the default preset")
+    config: dict[str, Any] | None = Field(
+        None, description="Theme configuration dictionary"
+    )
+    is_default: bool | None = Field(
+        None, description="Whether this should be the default preset"
+    )
 
 
 class ThemePresetResponse(BaseModel):
@@ -224,15 +233,3 @@ class GeneralSettingsResponse(BaseModel):
     time_format: str = Field(..., description="Time format")
     currency: str = Field(..., description="Currency code")
     language: str = Field(..., description="Language code")
-
-
-
-
-
-
-
-
-
-
-
-

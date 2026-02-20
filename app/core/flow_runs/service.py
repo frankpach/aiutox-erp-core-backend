@@ -76,9 +76,7 @@ class FlowRunService:
     ) -> FlowRun | None:
         """Complete a flow run."""
         update_data = {"run_metadata": run_metadata}
-        flow_run = self.repository.update_flow_run(
-            run_id, tenant_id, update_data
-        )
+        flow_run = self.repository.update_flow_run(run_id, tenant_id, update_data)
         if flow_run:
             return self.repository.update_flow_run_status(
                 run_id, tenant_id, FlowRunStatus.COMPLETED.value
@@ -97,9 +95,7 @@ class FlowRunService:
             "error_message": error_message,
             "run_metadata": run_metadata,
         }
-        flow_run = self.repository.update_flow_run(
-            run_id, tenant_id, update_data
-        )
+        flow_run = self.repository.update_flow_run(run_id, tenant_id, update_data)
         if flow_run:
             return self.repository.update_flow_run_status(
                 run_id, tenant_id, FlowRunStatus.FAILED.value

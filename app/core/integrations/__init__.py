@@ -53,17 +53,10 @@ class IntegrationsCoreModule(ModuleInterface):
 def create_module(_db: object | None = None) -> IntegrationsCoreModule:
     return IntegrationsCoreModule()
 
+
 __all__ = [
     "IntegrationService",
     "WebhookHandler",
     "IntegrationsCoreModule",
     "create_module",
 ]
-
-
-
-
-
-
-
-

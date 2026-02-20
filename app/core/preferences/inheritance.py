@@ -30,13 +30,3 @@ def merge_preferences(
     merged.update(user_prefs)
 
     return merged
-
-
-
-
-
-
-
-
-
-

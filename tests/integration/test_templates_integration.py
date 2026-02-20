@@ -59,7 +59,9 @@ def test_template_versioning(client_with_db, test_user, auth_headers, db_session
     assert "Version 2" in current_versions[0]["content"]
 
 
-def test_template_render_with_variables(client_with_db, test_user, auth_headers, db_session):
+def test_template_render_with_variables(
+    client_with_db, test_user, auth_headers, db_session
+):
     """Test rendering template with various variable types."""
     # Assign permissions
     template_role = ModuleRole(
@@ -139,11 +141,3 @@ def test_template_publishes_events(client_with_db, test_user, auth_headers, db_s
         assert response.status_code == 201
         # Event publishing is done via background task
         assert True  # Background task scheduled
-
-
-
-
-
-
-
-

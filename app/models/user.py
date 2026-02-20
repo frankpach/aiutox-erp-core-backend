@@ -71,19 +71,31 @@ class User(Base):
     # Relationships
     tenant = relationship("Tenant", back_populates="users")
     global_roles = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id", cascade="all, delete-orphan"
+        "UserRole",
+        back_populates="user",
+        foreign_keys="UserRole.user_id",
+        cascade="all, delete-orphan",
     )
     module_roles = relationship(
-        "ModuleRole", back_populates="user", foreign_keys="ModuleRole.user_id", cascade="all, delete-orphan"
+        "ModuleRole",
+        back_populates="user",
+        foreign_keys="ModuleRole.user_id",
+        cascade="all, delete-orphan",
     )
     delegated_permissions = relationship(
-        "DelegatedPermission", back_populates="user", foreign_keys="DelegatedPermission.user_id", cascade="all, delete-orphan"
+        "DelegatedPermission",
+        back_populates="user",
+        foreign_keys="DelegatedPermission.user_id",
+        cascade="all, delete-orphan",
     )
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
-    created_templates = relationship("TaskTemplate", back_populates="creator", cascade="all, delete-orphan")
+    refresh_tokens = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    created_templates = relationship(
+        "TaskTemplate", back_populates="creator", cascade="all, delete-orphan"
+    )
     # Note: contact_methods relationship will be handled via ContactMethodRepository
     # due to polymorphic nature (entity_type + entity_id)
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, tenant_id={self.tenant_id})>"
-

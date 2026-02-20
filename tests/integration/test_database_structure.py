@@ -81,7 +81,9 @@ def test_users_table_exists(db_session):
     assert "id" in columns
     assert "email" in columns
     assert "password_hash" in columns
-    assert "tenant_id" in columns, "users table should have tenant_id (not organization_id)"
+    assert (
+        "tenant_id" in columns
+    ), "users table should have tenant_id (not organization_id)"
     assert "is_active" in columns
 
     # Extended fields (from plan.md Fase 5)
@@ -123,10 +125,11 @@ def test_user_roles_table_exists(db_session):
     indexes = inspector.get_indexes("user_roles")
     unique_indexes = [idx for idx in indexes if idx.get("unique")]
     user_role_unique = [
-        idx for idx in unique_indexes
-        if set(idx["column_names"]) == {"user_id", "role"}
+        idx for idx in unique_indexes if set(idx["column_names"]) == {"user_id", "role"}
     ]
-    assert len(user_role_unique) > 0, "user_roles should have unique constraint on (user_id, role)"
+    assert (
+        len(user_role_unique) > 0
+    ), "user_roles should have unique constraint on (user_id, role)"
 
 
 def test_refresh_tokens_table_exists(db_session):
@@ -149,8 +152,7 @@ def test_refresh_tokens_table_exists(db_session):
     indexes = inspector.get_indexes("refresh_tokens")
     unique_indexes = [idx for idx in indexes if idx.get("unique")]
     token_hash_unique = [
-        idx for idx in unique_indexes
-        if "token_hash" in idx["column_names"]
+        idx for idx in unique_indexes if "token_hash" in idx["column_names"]
     ]
     assert len(token_hash_unique) > 0, "refresh_tokens.token_hash should be unique"
 
@@ -160,12 +162,16 @@ def test_organizations_table_exists(db_session):
     inspector = inspect(db_session.bind)
     tables = inspector.get_table_names()
 
-    assert "organizations" in tables, "organizations table should exist (business entities)"
+    assert (
+        "organizations" in tables
+    ), "organizations table should exist (business entities)"
 
     columns = {col["name"]: col for col in inspector.get_columns("organizations")}
 
     assert "id" in columns
-    assert "tenant_id" in columns, "organizations should have tenant_id for multi-tenancy"
+    assert (
+        "tenant_id" in columns
+    ), "organizations should have tenant_id for multi-tenancy"
     assert "name" in columns
     assert "legal_name" in columns
     assert "tax_id" in columns
@@ -175,7 +181,9 @@ def test_organizations_table_exists(db_session):
     # Verify tenant_id is foreign key
     foreign_keys = inspector.get_foreign_keys("organizations")
     tenant_fk = [fk for fk in foreign_keys if "tenant_id" in fk["constrained_columns"]]
-    assert len(tenant_fk) > 0, "organizations.tenant_id should be a foreign key to tenants.id"
+    assert (
+        len(tenant_fk) > 0
+    ), "organizations.tenant_id should be a foreign key to tenants.id"
 
 
 def test_contacts_table_exists(db_session):
@@ -189,7 +197,9 @@ def test_contacts_table_exists(db_session):
 
     assert "id" in columns
     assert "tenant_id" in columns
-    assert "organization_id" in columns, "contacts should have organization_id (nullable)"
+    assert (
+        "organization_id" in columns
+    ), "contacts should have organization_id (nullable)"
     assert "first_name" in columns
     assert "last_name" in columns
     assert "full_name" in columns
@@ -208,7 +218,9 @@ def test_contact_methods_table_exists(db_session):
     columns = {col["name"]: col for col in inspector.get_columns("contact_methods")}
 
     assert "id" in columns
-    assert "entity_type" in columns, "contact_methods should have entity_type (polymorphic)"
+    assert (
+        "entity_type" in columns
+    ), "contact_methods should have entity_type (polymorphic)"
     assert "entity_id" in columns, "contact_methods should have entity_id (polymorphic)"
     assert "method_type" in columns
     assert "value" in columns
@@ -226,13 +238,21 @@ def test_person_identifications_table_exists(db_session):
     inspector = inspect(db_session.bind)
     tables = inspector.get_table_names()
 
-    assert "person_identifications" in tables, "person_identifications table should exist"
+    assert (
+        "person_identifications" in tables
+    ), "person_identifications table should exist"
 
-    columns = {col["name"]: col for col in inspector.get_columns("person_identifications")}
+    columns = {
+        col["name"]: col for col in inspector.get_columns("person_identifications")
+    }
 
     assert "id" in columns
-    assert "entity_type" in columns, "person_identifications should have entity_type (polymorphic)"
-    assert "entity_id" in columns, "person_identifications should have entity_id (polymorphic)"
+    assert (
+        "entity_type" in columns
+    ), "person_identifications should have entity_type (polymorphic)"
+    assert (
+        "entity_id" in columns
+    ), "person_identifications should have entity_id (polymorphic)"
     assert "document_type" in columns
     assert "document_number" in columns
 
@@ -243,7 +263,9 @@ def test_tenant_id_not_organization_id(db_session):
     columns = {col["name"]: col for col in inspector.get_columns("users")}
 
     assert "tenant_id" in columns, "users table should have tenant_id"
-    assert "organization_id" not in columns, "users table should NOT have organization_id (renamed to tenant_id)"
+    assert (
+        "organization_id" not in columns
+    ), "users table should NOT have organization_id (renamed to tenant_id)"
 
 
 def test_all_required_tables_exist(db_session):
@@ -271,7 +293,9 @@ def test_alembic_version_table_exists(db_session):
     inspector = inspect(db_session.bind)
     tables = inspector.get_table_names()
 
-    assert "alembic_version" in tables, "alembic_version table should exist for migration tracking"
+    assert (
+        "alembic_version" in tables
+    ), "alembic_version table should exist for migration tracking"
 
 
 def test_foreign_key_constraints(db_session):
@@ -280,7 +304,9 @@ def test_foreign_key_constraints(db_session):
 
     # Users -> Tenants
     users_fks = inspector.get_foreign_keys("users")
-    users_tenant_fk = [fk for fk in users_fks if "tenant_id" in fk["constrained_columns"]]
+    users_tenant_fk = [
+        fk for fk in users_fks if "tenant_id" in fk["constrained_columns"]
+    ]
     assert len(users_tenant_fk) > 0, "users should have FK to tenants.id"
     assert users_tenant_fk[0]["referred_table"] == "tenants"
 
@@ -291,20 +317,25 @@ def test_foreign_key_constraints(db_session):
 
     # Contacts -> Tenants and Organizations
     contacts_fks = inspector.get_foreign_keys("contacts")
-    contacts_tenant_fk = [fk for fk in contacts_fks if "tenant_id" in fk["constrained_columns"]]
-    contacts_org_fk = [fk for fk in contacts_fks if "organization_id" in fk["constrained_columns"]]
+    contacts_tenant_fk = [
+        fk for fk in contacts_fks if "tenant_id" in fk["constrained_columns"]
+    ]
+    contacts_org_fk = [
+        fk for fk in contacts_fks if "organization_id" in fk["constrained_columns"]
+    ]
     assert len(contacts_tenant_fk) > 0, "contacts should have FK to tenants.id"
     assert len(contacts_org_fk) > 0, "contacts should have FK to organizations.id"
 
     # UserRoles -> Users
     user_roles_fks = inspector.get_foreign_keys("user_roles")
-    user_roles_user_fk = [fk for fk in user_roles_fks if "user_id" in fk["constrained_columns"]]
+    user_roles_user_fk = [
+        fk for fk in user_roles_fks if "user_id" in fk["constrained_columns"]
+    ]
     assert len(user_roles_user_fk) > 0, "user_roles should have FK to users.id"
 
     # RefreshTokens -> Users
     refresh_tokens_fks = inspector.get_foreign_keys("refresh_tokens")
-    refresh_tokens_user_fk = [fk for fk in refresh_tokens_fks if "user_id" in fk["constrained_columns"]]
+    refresh_tokens_user_fk = [
+        fk for fk in refresh_tokens_fks if "user_id" in fk["constrained_columns"]
+    ]
     assert len(refresh_tokens_user_fk) > 0, "refresh_tokens should have FK to users.id"
-
-
-

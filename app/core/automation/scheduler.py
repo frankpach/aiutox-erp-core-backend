@@ -74,7 +74,9 @@ class Scheduler:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in scheduled task for rule {rule_id}: {e}", exc_info=True)
+                logger.error(
+                    f"Error in scheduled task for rule {rule_id}: {e}", exc_info=True
+                )
 
     async def _once_task(
         self, rule_id: str, execute_at: str, callback: Callable[[], Any]
@@ -102,7 +104,9 @@ class Scheduler:
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.error(f"Error in one-time task for rule {rule_id}: {e}", exc_info=True)
+            logger.error(
+                f"Error in one-time task for rule {rule_id}: {e}", exc_info=True
+            )
 
     def cancel_rule(self, rule_id: str) -> None:
         """Cancel a scheduled rule.
@@ -130,13 +134,3 @@ class Scheduler:
         self._tasks.clear()
         self._scheduled_rules.clear()
         logger.info("Scheduler stopped")
-
-
-
-
-
-
-
-
-
-

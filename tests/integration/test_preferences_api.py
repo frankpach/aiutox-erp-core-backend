@@ -6,7 +6,9 @@ from tests.helpers import create_user_with_permission
 def test_get_preferences(client_with_db, test_user, db_session):
     """Test getting user preferences."""
     # Assign preferences.view permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "viewer"
+    )
 
     response = client_with_db.get("/api/v1/preferences", headers=headers)
 
@@ -18,7 +20,9 @@ def test_get_preferences(client_with_db, test_user, db_session):
 def test_update_preferences(client_with_db, test_user, db_session):
     """Test updating user preferences."""
     # Assign preferences.manage permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "manager"
+    )
 
     preference_data = {
         "preferences": {
@@ -43,7 +47,9 @@ def test_update_preferences(client_with_db, test_user, db_session):
 def test_get_notification_preferences(client_with_db, test_user, db_session):
     """Test getting notification preferences."""
     # Assign preferences.view permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "viewer")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "viewer"
+    )
 
     response = client_with_db.get("/api/v1/preferences/notifications", headers=headers)
 
@@ -55,7 +61,9 @@ def test_get_notification_preferences(client_with_db, test_user, db_session):
 def test_update_notification_preferences(client_with_db, test_user, db_session):
     """Test updating notification preferences."""
     # Assign preferences.manage permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "manager"
+    )
 
     notification_data = {
         "preferences": {
@@ -81,7 +89,9 @@ def test_update_notification_preferences(client_with_db, test_user, db_session):
 def test_save_view(client_with_db, test_user, db_session):
     """Test saving a view."""
     # Assign preferences.manage permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "manager"
+    )
 
     view_data = {
         "name": "My Products View",
@@ -104,7 +114,9 @@ def test_save_view(client_with_db, test_user, db_session):
 def test_get_saved_views(client_with_db, test_user, db_session):
     """Test getting saved views."""
     # Assign preferences.manage permission (to create view) and viewer (to view)
-    headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "manager"
+    )
 
     from app.core.preferences.views import ViewsService
 
@@ -127,7 +139,9 @@ def test_get_saved_views(client_with_db, test_user, db_session):
 def test_create_dashboard(client_with_db, test_user, db_session):
     """Test creating a dashboard."""
     # Assign preferences.manage permission
-    headers = create_user_with_permission(db_session, test_user, "preferences", "manager")
+    headers = create_user_with_permission(
+        db_session, test_user, "preferences", "manager"
+    )
 
     dashboard_data = {
         "name": "My Dashboard",
@@ -148,4 +162,3 @@ def test_create_dashboard(client_with_db, test_user, db_session):
     data = response.json()["data"]
     assert data["name"] == "My Dashboard"
     assert len(data["widgets"]) == 2
-

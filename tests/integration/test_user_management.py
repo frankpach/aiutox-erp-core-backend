@@ -302,8 +302,14 @@ class TestUserManagement:
 
         # Verify tokens exist
         refresh_token_repo = RefreshTokenRepository(db_session)
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is not None
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is not None
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token1)
+            is not None
+        )
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token2)
+            is not None
+        )
 
         # Assign admin role
         admin_role = UserRole(
@@ -334,8 +340,12 @@ class TestUserManagement:
         assert target_user.is_active is False
 
         # Verify all tokens are revoked
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is None
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is None
+        )
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
+        )
 
     def test_delete_user_requires_auth_manage_users(
         self, client_with_db, db_session, test_user, test_tenant
@@ -379,8 +389,14 @@ class TestUserManagement:
 
         # Verify tokens exist
         refresh_token_repo = RefreshTokenRepository(db_session)
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is not None
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is not None
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token1)
+            is not None
+        )
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token2)
+            is not None
+        )
 
         # Assign admin role to test_user
         admin_role = UserRole(
@@ -412,8 +428,12 @@ class TestUserManagement:
         assert deleted_user.is_active is False
 
         # Verify all tokens are revoked
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is None
-        assert refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token1) is None
+        )
+        assert (
+            refresh_token_repo.find_valid_token(target_user_id, refresh_token2) is None
+        )
 
     def test_list_users_pagination(
         self, client_with_db, db_session, test_user, test_tenant
@@ -557,7 +577,11 @@ class TestUserManagement:
         assert "data" in data
         users = data["data"]
         assert len(users) >= 1
-        assert any("john" in user["email"].lower() or "john" in (user.get("first_name") or "").lower() for user in users)
+        assert any(
+            "john" in user["email"].lower()
+            or "john" in (user.get("first_name") or "").lower()
+            for user in users
+        )
 
     def test_list_users_with_is_active_filter(
         self, client_with_db, db_session, test_user, test_tenant

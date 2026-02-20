@@ -15,7 +15,9 @@ from app.repositories.config_version_repository import ConfigVersionRepository
 class ConfigService:
     """Service for managing module configurations with audit logging, caching, and versioning."""
 
-    def __init__(self, db: Session, use_cache: bool = True, use_versioning: bool = True):
+    def __init__(
+        self, db: Session, use_cache: bool = True, use_versioning: bool = True
+    ):
         """Initialize service with database session.
 
         Args:
@@ -24,14 +26,14 @@ class ConfigService:
             use_versioning: Whether to track configuration versions (default: True)
         """
         self.repository = ConfigRepository(db)
-        self.version_repository = ConfigVersionRepository(db) if use_versioning else None
+        self.version_repository = (
+            ConfigVersionRepository(db) if use_versioning else None
+        )
         self.db = db
         self.cache = get_config_cache(enabled=use_cache) if use_cache else None
         self.use_versioning = use_versioning
 
-    def get(
-        self, tenant_id: UUID, module: str, key: str, default: Any = None
-    ) -> Any:
+    def get(self, tenant_id: UUID, module: str, key: str, default: Any = None) -> Any:
         """Get a configuration value with caching.
 
         Args:
@@ -295,7 +297,9 @@ class ConfigService:
         """
         return config_schema.validate(module, key, value)
 
-    def clear_cache(self, tenant_id: UUID | None = None, module: str | None = None) -> int:
+    def clear_cache(
+        self, tenant_id: UUID | None = None, module: str | None = None
+    ) -> int:
         """Clear configuration cache.
 
         Args:
@@ -405,9 +409,7 @@ class ConfigService:
         )
 
         if not target_version:
-            raise ValueError(
-                f"Version {version_number} not found for {module}.{key}"
-            )
+            raise ValueError(f"Version {version_number} not found for {module}.{key}")
 
         # Set the value from the target version
         return self.set(
@@ -440,14 +442,3 @@ class ConfigService:
         return self.version_repository.delete_old_versions(
             tenant_id, module, key, keep_versions
         )
-
-
-
-
-
-
-
-
-
-
-

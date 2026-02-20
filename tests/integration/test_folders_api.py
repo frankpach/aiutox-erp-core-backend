@@ -68,6 +68,7 @@ def test_update_folder_permissions(client_with_db, test_user, db_session):
 
     # Create another user for permission assignment
     from app.models.user import User
+
     other_user = User(
         email=f"other-folder-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
@@ -75,6 +76,7 @@ def test_update_folder_permissions(client_with_db, test_user, db_session):
         is_active=True,
     )
     from app.core.auth import hash_password
+
     other_user.password_hash = hash_password("test_password_123")
     db_session.add(other_user)
     db_session.commit()
@@ -135,7 +137,9 @@ def test_update_folder_permissions_invalid_user(client_with_db, test_user, db_se
     assert response.status_code in [400, 403]
 
 
-def test_update_folder_permissions_invalid_target_type(client_with_db, test_user, db_session):
+def test_update_folder_permissions_invalid_target_type(
+    client_with_db, test_user, db_session
+):
     """Test updating folder permissions with invalid target type."""
     # Assign files.manage permission
     headers = create_user_with_permission(db_session, test_user, "files", "manager")
@@ -168,10 +172,13 @@ def test_update_folder_permissions_invalid_target_type(client_with_db, test_user
     assert response.status_code in [400, 403]
 
 
-def test_get_folder_permissions_requires_manage_users(client_with_db, test_user, db_session):
+def test_get_folder_permissions_requires_manage_users(
+    client_with_db, test_user, db_session
+):
     """Test that getting folder permissions requires folders.manage_users or ownership."""
     # Create another user
     from app.models.user import User
+
     other_user = User(
         email=f"other-perms-{uuid4().hex[:8]}@test.com",
         full_name="Other User",
@@ -179,6 +186,7 @@ def test_get_folder_permissions_requires_manage_users(client_with_db, test_user,
         is_active=True,
     )
     from app.core.auth import hash_password
+
     other_user.password_hash = hash_password("test_password_123")
     db_session.add(other_user)
     db_session.commit()
@@ -194,7 +202,9 @@ def test_get_folder_permissions_requires_manage_users(client_with_db, test_user,
     folder_id = create_response.json()["data"]["id"]
 
     # Try to get permissions with other user (only files.view permission)
-    other_headers = create_user_with_permission(db_session, other_user, "files", "viewer")
+    other_headers = create_user_with_permission(
+        db_session, other_user, "files", "viewer"
+    )
     response = client_with_db.get(
         f"/api/v1/folders/{folder_id}/permissions",
         headers=other_headers,
@@ -282,7 +292,9 @@ def test_delete_folder_not_found(client_with_db, test_user, db_session):
 def test_delete_folder_no_permission(client_with_db, test_user, db_session):
     """Test deleting a folder without permission."""
     # Create folder with manager permission
-    manager_headers = create_user_with_permission(db_session, test_user, "files", "manager")
+    manager_headers = create_user_with_permission(
+        db_session, test_user, "files", "manager"
+    )
     folder_data = {"name": "Test Folder"}
     create_response = client_with_db.post(
         "/api/v1/folders",
@@ -293,10 +305,11 @@ def test_delete_folder_no_permission(client_with_db, test_user, db_session):
 
     # Remove manager permission, keeping only viewer permission
     from app.models.module_role import ModuleRole
+
     db_session.query(ModuleRole).filter(
         ModuleRole.user_id == test_user.id,
         ModuleRole.module == "files",
-        ModuleRole.role_name == "manager"
+        ModuleRole.role_name == "manager",
     ).delete()
     db_session.commit()
 

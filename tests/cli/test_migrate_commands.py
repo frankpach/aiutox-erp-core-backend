@@ -63,4 +63,3 @@ class TestMigrateCommands:
         # Should call rollback
         assert mock_manager.rollback.called
         assert result.exit_code == 0
-

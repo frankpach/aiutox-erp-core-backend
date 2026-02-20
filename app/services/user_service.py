@@ -172,23 +172,35 @@ class UserService:
         # Track other important changes
         update_data = user_data.model_dump(exclude_unset=True)
         if "full_name" in update_data and update_data["full_name"] != user.full_name:
-            changes["full_name"] = {"old": user.full_name, "new": update_data["full_name"]}
+            changes["full_name"] = {
+                "old": user.full_name,
+                "new": update_data["full_name"],
+            }
 
         # If user is being deactivated, revoke all tokens
         tokens_revoked = 0
         if "is_active" in update_data and update_data["is_active"] != user.is_active:
-            changes["is_active"] = {"old": user.is_active, "new": update_data["is_active"]}
+            changes["is_active"] = {
+                "old": user.is_active,
+                "new": update_data["is_active"],
+            }
             # If being deactivated, revoke all tokens
             if update_data["is_active"] is False:
-                refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
+                refresh_token_repo = refresh_token_repository.RefreshTokenRepository(
+                    self.repository.db
+                )
                 tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
                 if tokens_revoked > 0:
                     changes["tokens_revoked"] = tokens_revoked
 
         # Update user
-        logger.debug(f"[update_user] Calling repository.update with update_data: {update_data}")
+        logger.debug(
+            f"[update_user] Calling repository.update with update_data: {update_data}"
+        )
         updated_user = self.repository.update(user, update_data)
-        logger.debug(f"[update_user] Repository.update returned user with avatar_url: {updated_user.avatar_url}")
+        logger.debug(
+            f"[update_user] Repository.update returned user with avatar_url: {updated_user.avatar_url}"
+        )
 
         # Log user update (only if there are significant changes)
         if updated_by and changes:
@@ -285,7 +297,9 @@ class UserService:
         tenant_id = user.tenant_id
 
         # Revoke all refresh tokens for this user
-        refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
+        refresh_token_repo = refresh_token_repository.RefreshTokenRepository(
+            self.repository.db
+        )
         tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
         # Set user as inactive
@@ -513,7 +527,11 @@ class UserService:
                 elif action == "deactivate":
                     # Soft delete (set is_active=False) and revoke tokens
                     # Revoke all refresh tokens for this user
-                    refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
+                    refresh_token_repo = (
+                        refresh_token_repository.RefreshTokenRepository(
+                            self.repository.db
+                        )
+                    )
                     tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
                     # Set user as inactive
@@ -527,7 +545,11 @@ class UserService:
                             user_id=str(performed_by),
                             target_user_id=str(user_id),
                             tenant_id=str(tenant_id),
-                            details={"action": action, "email": user.email, "tokens_revoked": tokens_revoked},
+                            details={
+                                "action": action,
+                                "email": user.email,
+                                "tokens_revoked": tokens_revoked,
+                            },
                             ip_address=ip_address,
                             user_agent=user_agent,
                         )
@@ -539,7 +561,11 @@ class UserService:
                             action="bulk_deactivate_user",
                             resource_type="user",
                             resource_id=user_id,
-                            details={"action": action, "email": user.email, "tokens_revoked": tokens_revoked},
+                            details={
+                                "action": action,
+                                "email": user.email,
+                                "tokens_revoked": tokens_revoked,
+                            },
                             ip_address=ip_address,
                             user_agent=user_agent,
                         )
@@ -549,7 +575,11 @@ class UserService:
                 elif action == "delete":
                     # Soft delete (set is_active=False) and revoke tokens
                     # Revoke all refresh tokens for this user
-                    refresh_token_repo = refresh_token_repository.RefreshTokenRepository(self.repository.db)
+                    refresh_token_repo = (
+                        refresh_token_repository.RefreshTokenRepository(
+                            self.repository.db
+                        )
+                    )
                     tokens_revoked = refresh_token_repo.revoke_all_user_tokens(user_id)
 
                     user_email = user.email
@@ -561,7 +591,11 @@ class UserService:
                             user_id=str(performed_by),
                             target_user_id=str(user_id),
                             tenant_id=str(tenant_id),
-                            details={"action": action, "email": user_email, "tokens_revoked": tokens_revoked},
+                            details={
+                                "action": action,
+                                "email": user_email,
+                                "tokens_revoked": tokens_revoked,
+                            },
                             ip_address=ip_address,
                             user_agent=user_agent,
                         )
@@ -573,7 +607,11 @@ class UserService:
                             action="bulk_delete_user",
                             resource_type="user",
                             resource_id=user_id,
-                            details={"action": action, "email": user_email, "tokens_revoked": tokens_revoked},
+                            details={
+                                "action": action,
+                                "email": user_email,
+                                "tokens_revoked": tokens_revoked,
+                            },
                             ip_address=ip_address,
                             user_agent=user_agent,
                         )
@@ -593,6 +631,7 @@ class UserService:
                 failed_ids.append(str(user_id))
                 # Log error but continue with other users
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(f"Error in bulk action for user {user_id}: {e}")
 

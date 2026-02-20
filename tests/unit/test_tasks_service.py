@@ -103,7 +103,9 @@ async def test_get_tasks(task_service, test_user, test_tenant):
     assert any(t.id == task1.id for t in todo_tasks)
 
     # Filter by priority
-    high_priority_tasks = task_service.get_tasks(test_tenant.id, priority=TaskPriority.HIGH)
+    high_priority_tasks = task_service.get_tasks(
+        test_tenant.id, priority=TaskPriority.HIGH
+    )
     assert any(t.id == task1.id for t in high_priority_tasks)
 
 
@@ -129,7 +131,6 @@ async def test_update_task(task_service, test_user, test_tenant, mock_event_publ
     assert updated_task is not None
     assert updated_task.title == "Updated Title"
     assert updated_task.status == TaskStatus.IN_PROGRESS
-
 
 
 @pytest.mark.asyncio
@@ -284,5 +285,3 @@ async def test_delete_checklist_item(task_service, test_user, test_tenant):
 
     items = task_service.get_checklist_items(task.id, test_tenant.id)
     assert not any(i.id == item.id for i in items)
-
-

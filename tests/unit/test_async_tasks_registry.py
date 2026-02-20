@@ -1,6 +1,5 @@
 """Unit tests for Async Tasks Registry."""
 
-
 from uuid import UUID
 
 from app.core.async_tasks.registry import TaskRegistry, get_registry
@@ -129,9 +128,3 @@ class TestTaskRegistry:
         assert task_config["task"].name == "decorated_task"
         assert task_config["schedule"]["hours"] == 12
         assert task_config["enabled"] is True
-
-
-
-
-
-

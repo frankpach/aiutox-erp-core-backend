@@ -47,7 +47,9 @@ class ImportExportRepository:
         if status:
             query = query.filter(ImportJob.status == status)
 
-        return query.order_by(ImportJob.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(ImportJob.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_import_jobs(
         self,
@@ -58,7 +60,9 @@ class ImportExportRepository:
         """Count import jobs with optional filters."""
         from sqlalchemy import func
 
-        query = self.db.query(func.count(ImportJob.id)).filter(ImportJob.tenant_id == tenant_id)
+        query = self.db.query(func.count(ImportJob.id)).filter(
+            ImportJob.tenant_id == tenant_id
+        )
 
         if module:
             query = query.filter(ImportJob.module == module)
@@ -109,12 +113,19 @@ class ImportExportRepository:
         limit: int = 100,
     ) -> list[ImportTemplate]:
         """Get import templates with optional filters."""
-        query = self.db.query(ImportTemplate).filter(ImportTemplate.tenant_id == tenant_id)
+        query = self.db.query(ImportTemplate).filter(
+            ImportTemplate.tenant_id == tenant_id
+        )
 
         if module:
             query = query.filter(ImportTemplate.module == module)
 
-        return query.order_by(ImportTemplate.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(ImportTemplate.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count_import_templates(
         self,
@@ -181,7 +192,9 @@ class ImportExportRepository:
         if status:
             query = query.filter(ExportJob.status == status)
 
-        return query.order_by(ExportJob.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            query.order_by(ExportJob.created_at.desc()).offset(skip).limit(limit).all()
+        )
 
     def count_export_jobs(
         self,
@@ -192,7 +205,9 @@ class ImportExportRepository:
         """Count export jobs with optional filters."""
         from sqlalchemy import func
 
-        query = self.db.query(func.count(ExportJob.id)).filter(ExportJob.tenant_id == tenant_id)
+        query = self.db.query(func.count(ExportJob.id)).filter(
+            ExportJob.tenant_id == tenant_id
+        )
 
         if module:
             query = query.filter(ExportJob.module == module)
@@ -213,11 +228,3 @@ class ImportExportRepository:
         """Delete export job."""
         self.db.delete(job)
         self.db.commit()
-
-
-
-
-
-
-
-

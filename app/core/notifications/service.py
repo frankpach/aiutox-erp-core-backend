@@ -126,7 +126,9 @@ class NotificationService:
                     },
                 )
             except Exception as e:
-                logger.error(f"Failed to send notification {queue_entry.id}: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to send notification {queue_entry.id}: {e}", exc_info=True
+                )
                 queue_entry.status = NotificationStatus.FAILED
                 queue_entry.error_message = str(e)
                 self.db.commit()
@@ -156,7 +158,10 @@ class NotificationService:
         ]
 
     async def _send_notification(
-        self, queue_entry: NotificationQueue, template: NotificationTemplate, data: dict[str, Any]
+        self,
+        queue_entry: NotificationQueue,
+        template: NotificationTemplate,
+        data: dict[str, Any],
     ) -> None:
         """Send a notification using the template.
 
@@ -173,7 +178,9 @@ class NotificationService:
 
         # Send based on channel
         if template.channel == "email":
-            await self._send_email(queue_entry.recipient_id, rendered_subject, rendered_body)
+            await self._send_email(
+                queue_entry.recipient_id, rendered_subject, rendered_body
+            )
         elif template.channel == "sms":
             await self._send_sms(queue_entry.recipient_id, rendered_body)
         elif template.channel == "in-app":
@@ -199,7 +206,9 @@ class NotificationService:
             result = result.replace(f"{{{{{key}}}}}", str(value))
         return result
 
-    async def _send_email(self, recipient_id: UUID, subject: str | None, body: str) -> None:
+    async def _send_email(
+        self, recipient_id: UUID, subject: str | None, body: str
+    ) -> None:
         """Send email notification.
 
         Args:
@@ -240,7 +249,9 @@ class NotificationService:
                 message["Subject"] = subject
 
             # Add body
-            message.attach(MIMEText(body, "html" if "<html>" in body.lower() else "plain"))
+            message.attach(
+                MIMEText(body, "html" if "<html>" in body.lower() else "plain")
+            )
 
             # Send email
             await aiosmtplib.send(
@@ -281,7 +292,9 @@ class NotificationService:
         from app.repositories.contact_method_repository import ContactMethodRepository
 
         contact_repo = ContactMethodRepository(self.db)
-        contact_methods = contact_repo.get_by_entity(entity_type=EntityType.USER, entity_id=recipient_id)
+        contact_methods = contact_repo.get_by_entity(
+            entity_type=EntityType.USER, entity_id=recipient_id
+        )
 
         # Find phone or mobile contact method
         phone = None
@@ -341,12 +354,19 @@ class NotificationService:
 
         # Send SMS based on provider
         if provider.lower() == "twilio":
-            await self._send_sms_twilio(account_sid, auth_token, from_number, phone, message)
+            await self._send_sms_twilio(
+                account_sid, auth_token, from_number, phone, message
+            )
         else:
             raise ValueError(f"Unsupported SMS provider: {provider}")
 
     async def _send_sms_twilio(
-        self, account_sid: str, auth_token: str, from_number: str, to_number: str, message: str
+        self,
+        account_sid: str,
+        auth_token: str,
+        from_number: str,
+        to_number: str,
+        message: str,
     ) -> None:
         """Send SMS using Twilio API.
 
@@ -387,7 +407,9 @@ class NotificationService:
                 response.raise_for_status()
                 logger.info(f"SMS sent successfully to {to_number} via Twilio")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Twilio API error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"Twilio API error: {e.response.status_code} - {e.response.text}"
+            )
             raise Exception(f"Failed to send SMS: {e.response.status_code}") from e
         except httpx.TimeoutException as e:
             logger.error(f"SMS sending timeout: {e}")
@@ -428,7 +450,11 @@ class NotificationService:
                     key="channels.webhook.timeout",
                     default=30,
                 )
-                if not isinstance(timeout, (int, float)) or timeout <= 0 or timeout > 300:
+                if (
+                    not isinstance(timeout, (int, float))
+                    or timeout <= 0
+                    or timeout > 300
+                ):
                     timeout = 30.0  # Safety: max 5 minutes
         except Exception:
             # If config lookup fails, use default
@@ -444,7 +470,9 @@ class NotificationService:
                 response.raise_for_status()
                 logger.info(f"Webhook sent successfully to {url}")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Webhook HTTP error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"Webhook HTTP error: {e.response.status_code} - {e.response.text}"
+            )
             raise Exception(f"Failed to send webhook: {e.response.status_code}") from e
         except httpx.TimeoutException as e:
             logger.error(f"Webhook timeout: {e}")
@@ -455,5 +483,3 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Failed to send webhook to {url}: {e}", exc_info=True)
             raise
-
-

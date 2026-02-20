@@ -33,7 +33,9 @@ async def add_comment_to_task(
     task_id: Annotated[UUID, Path(..., description="Task ID")],
     current_user: Annotated[User, Depends(require_permission("tasks.view"))],
     db: Annotated[Session, Depends(get_db)],
-    comment_data: dict = Body(..., description="Comment data with content and mentions"),
+    comment_data: dict = Body(
+        ..., description="Comment data with content and mentions"
+    ),
 ) -> StandardResponse[dict]:
     """Add comment to task."""
     logger.error(f"[POST COMMENT] Endpoint llamado con task_id={task_id}")
@@ -160,8 +162,12 @@ async def list_task_comments(
     db: Annotated[Session, Depends(get_db)],
 ) -> StandardListResponse[dict]:
     """List task comments."""
-    logger.info("Listing comments for task: task_id=%s, user_id=%s, tenant_id=%s",
-                task_id, current_user.id, current_user.tenant_id)
+    logger.info(
+        "Listing comments for task: task_id=%s, user_id=%s, tenant_id=%s",
+        task_id,
+        current_user.id,
+        current_user.tenant_id,
+    )
 
     try:
         comment_service = get_task_comment_service(db)
