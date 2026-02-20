@@ -188,6 +188,8 @@ async def test_process_event(automation_engine, db_session, test_tenant):
 
     # Should execute both rules
     assert len(executions) == 2
+    executed_rule_ids = {ex.rule_id for ex in executions}
+    assert executed_rule_ids == {rule1.id, rule2.id}
     assert all(ex.status == AutomationExecutionStatus.SUCCESS for ex in executions)
 
 

@@ -93,5 +93,5 @@ def test_update_comment(client_with_db, test_user, db_session):
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["content"] == "Updated comment"
-    assert data["is_edited"] == True
+    assert data["is_edited"]
 
