@@ -1,28 +1,42 @@
-name: Build and Push Backend
+name: Backend CI
+
+# El build y push de Docker se hace localmente con scripts/50-deploy/build-and-deploy.ps1
+# Este workflow solo valida el código en GitHub (sin runners self-hosted)
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build:
-    runs-on: [self-hosted, aiutox]
-    # Solo ejecutar en pushes, no en PRs
-    if: github.event_name == 'push'
+  validate:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: |
-          docker build -t aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest .
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Tag with commit SHA
-        run: |
-          docker tag aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${{ github.sha }}
+      - name: Install uv
+        run: pip install uv
 
-      - name: Push to registry
-        run: |
-          docker push aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:latest
-          docker push aiutox-nas.tail2a2cda.ts.net:5010/aiutox/backend:${{ github.sha }}
+      - name: Install dependencies
+        run: uv sync
+        working-directory: ./
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+        working-directory: ./
+
+      - name: Format check with black
+        run: uv run black --check .
+        working-directory: ./
+
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short -q -m "not performance"
+        working-directory: ./
