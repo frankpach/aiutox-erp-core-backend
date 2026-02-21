@@ -22,7 +22,9 @@ console = Console()
 
 @app.command()
 def seed(
-    class_name: str = typer.Option(None, "--class", "-c", help="Run specific seeder class"),
+    class_name: str = typer.Option(
+        None, "--class", "-c", help="Run specific seeder class"
+    ),
 ) -> None:
     """Run database seeders."""
     from app.core.db.session import SessionLocal
@@ -36,9 +38,13 @@ def seed(
             console.print(f"\n[bold cyan]Running seeder: {class_name}[/bold cyan]")
             result = manager.run_seeder(class_name, db)
             if result["success"]:
-                console.print(f"[green]✓ Seeder '{class_name}' executed successfully[/green]")
+                console.print(
+                    f"[green]✓ Seeder '{class_name}' executed successfully[/green]"
+                )
             else:
-                console.print(f"[red]✗ Error: {result.get('error', 'Unknown error')}[/red]")
+                console.print(
+                    f"[red]✗ Error: {result.get('error', 'Unknown error')}[/red]"
+                )
                 raise typer.Exit(1)
         else:
             # Run all pending seeders
@@ -54,14 +60,18 @@ def seed(
 
             result = manager.run_all(db)
             if result["success"]:
-                console.print(f"\n[green]✓ Executed {result['total']} seeder(s) successfully[/green]")
+                console.print(
+                    f"\n[green]✓ Executed {result['total']} seeder(s) successfully[/green]"
+                )
                 for seeder_name in result["executed"]:
                     console.print(f"  • {seeder_name}")
             else:
                 console.print("\n[red]✗ Error executing seeders:[/red]")
                 console.print(f"  {result.get('error', 'Unknown error')}")
                 if result.get("executed"):
-                    console.print(f"\n[yellow]Partially executed ({len(result['executed'])} seeder(s)):[/yellow]")
+                    console.print(
+                        f"\n[yellow]Partially executed ({len(result['executed'])} seeder(s)):[/yellow]"
+                    )
                     for seeder_name in result["executed"]:
                         console.print(f"  • {seeder_name}")
                 raise typer.Exit(1)
@@ -77,10 +87,14 @@ def reset(
     from app.core.db.session import SessionLocal
     from app.core.migrations import MigrationManager, MigrationReporter
 
-    console.print("\n[bold red]⚠ WARNING: This will drop ALL tables and re-migrate![/bold red]")
+    console.print(
+        "\n[bold red]⚠ WARNING: This will drop ALL tables and re-migrate![/bold red]"
+    )
 
     if not yes:
-        confirm = typer.confirm("Are you sure you want to reset the database?", default=False)
+        confirm = typer.confirm(
+            "Are you sure you want to reset the database?", default=False
+        )
         if not confirm:
             console.print("[yellow]Reset cancelled[/yellow]")
             raise typer.Exit(0)
@@ -105,7 +119,9 @@ def reset(
     try:
         seed_result = seeder_manager.run_all(seed_db)
         if seed_result["success"]:
-            console.print(f"[green]✓ Executed {seed_result['total']} seeder(s) successfully[/green]")
+            console.print(
+                f"[green]✓ Executed {seed_result['total']} seeder(s) successfully[/green]"
+            )
             for seeder_name in seed_result["executed"]:
                 console.print(f"  • {seeder_name}")
         else:
@@ -128,7 +144,9 @@ def seed_rollback() -> None:
         console.print("\n[bold cyan]Rolling back last seeder...[/bold cyan]")
         result = manager.rollback_last(db)
         if result["success"]:
-            console.print(f"[green]✓ Rolled back seeder: {result['rolled_back']}[/green]")
+            console.print(
+                f"[green]✓ Rolled back seeder: {result['rolled_back']}[/green]"
+            )
         else:
             console.print(f"[red]✗ Error: {result.get('error', 'Unknown error')}[/red]")
             raise typer.Exit(1)
@@ -174,4 +192,3 @@ def check() -> None:
         console.print("\n[red]✗ Unexpected error:[/red]")
         console.print(f"  {e}")
         raise typer.Exit(1)
-

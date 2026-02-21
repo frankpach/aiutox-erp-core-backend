@@ -103,9 +103,25 @@ async def login(
 
     # Authenticate user
     logger.debug("[LOGIN] Step 0: Authenticating user")
-    auth_service = AuthService(db)
-    user = auth_service.authenticate_user(login_data.email, login_data.password)
-    logger.debug(f"[LOGIN] Step 0: Authentication completed, user={user is not None}")
+    try:
+        auth_service = AuthService(db)
+        user = auth_service.authenticate_user(login_data.email, login_data.password)
+        logger.debug(f"[LOGIN] Step 0: Authentication completed, user={user is not None}")
+    except Exception as e:
+        # Handle database errors (e.g., missing tables) gracefully
+        # This prevents 500 errors when database is not properly set up
+        import logging
+        logger = logging.getLogger("app")
+        logger.warning(f"[LOGIN] Database error during authentication: {e}")
+
+        # Treat database errors as authentication failures for security
+        # Don't reveal internal database issues to the client
+        record_login_attempt(client_ip)
+        log_auth_failure(login_data.email, "database_error", client_ip)
+        raise_unauthorized(
+            code="AUTH_INVALID_CREDENTIALS",
+            message="Invalid credentials",
+        )
 
     # Generic error message (does not reveal if user exists)
     if not user:

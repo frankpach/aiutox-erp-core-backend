@@ -24,7 +24,9 @@ def complexity(
     try:
         import subprocess
 
-        console.print(f"\n[bold cyan]Analyzing code complexity in '{path}'...[/bold cyan]")
+        console.print(
+            f"\n[bold cyan]Analyzing code complexity in '{path}'...[/bold cyan]"
+        )
         result = subprocess.run(
             ["radon", "cc", path, "--min", min, "--show-complexity"],
             capture_output=True,
@@ -55,7 +57,9 @@ def security(
     try:
         import subprocess
 
-        console.print(f"\n[bold cyan]Analyzing code security in '{path}'...[/bold cyan]")
+        console.print(
+            f"\n[bold cyan]Analyzing code security in '{path}'...[/bold cyan]"
+        )
         result = subprocess.run(
             ["bandit", "-r", path, "-l", str(level), "-f", "json"],
             capture_output=True,
@@ -72,7 +76,9 @@ def security(
                 issues = data.get("results", [])
 
                 if issues:
-                    console.print(f"\n[yellow]⚠ Found {len(issues)} security issue(s):[/yellow]\n")
+                    console.print(
+                        f"\n[yellow]⚠ Found {len(issues)} security issue(s):[/yellow]\n"
+                    )
                     for issue in issues:
                         severity = issue.get("issue_severity", "UNKNOWN")
                         confidence = issue.get("issue_confidence", "UNKNOWN")
@@ -114,7 +120,9 @@ def dependencies() -> None:
     try:
         import subprocess
 
-        console.print("\n[bold cyan]Checking dependencies for vulnerabilities...[/bold cyan]")
+        console.print(
+            "\n[bold cyan]Checking dependencies for vulnerabilities...[/bold cyan]"
+        )
         result = subprocess.run(
             ["safety", "check", "--json"],
             capture_output=True,
@@ -130,7 +138,9 @@ def dependencies() -> None:
                 vulnerabilities = data if isinstance(data, list) else []
 
                 if vulnerabilities:
-                    console.print(f"\n[yellow]⚠ Found {len(vulnerabilities)} vulnerability(ies):[/yellow]\n")
+                    console.print(
+                        f"\n[yellow]⚠ Found {len(vulnerabilities)} vulnerability(ies):[/yellow]\n"
+                    )
                     for vuln in vulnerabilities:
                         package = vuln.get("package", "Unknown")
                         installed = vuln.get("installed_version", "Unknown")
@@ -167,4 +177,3 @@ def dependencies() -> None:
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]")
         raise typer.Exit(1)
-

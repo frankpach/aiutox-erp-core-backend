@@ -74,7 +74,9 @@ def test_task_service_publishes_events(monkeypatch, db_session, test_tenant, tes
     assert any(call.get("event_type") == "task.deleted" for call in published)
 
 
-@pytest.mark.skip(reason="CalendarService does not publish via safe_publish_event - wrong monkeypatch path")
+@pytest.mark.skip(
+    reason="CalendarService does not publish via safe_publish_event - wrong monkeypatch path"
+)
 def test_calendar_service_publishes_events(
     monkeypatch, db_session, test_tenant, test_user
 ):

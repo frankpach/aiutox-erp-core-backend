@@ -40,7 +40,9 @@ def _run_command(cmd: list[str]) -> int:
 
 @app.command()
 def run(
-    coverage: bool = typer.Option(False, "--coverage", "-c", help="Generate coverage report"),
+    coverage: bool = typer.Option(
+        False, "--coverage", "-c", help="Generate coverage report"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ) -> None:
     """Run tests."""
@@ -70,7 +72,8 @@ def watch() -> None:
 def coverage() -> None:
     """Generate coverage report."""
     console.print("\n[bold cyan]Generating coverage report...[/bold cyan]")
-    exit_code = _run_command(["pytest", "--cov=app", "--cov-report=html", "--cov-report=term"])
+    exit_code = _run_command(
+        ["pytest", "--cov=app", "--cov-report=html", "--cov-report=term"]
+    )
     if exit_code != 0:
         raise typer.Exit(exit_code)
-

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -34,7 +34,10 @@ class TestTasksStatisticsAPI:
 
         # Override auth dependencies so endpoints don't require a real JWT
         self.app.dependency_overrides[get_current_user] = lambda: self.test_user
-        self.app.dependency_overrides[get_user_permissions] = lambda: {"tasks.manage", "tasks.view"}
+        self.app.dependency_overrides[get_user_permissions] = lambda: {
+            "tasks.manage",
+            "tasks.view",
+        }
 
         self.client = TestClient(self.app)
 
@@ -152,8 +155,8 @@ class TestTasksStatisticsAPI:
         mock_data_source.get_statistics.return_value = sample_statistics
 
         # Make request with filters
-        date_from = (datetime.utcnow() - timedelta(days=30)).isoformat()
-        date_to = datetime.utcnow().isoformat()
+        date_from = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
+        date_to = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
         response = self.client.get(
             f"/api/v1/tasks/statistics/overview?date_from={date_from}&date_to={date_to}&status=todo&priority=high"
@@ -263,6 +266,7 @@ class TestTasksStatisticsAPI:
 
     def test_statistics_endpoints_permission_check(self):
         """Test that endpoints require proper permissions."""
+
         # Override get_user_permissions to return empty set (no permissions)
         def no_permissions():
             return set()
@@ -282,7 +286,10 @@ class TestTasksStatisticsAPI:
         assert response.status_code == 403
 
         # Restore full permissions for subsequent tests
-        self.app.dependency_overrides[get_user_permissions] = lambda: {"tasks.manage", "tasks.view"}
+        self.app.dependency_overrides[get_user_permissions] = lambda: {
+            "tasks.manage",
+            "tasks.view",
+        }
 
     @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_multi_tenancy_enforcement(self, mock_data_source_class, mock_db_session):
@@ -334,10 +341,13 @@ class TestTasksStatisticsAPI:
         """Test handling of database errors."""
         mock_data_source = Mock()
         mock_data_source_class.return_value = mock_data_source
-        mock_data_source.get_statistics.side_effect = Exception("Database connection failed")
+        mock_data_source.get_statistics.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Make request — unhandled exceptions propagate as 500 in TestClient
         import pytest as _pytest
+
         with _pytest.raises(Exception, match="Database connection failed"):
             self.client.get("/api/v1/tasks/statistics/overview")
 

@@ -265,11 +265,21 @@ def generate_module(name: str, entities: list[str] = None) -> dict[str, Path]:
 
         # Generate all components
         try:
-            generated_files[f"{normalized_entity}_model"] = generate_model(normalized_entity)
-            generated_files[f"{normalized_entity}_schema"] = generate_schema(normalized_entity)
-            generated_files[f"{normalized_entity}_repository"] = generate_repository(normalized_entity)
-            generated_files[f"{normalized_entity}_service"] = generate_service(normalized_entity)
-            generated_files[f"{normalized_entity}_router"] = generate_router(normalized_entity)
+            generated_files[f"{normalized_entity}_model"] = generate_model(
+                normalized_entity
+            )
+            generated_files[f"{normalized_entity}_schema"] = generate_schema(
+                normalized_entity
+            )
+            generated_files[f"{normalized_entity}_repository"] = generate_repository(
+                normalized_entity
+            )
+            generated_files[f"{normalized_entity}_service"] = generate_service(
+                normalized_entity
+            )
+            generated_files[f"{normalized_entity}_router"] = generate_router(
+                normalized_entity
+            )
         except FileExistsError as e:
             console.print(f"[red]Ô£ù Error: {e}[/red]")
             # Clean up already generated files
@@ -278,7 +288,9 @@ def generate_module(name: str, entities: list[str] = None) -> dict[str, Path]:
                     file_path.unlink()
             raise
 
-    console.print(f"\n[green]Ô£ô Generated complete module '{name}' with {len(entities)} entity(ies)[/green]")
+    console.print(
+        f"\n[green]Ô£ô Generated complete module '{name}' with {len(entities)} entity(ies)[/green]"
+    )
     return generated_files
 
 
@@ -313,4 +325,3 @@ def generate_seeder(name: str, output_dir: Path | None = None) -> Path:
 
     console.print(f"[green]Ô£ô Generated seeder: {output_file}[/green]")
     return output_file
-

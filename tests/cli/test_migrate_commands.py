@@ -51,7 +51,9 @@ class TestMigrateCommands:
     @patch("scripts.cli.commands.migrate.MigrationReporter")
     @patch("scripts.cli.commands.migrate.MigrationVerifier")
     @patch("scripts.cli.commands.migrate.MigrationManager")
-    def test_migrate_rollback_command(self, mock_manager_class, mock_verifier_class, mock_reporter_class):
+    def test_migrate_rollback_command(
+        self, mock_manager_class, mock_verifier_class, mock_reporter_class
+    ):
         """Test migrate rollback command."""
         from typer.testing import CliRunner
 

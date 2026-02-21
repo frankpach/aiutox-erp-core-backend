@@ -127,7 +127,7 @@ def test_user(db_session, test_tenant):
     user = User(
         id=uuid4(),
         tenant_id=test_tenant.id,
-        email="test@example.com",
+        email=f"scheduler-test-{uuid4().hex[:8]}@example.com",
         full_name="Test User",
         password_hash=hash_password("test_password_123"),
         is_active=True,

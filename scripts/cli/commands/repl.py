@@ -59,8 +59,12 @@ def start() -> None:
             "SessionLocal": SessionLocal,
         }
 
-        console.print("\n[bold cyan]Starting IPython REPL with AiutoX ERP context...[/bold cyan]")
-        console.print("[dim]Available objects: db, engine, settings, models (User, Tenant, etc.)[/dim]")
+        console.print(
+            "\n[bold cyan]Starting IPython REPL with AiutoX ERP context...[/bold cyan]"
+        )
+        console.print(
+            "[dim]Available objects: db, engine, settings, models (User, Tenant, etc.)[/dim]"
+        )
         console.print("[dim]Type 'exit' or press Ctrl+D to quit[/dim]\n")
 
         # Start IPython with custom namespace
@@ -73,4 +77,3 @@ def start() -> None:
     except Exception as e:
         console.print(f"[red]✗ Error starting REPL: {e}[/red]")
         raise typer.Exit(1)
-

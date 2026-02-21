@@ -6,13 +6,17 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-# Add backend to path for imports
+# Add backend to path for imports that need it
 backend_dir = Path(__file__).parent.parent.parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from app.core.migrations import MigrationManager, MigrationReporter, MigrationVerifier
-from scripts.migrate_cli import (
+from app.core.migrations import (
+    MigrationManager,
+    MigrationReporter,
+    MigrationVerifier,
+)  # noqa: E402
+from scripts.migrate_cli import (  # noqa: E402
     handle_history,
     handle_migrate,
     handle_status,
@@ -59,7 +63,9 @@ def verify() -> None:
 
 @app.command()
 def rollback(
-    steps: int = typer.Option(1, "--steps", "-s", help="Number of migrations to rollback"),
+    steps: int = typer.Option(
+        1, "--steps", "-s", help="Number of migrations to rollback"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
     """Rollback migrations.
@@ -75,14 +81,18 @@ def rollback(
 
     # Show migrations that will be rolled back
     migrations_to_rollback = status_obj.applied[-steps:]
-    console.print("\n[bold yellow]⚠ WARNING: This will rollback the following migrations:[/bold yellow]")
+    console.print(
+        "\n[bold yellow]⚠ WARNING: This will rollback the following migrations:[/bold yellow]"
+    )
     for i, migration in enumerate(migrations_to_rollback, 1):
         console.print(f"  {i}. {migration.revision} - {migration.file}")
 
     # Ask for confirmation unless --yes flag
     if not yes:
         console.print("\n[red]This action may cause data loss![/red]")
-        confirm = typer.confirm("Are you sure you want to rollback these migrations?", default=False)
+        confirm = typer.confirm(
+            "Are you sure you want to rollback these migrations?", default=False
+        )
         if not confirm:
             console.print("[yellow]Rollback cancelled[/yellow]")
             raise typer.Exit(0)
@@ -134,7 +144,9 @@ def refresh(
 @app.command()
 def make(
     name: str = typer.Argument(..., help="Migration description"),
-    no_autogenerate: bool = typer.Option(False, "--no-autogenerate", help="Don't autogenerate from models"),
+    no_autogenerate: bool = typer.Option(
+        False, "--no-autogenerate", help="Don't autogenerate from models"
+    ),
 ) -> None:
     """Create new migration."""
     manager, _, reporter = _get_managers()
@@ -158,4 +170,3 @@ def history() -> None:
 def interactive() -> None:
     """Run interactive migration menu."""
     interactive_mode()
-

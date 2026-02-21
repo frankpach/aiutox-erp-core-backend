@@ -2,7 +2,7 @@
 Task Statuses module - Custom status management for tasks
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -250,7 +250,7 @@ async def reorder_task_statuses(
                 s.order -= 1
 
     status.order = new_order
-    status.updated_at = datetime.utcnow()
+    status.updated_at = datetime.now(UTC)
 
     db.commit()
 

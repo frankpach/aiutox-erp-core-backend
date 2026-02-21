@@ -34,7 +34,9 @@ def list() -> None:
             methods = ", ".join(sorted(route.methods - {"HEAD", "OPTIONS"}))
             path = route.path
             name = route.name if hasattr(route, "name") else "-"
-            tags = ", ".join(route.tags) if hasattr(route, "tags") and route.tags else "-"
+            tags = (
+                ", ".join(route.tags) if hasattr(route, "tags") and route.tags else "-"
+            )
             routes.append((methods, path, name, tags))
 
     # Sort by path
@@ -48,4 +50,3 @@ def list() -> None:
         console.print(table)
     else:
         console.print("[yellow]No routes found[/yellow]")
-

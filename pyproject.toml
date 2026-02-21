@@ -96,7 +96,7 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-v --tb=short --durations=10"
+addopts = "-v -n auto --tb=short --durations=10"
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -106,7 +106,7 @@ cache_dir = "temp_pytest_cache"
 # -n 8: Usar exactamente 8 workers
 # -n 1: Ejecución serial (para debugging)
 # Nota: Cada worker usa su propia base de datos (aiutox_erp_test_worker0, etc.)
-# Para forzar mínimo 8 workers: usar -n 4 o modificar en scripts
+# Para forzar workers: usar -n auto o modificar en scripts
 asyncio_mode = "auto"
 # Note: timeout options require pytest-timeout plugin to be installed
 # Uncomment these lines if you install pytest-timeout:

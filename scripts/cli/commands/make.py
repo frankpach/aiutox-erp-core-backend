@@ -18,7 +18,9 @@ console = Console()
 
 
 @app.command()
-def model(name: str = typer.Argument(..., help="Model name (e.g., User, Product)")) -> None:
+def model(
+    name: str = typer.Argument(..., help="Model name (e.g., User, Product)")
+) -> None:
     """Generate SQLAlchemy model."""
     try:
         generate_model(name)
@@ -31,7 +33,9 @@ def model(name: str = typer.Argument(..., help="Model name (e.g., User, Product)
 
 
 @app.command()
-def service(name: str = typer.Argument(..., help="Service name (e.g., User, Product)")) -> None:
+def service(
+    name: str = typer.Argument(..., help="Service name (e.g., User, Product)")
+) -> None:
     """Generate service."""
     try:
         generate_service(name)
@@ -44,7 +48,9 @@ def service(name: str = typer.Argument(..., help="Service name (e.g., User, Prod
 
 
 @app.command()
-def repository(name: str = typer.Argument(..., help="Repository name (e.g., User, Product)")) -> None:
+def repository(
+    name: str = typer.Argument(..., help="Repository name (e.g., User, Product)")
+) -> None:
     """Generate repository."""
     try:
         generate_repository(name)
@@ -57,7 +63,9 @@ def repository(name: str = typer.Argument(..., help="Repository name (e.g., User
 
 
 @app.command()
-def router(name: str = typer.Argument(..., help="Router name (e.g., User, Product)")) -> None:
+def router(
+    name: str = typer.Argument(..., help="Router name (e.g., User, Product)")
+) -> None:
     """Generate FastAPI router."""
     try:
         generate_router(name)
@@ -70,7 +78,9 @@ def router(name: str = typer.Argument(..., help="Router name (e.g., User, Produc
 
 
 @app.command()
-def schema(name: str = typer.Argument(..., help="Schema name (e.g., User, Product)")) -> None:
+def schema(
+    name: str = typer.Argument(..., help="Schema name (e.g., User, Product)")
+) -> None:
     """Generate Pydantic schema."""
     try:
         generate_schema(name)
@@ -85,7 +95,9 @@ def schema(name: str = typer.Argument(..., help="Schema name (e.g., User, Produc
 @app.command()
 def module(
     name: str = typer.Argument(..., help="Module name (e.g., Product, Order)"),
-    entities: str = typer.Option("", "--entities", help="Comma-separated list of entities (default: module name)"),
+    entities: str = typer.Option(
+        "", "--entities", help="Comma-separated list of entities (default: module name)"
+    ),
 ) -> None:
     """Generate complete module (model, schema, repository, service, router)."""
     try:
@@ -100,7 +112,9 @@ def module(
 
 
 @app.command()
-def seeder(name: str = typer.Argument(..., help="Seeder name (e.g., User, Database, Product)")) -> None:
+def seeder(
+    name: str = typer.Argument(..., help="Seeder name (e.g., User, Database, Product)")
+) -> None:
     """Generate database seeder."""
     try:
         generate_seeder(name)
@@ -110,4 +124,3 @@ def seeder(name: str = typer.Argument(..., help="Seeder name (e.g., User, Databa
     except Exception as e:
         console.print(f"[red]✗ Error generating seeder: {e}[/red]")
         raise typer.Exit(1)
-

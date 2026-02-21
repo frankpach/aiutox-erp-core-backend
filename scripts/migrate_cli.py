@@ -67,7 +67,9 @@ def handle_migrate(manager: MigrationManager, reporter: MigrationReporter) -> No
 
         # Confirm
         questions = [
-            inquirer.Confirm("confirm", message="Apply these migrations?", default=True),
+            inquirer.Confirm(
+                "confirm", message="Apply these migrations?", default=True
+            ),
         ]
         answers = inquirer.prompt(questions)
         if not answers or not answers.get("confirm"):
@@ -91,7 +93,9 @@ def handle_status(manager: MigrationManager, reporter: MigrationReporter) -> Non
     console.print(f"\n{report}")
 
 
-def handle_verify(manager: MigrationManager, verifier: MigrationVerifier, reporter: MigrationReporter) -> None:
+def handle_verify(
+    manager: MigrationManager, verifier: MigrationVerifier, reporter: MigrationReporter
+) -> None:
     """Handle verify command."""
     console.print("\n[bold cyan]Verifying Migrations...[/bold cyan]")
     result = verifier.verify_all()
@@ -157,7 +161,9 @@ def handle_fresh(manager: MigrationManager, reporter: MigrationReporter) -> None
 
 def handle_refresh(manager: MigrationManager, reporter: MigrationReporter) -> None:
     """Handle refresh command."""
-    console.print("\n[bold yellow]ÔÜá This will rollback all migrations and re-apply them[/bold yellow]")
+    console.print(
+        "\n[bold yellow]ÔÜá This will rollback all migrations and re-apply them[/bold yellow]"
+    )
     questions = [
         inquirer.Confirm(
             "confirm",
@@ -176,12 +182,18 @@ def handle_refresh(manager: MigrationManager, reporter: MigrationReporter) -> No
     console.print(f"\n{report}")
 
 
-def handle_make_migration(manager: MigrationManager, reporter: MigrationReporter) -> None:
+def handle_make_migration(
+    manager: MigrationManager, reporter: MigrationReporter
+) -> None:
     """Handle make migration command."""
     console.print("\n[bold cyan]Create New Migration[/bold cyan]")
     questions = [
-        inquirer.Text("message", message="Migration description", validate=lambda _, x: len(x) > 0),
-        inquirer.Confirm("autogenerate", message="Autogenerate from models?", default=True),
+        inquirer.Text(
+            "message", message="Migration description", validate=lambda _, x: len(x) > 0
+        ),
+        inquirer.Confirm(
+            "autogenerate", message="Autogenerate from models?", default=True
+        ),
     ]
     answers = inquirer.prompt(questions)
     if not answers:
@@ -293,7 +305,9 @@ def non_interactive_mode(args: argparse.Namespace) -> None:
             console.print(report)
         elif args.command == "refresh":
             if not args.yes:
-                console.print("[red]Error: --yes flag required for refresh command[/red]")
+                console.print(
+                    "[red]Error: --yes flag required for refresh command[/red]"
+                )
                 sys.exit(1)
             result = manager.refresh()
             report = reporter.format_migration_result(result)
@@ -348,7 +362,9 @@ def main() -> None:
     fresh_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
 
     # Refresh command
-    refresh_parser = subparsers.add_parser("refresh", help="Rollback all and re-migrate")
+    refresh_parser = subparsers.add_parser(
+        "refresh", help="Rollback all and re-migrate"
+    )
     refresh_parser.add_argument("--yes", action="store_true", help="Skip confirmation")
 
     # Make migration command
@@ -376,5 +392,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
