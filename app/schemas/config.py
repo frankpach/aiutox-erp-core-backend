@@ -140,6 +140,10 @@ class ModuleListItem(BaseModel):
         default_factory=list, description="List of module IDs this module depends on"
     )
     description: str = Field(default="", description="Module description")
+    has_router: bool = Field(..., description="Whether the module has API endpoints")
+    model_count: int = Field(
+        ..., description="Number of SQLAlchemy models in the module"
+    )
     navigation_items: list[ModuleNavigationItemSchema] = Field(
         default_factory=list,
         description="Primary navigation entries exposed by the module",

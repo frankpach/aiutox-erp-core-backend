@@ -278,6 +278,13 @@ async def list_modules(
                 except Exception:
                     parsed_settings = []
 
+                # Get router and model count
+                has_router = (
+                    getattr(module_instance, "get_router", lambda: None)() is not None
+                )
+                models = getattr(module_instance, "get_models", lambda: [])() or []
+                model_count = len(models) if isinstance(models, list) else 0
+
                 modules_list.append(
                     ModuleListItem(
                         id=str(module_id),
@@ -286,6 +293,8 @@ async def list_modules(
                         enabled=bool(is_enabled),
                         dependencies=dependencies,
                         description=str(description),
+                        has_router=bool(has_router),
+                        model_count=int(model_count),
                         navigation_items=parsed_navigation,
                         settings_links=parsed_settings,
                     )

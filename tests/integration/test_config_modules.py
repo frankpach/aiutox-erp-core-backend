@@ -61,6 +61,7 @@ class TestConfigModules:
             assert "description" in module
             assert "has_router" in module
             assert "model_count" in module
+            assert "navigation_items" in module
 
     def test_enable_module_without_permission(
         self, client_with_db, db_session, test_user, test_tenant
@@ -189,18 +190,23 @@ class TestConfigModules:
         module_id = None
         for module in modules:
             mid = module["id"]
-            print(
-                f"DEBUG: Checking module {mid}: type={module.get('type')}, dependencies={module.get('dependencies')}"
-            )
+            print(f"DEBUG: Checking module {mid}: type={module.get('type')}, dependencies={module.get('dependencies')}")
             # Skip core critical modules
             if mid in ["auth", "users"]:
                 print(f"DEBUG: Skipping core critical module {mid}")
                 continue
-            # Skip modules with dependencies
+            # Skip modules with dependencies defined
             if module.get("dependencies"):
-                print(
-                    f"DEBUG: Skipping module {mid} with dependencies: {module.get('dependencies')}"
-                )
+                print(f"DEBUG: Skipping module {mid} with dependencies: {module.get('dependencies')}")
+                continue
+            # Check if any other enabled module depends on this one
+            has_dependents = False
+            for other_module in modules:
+                if other_module["id"] != mid and mid in other_module.get("dependencies", []):
+                    print(f"DEBUG: Skipping module {mid} - has dependent: {other_module['id']}")
+                    has_dependents = True
+                    break
+            if has_dependents:
                 continue
             # Found a suitable module
             module_id = mid
@@ -258,7 +264,7 @@ class TestConfigModules:
             if module.get("navigation_items"):
                 for nav_item in module["navigation_items"]:
                     # Check required fields
-                    assert "title" in nav_item
+                    assert "label" in nav_item
                     assert "path" in nav_item
                     assert "icon" in nav_item
 
