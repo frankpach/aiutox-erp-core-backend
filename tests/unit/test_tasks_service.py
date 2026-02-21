@@ -7,7 +7,8 @@ import pytest
 
 from app.core.pubsub import EventPublisher
 from app.core.tasks.service import TaskService
-from app.models.task import TaskPriority, TaskStatus
+from app.models.task import TaskPriority
+from app.models.task import TaskStatusEnum as TaskStatus
 
 
 @pytest.fixture
@@ -38,7 +39,7 @@ async def test_create_task(task_service, test_user, test_tenant, mock_event_publ
 
     assert task.title == "Test Task"
     assert task.description == "Test description"
-    assert task.status == TaskStatus.TODO
+    assert task.status == TaskStatus.TODO.value
     assert task.priority == TaskPriority.HIGH
     assert task.tenant_id == test_tenant.id
     assert task.created_by_id == test_user.id

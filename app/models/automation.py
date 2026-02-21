@@ -131,7 +131,7 @@ class AutomationExecution(Base):
     rule = relationship("Rule", back_populates="executions")
 
     __table_args__ = (
-        Index("idx_automation_executions_event_id", "event_id", unique=True),
+        Index("idx_automation_executions_rule_event", "rule_id", "event_id", unique=True),
         Index("idx_automation_executions_rule_status", "rule_id", "status"),
         Index("idx_automation_executions_executed_at", "executed_at"),
     )

@@ -119,6 +119,19 @@ class AutomationRepository:
             .first()
         )
 
+    def get_execution_by_rule_and_event(
+        self, rule_id: UUID, event_id: UUID
+    ) -> AutomationExecution | None:
+        """Get execution by rule ID and event ID (per-rule idempotency check)."""
+        return (
+            self.db.query(AutomationExecution)
+            .filter(
+                AutomationExecution.rule_id == rule_id,
+                AutomationExecution.event_id == event_id,
+            )
+            .first()
+        )
+
     def get_executions_by_rule(
         self, rule_id: UUID, skip: int = 0, limit: int = 100
     ) -> list[AutomationExecution]:

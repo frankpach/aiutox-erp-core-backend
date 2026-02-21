@@ -48,14 +48,20 @@ class TestMigrateCommands:
         assert result.exit_code == 0
         mock_handle.assert_called_once()
 
+    @patch("scripts.cli.commands.migrate.MigrationReporter")
+    @patch("scripts.cli.commands.migrate.MigrationVerifier")
     @patch("scripts.cli.commands.migrate.MigrationManager")
-    def test_migrate_rollback_command(self, mock_manager_class):
+    def test_migrate_rollback_command(self, mock_manager_class, mock_verifier_class, mock_reporter_class):
         """Test migrate rollback command."""
         from typer.testing import CliRunner
 
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
-        mock_manager.get_status.return_value.applied = [MagicMock()]
+        mock_verifier_class.return_value = MagicMock()
+        mock_reporter_class.return_value = MagicMock()
+        mock_manager.get_status.return_value.applied = [MagicMock(), MagicMock()]
+        mock_manager.rollback.return_value.success = True
+        mock_manager.rollback.return_value.errors = []
 
         runner = CliRunner()
         result = runner.invoke(app, ["rollback", "--steps", "2", "--yes"])

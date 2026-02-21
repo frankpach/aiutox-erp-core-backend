@@ -37,8 +37,10 @@ class AutomationEngine:
         Returns:
             AutomationExecution record
         """
-        # Check idempotency: has this event already been processed?
-        existing_execution = self.repository.get_execution_by_event_id(event.event_id)
+        # Check idempotency: has this rule already processed this event?
+        existing_execution = self.repository.get_execution_by_rule_and_event(
+            rule.id, event.event_id
+        )
         if existing_execution:
             logger.info(
                 f"Event {event.event_id} already processed by rule {rule.id}, skipping"

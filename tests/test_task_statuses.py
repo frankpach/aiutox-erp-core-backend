@@ -7,14 +7,78 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.db.deps import get_db
 from app.features.tasks.statuses import router
 from app.models.task_status import TaskStatus
 from app.models.tenant import Tenant
 from app.models.user import User
+
+
+@pytest.fixture
+def client(db_session: Session, test_user):
+    """Test client with task-statuses router and DB/auth overrides."""
+    _app = FastAPI()
+    _app.include_router(router, prefix="/task-statuses", tags=["task-statuses"])
+    _app.dependency_overrides[get_db] = lambda: db_session
+    _app.dependency_overrides[get_current_user] = lambda: test_user
+    with TestClient(_app) as c:
+        yield c
+
+
+@pytest.fixture
+def client_with_db(db_session: Session, test_user):
+    """Alias for client – same setup."""
+    _app = FastAPI()
+    _app.include_router(router, prefix="/task-statuses", tags=["task-statuses"])
+    _app.dependency_overrides[get_db] = lambda: db_session
+    _app.dependency_overrides[get_current_user] = lambda: test_user
+    with TestClient(_app) as c:
+        yield c
+
+
+@pytest.fixture
+def sample_status_data():
+    """Sample status data for testing"""
+    return {"name": "Test Status", "color": "#ff0000", "type": "open", "order": 1}
+
+
+@pytest.fixture
+def system_status(db_session: Session, test_tenant):
+    """Create a system status for testing"""
+    status = TaskStatus(
+        tenant_id=test_tenant.id,
+        name="System Status",
+        color="#6b7280",
+        type="open",
+        order=0,
+        is_system=True,
+    )
+    db_session.add(status)
+    db_session.commit()
+    db_session.refresh(status)
+    return status
+
+
+@pytest.fixture
+def custom_status(db_session: Session, test_tenant):
+    """Create a custom status for testing"""
+    status = TaskStatus(
+        tenant_id=test_tenant.id,
+        name="Custom Status",
+        color="#3b82f6",
+        type="in_progress",
+        order=1,
+        is_system=False,
+    )
+    db_session.add(status)
+    db_session.commit()
+    db_session.refresh(status)
+    return status
 
 
 class TestTaskStatusesAPI:
@@ -28,7 +92,7 @@ class TestTaskStatusesAPI:
         self.app.include_router(router, prefix="/task-statuses", tags=["task-statuses"])
         self.client = TestClient(self.app)
         self.test_user = User(id="user-1", email="test@example.com")
-        self.test_tenant = Tenant(id="tenant-1", name="Test Tenant")
+        self.test_tenant = Tenant(id="00000000-0000-0000-0000-000000000001", name="Test Tenant")
 
         # Mock dependencies
         self.app.dependency_overrides[get_current_user] = lambda: self.test_user
@@ -37,50 +101,13 @@ class TestTaskStatusesAPI:
         """Cleanup test data"""
         self.app.dependency_overrides.clear()
 
-    @pytest.fixture
-    def sample_status_data(self):
-        """Sample status data for testing"""
-        return {"name": "Test Status", "color": "#ff0000", "type": "open", "order": 1}
-
-    @pytest.fixture
-    def system_status(self, db_session: Session):
-        """Create a system status for testing"""
-        status = TaskStatus(
-            tenant_id=self.test_tenant.id,
-            name="System Status",
-            color="#6b7280",
-            type="open",
-            order=0,
-            is_system=True,
-        )
-        db_session.add(status)
-        db_session.commit()
-        db_session.refresh(status)
-        return status
-
-    @pytest.fixture
-    def custom_status(self, db_session: Session):
-        """Create a custom status for testing"""
-        status = TaskStatus(
-            tenant_id=self.test_tenant.id,
-            name="Custom Status",
-            color="#3b82f6",
-            type="in_progress",
-            order=1,
-            is_system=False,
-        )
-        db_session.add(status)
-        db_session.commit()
-        db_session.refresh(status)
-        return status
-
 
 class TestGetStatuses:
     """Test GET /tasks/statuses endpoint"""
 
     def test_get_all_statuses(self, client, system_status, custom_status):
         """Test getting all statuses including system ones"""
-        response = client.get("/task-statuses")
+        response = client.get("/task-statuses?include_system=true")
 
         assert response.status_code == 200
         data = response.json()

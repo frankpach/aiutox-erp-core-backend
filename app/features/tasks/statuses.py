@@ -67,7 +67,7 @@ async def get_task_statuses(
     query = db.query(TaskStatus).filter(TaskStatus.tenant_id == current_user.tenant_id)
 
     if not include_system:
-        query = query.filter(TaskStatus.is_system is False)
+        query = query.filter(TaskStatus.is_system.is_(False))
 
     statuses = query.order_by(TaskStatus.order, TaskStatus.id).all()
     return statuses

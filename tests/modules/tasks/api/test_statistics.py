@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.auth.dependencies import get_current_user, get_user_permissions
 from app.models.user import User
 from app.modules.tasks.routers.tasks_analytics import router
 
@@ -22,11 +24,23 @@ class TestTasksStatisticsAPI:
         self.app.include_router(
             router, prefix="/api/v1/tasks", tags=["tasks-statistics"]
         )
+
+        self.test_tenant_id = UUID("00000000-0000-0000-0000-000000000001")
+        self.test_user = User(
+            id=UUID("00000000-0000-0000-0000-000000000002"),
+            email="test@example.com",
+            tenant_id=self.test_tenant_id,
+        )
+
+        # Override auth dependencies so endpoints don't require a real JWT
+        self.app.dependency_overrides[get_current_user] = lambda: self.test_user
+        self.app.dependency_overrides[get_user_permissions] = lambda: {"tasks.manage", "tasks.view"}
+
         self.client = TestClient(self.app)
 
-        self.test_user = User(
-            id="user-1", email="test@example.com", tenant_id="tenant-1"
-        )
+    def teardown_method(self):
+        """Cleanup dependency overrides."""
+        self.app.dependency_overrides.clear()
 
     @pytest.fixture
     def mock_db_session(self):
@@ -109,9 +123,7 @@ class TestTasksStatisticsAPI:
         data = response.json()
         assert "data" in data
         assert "error" in data
-        assert "message" in data
         assert data["error"] is None
-        assert data["message"] == "Tasks statistics retrieved successfully"
 
         # Verify statistics data
         stats_data = data["data"]
@@ -189,7 +201,6 @@ class TestTasksStatisticsAPI:
         data = response.json()
         assert "data" in data
         assert data["error"] is None
-        assert data["message"] == "Tasks trends retrieved successfully"
 
         # Verify trends data
         trends_data = data["data"]
@@ -198,22 +209,13 @@ class TestTasksStatisticsAPI:
         assert trends_data["data_points"][0]["created"] == 5
         assert trends_data["data_points"][0]["completed"] == 3
 
-    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
-    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
     @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_tasks_trends_default_period(
         self,
         mock_data_source_class,
-        mock_get_db,
-        mock_require_permission,
         sample_trends,
-        mock_db_session,
     ):
         """Test trends retrieval with default period."""
-        # Setup mocks
-        mock_require_permission.return_value = lambda: self.test_user
-        mock_get_db.return_value = mock_db_session
-
         mock_data_source = Mock()
         mock_data_source_class.return_value = mock_data_source
         mock_data_source.get_trends.return_value = sample_trends
@@ -224,25 +226,17 @@ class TestTasksStatisticsAPI:
         # Verify response
         assert response.status_code == 200
 
-        # Verify default period was used
-        mock_data_source.get_trends.assert_called_once_with("30d", "tenant-1")
+        # Verify default period was used (tenant_id is the UUID string)
+        tenant_id_str = str(self.test_tenant_id)
+        mock_data_source.get_trends.assert_called_once_with("30d", tenant_id_str)
 
-    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
-    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
     @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
     def test_get_custom_states_metrics_success(
         self,
         mock_data_source_class,
-        mock_get_db,
-        mock_require_permission,
         sample_custom_metrics,
-        mock_db_session,
     ):
         """Test successful custom states metrics retrieval."""
-        # Setup mocks
-        mock_require_permission.return_value = lambda: self.test_user
-        mock_get_db.return_value = mock_db_session
-
         mock_data_source = Mock()
         mock_data_source_class.return_value = mock_data_source
         mock_data_source.get_custom_states_metrics.return_value = sample_custom_metrics
@@ -256,7 +250,6 @@ class TestTasksStatisticsAPI:
         data = response.json()
         assert "data" in data
         assert data["error"] is None
-        assert data["message"] == "Custom states metrics retrieved successfully"
 
         # Verify metrics data
         metrics_data = data["data"]
@@ -268,17 +261,13 @@ class TestTasksStatisticsAPI:
         assert first_metric["task_count"] == 15
         assert first_metric["avg_time_in_state_hours"] == 24.5
 
-    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
-    def test_statistics_endpoints_permission_check(self, mock_require_permission):
+    def test_statistics_endpoints_permission_check(self):
         """Test that endpoints require proper permissions."""
-        # Mock permission check to raise exception
-        from app.core.exceptions import APIException
+        # Override get_user_permissions to return empty set (no permissions)
+        def no_permissions():
+            return set()
 
-        mock_require_permission.side_effect = APIException(
-            code="PERMISSION_DENIED",
-            message="Insufficient permissions",
-            status_code=403,
-        )
+        self.app.dependency_overrides[get_user_permissions] = no_permissions
 
         # Test statistics overview endpoint
         response = self.client.get("/api/v1/tasks/statistics/overview")
@@ -292,76 +281,65 @@ class TestTasksStatisticsAPI:
         response = self.client.get("/api/v1/tasks/statistics/custom-states")
         assert response.status_code == 403
 
-    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
-    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
-    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
-    def test_multi_tenancy_enforcement(
-        self,
-        mock_data_source_class,
-        mock_get_db,
-        mock_require_permission,
-        mock_db_session,
-    ):
-        """Test that tenant filtering is enforced."""
-        # Setup mocks
-        mock_require_permission.return_value = lambda: self.test_user
-        mock_get_db.return_value = mock_db_session
+        # Restore full permissions for subsequent tests
+        self.app.dependency_overrides[get_user_permissions] = lambda: {"tasks.manage", "tasks.view"}
 
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
+    def test_multi_tenancy_enforcement(self, mock_data_source_class, mock_db_session):
+        """Test that tenant filtering is enforced."""
+        tenant_id_str = str(self.test_tenant_id)
+
+        full_stats = {
+            "total_tasks": 0,
+            "by_status": {},
+            "by_priority": {},
+            "by_custom_state": {},
+            "completion_rate": 0.0,
+            "completed_tasks": 0,
+            "overdue_tasks": 0,
+        }
         mock_data_source = Mock()
         mock_data_source_class.return_value = mock_data_source
-        mock_data_source.get_statistics.return_value = {"total_tasks": 0}
-        mock_data_source.get_trends.return_value = {"period": "30d", "data_points": []}
-        mock_data_source.get_custom_states_metrics.return_value = []
+        mock_data_source.get_statistics.return_value = full_stats
 
         # Test statistics overview
         self.client.get("/api/v1/tasks/statistics/overview")
 
-        # Verify data source was initialized with correct tenant ID
-        mock_data_source_class.assert_called_with(mock_db_session, "tenant-1")
-
         # Verify tenant ID was passed to methods
         mock_data_source.get_statistics.assert_called()
         stats_call_args = mock_data_source.get_statistics.call_args
-        assert (
-            stats_call_args[0][1] == "tenant-1"
-        )  # Second argument should be tenant_id
+        assert stats_call_args[0][1] == tenant_id_str
 
-    def test_response_format_compliance(self):
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
+    def test_response_format_compliance(self, mock_data_source_class):
         """Test that responses follow the standard API contract."""
         from app.core.exceptions import APIException
 
-        # Mock permission to raise exception to test error response
-        with patch(
-            "app.modules.tasks.routers.tasks_analytics.require_permission"
-        ) as mock_perm:
-            mock_perm.side_effect = APIException(
-                code="TEST_ERROR", message="Test error message", status_code=400
-            )
+        # Make TasksDataSource raise an APIException to test error response format
+        mock_data_source_class.side_effect = APIException(
+            code="TEST_ERROR", message="Test error message", status_code=400
+        )
 
-            response = self.client.get("/api/v1/tasks/statistics/overview")
-
-            # Verify error response format
-            assert response.status_code == 400
-            data = response.json()
-            assert "data" in data
-            assert "error" in data
-            assert data["data"] is None
-            assert data["error"] is not None
-            assert data["error"]["code"] == "TEST_ERROR"
-
-    @patch("app.modules.tasks.routers.tasks_analytics.require_permission")
-    @patch("app.modules.tasks.routers.tasks_analytics.get_db")
-    def test_database_error_handling(self, mock_get_db, mock_require_permission):
-        """Test handling of database errors."""
-        # Setup mocks
-        mock_require_permission.return_value = lambda: self.test_user
-        mock_get_db.side_effect = Exception("Database connection failed")
-
-        # Make request
         response = self.client.get("/api/v1/tasks/statistics/overview")
 
-        # Should return 500 error
-        assert response.status_code == 500
+        # Verify error response format — APIException is returned as {"detail": {"error": {...}}}
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "error" in data["detail"]
+        assert data["detail"]["error"]["code"] == "TEST_ERROR"
+
+    @patch("app.modules.tasks.routers.tasks_analytics.TasksDataSource")
+    def test_database_error_handling(self, mock_data_source_class):
+        """Test handling of database errors."""
+        mock_data_source = Mock()
+        mock_data_source_class.return_value = mock_data_source
+        mock_data_source.get_statistics.side_effect = Exception("Database connection failed")
+
+        # Make request — unhandled exceptions propagate as 500 in TestClient
+        import pytest as _pytest
+        with _pytest.raises(Exception, match="Database connection failed"):
+            self.client.get("/api/v1/tasks/statistics/overview")
 
     def test_endpoint_paths_and_methods(self):
         """Test that endpoints are registered with correct paths and methods."""

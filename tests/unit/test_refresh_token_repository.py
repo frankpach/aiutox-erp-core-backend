@@ -27,16 +27,16 @@ class TestRefreshTokenRepository:
     def test_get_by_token_hash(self, db_session, test_user):
         """Test getting a refresh token by token hash."""
         repo = RefreshTokenRepository(db_session)
-        from app.core.auth.token_hash import hash_token
+        from app.core.auth.token_hash import verify_token
 
         token = "test_refresh_token_12345"
-        token_hash = hash_token(token)
         expires_at = datetime.now(UTC) + timedelta(days=7)
 
         created_token = repo.create(
             user_id=test_user.id, token=token, expires_at=expires_at
         )
-        assert created_token.token_hash == token_hash
+        assert created_token.token_hash is not None
+        assert verify_token(token, created_token.token_hash)
 
         found_token = repo.get_by_token_hash(created_token.token_hash)
 
