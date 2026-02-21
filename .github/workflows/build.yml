@@ -13,6 +13,21 @@ jobs:
   validate:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: aiutox_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,6 +52,24 @@ jobs:
         run: uv run black --check .
         working-directory: ./
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Test database connection
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
+        run: |
+          python ../scripts/test-db-connection.py
+        working-directory: ./
+
       - name: Run tests
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
         run: uv run pytest tests/ -v --tb=short -q -m "not performance"
         working-directory: ./
