@@ -58,7 +58,7 @@ def seed(
                 for seeder_name in result["executed"]:
                     console.print(f"  • {seeder_name}")
             else:
-                console.print(f"\n[red]✗ Error executing seeders:[/red]")
+                console.print("\n[red]✗ Error executing seeders:[/red]")
                 console.print(f"  {result.get('error', 'Unknown error')}")
                 if result.get("executed"):
                     console.print(f"\n[yellow]Partially executed ({len(result['executed'])} seeder(s)):[/yellow]")
@@ -109,7 +109,7 @@ def reset(
             for seeder_name in seed_result["executed"]:
                 console.print(f"  • {seeder_name}")
         else:
-            console.print(f"[yellow]⚠ Seeders completed with warnings[/yellow]")
+            console.print("[yellow]⚠ Seeders completed with warnings[/yellow]")
     finally:
         seed_db.close()
 
@@ -161,17 +161,17 @@ def check() -> None:
             table_count = result.scalar()
 
             console.print("\n[green]✓ Database connection successful[/green]")
-            console.print(f"\n[bold]Database Information:[/bold]")
+            console.print("\n[bold]Database Information:[/bold]")
             console.print(f"  Name: {db_name}")
             console.print(f"  Version: {version.split(',')[0]}")
             console.print(f"  Tables: {table_count}")
 
     except SQLAlchemyError as e:
-        console.print(f"\n[red]✗ Database connection failed:[/red]")
+        console.print("\n[red]✗ Database connection failed:[/red]")
         console.print(f"  {e}")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"\n[red]✗ Unexpected error:[/red]")
+        console.print("\n[red]✗ Unexpected error:[/red]")
         console.print(f"  {e}")
         raise typer.Exit(1)
 

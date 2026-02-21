@@ -2,9 +2,8 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
 
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
 
 # Add backend to path
@@ -83,7 +82,7 @@ def _normalize_name(name: str) -> str:
     return name
 
 
-def generate_model(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_model(name: str, output_dir: Path | None = None) -> Path:
     """Generate SQLAlchemy model file.
 
     Args:
@@ -115,7 +114,7 @@ def generate_model(name: str, output_dir: Optional[Path] = None) -> Path:
     return output_file
 
 
-def generate_service(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_service(name: str, output_dir: Path | None = None) -> Path:
     """Generate service file.
 
     Args:
@@ -147,7 +146,7 @@ def generate_service(name: str, output_dir: Optional[Path] = None) -> Path:
     return output_file
 
 
-def generate_repository(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_repository(name: str, output_dir: Path | None = None) -> Path:
     """Generate repository file.
 
     Args:
@@ -179,7 +178,7 @@ def generate_repository(name: str, output_dir: Optional[Path] = None) -> Path:
     return output_file
 
 
-def generate_router(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_router(name: str, output_dir: Path | None = None) -> Path:
     """Generate FastAPI router file.
 
     Args:
@@ -211,7 +210,7 @@ def generate_router(name: str, output_dir: Optional[Path] = None) -> Path:
     return output_file
 
 
-def generate_schema(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_schema(name: str, output_dir: Path | None = None) -> Path:
     """Generate Pydantic schema file.
 
     Args:
@@ -283,7 +282,7 @@ def generate_module(name: str, entities: list[str] = None) -> dict[str, Path]:
     return generated_files
 
 
-def generate_seeder(name: str, output_dir: Optional[Path] = None) -> Path:
+def generate_seeder(name: str, output_dir: Path | None = None) -> Path:
     """Generate seeder file.
 
     Args:

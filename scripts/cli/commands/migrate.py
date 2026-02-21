@@ -12,21 +12,12 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 from app.core.migrations import MigrationManager, MigrationReporter, MigrationVerifier
-
-# Import handlers from migrate_cli
-# Note: migrate_cli.py also modifies sys.path, but that's OK
 from scripts.migrate_cli import (
-    handle_fresh,
     handle_history,
-    handle_make_migration,
     handle_migrate,
-    handle_refresh,
-    handle_rollback,
-    handle_seed,
     handle_status,
     handle_verify,
     interactive_mode,
-    show_menu,
 )
 
 app = typer.Typer(help="Migration management commands")
@@ -104,7 +95,7 @@ def rollback(
         report = reporter.format_migration_result(result)
         console.print(f"\n{report}")
     else:
-        console.print(f"\n[red]✗ Rollback failed:[/red]")
+        console.print("\n[red]✗ Rollback failed:[/red]")
         for error in result.errors:
             console.print(f"  • {error}")
         raise typer.Exit(1)

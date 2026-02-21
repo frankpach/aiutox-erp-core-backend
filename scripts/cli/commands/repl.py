@@ -21,9 +21,10 @@ def start() -> None:
     try:
         from IPython import embed
 
+        from app.core.config import get_settings
+
         # Import app context
         from app.core.db.session import SessionLocal, engine
-        from app.core.config import get_settings
         from app.models import (
             Base,
             Contact,

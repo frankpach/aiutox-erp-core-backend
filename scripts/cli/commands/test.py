@@ -50,7 +50,7 @@ def run(
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=html", "--cov-report=term"])
 
-    console.print(f"\n[bold cyan]Running tests...[/bold cyan]")
+    console.print("\n[bold cyan]Running tests...[/bold cyan]")
     exit_code = _run_command(cmd)
     if exit_code != 0:
         raise typer.Exit(exit_code)
@@ -59,7 +59,7 @@ def run(
 @app.command()
 def watch() -> None:
     """Run tests in watch mode."""
-    console.print(f"\n[bold cyan]Running tests in watch mode...[/bold cyan]")
+    console.print("\n[bold cyan]Running tests in watch mode...[/bold cyan]")
     console.print("[dim]Press Ctrl+C to stop[/dim]\n")
     exit_code = _run_command(["pytest-watch"])
     if exit_code != 0:
@@ -69,7 +69,7 @@ def watch() -> None:
 @app.command()
 def coverage() -> None:
     """Generate coverage report."""
-    console.print(f"\n[bold cyan]Generating coverage report...[/bold cyan]")
+    console.print("\n[bold cyan]Generating coverage report...[/bold cyan]")
     exit_code = _run_command(["pytest", "--cov=app", "--cov-report=html", "--cov-report=term"])
     if exit_code != 0:
         raise typer.Exit(exit_code)
