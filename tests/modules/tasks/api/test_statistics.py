@@ -155,7 +155,9 @@ class TestTasksStatisticsAPI:
         mock_data_source.get_statistics.return_value = sample_statistics
 
         # Make request with filters
-        date_from = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
+        date_from = (datetime.now(UTC) - timedelta(days=30)).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
         date_to = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
         response = self.client.get(

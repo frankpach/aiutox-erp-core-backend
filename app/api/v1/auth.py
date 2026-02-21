@@ -106,11 +106,14 @@ async def login(
     try:
         auth_service = AuthService(db)
         user = auth_service.authenticate_user(login_data.email, login_data.password)
-        logger.debug(f"[LOGIN] Step 0: Authentication completed, user={user is not None}")
+        logger.debug(
+            f"[LOGIN] Step 0: Authentication completed, user={user is not None}"
+        )
     except Exception as e:
         # Handle database errors (e.g., missing tables) gracefully
         # This prevents 500 errors when database is not properly set up
         import logging
+
         logger = logging.getLogger("app")
         logger.warning(f"[LOGIN] Database error during authentication: {e}")
 
