@@ -190,20 +190,28 @@ class TestConfigModules:
         module_id = None
         for module in modules:
             mid = module["id"]
-            print(f"DEBUG: Checking module {mid}: type={module.get('type')}, dependencies={module.get('dependencies')}")
+            print(
+                f"DEBUG: Checking module {mid}: type={module.get('type')}, dependencies={module.get('dependencies')}"
+            )
             # Skip core critical modules
             if mid in ["auth", "users"]:
                 print(f"DEBUG: Skipping core critical module {mid}")
                 continue
             # Skip modules with dependencies defined
             if module.get("dependencies"):
-                print(f"DEBUG: Skipping module {mid} with dependencies: {module.get('dependencies')}")
+                print(
+                    f"DEBUG: Skipping module {mid} with dependencies: {module.get('dependencies')}"
+                )
                 continue
             # Check if any other enabled module depends on this one
             has_dependents = False
             for other_module in modules:
-                if other_module["id"] != mid and mid in other_module.get("dependencies", []):
-                    print(f"DEBUG: Skipping module {mid} - has dependent: {other_module['id']}")
+                if other_module["id"] != mid and mid in other_module.get(
+                    "dependencies", []
+                ):
+                    print(
+                        f"DEBUG: Skipping module {mid} - has dependent: {other_module['id']}"
+                    )
                     has_dependents = True
                     break
             if has_dependents:
