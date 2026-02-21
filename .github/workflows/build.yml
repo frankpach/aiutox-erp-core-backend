@@ -64,7 +64,7 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiutox_erp_test
         run: |
-          python test-db-connection.py
+          uv run --extra dev python test-db-connection.py
         working-directory: ./
 
       - name: Run tests
