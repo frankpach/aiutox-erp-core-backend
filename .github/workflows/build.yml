@@ -27,16 +27,16 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
-        working-directory: ./
+        working-directory: backend/
 
       - name: Lint with ruff
         run: uv run ruff check .
-        working-directory: ./
+        working-directory: backend/
 
       - name: Format check with black
         run: uv run black --check .
-        working-directory: ./
+        working-directory: backend/
 
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short -q -m "not performance"
-        working-directory: ./
+        working-directory: backend/
