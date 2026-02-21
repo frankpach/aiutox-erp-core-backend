@@ -277,8 +277,23 @@ class TestConfigModules:
         if not modules:
             pytest.skip("No modules available in registry")
 
-        # Use first available module
-        module_id = modules[0]["id"]
+        # Find a module that can be disabled (not core critical and no dependencies)
+        module_id = None
+        for module in modules:
+            mid = module["id"]
+            # Skip core critical modules
+            if mid in ["auth", "users"]:
+                continue
+            # Skip modules with dependencies
+            if module.get("dependencies"):
+                continue
+            # Found a suitable module
+            module_id = mid
+            break
+
+        # Skip test if no suitable module found
+        if not module_id:
+            pytest.skip("No modules available that can be disabled")
 
         # Act: Disable module
         response = client_with_db.put(
