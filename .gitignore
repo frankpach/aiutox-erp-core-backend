@@ -56,4 +56,10 @@ temp/
 
 # Diagnostic and utility scripts (keep organized but optional)
 scripts/*
+!scripts/cli/
+!scripts/cli/**
+!scripts/__init__.py
+!scripts/migrate_cli.py
+scripts/**/__pycache__/
+scripts/**/*.pyc
 
